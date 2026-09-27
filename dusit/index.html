@@ -396,6 +396,8 @@ html[lang="th"] .gift-badge{letter-spacing:.02em;text-transform:none;font-size:1
 .gift-note b{color:var(--cream)}
 .gift-img.multi{display:grid!important;grid-template-columns:1fr 1fr;gap:4px}
 .gift-img.multi img{height:100%;max-height:560px}
+.gift-img.multi3 img:first-child{grid-column:1/-1}
+.gift-img.multi3 img{max-height:none}
 </style>
 </head>
 <body>
@@ -849,6 +851,7 @@ html[lang="th"] .gift-badge{letter-spacing:.02em;text-transform:none;font-size:1
     if (!src){ box.remove(); return; }
     var list = [].concat(src), loaded = 0;
     if (list.length > 1) box.classList.add("multi");
+    if (list.length > 2) box.classList.add("multi3");
     list.forEach(function(u){
       var im = new Image(); im.alt = "";
       im.addEventListener("load", function(){ loaded++; card.classList.add("has-img"); });
