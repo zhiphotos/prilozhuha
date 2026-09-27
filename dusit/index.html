@@ -417,6 +417,13 @@ html[lang="th"] .gift-badge{letter-spacing:.02em;text-transform:none;font-size:1
 #vibe .gal-p{color:var(--muted)}
 #vibe .vibe-f figcaption{color:var(--muted)}
 #vibe .vibe-v{border-color:#fffaf1}
+
+/* phones: icon left, price right on one row above the title (no overlap) */
+@media (max-width:560px){
+  .gv{display:block!important;grid-template-columns:none!important}
+  .gv-top{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;grid-row:auto!important;margin:0 0 10px!important;gap:12px}
+  .gv-top b{font-size:13px!important;white-space:nowrap}
+}
 </style>
 </head>
 <body>
