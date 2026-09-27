@@ -45,7 +45,7 @@ window.PITCH_CONFIG = {
     aiPhotos: [
       "media/ai/photo1.jpg", "media/ai/photo2.jpg", "media/ai/photo3.jpg",
       "media/ai/photo4.jpg", "media/ai/photo5.jpg", "media/ai/photo6.jpg",
-      "media/ai/photo7.jpg", "media/ai/photo8.jpg", "media/ai/photo9.jpg",
+      "media/ai/photo7.jpg", "media/ai/photo8.jpg", "media/ai/photo9.jpg", "media/ai/photo10.jpg",
     ],
     // ИИ-работы для клиентов (фото jpg / видео mp4) — кладёшь в dusit/media/clients/
     clientWorks: [
