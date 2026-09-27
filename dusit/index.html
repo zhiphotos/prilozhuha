@@ -42,14 +42,14 @@ section{padding:110px 0}
 .bar.solid .brand{color:var(--ink)}
 .lang{display:flex;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:3px;backdrop-filter:blur(8px)}
 .bar.solid .lang{background:#fff;border-color:var(--line)}
-.lang button{border:0;background:transparent;color:#fff;font:600 13px var(--sans);padding:7px 14px;border-radius:999px;cursor:pointer;min-width:56px}
+.lang button{border:0;background:transparent;color:#fff;font:600 13px var(--sans);padding:7px 12px;border-radius:999px;cursor:pointer;min-width:48px}
 .bar.solid .lang button{color:var(--ink)}
 .lang button.on{background:var(--gold);color:#fff!important}
 
 /* hero */
-.hero{position:relative;min-height:100svh;display:flex;align-items:flex-end;padding:0 0 80px;color:#fff;overflow:hidden;background:linear-gradient(160deg,#0f4c4f 0%,#1f6f6a 45%,#c9a66b 100%)}
+.hero{position:relative;min-height:100svh;display:flex;align-items:flex-end;padding:0 0 80px;color:#fff;overflow:hidden;background:#0f4c4f url("media/pf/drone-beach.jpg") center/cover no-repeat}
 .hero .bgmedia{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,30,32,.25) 0%,rgba(10,30,32,.15) 40%,rgba(10,30,32,.75) 100%)}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,30,32,.45) 0%,rgba(10,30,32,.35) 35%,rgba(10,30,32,.85) 100%)}
 .hero .wrap{position:relative;z-index:2;width:100%}
 .hero .eyebrow{color:var(--gold-soft)}
 .hero h1{font-size:clamp(44px,8vw,104px);margin:14px 0 20px;max-width:14ch}
@@ -144,6 +144,25 @@ section{padding:110px 0}
 .soc b{display:block;font-size:16px;margin:4px 0 8px;word-break:break-all}
 .soc em{font-style:normal;font-family:var(--serif);font-size:32px;color:var(--teal)}
 
+/* cases */
+.cases{display:grid;gap:26px;margin-top:50px}
+.case{display:grid;grid-template-columns:1fr 1fr 1.05fr;gap:14px;align-items:stretch;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.case img{width:100%;height:100%;object-fit:cover;border-radius:12px;aspect-ratio:4/5}
+.case .txt{padding:14px 14px 14px 10px;display:flex;flex-direction:column;justify-content:center}
+.case .txt small{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.case .txt h3{font-size:30px;margin:6px 0 10px}
+.case .txt p{font-size:15px;color:var(--muted)}
+.svc-title{margin-top:90px}
+.svcs{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-top:40px}
+.svc{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;grid-column:span 2}
+.svc.wide{grid-column:span 3}
+.svc .imgs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;grid-template-rows:100%;gap:3px;height:260px;overflow:hidden}
+.svc .imgs img{width:100%;height:100%;min-height:0;object-fit:cover}
+.svc .b{padding:20px 22px 24px}
+.svc h3{font-size:24px;margin-bottom:6px}
+.svc p{font-size:15px;color:var(--muted)}
+html[lang="th"] .case .txt small{letter-spacing:.02em;text-transform:none}
+
 /* ask */
 .ask{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:50px}
 .box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:30px}
@@ -166,6 +185,8 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
 @media (max-width:900px){
   section{padding:80px 0}
   .fam-grid,.ask{grid-template-columns:1fr}
+  .case{grid-template-columns:1fr 1fr}.case .txt{grid-column:1/-1;grid-row:1;padding:10px 8px 4px}
+  .svcs{grid-template-columns:1fr}.svc,.svc.wide{grid-column:auto}
   .why-grid,.offers,.ideas{grid-template-columns:1fr}
   .numbers,.socials{grid-template-columns:repeat(2,1fr)}
   .stats{grid-template-columns:1fr}
@@ -187,6 +208,7 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
   <div class="lang" role="group" aria-label="Language">
     <button type="button" data-lang="en" class="on">EN</button>
     <button type="button" data-lang="th">ไทย</button>
+    <button type="button" data-lang="ru">RU</button>
   </div>
 </header>
 
@@ -196,9 +218,9 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
   <div class="wrap">
     <div class="eyebrow" data-t="hero.eyebrow">Collaboration proposal · Dusit Thani Laguna Phuket</div>
     <h1 data-t="hero.title">Your resort, told through one family's story.</h1>
-    <p data-t="hero.sub">We are a young creator family — Mom, Dad and little Mark. We film cinematic family travel content and build AI content systems. We'd love to make Dusit Thani Laguna Phuket the most talked-about family resort on Bang Tao.</p>
+    <p data-t="hero.sub">We are a young creator family — Mom, Dad and little Mark. We shoot hotel photo &amp; video, cinematic family travel content, and build AI content systems. We'd love to make Dusit Thani Laguna Phuket the most talked-about family resort on Bang Tao.</p>
     <div class="ctas">
-      <a class="btn gold" href="#teasers" data-t="hero.cta1">Watch what we already made for you</a>
+      <a class="btn gold" href="#work" data-t="hero.cta1">See our hotel work</a>
       <a class="btn ghost" href="#offers" data-t="hero.cta2">See the proposal</a>
     </div>
     <div class="exclusive" data-t="hero.exclusive">Prepared exclusively for the Marketing team of Dusit Thani Laguna Phuket</div>
@@ -219,7 +241,7 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
         <div class="person reveal"><div class="ph" data-media="mark"><span class="phl">mark</span></div><div><h3 data-name="kid">Mark</h3><p data-t="fam.mark">The star. Kids club reviewer, junior chef, sandcastle architect.</p></div></div>
       </div>
     </div>
-    <div class="stats">
+    <div class="stats" id="stats">
       <div class="stat reveal"><b data-stat="reach">—</b><span data-t="fam.s1">monthly reach across our channels</span></div>
       <div class="stat reveal"><b data-stat="views">—</b><span data-t="fam.s2">average views per Reel</span></div>
       <div class="stat reveal"><b data-stat="audience">—</b><span data-t="fam.s3">core audience — Phuket's #1 source markets</span></div>
@@ -244,19 +266,18 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
 <!-- TEASERS -->
 <section id="teasers">
   <div class="wrap center">
-    <div class="eyebrow" data-t="tz.eyebrow">Already made — for you</div>
-    <h2 data-t="tz.title">We didn't just write a proposal. We started filming.</h2>
-    <p class="lead" data-t="tz.lead">Three pieces created at your resort, before we even met. Imagine two months of this.</p>
+    <div class="eyebrow" data-t="tz.eyebrow">Made for you — before we even arrive</div>
+    <h2 data-t="tz.title">We didn't just write a proposal. We started creating.</h2>
+    <p class="lead" data-t="tz.lead">Concept pieces imagined for your resort. Now picture ten days of the real thing.</p>
   </div>
   <div class="wrap">
     <div class="teasers">
-      <div><div class="ph teaser reveal" data-media="teasers.0"><span class="phl">teaser1.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c1">Real footage · “Morning on Bang Tao”</div></div>
-      <div><div class="ph teaser reveal" data-media="teasers.1"><span class="phl">teaser2.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c2">AI-enhanced · “Mark's dream resort”</div></div>
-      <div><div class="ph teaser reveal" data-media="teasers.2"><span class="phl">teaser3.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c3">Multilingual · same Reel in EN / TH / RU / CN</div></div>
+      <div><div class="ph teaser reveal" data-media="teasers.0"><span class="phl">teaser1.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c1">AI concept · “Mark's first day at Busy Bee”</div></div>
+      <div><div class="ph teaser reveal" data-media="teasers.1"><span class="phl">teaser2.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c2">AI concept · “Bang Tao sunset, painted”</div></div>
+      <div><div class="ph teaser reveal" data-media="teasers.2"><span class="phl">teaser3.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c3">Multilingual · one Reel in EN / TH / RU / CN</div></div>
     </div>
   </div>
 </section>
-
 <!-- IDEAS -->
 <section style="background:var(--bg-2)">
   <div class="wrap">
@@ -277,8 +298,8 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
 <section id="offers">
   <div class="wrap center">
     <div class="eyebrow" data-t="of.eyebrow">The proposal</div>
-    <h2 data-t="of.title">Three ways to work together.</h2>
-    <p class="lead" data-t="of.lead">All options are barter: accommodation for our family in exchange for content and technology. No agency fees.</p>
+    <h2 data-t="of.title">10 nights. One room. Content for months.</h2>
+    <p class="lead" data-t="of.lead">A simple barter: 10 nights' accommodation for our family of three in one room — nothing else. No fees. Our flights aren't booked yet, so we'll plan the trip around the dates that suit you best.</p>
   </div>
   <div class="wrap">
     <div class="offers">
@@ -287,72 +308,98 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
         <h3 data-t="of.a.h">AI Content Studio</h3>
         <p data-t="of.a.p">We set up an AI content system for your team and train them to create content on their own.</p>
         <ul>
-          <li data-t="of.a.1">AI toolkit set up for photo, video, Reels & copy</li>
-          <li data-t="of.a.2">Brand prompts & templates in Dusit style</li>
+          <li data-t="of.a.1">AI toolkit set up for photo, video, Reels &amp; copy</li>
+          <li data-t="of.a.2">Brand prompts &amp; templates in Dusit style</li>
           <li data-t="of.a.3">Online video lessons for staff (EN / TH)</li>
-          <li data-t="of.a.4">Live workshops on-site</li>
-          <li data-t="of.a.5">30 days of follow-up support</li>
+          <li data-t="of.a.4">Live workshops on-site during our stay</li>
+          <li data-t="of.a.5">30 days of remote support after check-out</li>
         </ul>
       </div>
       <div class="offer best reveal">
         <div class="ribbon" data-t="of.best">Recommended</div>
         <div class="k" data-t="of.c.k">Option C · Signature</div>
         <h3 data-t="of.c.h">Content + AI Studio</h3>
-        <p data-t="of.c.p">Everything from A and B: two months of content, plus a trained team and an AI system that keeps working after we leave.</p>
+        <p data-t="of.c.p">Everything from A and B: a content library for two months of posting, plus a trained team and an AI system that keeps working after we leave.</p>
         <ul>
-          <li data-t="of.c.1">Full 2-month content production</li>
+          <li data-t="of.c.1">Full photo &amp; video production</li>
           <li data-t="of.c.2">AI studio setup + staff training</li>
-          <li data-t="of.c.3">YouTube vlog series about the resort</li>
+          <li data-t="of.c.3">YouTube family vlog about the resort</li>
           <li data-t="of.c.4">Multilingual versions for key markets</li>
-          <li data-t="of.c.5">Monthly performance report</li>
+          <li data-t="of.c.5">Performance report after publishing</li>
         </ul>
       </div>
       <div class="offer reveal">
         <div class="k" data-t="of.b.k">Option B</div>
-        <h3 data-t="of.b.h">2-Month Content Production</h3>
-        <p data-t="of.b.p">We live the resort and create a full content library — real and AI-powered.</p>
+        <h3 data-t="of.b.h">Content for 2 Months</h3>
+        <p data-t="of.b.p">In ten days we shoot enough to fill your feed for two months — real and AI-powered.</p>
         <ul>
-          <li data-t="of.b.1">Reels & TikToks, real + AI</li>
-          <li data-t="of.b.2">Professional photo library</li>
-          <li data-t="of.b.3">Collab posts on our Instagram</li>
-          <li data-t="of.b.4">YouTube family vlog episodes</li>
+          <li data-t="of.b.1">Reels &amp; TikToks, real + AI</li>
+          <li data-t="of.b.2">Room photos with a wide-angle lens — for website &amp; OTAs</li>
+          <li data-t="of.b.3">Restaurant &amp; food shoot, drone footage</li>
+          <li data-t="of.b.4">Collab posts &amp; daily Stories on our Instagram</li>
           <li data-t="of.b.5">Full usage rights for Dusit</li>
         </ul>
       </div>
     </div>
     <div class="numbers">
-      <div class="num reveal"><b>40+</b><span data-t="nu.1">Reels & short videos</span></div>
-      <div class="num reveal"><b>300+</b><span data-t="nu.2">edited photos</span></div>
-      <div class="num reveal"><b>4</b><span data-t="nu.3">YouTube vlog episodes</span></div>
-      <div class="num reveal"><b>60+</b><span data-t="nu.4">Stories with links & tags</span></div>
+      <div class="num reveal"><b>20+</b><span data-t="nu.1">Reels &amp; short videos</span></div>
+      <div class="num reveal"><b>150+</b><span data-t="nu.2">edited photos</span></div>
+      <div class="num reveal"><b>2</b><span data-t="nu.3">YouTube vlog episodes</span></div>
+      <div class="num reveal"><b>60</b><span data-t="nu.4">days of ready-to-post content</span></div>
     </div>
   </div>
 </section>
-
 <!-- TIMELINE -->
 <section style="background:var(--bg-2)">
   <div class="wrap">
     <div class="eyebrow" data-t="tl.eyebrow">How it runs</div>
-    <h2 data-t="tl.title">Eight weeks, clearly planned.</h2>
+    <h2 data-t="tl.title">Ten days, clearly planned.</h2>
     <div class="tl">
-      <div class="step reveal"><div class="w" data-t="tl.1w">Week 0</div><h3 data-t="tl.1h">Brief & content plan</h3><p data-t="tl.1p">Call with your marketing team: goals, seasonal offers, brand rules. We deliver a content calendar for approval.</p></div>
-      <div class="step reveal"><div class="w" data-t="tl.2w">Weeks 1–2</div><h3 data-t="tl.2h">Hero shoot</h3><p data-t="tl.2p">Main photo & video shoot across the resort. First Reels live within days.</p></div>
-      <div class="step reveal"><div class="w" data-t="tl.3w">Weeks 3–6</div><h3 data-t="tl.3h">Series & AI studio</h3><p data-t="tl.3p">Weekly series go live. In parallel we set up the AI system and run training for your team.</p></div>
-      <div class="step reveal"><div class="w" data-t="tl.4w">Weeks 7–8</div><h3 data-t="tl.4h">Handover & report</h3><p data-t="tl.4p">Full content library, YouTube episodes, trained team, and a report with reach, engagement and growth.</p></div>
+      <div class="step reveal"><div class="w" data-t="tl.1w">Before arrival</div><h3 data-t="tl.1h">Dates, brief &amp; content plan</h3><p data-t="tl.1p">You choose the dates that fit your occupancy — we book flights around them. A short call about goals, offers and brand rules, then a shot list for your approval.</p></div>
+      <div class="step reveal"><div class="w" data-t="tl.2w">Days 1–3</div><h3 data-t="tl.2h">Hero shoot</h3><p data-t="tl.2p">Rooms, pools, beach, restaurant and drone. The first Reels go live while we're still there.</p></div>
+      <div class="step reveal"><div class="w" data-t="tl.3w">Days 4–8</div><h3 data-t="tl.3h">Family series &amp; AI studio</h3><p data-t="tl.3p">Kids Club, Camp Out, junior chef, wellness. In parallel we set up the AI system and run workshops for your team.</p></div>
+      <div class="step reveal"><div class="w" data-t="tl.4w">Days 9–10</div><h3 data-t="tl.4h">Final shots &amp; handover</h3><p data-t="tl.4p">Last scenes, raw library handed over, publishing calendar agreed.</p></div>
+      <div class="step reveal"><div class="w" data-t="tl.5w">After check-out</div><h3 data-t="tl.5h">Editing, publishing, report</h3><p data-t="tl.5p">Final edits delivered within 2–3 weeks, YouTube episodes released, online lessons for staff, and a report with reach and engagement.</p></div>
     </div>
   </div>
 </section>
-
 <!-- PORTFOLIO -->
 <section id="work">
   <div class="wrap">
     <div class="eyebrow" data-t="pf.eyebrow">Our work</div>
-    <h2 data-t="pf.title">A taste of what we create.</h2>
+    <h2 data-t="pf.title">Hotels &amp; glampings we've already shot.</h2>
+    <p class="lead" data-t="pf.lead">Complete visual content for Instagram, websites and booking platforms — rooms, grounds, food and the feeling of being there.</p>
+    <div class="cases">
+      <div class="case reveal">
+        <img src="media/pf/freedom-1.jpg" alt="Freedom hotel, Abkhazia" loading="lazy">
+        <img src="media/pf/freedom-2.jpg" alt="Freedom hotel, Abkhazia" loading="lazy">
+        <div class="txt"><small data-t="cs.1k">Hotel · Abkhazia</small><h3>Freedom</h3><p data-t="cs.1p">Seaside hotel: rooms with sea views, balconies, beach and lifestyle photos with a guest in frame — a complete Instagram visual.</p></div>
+      </div>
+      <div class="case reveal">
+        <img src="media/pf/clever-1.jpg" alt="Clever glamping, Russia" loading="lazy">
+        <img src="media/pf/clever-2.jpg" alt="Clever glamping, Russia" loading="lazy">
+        <div class="txt"><small data-t="cs.2k">Glamping · Russia</small><h3>Clever</h3><p data-t="cs.2p">Dome glamping in the forest: evening atmosphere, lights, food and cosy details that make people want to book.</p></div>
+      </div>
+      <div class="case reveal">
+        <img src="media/pf/pitsunda-1.jpg" alt="Hotel in Pitsunda, Abkhazia" loading="lazy">
+        <img src="media/pf/pitsunda-2.jpg" alt="Hotel in Pitsunda, Abkhazia" loading="lazy">
+        <div class="txt"><small data-t="cs.3k">Hotel · Abkhazia</small><h3 data-t="cs.3h">Pitsunda</h3><p data-t="cs.3p">Rooms, bathrooms, gym, gardens and grounds — clean, bright and consistent in one colour style.</p></div>
+      </div>
+    </div>
+
+    <h2 class="svc-title" data-t="sv.title">What we shoot for hotels.</h2>
+    <div class="svcs">
+      <div class="svc wide reveal"><div class="imgs"><img src="media/pf/room-wide.jpg" alt="" loading="lazy"><img src="media/pf/room-towels.jpg" alt="" loading="lazy"></div><div class="b"><h3 data-t="sv.1h">Rooms</h3><p data-t="sv.1p">Wide-angle lens, colour correction and retouching — ready for your website, Booking and Airbnb.</p></div></div>
+      <div class="svc wide reveal"><div class="imgs"><img src="media/pf/drone-beach.jpg" alt="" loading="lazy"><img src="media/pf/drone-dome.jpg" alt="" loading="lazy"></div><div class="b"><h3 data-t="sv.2h">Drone</h3><p data-t="sv.2p">We travel with a professional drone for aerial photo and video of the resort, beach and lagoon.</p></div></div>
+      <div class="svc reveal"><div class="imgs"><img src="media/pf/mood-1.jpg" alt="" loading="lazy"><img src="media/pf/mood-2.jpg" alt="" loading="lazy"></div><div class="b"><h3 data-t="sv.3h">Mood photos</h3><p data-t="sv.3p">Photos with people and feeling help future guests picture themselves with you — and that sells.</p></div></div>
+      <div class="svc reveal"><div class="imgs"><img src="media/pf/food-1.jpg" alt="" loading="lazy"><img src="media/pf/restaurant-1.jpg" alt="" loading="lazy"></div><div class="b"><h3 data-t="sv.4h">Restaurant &amp; food</h3><p data-t="sv.4p">Signature dishes in bold, appetising compositions for your restaurants.</p></div></div>
+      <div class="svc reveal"><div class="imgs"><img src="media/pf/color-2.jpg" alt="" loading="lazy"><img src="media/pf/example-2.jpg" alt="" loading="lazy"></div><div class="b"><h3 data-t="sv.5h">Your colour style</h3><p data-t="sv.5p">We agree the colour palette with you and match your brand look in every photo and video.</p></div></div>
+    </div>
+
     <div class="pf" id="pf"></div>
     <div class="socials" id="socials"></div>
   </div>
 </section>
-
 <!-- ASK -->
 <section style="background:var(--bg-2)">
   <div class="wrap">
@@ -362,16 +409,16 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
       <div class="box reveal">
         <h3 data-t="ask.we">From Dusit</h3>
         <ul>
-          <li data-t="ask.w1">One room for our family of three for the collaboration period</li>
+          <li data-t="ask.w1">10 nights' accommodation — one room for 2 adults and 1 child</li>
           <li data-t="ask.w2">Access to resort experiences for filming</li>
           <li data-t="ask.w3">One contact person in the marketing team</li>
-          <li data-t="ask.w4">Flexible dates — we adapt to your occupancy</li>
+          <li data-t="ask.w4">Any dates that suit you — our flights aren't booked yet</li>
         </ul>
       </div>
       <div class="box reveal">
         <h3 data-t="ask.you">For Dusit</h3>
         <ul>
-          <li data-t="ask.y1">A content library worth far more than the stay</li>
+          <li data-t="ask.y1">Two months of content — worth far more than the stay</li>
           <li data-t="ask.y2">Exposure to a new, engaged family audience</li>
           <li data-t="ask.y3">A trained team and your own AI content system</li>
           <li data-t="ask.y4">Rights to use all content in your channels & ads</li>
@@ -386,11 +433,12 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
   <div class="wrap">
     <div class="eyebrow" style="color:var(--gold-soft)" data-t="fi.eyebrow">Let's talk</div>
     <h2 data-t="fi.title">Let's make Dusit the family resort everyone is talking about.</h2>
-    <p class="lead" data-t="fi.lead">We're already in Phuket and can meet this week. A 20-minute call is enough to start.</p>
+    <p class="lead" data-t="fi.lead">Tell us which dates work for you — we'll plan our flights to Phuket around them. A 20-minute call is enough to start.</p>
     <div class="ctas">
-      <a class="btn gold" id="cWa" href="#" data-t="fi.wa">WhatsApp</a>
+      <a class="btn gold" id="cWa" target="_blank" rel="noopener" href="#" data-t="fi.wa">WhatsApp</a>
       <a class="btn ghost" id="cMail" href="#" data-t="fi.mail">Email us</a>
       <a class="btn ghost" id="cTg" href="#">Telegram</a>
+      <a class="btn ghost" id="cIg" href="#" target="_blank" rel="noopener">Instagram</a>
     </div>
   </div>
 </section>
@@ -412,9 +460,10 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
   // ---------- language ----------
   function getLang(){
     var q = new URLSearchParams(location.search).get("lang");
-    if (q === "th" || q === "en") return q;
+    if (q === "th" || q === "en" || q === "ru") return q;
     try { var s = localStorage.getItem("pitch-lang"); if (s) return s; } catch(e){}
-    return (navigator.language || "").toLowerCase().indexOf("th") === 0 ? "th" : "en";
+    var nl = (navigator.language || "").toLowerCase().slice(0, 2);
+    return (nl === "th" || nl === "ru") ? nl : "en";
   }
   function setLang(l){
     var dict = D[l] || D.en;
@@ -439,9 +488,11 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
   document.querySelectorAll("[data-name]").forEach(function(el){
     var v = f[el.getAttribute("data-name")]; if (v) el.textContent = v;
   });
-  var st = C.stats || {};
-  document.querySelectorAll("[data-stat]").forEach(function(el){
-    var v = st[el.getAttribute("data-stat")]; if (v) el.textContent = v;
+  var st = C.stats;
+  if (!st) document.getElementById("stats").style.display = "none";
+  else document.querySelectorAll("[data-stat]").forEach(function(el){
+    var v = st[el.getAttribute("data-stat")];
+    if (v) el.textContent = v; else el.parentNode.style.display = "none";
   });
 
   // ---------- media with graceful fallback ----------
@@ -470,6 +521,15 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
   document.querySelectorAll("[data-media]").forEach(function(box){
     fill(box, pick(box.getAttribute("data-media")));
   });
+  // Concept teasers are optional: the section stays hidden until at least one file exists
+  var tz = document.getElementById("teasers");
+  tz.style.display = "none";
+  (M.teasers || []).forEach(function(src){
+    var v = document.createElement("video");
+    v.preload = "metadata";
+    v.addEventListener("loadedmetadata", function(){ tz.style.display = ""; });
+    v.src = src;
+  });
   var pf = document.getElementById("pf");
   (M.portfolio || []).forEach(function(src, i){
     var b = document.createElement("div");
@@ -490,8 +550,8 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
       a.innerHTML = "<small></small><b></b><em></em> <span></span>";
       a.children[0].textContent = s.label;
       a.children[1].textContent = s.handle;
-      a.children[2].textContent = s.followers;
-      a.children[3].textContent = (dict && dict["soc.followers"]) || "followers";
+      a.children[2].textContent = s.followers || "";
+      a.children[3].textContent = s.followers ? ((dict && dict["soc.followers"]) || "followers") : "";
       a.children[3].style.cssText = "font-size:13px;color:var(--muted)";
       box.appendChild(a);
     });
@@ -503,6 +563,9 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
   if (ct.whatsapp) wa.href = "https://wa.me/" + ct.whatsapp; else wa.style.display = "none";
   if (ct.email) ml.href = "mailto:" + ct.email + "?subject=" + encodeURIComponent("Dusit Thani Laguna Phuket × Family collaboration"); else ml.style.display = "none";
   if (ct.telegram) tg.href = "https://t.me/" + ct.telegram; else tg.style.display = "none";
+  var ig = document.getElementById("cIg");
+  if (ct.instagram) ig.href = "https://ig.me/m/" + ct.instagram; else ig.style.display = "none";
+  if (!ct.whatsapp && ct.instagram) ig.className = "btn gold";
 
   // ---------- header + reveal ----------
   var bar = document.getElementById("bar");
