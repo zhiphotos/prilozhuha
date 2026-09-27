@@ -19,6 +19,9 @@ window.PITCH_CONFIG = {
   // stats: { reach: "1.2M", views: "150K", audience: "RU · EN · CIS" },
   stats: { reach: "30K", audience: "RU" },
 
+  // Отзыв клиента (Freedom / Пицунда / Clever). Пока quote пустой — блок скрыт.
+  testimonial: { quote: "", name: "", role: "", place: "" },
+
   contact: {
     email: "darinazizina@gmail.com",
     whatsapp: "79622028885",              // номер без + , например 79001234567

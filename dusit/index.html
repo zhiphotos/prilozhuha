@@ -395,6 +395,12 @@ b,strong{font-weight:500}
 @media (max-width:900px){.ai-pts{grid-template-columns:1fr 1fr}}
 @media (max-width:520px){.ai-pts{grid-template-columns:1fr}.gal-h{font-size:26px}}
 .aigrid img,.aigrid video,.teaser,.case img,.pf .ph{border-radius:var(--r)!important}
+
+.menu-reply{text-align:center;margin:30px auto 0;max-width:680px;font-size:17px;padding:18px 20px;border:1px solid var(--gold-soft);background:var(--card)}
+.menu-reply i{font-style:normal;color:var(--gold)}
+.testi{margin:50px auto 0;max-width:820px;text-align:center}
+.testi blockquote{font-family:var(--serif);font-weight:300;font-size:clamp(22px,2.6vw,30px);line-height:1.35}
+.testi figcaption{margin-top:14px;font-size:14px;color:var(--gold)}
 </style>
 </head>
 <body>
@@ -414,8 +420,8 @@ b,strong{font-weight:500}
   <div class="wrap">
     <div class="eyebrow" data-t="hero.eyebrow">Collaboration proposal · Dusit Thani Laguna Phuket</div>
     <h1 data-t="hero.title">One room. Two tasks of your choice. Done beautifully.</h1>
-    <p class="sub-m" data-t="hero.subm">Darina, Dima &amp; Mark — a creator family. Content for <b>your</b> accounts, AI tools for your team.</p>
-    <p class="sub-d" data-t="hero.sub">We are Darina, Dima and little Mark — a Russian creator family. Darina is a blogger and hotel photographer, Dima edits YouTube videos for well-known Russian creators. We create content for <b>your</b> accounts, train your team with AI tools — and share our stay with our own audience.</p>
+    <p class="sub-m" data-t="hero.subm">Fresh 5-star content for your high season — shot in October, delivered by November.</p>
+    <p class="sub-d" data-t="hero.sub">Darina, Dima and little Mark — a Russian creator family. Fresh 5-star content for your high season: shot in October, delivered by November.</p>
     <div class="ctas">
       <a class="btn gold cta-work" href="#work" data-t="hero.cta1">See our hotel work</a>
       <a class="btn ghost" href="#offers" data-t="hero.cta2">See the proposal</a>
@@ -480,6 +486,10 @@ b,strong{font-weight:500}
       <div class="svc reveal"><div class="imgs"><img src="media/pf/color-2.jpg" alt="" loading="lazy"><img src="media/pf/example-2.jpg" alt="" loading="lazy"></div><div class="b"><h3 data-t="sv.5h">Your colour style</h3><p data-t="sv.5p">We agree the colour palette with you and match your brand look in every photo and video.</p></div></div>
     </div>
 
+    <figure class="testi" id="testi" style="display:none">
+      <blockquote id="testiQ"></blockquote>
+      <figcaption id="testiA"></figcaption>
+    </figure>
     <div class="pf" id="pf"></div>
     <div class="socials" id="socials"></div>
   </div>
@@ -491,15 +501,15 @@ b,strong{font-weight:500}
     <h2 data-t="ai.title">AI you can't tell from the real thing.</h2>
     <p class="lead" data-t="ai.lead">We combine real shoots with high-end AI. The result looks exactly like a real photo shoot or film — and lets you create far more content, even after we leave.</p>
     <div class="ai-pts">
-      <div class="why reveal"><div class="n">01</div><h3 data-t="ai.1h">Indistinguishable from real</h3><p data-t="ai.1p">Photos and videos in 5-star quality — sharp, high-resolution, no pixels. No one will know it's AI unless you tell them.</p></div>
-      <div class="why reveal"><div class="n">02</div><h3 data-t="ai.2h">Any model, in your real locations</h3><p data-t="ai.2p">Thai, European or any other models in your rooms, restaurants and on your beach — without organising a new shoot.</p></div>
-      <div class="why reveal"><div class="n">03</div><h3 data-t="ai.3h">Your voice in every language</h3><p data-t="ai.3p">Natural voice translation: your GM, chef or spa therapist speaks English, Thai, Russian, Chinese and more — in their own voice.</p></div>
-      <div class="why reveal"><div class="n">04</div><h3 data-t="ai.4h">Content that keeps coming</h3><p data-t="ai.4p">Once the system is set up, new content can be created from what we shoot — long after we check out.</p></div>
+      <div class="why reveal"><div class="n">01</div><h3 data-t="ai.1h">Photoreal quality</h3><p data-t="ai.1p">Photos and videos in 5-star quality — sharp, high-resolution, no pixels. Indistinguishable in quality from a real shoot.</p></div>
+      <div class="why reveal"><div class="n">02</div><h3 data-t="ai.2h">Any model, in your real locations</h3><p data-t="ai.2p">Real rooms, real views — AI only adds the people and the moment. Thai, European or any other models in your real locations, without organising a new shoot.</p></div>
+      <div class="why reveal"><div class="n">03</div><h3 data-t="ai.3h">Your voice in every language</h3><p data-t="ai.3p">Natural voice translation: your GM, chef or spa therapist speaks English, Thai, Russian, Chinese and more — in their own voice, with their written consent.</p></div>
+      <div class="why reveal"><div class="n">04</div><h3 data-t="ai.4h">Content that keeps coming</h3><p data-t="ai.4p">All AI assets and prompts are handed over to you, so new content keeps coming after we leave. Nothing is published without your approval.</p></div>
     </div>
 
     <div class="ai-gal" id="aiHotel">
       <h3 class="gal-h" data-t="ai.hotel">Made with your resort</h3>
-      <p class="gal-p" data-t="ai.hotelp">Created before our visit from public images of the resort. Can you tell which is AI?</p>
+      <p class="gal-p" data-t="ai.hotelp">Created for this proposal only from public images of the resort — not published anywhere. Can you tell which is AI?</p>
       <div class="teasers" id="tzv">
       <div data-slot><div class="ph teaser reveal" data-media="teasers.0"><span class="phl">teaser1.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c1">AI concept · “Mark's first day at Busy Bee”</div></div>
       <div data-slot><div class="ph teaser reveal" data-media="teasers.1"><span class="phl">teaser2.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c2">AI concept · “Bang Tao sunset, painted”</div></div>
@@ -513,7 +523,7 @@ b,strong{font-weight:500}
       <p class="gal-p" data-t="ai.clientsp">We already do this for our clients — and they love the results.</p>
       <div class="aigrid" id="clientgrid"></div>
     </div>
-    <p class="ainote" data-t="ai.note">Every AI piece is sent to you for approval. Your rooms, food and facilities are always shown as they really are.</p>
+    <p class="ainote" data-t="ai.note">Every AI piece is sent to you for approval, labelled where platforms require it and used only in channels you approve. Your rooms, food and facilities are always shown as they really are.</p>
   </div>
 </section>
 <!-- IDEAS -->
@@ -562,6 +572,7 @@ b,strong{font-weight:500}
         <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="13" height="16" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/><path d="M10 8h7M10 12h7M10 16h4"/></svg><b>≈ 20K</b></div><h3 data-t="lt.4h">Carousel content plan</h3><p data-t="lt.4p">20 carousel posts: topics, slide texts and structure — you just lay them out and post.</p></div>
       </div>
     </div>
+    <p class="menu-reply reveal" data-t="mn.reply">Just reply with your pick — for example <i>“Content production + Reels audit”</i> — and your preferred dates.</p>
     <p class="menu-note" data-t="mn.note">We can do all of it — but we'd rather do the two things you need most, and do them beautifully. If it works well, we're happy to continue remotely.</p>
     <p class="value-line reveal" data-t="vl.line">The pair you choose is worth <b>THB 80–280K</b> at typical Phuket market rates.</p>
   </div>
@@ -624,7 +635,7 @@ b,strong{font-weight:500}
   <div class="wrap">
     <div class="eyebrow" style="color:var(--gold-soft)" data-t="fi.eyebrow">Let's talk</div>
     <h2 data-t="fi.title">Let's tell Dusit's family story together.</h2>
-    <p class="lead" data-t="fi.lead">Dates are flexible within 5–20 October — even a mid-October start works for us. A 20-minute call is enough to start.</p>
+    <p class="lead" data-t="fi.lead">Dates are flexible within 5–20 October. To book flights in time, a reply by 2 October would help us most — a 20-minute call is enough to start.</p>
     <div class="ctas">
       <a class="btn gold" id="cWa" target="_blank" rel="noopener" href="#" data-t="fi.wa">WhatsApp</a>
       <a class="btn ghost" id="cMail" href="#" data-t="fi.mail">Email us</a>
@@ -749,6 +760,14 @@ b,strong{font-weight:500}
   var hv = document.getElementById("heroVideo");
   if (M.heroPoster) hv.poster = M.heroPoster;
   if (M.hero){ hv.addEventListener("error", function(){ hv.style.display = "none"; }, true); hv.src = M.hero; }
+
+  // ---------- testimonial ----------
+  var tq = C.testimonial;
+  if (tq && tq.quote){
+    document.getElementById("testiQ").textContent = "“" + tq.quote + "”";
+    document.getElementById("testiA").textContent = [tq.name, tq.role, tq.place].filter(Boolean).join(" · ");
+    document.getElementById("testi").style.display = "";
+  }
 
   // ---------- socials ----------
   function renderSocials(dict){
