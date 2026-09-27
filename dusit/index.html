@@ -401,6 +401,17 @@ html[lang="th"] .gift-badge{letter-spacing:.02em;text-transform:none;font-size:1
 
 .hero .deal{margin-top:14px;max-width:620px;font-size:13px;line-height:1.7;color:var(--cream);opacity:.92}
 @media (max-width:560px){.hero .deal{font-size:12.5px}}
+
+/* family: wide group photo on top, three people below */
+.fam-grid{grid-template-columns:1fr!important;gap:26px}
+.fam-main{aspect-ratio:16/9!important;border-radius:18px}
+.fam-main img{object-position:center 30%}
+.fam-grid .people{grid-template-columns:repeat(3,1fr)!important;gap:28px}
+.fam-grid .person{flex-direction:column;align-items:flex-start;border-top:1px solid var(--line)}
+.person .ph{width:96px;height:96px}
+@media (max-width:700px){.fam-grid .people{grid-template-columns:1fr!important;gap:0}.fam-grid .person{flex-direction:row}.fam-main{aspect-ratio:4/3!important}}
+.stat-link{display:block;text-decoration:none;color:inherit}
+.stat-link:hover{background:var(--brown-2)}
 </style>
 </head>
 <body>
@@ -565,7 +576,7 @@ html[lang="th"] .gift-badge{letter-spacing:.02em;text-transform:none;font-size:1
       </div>
     </div>
     <div class="stats" id="stats">
-      <div class="stat reveal"><b data-stat="reach">—</b><span data-t="fam.s1">Instagram followers · @zhiphotos</span></div>
+      <a class="stat reveal stat-link" href="https://www.instagram.com/zhiphotos/" target="_blank" rel="noopener"><b data-stat="reach">—</b><span data-t="fam.s1">Instagram followers · @zhiphotos</span></a>
       <div class="stat reveal"><b data-stat="women">—</b><span data-t="fam.s2">of our audience are women — the ones who usually choose where the family goes</span></div>
       <div class="stat reveal"><b data-stat="age">—</b><span data-t="fam.s3">aged 25–44; about 80% from Russia and CIS countries</span></div>
       <div class="stat reveal"><b data-stat="reel">—</b><span data-t="fam.s4">views on our top Reel — over 1.1M across our eight best Reels this year</span></div>

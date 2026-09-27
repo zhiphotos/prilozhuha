@@ -10,7 +10,7 @@ window.PITCH_CONFIG = {
 
   // Соцсети. followers — строкой ("48K"); пусто "" — цифра не показывается
   socials: [
-    { label: "Instagram · Photo & video", handle: "@zhiphotos", url: "https://instagram.com/zhiphotos", followers: "31K" },
+    { label: "Instagram · Photo & video", handle: "@zhiphotos", url: "https://www.instagram.com/zhiphotos/", followers: "31K" },
     // { label: "Instagram · Family", handle: "@family_handle", url: "https://instagram.com/family_handle", followers: "" },
     // { label: "YouTube · Family vlog", handle: "Our Channel", url: "https://youtube.com/@your_channel", followers: "" },
   ],
