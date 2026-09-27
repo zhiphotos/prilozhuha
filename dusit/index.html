@@ -82,7 +82,7 @@ section{padding:110px 0}
 .person .ph{width:92px;height:92px;border-radius:50%;flex:none}
 .person h3{font-size:24px}
 .person p{font-size:15px;color:var(--muted)}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:40px}
 .stat{background:var(--teal);color:#fff;border-radius:var(--r);padding:26px}
 .stat b{display:block;font-family:var(--serif);font-size:44px;line-height:1;color:var(--gold-soft)}
 .stat span{font-size:14px;opacity:.85}
@@ -131,6 +131,21 @@ section{padding:110px 0}
 .offer ul{list-style:none;margin:20px 0 0;display:grid;gap:10px;font-size:15px}
 .offer li{padding-left:24px;position:relative}
 .offer li::before{content:"";position:absolute;left:2px;top:.62em;width:10px;height:10px;border-radius:50%;background:var(--gold)}
+
+/* gets board */
+.gv-head{margin-top:50px;text-align:center}
+.gv-head h3{font-size:clamp(28px,3.5vw,40px);margin-top:8px}
+.gvs{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:30px}
+.gv{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.gv-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.gv svg{width:38px;height:38px;padding:8px;border-radius:12px;background:var(--bg-2);stroke:var(--teal);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.gv-top b{font-family:var(--serif);font-size:36px;line-height:1;color:var(--gold)}
+.gv h3{font-size:20px;margin-bottom:4px}
+.gv p{font-size:14px;color:var(--muted);line-height:1.5}
+.opt-title{margin-top:70px;text-align:center;font-size:30px}
+.opt-title + .offers{margin-top:30px}
+@media (max-width:900px){.gvs{grid-template-columns:1fr 1fr}}
+@media (max-width:420px){.gv{padding:16px}.gv h3{font-size:18px}}
 
 /* numbers */
 .numbers{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:50px}
@@ -252,15 +267,15 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
     <div class="fam-grid">
       <div class="ph fam-main reveal" data-media="family" data-hide-missing><span class="phl">family.jpg</span></div>
       <div class="people">
-        <div class="person reveal"><div class="ph" data-media="mom" data-hide-missing><span class="phl">mom</span></div><div><h3 data-name="mom">Mom</h3><p data-t="fam.mom">Blogger &amp; photographer (@zhiphotos). Hotel shoots, styling, lifestyle Reels that feel like a movie.</p></div></div>
+        <div class="person reveal"><div class="ph" data-media="mom" data-hide-missing><span class="phl">mom</span></div><div><h3 data-name="mom">Mom</h3><p data-t="fam.mom">Blogger (30K on Instagram), hotel photographer and content teacher — knows what makes Reels go viral.</p></div></div>
         <div class="person reveal"><div class="ph" data-media="dad" data-hide-missing><span class="phl">dad</span></div><div><h3 data-name="dad">Dad</h3><p data-t="fam.dad">Video editor for YouTube channels of well-known Russian creators. Vlog storytelling, editing, AI production.</p></div></div>
         <div class="person reveal"><div class="ph" data-media="mark" data-hide-missing><span class="phl">mark</span></div><div><h3 data-name="kid">Mark</h3><p data-t="fam.mark">Our honest kid's-eye reviewer: kids club, pools and sandcastles.</p></div></div>
       </div>
     </div>
     <div class="stats" id="stats">
-      <div class="stat reveal"><b data-stat="reach">—</b><span data-t="fam.s1">monthly reach across our channels</span></div>
+      <div class="stat reveal"><b data-stat="reach">—</b><span data-t="fam.s1">Instagram followers · @zhiphotos</span></div>
       <div class="stat reveal"><b data-stat="views">—</b><span data-t="fam.s2">average views per Reel</span></div>
-      <div class="stat reveal"><b data-stat="audience">—</b><span data-t="fam.s3">core audience — Phuket's #1 source markets</span></div>
+      <div class="stat reveal"><b data-stat="audience">—</b><span data-t="fam.s3">core audience — Russian-speaking travellers</span></div>
     </div>
   </div>
 </section>
@@ -317,55 +332,65 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
   <div class="wrap center">
     <div class="eyebrow" data-t="of.eyebrow">The proposal</div>
     <h2 data-t="of.title">7–10 nights in October. Content for months.</h2>
-    <p class="lead" data-t="of.lead">A simple barter: 7–10 nights, one room for 2 adults and 1 child — room only, no F&amp;B, no fees. We're planning our trip within <b>5–20 October</b>: the quieter season, when we can film freely without disturbing guests — and your fresh content is ready right before high season begins.</p>
+    <p class="lead" data-t="of.lead">A simple barter: 7–10 nights, one room for 2 adults and 1 child — room only, no F&amp;B, no fees. We're travelling with a small child, so we plan one continuous stay within <b>5–20 October</b>: the quieter season, when we can film freely without disturbing guests — and your fresh content is ready right before high season begins.</p>
   </div>
   <div class="wrap">
+    <div class="gv-head reveal"><div class="eyebrow" data-t="gv.eyebrow">Everything Dusit gets</div>
+      <h3 data-t="gv.title">12 things you receive — for one room.</h3></div>
+    <div class="gvs">
+      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 9l5 3-5 3z"/></svg><b>20+</b></div><h3 data-t="gv.1h">Reels for <b>your</b> Instagram</h3><p data-t="gv.1p">Real and AI — made for your account, not ours.</p></div>
+      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8 5l1.5-2h5L16 5"/></svg><b>150+</b></div><h3 data-t="gv.2h">Edited photos</h3><p data-t="gv.2p">Rooms, pools, beach, spa and the family moments that sell.</p></div>
+      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18V7M21 18v-5H3M3 13h18M7 13v-2a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2"/></svg></div><h3 data-t="gv.3h">Room photos for OTAs</h3><p data-t="gv.3p">Wide-angle, retouched — for your website, Booking.com, Agoda, Expedia.</p></div>
+      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="5" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M7 7l2 2M17 7l-2 2M7 17l2-2M17 17l-2-2"/></svg></div><h3 data-t="gv.4h">Drone &amp; restaurant shoot</h3><p data-t="gv.4p">Aerials of the resort and beach, plus signature dishes.</p></div>
+      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3z"/></svg><b>2</b></div><h3 data-t="gv.5h">YouTube vlog episodes</h3><p data-t="gv.5p">Edited by Dima, who works with top Russian YouTube channels.</p></div>
+      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg><b>30K</b></div><h3 data-t="gv.6h">Our audience</h3><p data-t="gv.6p">Reels &amp; Stories tagging the resort, to Russian-speaking travellers.</p></div>
+      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6 16v-4M11 16V8M16 16v-6M20 5l-4 3-4-2-5 4"/></svg></div><h3 data-t="gv.7h">Content audit &amp; viral strategy</h3><p data-t="gv.7p">Darina, a content teacher, reviews your Instagram and shows how to make Reels go viral.</p></div>
+      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="13" height="16" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/><path d="M10 8h7M10 12h7M10 16h4"/></svg><b>20</b></div><h3 data-t="gv.8h">Carousel posts, planned</h3><p data-t="gv.8p">Topics, slide texts and structure — you just lay them out and post.</p></div>
+      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/></svg></div><h3 data-t="gv.9h">AI course for your team</h3><p data-t="gv.9p">Online lessons (EN / TH) so staff can create content on their own.</p></div>
+      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 13h.01M15 13h.01M9 17h6"/><circle cx="12" cy="3.5" r="1"/></svg></div><h3 data-t="gv.10h">AI guest assistant</h3><p data-t="gv.10p">Answers guest questions 24/7 in EN / TH / RU / CN.</p></div>
+      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01M8 13h8M8 16h5"/></svg></div><h3 data-t="gv.11h">Web app for hotel or guests</h3><p data-t="gv.11p">A simple tool for your team's daily work or for your guests.</p></div>
+      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg></div><h3 data-t="gv.12h">After check-out</h3><p data-t="gv.12p">We stay in touch: extra AI content remotely, and more if it works for you.</p></div>
+    </div>
+    <h3 class="opt-title" data-t="gv.opts">Choose your focus:</h3>
     <div class="offers">
       <div class="offer reveal">
         <div class="k" data-t="of.a.k">Option A</div>
-        <h3 data-t="of.a.h">AI Content Studio</h3>
-        <p data-t="of.a.p">We set up an AI content system for your team and train them to create content on their own.</p>
+        <h3 data-t="of.a.h">AI &amp; Tech</h3>
+        <p data-t="of.a.p">We bring AI into your daily work: content, guest communication and internal tools.</p>
         <ul>
-          <li data-t="of.a.1">AI toolkit set up for photo, video, Reels &amp; copy</li>
-          <li data-t="of.a.2">Brand prompts &amp; templates in Dusit style</li>
-          <li data-t="of.a.3">Online video lessons &amp; live online training for staff (EN / TH)</li>
-          <li data-t="of.a.4">Demo materials filmed with your team during our stay</li>
-          <li data-t="of.a.5">30 days of remote support after check-out</li>
+          <li data-t="of.a.1">AI toolkit for photo, video, Reels &amp; copy, in Dusit style</li>
+          <li data-t="of.a.2">AI guest assistant answering questions 24/7</li>
+          <li data-t="of.a.3">Web app for your team or your guests</li>
+          <li data-t="of.a.4">Online course &amp; live online training for staff (EN / TH)</li>
+          <li data-t="of.a.5">Remote support after check-out</li>
         </ul>
       </div>
       <div class="offer best reveal">
         <div class="ribbon" data-t="of.best">Recommended</div>
         <div class="k" data-t="of.c.k">Option C · Signature</div>
         <h3 data-t="of.c.h">Content + AI Studio</h3>
-        <p data-t="of.c.p">Everything from A and B: content for two months of posting, a trained team, and AI content we keep delivering remotely after we leave.</p>
+        <p data-t="of.c.p">Everything from A and B: a full content library, a viral strategy, a trained team and AI tools that keep working after we leave.</p>
         <ul>
-          <li data-t="of.c.1">Full photo &amp; video production</li>
-          <li data-t="of.c.2">AI studio setup + staff training</li>
+          <li data-t="of.c.1">All content from option B</li>
+          <li data-t="of.c.2">All AI tools from option A</li>
           <li data-t="of.c.3">YouTube family vlog about the resort</li>
           <li data-t="of.c.4">Multilingual versions for key markets</li>
-          <li data-t="of.c.5">Remote AI content &amp; support after check-out</li>
+          <li data-t="of.c.5">Ongoing remote collaboration if it works for you</li>
         </ul>
       </div>
       <div class="offer reveal">
         <div class="k" data-t="of.b.k">Option B</div>
-        <h3 data-t="of.b.h">Content for Your Accounts</h3>
-        <p data-t="of.b.p">Made for <b>your</b> Instagram, website and ads — not to promote ourselves. Enough to fill your feed for two months.</p>
+        <h3 data-t="of.b.h">Content &amp; Growth</h3>
+        <p data-t="of.b.p">Made for <b>your</b> Instagram, website and ads — plus a strategy to make it go viral.</p>
         <ul>
           <li data-t="of.b.1">Reels for your Instagram account, real + AI</li>
-          <li data-t="of.b.2">Room photos with a wide-angle lens — for your website, Booking.com, Agoda &amp; Expedia</li>
-          <li data-t="of.b.3">Restaurant &amp; food shoot, drone footage</li>
-          <li data-t="of.b.4">Plus our own Reels &amp; Stories tagging the resort during the stay</li>
-          <li data-t="of.b.5">Full usage rights for Dusit</li>
+          <li data-t="of.b.2">Room, restaurant &amp; drone photos for your website and OTAs</li>
+          <li data-t="of.b.3">Content audit &amp; viral strategy for your Instagram</li>
+          <li data-t="of.b.4">Carousel content plan — ready to lay out and post</li>
+          <li data-t="of.b.5">Our Reels &amp; Stories tagging you + YouTube vlog</li>
         </ul>
       </div>
     </div>
-    <div class="numbers">
-      <div class="num reveal"><b>20+</b><span data-t="nu.1">Reels &amp; short videos</span></div>
-      <div class="num reveal"><b>150+</b><span data-t="nu.2">edited photos</span></div>
-      <div class="num reveal"><b>2</b><span data-t="nu.3">YouTube vlog episodes</span></div>
-      <div class="num reveal"><b>60</b><span data-t="nu.4">days of ready-to-post content</span></div>
-    </div>
-    <p class="pilot reveal" data-t="of.pilot">7 nights covers the essentials; 10 nights lets us deliver the full package.</p>
   </div>
 </section>
 <!-- TIMELINE -->
@@ -608,7 +633,7 @@ footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
   var wa = document.getElementById("cWa"), ml = document.getElementById("cMail"), tg = document.getElementById("cTg");
   if (ct.whatsapp) wa.href = "https://wa.me/" + ct.whatsapp; else wa.style.display = "none";
   if (ct.email) ml.href = "mailto:" + ct.email + "?subject=" + encodeURIComponent("Dusit Thani Laguna Phuket × Family collaboration"); else ml.style.display = "none";
-  if (ct.telegram) tg.href = "https://t.me/" + ct.telegram; else tg.style.display = "none";
+  if (ct.telegram) tg.href = "https://t.me/" + (/^\+?\d+$/.test(ct.telegram) ? "+" + ct.telegram.replace("+", "") : ct.telegram); else tg.style.display = "none";
   var ig = document.getElementById("cIg");
   if (ct.instagram) ig.href = "https://ig.me/m/" + ct.instagram; else ig.style.display = "none";
   if (!ct.whatsapp && ct.instagram) ig.className = "btn gold";
