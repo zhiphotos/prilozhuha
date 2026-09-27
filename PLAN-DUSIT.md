@@ -1,7 +1,7 @@
 # Dusit Thani Laguna Phuket — план питча
 
 **Кто мы:** Дарина (блогер и фотограф, @zhiphotos), Дима (монтирует YouTube-видео для известных российских блогеров), Марк.
-**Что просим:** 7–10 ночей подряд в период **5–20 октября** (без пилотов — едем с ребёнком), один номер на 2 взрослых + 1 ребёнка, **только проживание**. Билеты ещё не куплены — даты подстраиваем под отель.
+**Что просим:** 7–10 ночей подряд в период **5–20 октября** (без пилотов — едем с ребёнком), один номер на 2 взрослых + 1 ребёнка, **проживание с питанием**. Билеты ещё не куплены — даты подстраиваем под отель.
 **Что даём:** контент **для их аккаунтов** (Instagram, сайт, реклама), обучение персонала работе с ИИ, наши рилсы и сторис с отметкой отеля, влог на YouTube. После отъезда — удалённо досылаем ИИ-контент и, если зайдёт, продолжаем сотрудничество онлайн.
 
 Сайт: `dusit/` (EN / ไทย / RU). После мержа в `main`: `https://zhiphotos.github.io/prilozhuha/dusit/`
@@ -64,15 +64,15 @@
 
 ## Шаг 4. Письмо (EN, максимум 5–6 строк, 3 ИИ-фото прямо в теле письма)
 
-> **Subject:** October content for Dusit Thani Laguna Phuket — family creators, room-only barter
+> **Subject:** October content for Dusit Thani Laguna Phuket — family creators, barter with meals
 >
 > Dear [Name],
 >
 > We're Darina and Dima, a Russian creator family (photographer/blogger and YouTube editor for well-known Russian creators), travelling with our son Mark. We'd love to create content for **your** Instagram, website and ads — Reels, room and restaurant photos, drone — plus train your team to produce AI content themselves.
 >
-> We're planning Phuket for **5–20 October** and would ask for **7–10 nights, room only**, dates to suit your occupancy. We've already made a few AI concepts of your resort — they're in the proposal (EN / TH / RU): **[link]**
+> We're planning Phuket for **5–20 October** and would ask for **7–10 nights with meals included**, dates to suit your occupancy. We've already made a few AI concepts of your resort — they're in the proposal (EN / TH / RU): **[link]**
 >
-> For context: at your published rates the stay is roughly THB 22–38K, while the package we propose is valued at THB 500K+ at typical Phuket market rates (breakdown on the page).
+> For context: at your published rates the room is roughly THB 22–38K plus meals, while the two tasks you choose are valued at THB 80–280K at typical Phuket market rates (estimates on the page).
 >
 > Could we have a 15-minute call this week?
 >
