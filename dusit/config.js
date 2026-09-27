@@ -10,14 +10,14 @@ window.PITCH_CONFIG = {
 
   // Соцсети. followers — строкой ("48K"); пусто "" — цифра не показывается
   socials: [
-    { label: "Instagram · Photo & video", handle: "@zhiphotos", url: "https://instagram.com/zhiphotos", followers: "30K" },
+    { label: "Instagram · Photo & video", handle: "@zhiphotos", url: "https://instagram.com/zhiphotos", followers: "31K" },
     // { label: "Instagram · Family", handle: "@family_handle", url: "https://instagram.com/family_handle", followers: "" },
     // { label: "YouTube · Family vlog", handle: "Our Channel", url: "https://youtube.com/@your_channel", followers: "" },
   ],
 
   // Цифры охватов. Пока null — блок скрыт. Когда будут реальные цифры:
   // stats: { reach: "1.2M", views: "150K", audience: "RU · EN · CIS" },
-  stats: { reach: "30K", audience: "RU" },
+  stats: { reach: "31K", women: "87%", age: "74%", reel: "352K" },
 
   // Отзыв клиента (Freedom / Пицунда / Clever). Пока quote пустой — блок скрыт.
   testimonial: { quote: "", name: "", role: "", place: "" },
