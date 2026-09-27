@@ -342,6 +342,26 @@ section{overflow-x:clip}
   .hero::before,.hero .wrap>*,.bar{animation:none}
   .burst{transform:rotate(-12deg)}
 }
+
+/* ---------- gift section ---------- */
+.b-gift{right:6%;top:40px}
+.gift-now{margin-top:18px;max-width:640px;font-size:13.5px;border-left:1px solid var(--line-l);padding-left:14px}
+.gifts{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;margin-top:40px;align-items:start}
+.gift{background:var(--cream);color:var(--ink);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.gift-img{display:none}
+.gift.has-img .gift-img{display:block;aspect-ratio:4/5;overflow:hidden;border:6px solid var(--cream);border-bottom:0;border-radius:18px 18px 0 0}
+.gift-img img{width:100%;height:100%;object-fit:cover}
+.gift-b{padding:22px 24px 24px}
+.gift-n{font-size:12px;letter-spacing:.1em;color:var(--muted)}
+.gift h3{font-size:27px;margin:2px 0 10px}
+.s-brown .gift p{color:var(--ink)}
+.gift-why{font-size:13.5px}
+.gift-why b{font-family:var(--script);font-weight:400;font-size:24px;margin-right:4px}
+html[lang="th"] .gift-why b{font-family:var(--serif);font-style:italic;font-size:17px}
+.gift-use{margin-top:10px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)!important}
+html[lang="th"] .gift-use{letter-spacing:.02em;text-transform:none}
+@media (max-width:700px){.gifts{grid-template-columns:1fr}}
+@media (max-width:560px){.b-gift{top:22px;right:14px}}
 </style>
 </head>
 <body>
@@ -457,8 +477,8 @@ section{overflow-x:clip}
     </div>
 
     <div class="ai-gal" id="aiHotel">
-      <h3 class="gal-h" data-t="ai.hotel">Made with your resort</h3>
-      <p class="gal-p" data-t="ai.hotelp">Created for this proposal only from public images of the resort — not published anywhere. Can you tell which is AI?</p>
+      <h3 class="gal-h" data-t="ai.hotel">Videos made with your resort</h3>
+      <p class="gal-p" data-t="ai.hotelp" style="display:none">Created for this proposal only from public images of the resort — not published anywhere. Can you tell which is AI?</p>
       <div class="teasers" id="tzv">
       <div data-slot><div class="ph teaser reveal" data-media="teasers.0"><span class="phl">teaser1.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c1">AI concept · “Mark's first swim in the Andaman Sea”</div></div>
       <div data-slot><div class="ph teaser reveal" data-media="teasers.1"><span class="phl">teaser2.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c2">AI concept · “Bang Tao sunset, painted”</div></div>
@@ -473,6 +493,79 @@ section{overflow-x:clip}
       <div class="aigrid" id="clientgrid"></div>
     </div>
     <p class="ainote" data-t="ai.note">Every AI piece is sent to you for approval, labelled where platforms require it and used only in channels you approve. Your rooms, food and facilities are always shown as they really are.</p>
+  </div>
+</section>
+<!-- GIFT -->
+<section id="gift" class="s-brown">
+  <span class="burst b-gift" data-t="bd.gift">a gift</span>
+  <div class="wrap">
+    <div class="eyebrow" data-t="gf.eyebrow">A gift for you</div>
+    <h2 data-t="gf.title">10 images for the offers you're selling right now.</h2>
+    <p class="lead" data-t="gf.lead">We studied your current offers, rooms and restaurants and created visuals for exactly what you need this season — not random pretty pictures. Approve our stay, and all 10 are yours the same day: full resolution, no watermark, with usage rights. In October we'll reshoot the key ones for real.</p>
+    <p class="gift-now" data-t="gf.now"><b>Why now:</b> your book-direct benefits run for stays until October 2026 and high-season sales start in November — these images are ready for that next wave.</p>
+    <div class="gifts">
+      <div class="gift reveal" data-gift="0">
+        <div class="gift-img"></div>
+        <div class="gift-b"><span class="gift-n">01</span><h3 data-t="gf.1h">Member Savings &amp; Dusit Gold</h3>
+          <p class="gift-why"><b data-t="gf.why">Why:</b> <span data-t="gf.1w">Sells the feeling of belonging to the club, not a discount — in the same calm mood as your own app.</span></p>
+          <p class="gift-use" data-t="gf.1u">Offer card, app ads · 4:5 / 9:16</p></div>
+      </div>
+      <div class="gift reveal" data-gift="1">
+        <div class="gift-img"></div>
+        <div class="gift-b"><span class="gift-n">02</span><h3 data-t="gf.2h">Smart Saver</h3>
+          <p class="gift-why"><b data-t="gf.why">Why:</b> <span data-t="gf.2w">Replaces the blurred image on the offer card with a sharp, happy arrival: “decided on Friday, here by Monday”.</span></p>
+          <p class="gift-use" data-t="gf.2u">Offer card · 4:5</p></div>
+      </div>
+      <div class="gift reveal" data-gift="2">
+        <div class="gift-img"></div>
+        <div class="gift-b"><span class="gift-n">03</span><h3 data-t="gf.3h">Premier Ocean Front upgrade</h3>
+          <p class="gift-why"><b data-t="gf.why">Why:</b> <span data-t="gf.3w">Your strongest reason to book direct has no visual yet — and the main room photo decides clicks on Booking and Agoda.</span></p>
+          <p class="gift-use" data-t="gf.3u">Room page, OTAs, ads · 16:9 / 4:5</p></div>
+      </div>
+      <div class="gift reveal" data-gift="3">
+        <div class="gift-img"></div>
+        <div class="gift-b"><span class="gift-n">04</span><h3 data-t="gf.4h">Two-Bedroom Pool Villa</h3>
+          <p class="gift-why"><b data-t="gf.why">Why:</b> <span data-t="gf.4w">Your most premium product sells with one image of privacy and sky — the kind of post people save as a dream.</span></p>
+          <p class="gift-use" data-t="gf.4u">Villa page, ads · 4:5 / 9:16</p></div>
+      </div>
+      <div class="gift reveal" data-gift="4">
+        <div class="gift-img"></div>
+        <div class="gift-b"><span class="gift-n">05</span><h3 data-t="gf.5h">Benjarong</h3>
+          <p class="gift-why"><b data-t="gf.why">Why:</b> <span data-t="gf.5w">Your most atmospheric restaurant currently has the darkest photo. Blue hour and candlelight bring in Laguna guests from other hotels.</span></p>
+          <p class="gift-use" data-t="gf.5u">Dining header · 16:9</p></div>
+      </div>
+      <div class="gift reveal" data-gift="5">
+        <div class="gift-img"></div>
+        <div class="gift-b"><span class="gift-n">06</span><h3 data-t="gf.6h">Horizon Lounge afternoon tea</h3>
+          <p class="gift-why"><b data-t="gf.why">Why:</b> <span data-t="gf.6w">The most Instagrammable thing you offer and an easy first visit for non-residents; afternoon tea performs strongly with Chinese, Russian and Indian audiences.</span></p>
+          <p class="gift-use" data-t="gf.6u">Carousel, Stories · 4:5</p></div>
+      </div>
+      <div class="gift reveal" data-gift="6">
+        <div class="gift-img"></div>
+        <div class="gift-b"><span class="gift-n">07</span><h3 data-t="gf.7h">Casuarina Beach Club</h3>
+          <p class="gift-why"><b data-t="gf.why">Why:</b> <span data-t="gf.7w">It has no photo of its own on your website. Romantic beach dining is a sale on its own.</span></p>
+          <p class="gift-use" data-t="gf.7u">Dining page, Highlights · 4:5</p></div>
+      </div>
+      <div class="gift reveal" data-gift="7">
+        <div class="gift-img"></div>
+        <div class="gift-b"><span class="gift-n">08</span><h3 data-t="gf.8h">Devarana Wellness</h3>
+          <p class="gift-why"><b data-t="gf.why">Why:</b> <span data-t="gf.8w">Replaces stock imagery with a calm, mindful moment — exactly what Darina's audience of successful women responds to.</span></p>
+          <p class="gift-use" data-t="gf.8u">Wellness page, spa ads · 4:5</p></div>
+      </div>
+      <div class="gift reveal" data-gift="8">
+        <div class="gift-img"></div>
+        <div class="gift-b"><span class="gift-n">09</span><h3 data-t="gf.9h">Festive Celebrations</h3>
+          <p class="gift-why"><b data-t="gf.why">Why:</b> <span data-t="gf.9w">Festive packages sell in October–November, before any décor is up. With this, the visual is ready in time.</span></p>
+          <p class="gift-use" data-t="gf.9u">Festive page, ads · 4:5 / 16:9</p></div>
+      </div>
+      <div class="gift reveal" data-gift="9">
+        <div class="gift-img"></div>
+        <div class="gift-b"><span class="gift-n">10</span><h3 data-t="gf.10h">Weddings &amp; vow renewals</h3>
+          <p class="gift-why"><b data-t="gf.why">Why:</b> <span data-t="gf.10w">A growing line for Indian and Chinese guests. A real family vow renewal feels more trustworthy than stock newlyweds.</span></p>
+          <p class="gift-use" data-t="gf.10u">Weddings page, carousel · 4:5</p></div>
+      </div>
+    </div>
+    <p class="ainote gift-note" data-t="gf.note">AI concepts created for this proposal only, from public images of the resort — not published anywhere.</p>
   </div>
 </section>
 <!-- IDEAS -->
@@ -703,8 +796,16 @@ section{overflow-x:clip}
     v.addEventListener("loadedmetadata", function(){ aiH.style.display = ""; tzv.style.display = ""; });
     v.src = src;
   });
-  gallery("aiHotel", "aigrid", M.aiPhotos);
   gallery("aiClients", "clientgrid", M.clientWorks);
+  // gift photos: card shows the image when the file exists, otherwise text only
+  document.querySelectorAll("[data-gift]").forEach(function(card){
+    var src = (M.aiPhotos || [])[+card.getAttribute("data-gift")], box = card.querySelector(".gift-img");
+    if (!src){ box.remove(); return; }
+    var im = new Image(); im.alt = "";
+    im.addEventListener("load", function(){ card.classList.add("has-img"); });
+    im.addEventListener("error", function(){ box.remove(); });
+    im.src = src; box.appendChild(im);
+  });
   var pf = document.getElementById("pf");
   (M.portfolio || []).forEach(function(src, i){
     var b = document.createElement("div");
@@ -769,7 +870,7 @@ section{overflow-x:clip}
   anim(document.querySelector(".final .wrap"), "a-drop");
   document.querySelectorAll("section:not(.hero) h2, section:not(.hero) .eyebrow, .gal-h").forEach(function(h){ anim(h, "a-rise"); });
   document.querySelectorAll(".step, .person, .box li").forEach(function(el){ anim(el, "a-left"); });
-  [".gvs", ".why-grid", ".ai-pts", ".ideas", ".tl", ".people", ".svcs", ".stats", ".teasers", ".ask"].forEach(function(sel){
+  [".gifts", ".gvs", ".why-grid", ".ai-pts", ".ideas", ".tl", ".people", ".svcs", ".stats", ".teasers", ".ask"].forEach(function(sel){
     document.querySelectorAll(sel).forEach(function(g){
       Array.prototype.forEach.call(g.children, function(ch, i){ ch.style.setProperty("--d", Math.min(i * 0.09, 0.6) + "s"); });
     });
