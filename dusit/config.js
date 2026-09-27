@@ -17,10 +17,10 @@ window.PITCH_CONFIG = {
 
   // Цифры охватов. Пока null — блок скрыт. Когда будут реальные цифры:
   // stats: { reach: "1.2M", views: "150K", audience: "RU · EN · CIS" },
-  stats: { reach: "30K", audience: "RU · CIS" },
+  stats: { reach: "30K", audience: "RU" },
 
   contact: {
-    email: "",                 // your@email.com — пусто = кнопка скрыта
+    email: "darinazizina@gmail.com",
     whatsapp: "79622028885",              // номер без + , например 79001234567
     telegram: "+79622028885",              // ник без @
     instagram: "zhiphotos",
