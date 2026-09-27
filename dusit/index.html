@@ -356,6 +356,27 @@ b,strong{font-weight:500}
   .hero .ctas .btn.ghost{background:#fff;color:var(--ink);border-color:#fff}
   .hero{padding-bottom:56px}
 }
+@media (max-width:560px){html[lang="th"] .hero h1{font-size:clamp(32px,9vw,42px)}}
+
+/* choose-two menu */
+.pick{display:flex;align-items:center;justify-content:center;gap:24px;margin:44px auto 10px;max-width:820px}
+.pick-step{display:flex;gap:14px;align-items:center;flex:1}
+.pick-step span{flex:none;width:44px;height:44px;border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:24px;color:var(--gold)}
+.pick-step h3{font-size:22px}
+.pick-step p{font-size:14px;color:var(--muted)}
+.pick-plus{font-family:var(--serif);font-size:40px;font-weight:300;color:var(--gold)}
+.menu-grp{margin-top:40px}
+.menu-grp .gvs{margin-top:14px}
+.gvs3{grid-template-columns:repeat(3,1fr)}
+.gv-top b{font-size:20px!important;font-family:var(--sans)!important;font-weight:400!important;color:var(--gold)}
+.menu-note{text-align:center;max-width:680px;margin:36px auto 0;color:var(--teal);font-size:17px}
+.v-get{display:flex;flex-direction:column;justify-content:center}
+.v-get p{font-size:14px;color:var(--muted)}
+@media (max-width:900px){.gvs3{grid-template-columns:1fr 1fr 1fr}}
+@media (max-width:700px){.gvs3{grid-template-columns:1fr}.pick{flex-direction:column;align-items:stretch;gap:8px}.pick-plus{text-align:center;line-height:1}}
+@media (max-width:520px){.gv-top b{font-size:15px!important}}
+.gv-top b{white-space:nowrap}
+@media (max-width:520px){.gv{grid-template-columns:56px 1fr}}
 </style>
 </head>
 <body>
@@ -374,7 +395,7 @@ b,strong{font-weight:500}
   <video class="bgmedia" id="heroVideo" muted loop playsinline autoplay></video>
   <div class="wrap">
     <div class="eyebrow" data-t="hero.eyebrow">Collaboration proposal · Dusit Thani Laguna Phuket</div>
-    <h1 data-t="hero.title">Two months of family content, shot in one stay.</h1>
+    <h1 data-t="hero.title">One room. Two tasks of your choice. Done beautifully.</h1>
     <p class="sub-m" data-t="hero.subm">Darina, Dima &amp; Mark — a creator family. Content for <b>your</b> accounts, AI tools for your team.</p>
     <p class="sub-d" data-t="hero.sub">We are Darina, Dima and little Mark — a Russian creator family. Darina is a blogger and hotel photographer, Dima edits YouTube videos for well-known Russian creators. We create content for <b>your</b> accounts, train your team with AI tools — and share our stay with our own audience.</p>
     <div class="ctas">
@@ -403,159 +424,11 @@ b,strong{font-weight:500}
     <div class="stats" id="stats">
       <div class="stat reveal"><b data-stat="reach">—</b><span data-t="fam.s1">Instagram followers · @zhiphotos</span></div>
       <div class="stat reveal"><b data-stat="views">—</b><span data-t="fam.s2">average views per Reel</span></div>
-      <div class="stat reveal"><b data-stat="audience">—</b><span data-t="fam.s3">core audience — successful women who love nature, mindfulness, aesthetics &amp; tech</span></div>
+      <div class="stat reveal"><b data-stat="audience">—</b><span data-t="fam.s3">core audience — Russian-speaking women: nature, mindfulness, aesthetics &amp; tech</span></div>
     </div>
   </div>
 </section>
 
-<!-- WHY -->
-<section class="dark-sec">
-  <div class="wrap">
-    <div class="eyebrow" data-t="why.eyebrow">Why this works for Dusit</div>
-    <h2 data-t="why.title">Your best family experiences deserve an audience.</h2>
-    <p class="lead" data-t="why.lead">Busy Bee Kids Club, the Children's Camp Out, junior chef classes, kayaking on the lagoon, Devarana Wellness, Bang Tao sunsets — these are stories, not amenities. We turn them into content people save, share and book.</p>
-    <div class="why-grid">
-      <div class="why reveal"><div class="n">01</div><h3 data-t="why.1h">Family = your core guest</h3><p data-t="why.1p">Authentic parent-and-child content converts families better than any polished campaign. We live it on camera for real.</p></div>
-      <div class="why reveal"><div class="n">02</div><h3 data-t="why.2h">Human + AI</h3><p data-t="why.2p">Real footage for everything your guests will see. AI only for translations and optional creative edits — always with your approval.</p></div>
-      <div class="why reveal"><div class="n">03</div><h3 data-t="why.3h">Content that stays</h3><p data-t="why.3p">We don't post and disappear. After check-out we stay in touch: Darina keeps delivering AI content remotely — and if it works for you, we continue working together online.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- TEASERS -->
-<section id="teasers">
-  <div class="wrap center">
-    <div class="eyebrow" data-t="tz.eyebrow">AI concepts — made for you before we arrive</div>
-    <h2 data-t="tz.title">We imagined your resort with our family in it.</h2>
-    <p class="lead" data-t="tz.lead">An AI photo shoot and short videos created specifically for Dusit Thani Laguna Phuket. Now picture the real thing in October.</p>
-  </div>
-  <div class="wrap">
-    <div class="teasers" id="tzv">
-      <div data-slot><div class="ph teaser reveal" data-media="teasers.0"><span class="phl">teaser1.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c1">AI concept · “Mark's first day at Busy Bee”</div></div>
-      <div data-slot><div class="ph teaser reveal" data-media="teasers.1"><span class="phl">teaser2.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c2">AI concept · “Bang Tao sunset, painted”</div></div>
-      <div data-slot><div class="ph teaser reveal" data-media="teasers.2"><span class="phl">teaser3.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c3">Multilingual · one Reel in EN / TH / RU</div></div>
-    </div>
-    <div class="aigrid" id="aigrid"></div>
-    <p class="ainote" data-t="tz.note">AI concepts created before our visit, based on public images of the resort. Final content will be shot on location.</p>
-  </div>
-</section>
-<!-- IDEAS -->
-<section style="background:var(--bg-2)">
-  <div class="wrap">
-    <div class="eyebrow" data-t="id.eyebrow">Content series</div>
-    <h2 data-t="id.title">Six series, built around your resort.</h2>
-    <div class="ideas">
-      <div class="idea reveal"><div class="ic">01</div><div><h3 data-t="id.1h">Mark's Resort Diary</h3><p data-t="id.1p">A kid's-eye review: Busy Bee Kids Club, pools, beach and activities. The format kids want to watch and parents trust.</p><span class="tag" data-t="tag.real">Real video</span></div></div>
-      <div class="idea reveal"><div class="ic">02</div><div><h3 data-t="id.2h">Camp Out Under Phuket Stars</h3><p data-t="id.2p">The Children's Camp Out as a mini-documentary: tents, face painting, marshmallows at night. Pure emotional content.</p><span class="tag" data-t="tag.real">Real video</span></div></div>
-      <div class="idea reveal"><div class="ic">03</div><div><h3 data-t="id.3h">Junior Chef Mark</h3><p data-t="id.3p">Cooking with your chefs — Thai dishes step by step. Recipe Reels are among the most saved formats on Instagram.</p><span class="tag" data-t="tag.real">Real video</span></div></div>
-      <div class="idea reveal"><div class="ic">04</div><div><h3 data-t="id.4h">Parents Need a Holiday Too</h3><p data-t="id.4p">While Mark is at the Kids Club: Devarana Wellness, dinner for two, sunset on the beach. The honest parent angle.</p><span class="tag" data-t="tag.real">Real video</span></div></div>
-      <div class="idea reveal"><div class="ic">05</div><div><h3 data-t="id.5h">Dusit Dreams (optional AI)</h3><p data-t="id.5p">Selected real shots turned into painted, storybook-style art — only with your approval. Rooms, food and facilities are never AI-altered.</p><span class="tag ai" data-t="tag.ai">AI</span></div></div>
-      <div class="idea reveal"><div class="ic">06</div><div><h3 data-t="id.6h">One Reel, Five Languages</h3><p data-t="id.6p">Each hero video re-voiced in English, Thai, Russian and more — reaching your key markets from one shoot.</p><span class="tag ai" data-t="tag.ai">AI</span></div></div>
-    </div>
-  </div>
-</section>
-
-<!-- OFFERS -->
-<section id="offers">
-  <div class="wrap center">
-    <div class="eyebrow" data-t="of.eyebrow">The proposal</div>
-    <h2 data-t="of.title">7–10 nights in October. Content for months.</h2>
-    <p class="lead" data-t="of.lead">A simple barter: 7–10 nights, one room for 2 adults and 1 child — room only, no F&amp;B, no fees. We're travelling with a small child, so we plan one continuous stay within <b>5–20 October</b>: the quieter season, when we can film freely without disturbing guests — and your fresh content is ready right before high season begins.</p>
-  </div>
-  <div class="wrap">
-    <div class="gv-head reveal"><div class="eyebrow" data-t="gv.eyebrow">Everything Dusit gets</div>
-      <h3 data-t="gv.title">12 things you receive — for one room.</h3></div>
-    <div class="gvs">
-      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 9l5 3-5 3z"/></svg><b>20+</b></div><h3 data-t="gv.1h">Reels for <b>your</b> Instagram</h3><p data-t="gv.1p">Real and AI — made for your account, not ours.</p></div>
-      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8 5l1.5-2h5L16 5"/></svg><b>150+</b></div><h3 data-t="gv.2h">Edited photos</h3><p data-t="gv.2p">Rooms, pools, beach, spa and the family moments that sell.</p></div>
-      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18V7M21 18v-5H3M3 13h18M7 13v-2a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2"/></svg></div><h3 data-t="gv.3h">Room photos for OTAs</h3><p data-t="gv.3p">Wide-angle, retouched — for your website, Booking.com, Agoda, Expedia.</p></div>
-      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="5" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M7 7l2 2M17 7l-2 2M7 17l2-2M17 17l-2-2"/></svg></div><h3 data-t="gv.4h">High-res restaurant &amp; drone shoot</h3><p data-t="gv.4p">Benjarong, La Trattoria, Horizon Lounge, Casuarina Beach Club — plus aerials of the resort.</p></div>
-      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3z"/></svg><b>2</b></div><h3 data-t="gv.5h">YouTube vlog episodes</h3><p data-t="gv.5p">Edited by Dima, who works with top Russian YouTube channels.</p></div>
-      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg><b>30K</b></div><h3 data-t="gv.6h">Our audience</h3><p data-t="gv.6p">Reels &amp; Stories tagging the resort — to successful women who love beauty, nature and mindful living.</p></div>
-      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6 16v-4M11 16V8M16 16v-6M20 5l-4 3-4-2-5 4"/></svg></div><h3 data-t="gv.7h">Content audit &amp; viral strategy</h3><p data-t="gv.7p">Darina, a content teacher, reviews your Instagram and shows how to make Reels go viral.</p></div>
-      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="13" height="16" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/><path d="M10 8h7M10 12h7M10 16h4"/></svg><b>20</b></div><h3 data-t="gv.8h">Carousel posts, planned</h3><p data-t="gv.8p">Topics, slide texts and structure — you just lay them out and post.</p></div>
-      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/></svg></div><h3 data-t="gv.9h">AI course for your team</h3><p data-t="gv.9p">Online lessons (EN / TH) so staff can create content on their own.</p></div>
-      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 13h.01M15 13h.01M9 17h6"/><circle cx="12" cy="3.5" r="1"/></svg></div><h3 data-t="gv.10h">AI guest assistant</h3><p data-t="gv.10p">Answers guest questions 24/7 in EN / TH / RU / CN.</p></div>
-      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01M8 13h8M8 16h5"/></svg></div><h3 data-t="gv.11h">Web app for hotel or guests</h3><p data-t="gv.11p">A simple tool for your team's daily work or for your guests.</p></div>
-      <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg></div><h3 data-t="gv.12h">After check-out</h3><p data-t="gv.12p">We stay in touch: extra AI content remotely, and more if it works for you.</p></div>
-    </div>
-    <div class="value reveal">
-      <div class="v-cost">
-        <div class="eyebrow" data-t="vl.cost">Your cost</div>
-        <div class="v-num">≈ THB 22–38K</div>
-        <p data-t="vl.costp">7–10 nights in one room, at the published rates on your website (from THB 3,096 per night).</p>
-      </div>
-      <div class="v-get">
-        <div class="eyebrow" data-t="vl.get">What you receive</div>
-        <div class="v-num big">THB 500K+</div>
-        <ul class="v-rows">
-        <li><span data-t="vl.r1">Photo &amp; video: rooms, restaurants, drone</span><i style="--w:100%"></i><b>120K</b></li>
-        <li><span data-t="vl.r2">20+ Reels for your Instagram</span><i style="--w:83%"></i><b>100K</b></li>
-        <li><span data-t="vl.r3">AI guest assistant or web app</span><i style="--w:83%"></i><b>100K</b></li>
-        <li><span data-t="vl.r4">AI course &amp; staff training</span><i style="--w:50%"></i><b>60K</b></li>
-        <li><span data-t="vl.r5">2 YouTube vlog episodes</span><i style="--w:50%"></i><b>60K</b></li>
-        <li><span data-t="vl.r6">Content audit, viral strategy, carousel plan</span><i style="--w:42%"></i><b>50K</b></li>
-        <li><span data-t="vl.r7">Our Reels &amp; Stories to a 30K audience</span><i style="--w:25%"></i><b>30K</b></li>
-        </ul>
-        <p class="v-note" data-t="vl.note">Estimated at typical Phuket market rates for comparable services.</p>
-      </div>
-    </div>
-    <h3 class="opt-title" data-t="gv.opts">Choose your focus:</h3>
-    <div class="offers">
-      <div class="offer reveal">
-        <div class="k" data-t="of.a.k">Option A</div>
-        <h3 data-t="of.a.h">AI &amp; Tech</h3>
-        <p data-t="of.a.p">We bring AI into your daily work: content, guest communication and internal tools.</p>
-        <ul>
-          <li data-t="of.a.1">AI toolkit for photo, video, Reels &amp; copy, in Dusit style</li>
-          <li data-t="of.a.2">AI guest assistant answering questions 24/7</li>
-          <li data-t="of.a.3">Web app for your team or your guests</li>
-          <li data-t="of.a.4">Online course &amp; live online training for staff (EN / TH)</li>
-          <li data-t="of.a.5">Remote support after check-out</li>
-        </ul>
-      </div>
-      <div class="offer best reveal">
-        <div class="ribbon" data-t="of.best">Recommended</div>
-        <div class="k" data-t="of.c.k">Option C · Signature</div>
-        <h3 data-t="of.c.h">Content + AI Studio</h3>
-        <p data-t="of.c.p">Everything from A and B: a full content library, a viral strategy, a trained team and AI tools that keep working after we leave.</p>
-        <ul>
-          <li data-t="of.c.1">All content from option B</li>
-          <li data-t="of.c.2">All AI tools from option A</li>
-          <li data-t="of.c.3">YouTube family vlog about the resort</li>
-          <li data-t="of.c.4">Multilingual versions for key markets</li>
-          <li data-t="of.c.5">Ongoing remote collaboration if it works for you</li>
-        </ul>
-      </div>
-      <div class="offer reveal">
-        <div class="k" data-t="of.b.k">Option B</div>
-        <h3 data-t="of.b.h">Content &amp; Growth</h3>
-        <p data-t="of.b.p">Made for <b>your</b> Instagram, website and ads — plus a strategy to make it go viral.</p>
-        <ul>
-          <li data-t="of.b.1">Reels for your Instagram account, real + AI</li>
-          <li data-t="of.b.2">Room, restaurant &amp; drone photos for your website and OTAs</li>
-          <li data-t="of.b.3">Content audit &amp; viral strategy for your Instagram</li>
-          <li data-t="of.b.4">Carousel content plan — ready to lay out and post</li>
-          <li data-t="of.b.5">Our Reels &amp; Stories tagging you + YouTube vlog</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-<!-- TIMELINE -->
-<section style="background:var(--bg-2)">
-  <div class="wrap">
-    <div class="eyebrow" data-t="tl.eyebrow">How it runs</div>
-    <h2 data-t="tl.title">Your October, clearly planned.</h2>
-    <div class="tl">
-      <div class="step reveal"><div class="w" data-t="tl.1w">Before arrival</div><h3 data-t="tl.1h">Dates, brief &amp; content plan</h3><p data-t="tl.1p">You choose the dates that fit your occupancy — we book flights around them. A short call about goals, offers and brand rules, then a shot list for your approval.</p></div>
-      <div class="step reveal"><div class="w" data-t="tl.2w">First 3 days</div><h3 data-t="tl.2h">Hero shoot</h3><p data-t="tl.2p">Rooms, pools, beach, restaurant and drone (with your permission). Within 72 hours you receive the first edited room &amp; drone photos for review.</p></div>
-      <div class="step reveal"><div class="w" data-t="tl.3w">Mid-stay</div><h3 data-t="tl.3h">Family series &amp; AI studio</h3><p data-t="tl.3p">Kids Club, Camp Out, junior chef, wellness. In parallel we set up the AI system and film training materials with your team.</p></div>
-      <div class="step reveal"><div class="w" data-t="tl.4w">Last 2 days</div><h3 data-t="tl.4h">Final shots &amp; handover</h3><p data-t="tl.4p">Last scenes, raw library handed over, publishing calendar agreed.</p></div>
-      <div class="step reveal"><div class="w" data-t="tl.5w">After check-out</div><h3 data-t="tl.5h">Editing, remote AI content, report</h3><p data-t="tl.5p">Final edits within 2–3 weeks, YouTube vlog released, online training for staff, extra AI content delivered remotely, and a report with reach and engagement. If you like the results — we continue remotely.</p></div>
-    </div>
-  </div>
-</section>
 <!-- PORTFOLIO -->
 <section id="work">
   <div class="wrap">
@@ -583,7 +456,7 @@ b,strong{font-weight:500}
     <h2 class="svc-title" data-t="sv.title">What we shoot for hotels.</h2>
     <div class="svcs">
       <div class="svc wide reveal"><div class="imgs"><img src="media/pf/room-wide.jpg" alt="" loading="lazy"><img src="media/pf/room-towels.jpg" alt="" loading="lazy"></div><div class="b"><h3 data-t="sv.1h">Rooms</h3><p data-t="sv.1p">Wide-angle lens, colour correction and retouching — ready for your website, Booking.com, Agoda and Expedia.</p></div></div>
-      <div class="svc wide reveal"><div class="imgs"><img src="media/pf/drone-beach.jpg" alt="" loading="lazy"><img src="media/pf/drone-dome.jpg" alt="" loading="lazy"></div><div class="b"><h3 data-t="sv.2h">Drone</h3><p data-t="sv.2p">We travel with a professional drone for aerial photo and video — flown only with your permission and proper Thai registration.</p></div></div>
+      <div class="svc wide reveal"><div class="imgs"><img src="media/pf/drone-beach.jpg" alt="" loading="lazy"><img src="media/pf/drone-dome.jpg" alt="" loading="lazy"></div><div class="b"><h3 data-t="sv.2h">Drone</h3><p data-t="sv.2p">We travel with a professional drone for aerial photo and video — flown only if permitted and registered in time.</p></div></div>
       <div class="svc reveal"><div class="imgs"><img src="media/pf/mood-1.jpg" alt="" loading="lazy"><img src="media/pf/mood-2.jpg" alt="" loading="lazy"></div><div class="b"><h3 data-t="sv.3h">Mood photos</h3><p data-t="sv.3p">Photos with people and feeling help future guests picture themselves with you — and that sells.</p></div></div>
       <div class="svc reveal"><div class="imgs"><img src="media/pf/food-1.jpg" alt="" loading="lazy"><img src="media/pf/restaurant-1.jpg" alt="" loading="lazy"></div><div class="b"><h3 data-t="sv.4h">Restaurant &amp; food</h3><p data-t="sv.4p">Signature dishes in bold, appetising compositions for your restaurants.</p></div></div>
       <div class="svc reveal"><div class="imgs"><img src="media/pf/color-2.jpg" alt="" loading="lazy"><img src="media/pf/example-2.jpg" alt="" loading="lazy"></div><div class="b"><h3 data-t="sv.5h">Your colour style</h3><p data-t="sv.5p">We agree the colour palette with you and match your brand look in every photo and video.</p></div></div>
@@ -591,6 +464,84 @@ b,strong{font-weight:500}
 
     <div class="pf" id="pf"></div>
     <div class="socials" id="socials"></div>
+  </div>
+</section>
+<!-- TEASERS -->
+<section id="teasers">
+  <div class="wrap center">
+    <div class="eyebrow" data-t="tz.eyebrow">AI concepts — made for you before we arrive</div>
+    <h2 data-t="tz.title">We imagined your resort with our family in it.</h2>
+    <p class="lead" data-t="tz.lead">An AI photo shoot and short videos created specifically for Dusit Thani Laguna Phuket. Now picture the real thing in October.</p>
+  </div>
+  <div class="wrap">
+    <div class="teasers" id="tzv">
+      <div data-slot><div class="ph teaser reveal" data-media="teasers.0"><span class="phl">teaser1.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c1">AI concept · “Mark's first day at Busy Bee”</div></div>
+      <div data-slot><div class="ph teaser reveal" data-media="teasers.1"><span class="phl">teaser2.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c2">AI concept · “Bang Tao sunset, painted”</div></div>
+      <div data-slot><div class="ph teaser reveal" data-media="teasers.2"><span class="phl">teaser3.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c3">Multilingual · one Reel in EN / TH / RU</div></div>
+    </div>
+    <div class="aigrid" id="aigrid"></div>
+    <p class="ainote" data-t="tz.note">AI concepts created before our visit, based on public images of the resort. Final content will be shot on location.</p>
+  </div>
+</section>
+<!-- IDEAS -->
+<section style="background:var(--bg-2)">
+  <div class="wrap">
+    <div class="eyebrow" data-t="id.eyebrow">Content ideas · if you choose content production</div>
+    <h2 data-t="id.title">Six series, built around your resort.</h2>
+    <div class="ideas">
+      <div class="idea reveal"><div class="ic">01</div><div><h3 data-t="id.1h">Mark's Resort Diary</h3><p data-t="id.1p">A kid's-eye review: Busy Bee Kids Club, pools, beach and activities. The format kids want to watch and parents trust.</p><span class="tag" data-t="tag.real">Real video</span></div></div>
+      <div class="idea reveal"><div class="ic">02</div><div><h3 data-t="id.2h">Camp Out Under Phuket Stars</h3><p data-t="id.2p">The Children's Camp Out as a mini-documentary: tents, face painting, marshmallows at night. Pure emotional content.</p><span class="tag" data-t="tag.real">Real video</span></div></div>
+      <div class="idea reveal"><div class="ic">03</div><div><h3 data-t="id.3h">Junior Chef Mark</h3><p data-t="id.3p">Cooking with your chefs — Thai dishes step by step. Recipe Reels are among the most saved formats on Instagram.</p><span class="tag" data-t="tag.real">Real video</span></div></div>
+      <div class="idea reveal"><div class="ic">04</div><div><h3 data-t="id.4h">Parents Need a Holiday Too</h3><p data-t="id.4p">While Mark is at the Kids Club: Devarana Wellness, dinner for two, sunset on the beach. The honest parent angle.</p><span class="tag" data-t="tag.real">Real video</span></div></div>
+      <div class="idea reveal"><div class="ic">05</div><div><h3 data-t="id.5h">Dusit Dreams (optional AI)</h3><p data-t="id.5p">Selected real shots turned into painted, storybook-style art — only with your approval. Rooms, food and facilities are never AI-altered.</p><span class="tag ai" data-t="tag.ai">AI</span></div></div>
+      <div class="idea reveal"><div class="ic">06</div><div><h3 data-t="id.6h">One Reel, Five Languages</h3><p data-t="id.6p">Each hero video re-voiced in English, Thai, Russian and more — reaching your key markets from one shoot.</p><span class="tag ai" data-t="tag.ai">AI</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- OFFERS -->
+<section id="offers">
+  <div class="wrap center">
+    <div class="eyebrow" data-t="of.eyebrow">The proposal</div>
+    <h2 data-t="of.title">7–10 nights in October. Two tasks of your choice.</h2>
+    <p class="lead" data-t="of.lead">A simple barter: 7–10 nights, one room for 2 adults and 1 child — room only, no F&amp;B, no fees. We're travelling with a small child, so we plan one continuous stay. Dates are flexible within <b>5–20 October</b> — even a mid-October start works for us. It's the quieter season, so we can film without disturbing guests, and your fresh content is ready before high season.</p>
+  </div>
+  <div class="wrap">
+    <div class="pick reveal">
+      <div class="pick-step"><span>1</span><div><h3 data-t="mn.h1">Choose one major project</h3><p data-t="mn.p1">The one that matters most to you right now.</p></div></div>
+      <div class="pick-plus">+</div>
+      <div class="pick-step"><span>2</span><div><h3 data-t="mn.h2">Add one light task</h3><p data-t="mn.p2">A quick win on top.</p></div></div>
+    </div>
+    <div class="menu-grp">
+      <div class="eyebrow" data-t="mn.major">Major project · choose one</div>
+      <div class="gvs gvs3">
+        <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 9l5 3-5 3z"/></svg><b>≈ 220K</b></div><h3 data-t="mj.1h">Content production for your accounts</h3><p data-t="mj.1p">20+ Reels for your Instagram, 150+ photos: rooms for your website &amp; OTAs, restaurants in high resolution, drone (if permitted).</p></div>
+        <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/></svg><b>≈ 60K</b></div><h3 data-t="mj.2h">AI content course for your team</h3><p data-t="mj.2p">Online lessons (EN / TH) and live online training, so your staff create photo, video and Reels on their own.</p></div>
+        <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 13h.01M15 13h.01M9 17h6"/><circle cx="12" cy="3.5" r="1"/></svg><b>≈ 100K</b></div><h3 data-t="mj.3h">AI assistant or web app</h3><p data-t="mj.3p">An AI assistant that answers guest questions, or a simple web app for your team's daily work — prototype built with your IT.</p></div>
+      </div>
+    </div>
+    <div class="menu-grp">
+      <div class="eyebrow" data-t="mn.light">Light task · choose one</div>
+      <div class="gvs">
+        <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3z"/></svg><b>≈ 60K</b></div><h3 data-t="lt.1h">YouTube vlog about the resort</h3><p data-t="lt.1p">A family vlog episode edited by Dima, who works with top Russian YouTube channels.</p></div>
+        <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg><b>≈ 30K</b></div><h3 data-t="lt.2h">Reels &amp; Stories on our accounts</h3><p data-t="lt.2p">Posts tagging the resort, shared with Darina's 30K audience.</p></div>
+        <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6 16v-4M11 16V8M16 16v-6M20 5l-4 3-4-2-5 4"/></svg><b>≈ 30K</b></div><h3 data-t="lt.3h">Content audit &amp; Reels strategy</h3><p data-t="lt.3p">Darina reviews your Instagram and shows what to change so Reels reach more people.</p></div>
+        <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="13" height="16" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/><path d="M10 8h7M10 12h7M10 16h4"/></svg><b>≈ 20K</b></div><h3 data-t="lt.4h">Carousel content plan</h3><p data-t="lt.4p">20 carousel posts: topics, slide texts and structure — you just lay them out and post.</p></div>
+      </div>
+    </div>
+    <p class="menu-note" data-t="mn.note">We can do all of it — but we'd rather do the two things you need most, and do them beautifully. If it works well, we're happy to continue remotely.</p>
+    <div class="value reveal">
+      <div class="v-cost">
+        <div class="eyebrow" data-t="vl.cost">Your cost</div>
+        <div class="v-num">≈ THB 22–38K</div>
+        <p data-t="vl.costp">7–10 nights in one room, at the published rates on your website (from THB 3,096 per night).</p>
+      </div>
+      <div class="v-get">
+        <div class="eyebrow" data-t="vl.get">What you receive</div>
+        <div class="v-num big">THB 80–280K</div>
+        <p data-t="vl.getp">The value of one major project plus one light task, estimated at typical Phuket market rates for comparable services (see the estimate on each card).</p>
+      </div>
+    </div>
   </div>
 </section>
 <!-- QUICKWIN -->
@@ -610,6 +561,18 @@ b,strong{font-weight:500}
   </div>
 </section>
 
+<!-- TIMELINE -->
+<section style="background:var(--bg-2)">
+  <div class="wrap">
+    <div class="eyebrow" data-t="tl.eyebrow">How it runs</div>
+    <h2 data-t="tl.title">Your October, clearly planned.</h2>
+    <div class="tl">
+      <div class="step reveal"><div class="w" data-t="tl.1w">Before arrival</div><h3 data-t="tl.1h">Dates, brief &amp; content plan</h3><p data-t="tl.1p">You choose the dates that fit your occupancy — we book flights around them. A short call about goals, offers and brand rules, then a shot list for your approval.</p></div>
+      <div class="step reveal"><div class="w" data-t="tl.2w">During the stay · 7–10 nights</div><h3 data-t="tl.2h">Shooting &amp; your two tasks</h3><p data-t="tl.2p">We start with the work you chose — for example rooms, restaurants and pools, with edited photos within 72 hours — and agree the delivery plan with your team before we leave.</p></div>
+      <div class="step reveal"><div class="w" data-t="tl.5w">After check-out</div><h3 data-t="tl.5h">Editing, remote AI content, report</h3><p data-t="tl.5p">Final edits and deliverables within 2–3 weeks, and a short report. If you like the results, we're happy to continue remotely.</p></div>
+    </div>
+  </div>
+</section>
 <!-- SAFETY -->
 <section>
   <div class="wrap">
@@ -641,9 +604,9 @@ b,strong{font-weight:500}
       <div class="box reveal">
         <h3 data-t="ask.you">For Dusit</h3>
         <ul>
-          <li data-t="ask.y1">Two months of content for your channels</li>
-          <li data-t="ask.y2">Our Reels &amp; Stories tagging the resort — reaching Darina's audience of successful, style-conscious women</li>
-          <li data-t="ask.y3">A trained team and your own AI content system</li>
+          <li data-t="ask.y1">The two tasks you choose, done to a 5-star standard</li>
+          <li data-t="ask.y2">Our Reels &amp; Stories tagging the resort, shared with Darina's audience</li>
+          <li data-t="ask.y3">Everything created stays yours — files, plans and tools</li>
           <li data-t="ask.y4">Rights to use all content in your channels & ads</li>
         </ul>
       </div>
@@ -655,8 +618,8 @@ b,strong{font-weight:500}
 <section class="final" id="contact">
   <div class="wrap">
     <div class="eyebrow" style="color:var(--gold-soft)" data-t="fi.eyebrow">Let's talk</div>
-    <h2 data-t="fi.title">Let's make Dusit the family resort everyone is talking about.</h2>
-    <p class="lead" data-t="fi.lead">We're planning our trip for 5–20 October and will fit the exact dates to you. A 20-minute call is enough to start.</p>
+    <h2 data-t="fi.title">Let's tell Dusit's family story together.</h2>
+    <p class="lead" data-t="fi.lead">Dates are flexible within 5–20 October — even a mid-October start works for us. A 20-minute call is enough to start.</p>
     <div class="ctas">
       <a class="btn gold" id="cWa" target="_blank" rel="noopener" href="#" data-t="fi.wa">WhatsApp</a>
       <a class="btn ghost" id="cMail" href="#" data-t="fi.mail">Email us</a>
