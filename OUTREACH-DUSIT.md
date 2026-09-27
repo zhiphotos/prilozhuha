@@ -5,6 +5,29 @@
 
 ---
 
+## 0. НАЙДЕННЫЕ КОНТАКТЫ (проверено 27.09.2026)
+
+| Кто | Контакт | Надёжность |
+|---|---|---|
+| **Отель, общий телефон** | +66 (0) 7636 2999 | ✅ с их сайта |
+| **Отдел бронирования отеля** | dtlprsvn@dusit.com | ✅ с их сайта (не маркетинг, но письмо точно дойдёт до отеля — можно просить переслать в маркетинг) |
+| **Director of Sales & Marketing** | **Chissanucha Pansiri** — `chissanucha.ps@dusit.com` | ⚠️ из базы RocketReach (через поиск); там же указан ещё «Pariyakorn Pansiri» на той же должности — перед отправкой проверьте на LinkedIn, кто сейчас |
+| **General Manager** | **Samir Wildemann** (по RocketReach и его постам в LinkedIn про отель, конец 2024) | ⚠️ почта неизвестна; в LinkedIn также встречается Peter Komposh с этой должностью (вероятно, раньше) |
+| **Marketing & Communication Manager** | имя не найдено (вакансия публиковалась в январе 2025) | ❓ спросить у оператора по телефону |
+| **PR всей сети Dusit (Бангкок)** | Sureerat Sudpairak, Corporate Director of PR — `sureerat.sp@dusit.com`, +66 2 200 9999 доб. 3321 | ⚠️ из пресс-релиза 2022 года; писать только если отель молчит до 30.09 |
+| **Instagram отеля** | @dusitthanilagunaphuket | ✅ |
+| **LinkedIn отеля** | linkedin.com/company/dusit-thani-laguna-phuket | ✅ |
+
+**Формат почты Dusit (подтверждён двумя адресами):** `имя.XX@dusit.com`, где XX — две буквы из тайской фамилии (Sudpairak → `sp`, Pansiri → `ps`). Для иностранных имён формат не подтверждён — не угадывайте, спросите по телефону.
+
+**Что сделать прямо сейчас:**
+1. Письмо (раздел 3a) → **Кому:** `chissanucha.ps@dusit.com`. **Копия:** `dtlprsvn@dusit.com` с первой строкой «Could you please forward this to the Marketing Communications Manager?».
+2. Если письмо на `chissanucha.ps@` вернётся с ошибкой — отправьте только на `dtlprsvn@dusit.com` и позвоните.
+3. Звонок на +66 7636 2999 (скрипт ниже): спросить имя и e-mail Marketing Communications Manager — и дослать письмо ему/ей.
+4. Instagram DM, LinkedIn: найдите Chissanucha Pansiri и Samir Wildemann, отправьте запрос в контакты с заметкой 3c.
+
+---
+
 ## 1. Кому писать
 
 **Кому писать, по порядку:**
