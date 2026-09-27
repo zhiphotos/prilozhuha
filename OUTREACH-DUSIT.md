@@ -15,7 +15,9 @@
 | **General Manager** | **Samir Wildemann** (по RocketReach и его постам в LinkedIn про отель, конец 2024) | ⚠️ почта неизвестна; в LinkedIn также встречается Peter Komposh с этой должностью (вероятно, раньше) |
 | **Marketing & Communication Manager** | имя не найдено (вакансия публиковалась в январе 2025) | ❓ спросить у оператора по телефону |
 | **PR всей сети Dusit (Бангкок)** | Sureerat Sudpairak, Corporate Director of PR — `sureerat.sp@dusit.com`, +66 2 200 9999 доб. 3321 | ⚠️ из пресс-релиза 2022 года; писать только если отель молчит до 30.09 |
-| **Instagram отеля** | @dusitthanilagunaphuket | ✅ |
+| **Instagram отеля** | @dusitthanilagunaphuket | ⚠️ сообщения закрыты — писать нельзя |
+| **LINE отеля (официальный)** | https://lin.ee/OmdTP3S | ✅ с их сайта — писать сюда вместо Instagram |
+| **Facebook отеля** | https://www.facebook.com/dusitthaniphuket/ (Messenger) | ✅ с их сайта |
 | **LinkedIn отеля** | linkedin.com/company/dusit-thani-laguna-phuket | ✅ |
 
 **Формат почты Dusit (подтверждён двумя адресами):** `имя.XX@dusit.com`, где XX — две буквы из тайской фамилии (Sudpairak → `sp`, Pansiri → `ps`). Для иностранных имён формат не подтверждён — не угадывайте, спросите по телефону.
