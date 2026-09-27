@@ -327,6 +327,35 @@ b,strong{font-weight:500}
   .lang button,.bar.solid .lang button{padding:8px 10px;min-width:40px;font-size:12px}
   .final .ctas .btn{flex:1 1 calc(50% - 6px)}
 }
+
+/* value comparison */
+.value{display:grid;grid-template-columns:1fr 1.6fr;margin-top:40px;border:1px solid var(--line);background:var(--card)}
+.value>div{padding:34px}
+.v-cost{border-right:1px solid var(--line);display:flex;flex-direction:column;justify-content:center}
+.v-num{font-family:var(--serif);font-weight:300;font-size:40px;line-height:1.1;margin:8px 0 10px;color:var(--ink)}
+.v-num.big{font-size:56px;color:var(--gold)}
+.v-cost p,.v-note{font-size:14px;color:var(--muted)}
+.v-rows{list-style:none;display:grid;gap:10px;margin:8px 0 14px}
+.v-rows li{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(60px,1fr) 44px;gap:12px;align-items:center;font-size:14px}
+.v-rows i{display:block;height:6px;background:linear-gradient(90deg,var(--gold) var(--w),var(--bg-2) var(--w))}
+.v-rows b{text-align:right;font-weight:500;color:var(--teal)}
+@media (max-width:760px){
+  .value{grid-template-columns:1fr}
+  .v-cost{border-right:0;border-bottom:1px solid var(--line)}
+  .value>div{padding:24px 20px}
+  .v-num.big{font-size:44px}
+  .v-rows li{grid-template-columns:1fr 44px;gap:4px 10px}
+  .v-rows i{grid-column:1/-1;grid-row:2}
+}
+/* lighter hero on phones */
+.sub-m{display:none}
+@media (max-width:560px){
+  .hero .sub-d,.hero .exclusive,.hero .herocap,.hero .cta-work{display:none}
+  .hero .sub-m{display:block;font-size:17px}
+  .hero .ctas{margin-top:26px}
+  .hero .ctas .btn.ghost{background:#fff;color:var(--ink);border-color:#fff}
+  .hero{padding-bottom:56px}
+}
 </style>
 </head>
 <body>
@@ -346,9 +375,10 @@ b,strong{font-weight:500}
   <div class="wrap">
     <div class="eyebrow" data-t="hero.eyebrow">Collaboration proposal · Dusit Thani Laguna Phuket</div>
     <h1 data-t="hero.title">Two months of family content, shot in one stay.</h1>
-    <p data-t="hero.sub">We are Darina, Dima and little Mark — a Russian creator family. Darina is a blogger and hotel photographer, Dima edits YouTube videos for well-known Russian creators. We create content for <b>your</b> accounts, train your team with AI tools — and share our stay with our own audience.</p>
+    <p class="sub-m" data-t="hero.subm">Darina, Dima &amp; Mark — a creator family. Content for <b>your</b> accounts, AI tools for your team.</p>
+    <p class="sub-d" data-t="hero.sub">We are Darina, Dima and little Mark — a Russian creator family. Darina is a blogger and hotel photographer, Dima edits YouTube videos for well-known Russian creators. We create content for <b>your</b> accounts, train your team with AI tools — and share our stay with our own audience.</p>
     <div class="ctas">
-      <a class="btn gold" href="#work" data-t="hero.cta1">See our hotel work</a>
+      <a class="btn gold cta-work" href="#work" data-t="hero.cta1">See our hotel work</a>
       <a class="btn ghost" href="#offers" data-t="hero.cta2">See the proposal</a>
     </div>
     <div class="herocap" data-t="hero.cap">Background: our drone work · Abkhazia</div>
@@ -448,6 +478,27 @@ b,strong{font-weight:500}
       <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 13h.01M15 13h.01M9 17h6"/><circle cx="12" cy="3.5" r="1"/></svg></div><h3 data-t="gv.10h">AI guest assistant</h3><p data-t="gv.10p">Answers guest questions 24/7 in EN / TH / RU / CN.</p></div>
       <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01M8 13h8M8 16h5"/></svg></div><h3 data-t="gv.11h">Web app for hotel or guests</h3><p data-t="gv.11p">A simple tool for your team's daily work or for your guests.</p></div>
       <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg></div><h3 data-t="gv.12h">After check-out</h3><p data-t="gv.12p">We stay in touch: extra AI content remotely, and more if it works for you.</p></div>
+    </div>
+    <div class="value reveal">
+      <div class="v-cost">
+        <div class="eyebrow" data-t="vl.cost">Your cost</div>
+        <div class="v-num">≈ THB 22–38K</div>
+        <p data-t="vl.costp">7–10 nights in one room, at the published rates on your website (from THB 3,096 per night).</p>
+      </div>
+      <div class="v-get">
+        <div class="eyebrow" data-t="vl.get">What you receive</div>
+        <div class="v-num big">THB 500K+</div>
+        <ul class="v-rows">
+        <li><span data-t="vl.r1">Photo &amp; video: rooms, restaurants, drone</span><i style="--w:100%"></i><b>120K</b></li>
+        <li><span data-t="vl.r2">20+ Reels for your Instagram</span><i style="--w:83%"></i><b>100K</b></li>
+        <li><span data-t="vl.r3">AI guest assistant or web app</span><i style="--w:83%"></i><b>100K</b></li>
+        <li><span data-t="vl.r4">AI course &amp; staff training</span><i style="--w:50%"></i><b>60K</b></li>
+        <li><span data-t="vl.r5">2 YouTube vlog episodes</span><i style="--w:50%"></i><b>60K</b></li>
+        <li><span data-t="vl.r6">Content audit, viral strategy, carousel plan</span><i style="--w:42%"></i><b>50K</b></li>
+        <li><span data-t="vl.r7">Our Reels &amp; Stories to a 30K audience</span><i style="--w:25%"></i><b>30K</b></li>
+        </ul>
+        <p class="v-note" data-t="vl.note">Estimated at typical Phuket market rates for comparable services.</p>
+      </div>
     </div>
     <h3 class="opt-title" data-t="gv.opts">Choose your focus:</h3>
     <div class="offers">
