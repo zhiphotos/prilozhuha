@@ -394,6 +394,8 @@ html[lang="th"] .gift-badge{letter-spacing:.02em;text-transform:none;font-size:1
 
 .gift-note{margin-top:14px;max-width:640px;font-size:13px;line-height:1.7;padding:12px 16px;border:1px dashed var(--line-l);border-radius:12px;color:rgba(243,236,221,.85)}
 .gift-note b{color:var(--cream)}
+.gift-img.multi{display:grid!important;grid-template-columns:1fr 1fr;gap:4px}
+.gift-img.multi img{height:100%;max-height:560px}
 </style>
 </head>
 <body>
@@ -845,10 +847,14 @@ html[lang="th"] .gift-badge{letter-spacing:.02em;text-transform:none;font-size:1
   document.querySelectorAll("[data-gift]").forEach(function(card){
     var src = (M.aiPhotos || [])[+card.getAttribute("data-gift")], box = card.querySelector(".gift-img");
     if (!src){ box.remove(); return; }
-    var im = new Image(); im.alt = "";
-    im.addEventListener("load", function(){ card.classList.add("has-img"); });
-    im.addEventListener("error", function(){ box.remove(); });
-    im.src = src; box.insertBefore(im, box.firstChild);
+    var list = [].concat(src), loaded = 0;
+    if (list.length > 1) box.classList.add("multi");
+    list.forEach(function(u){
+      var im = new Image(); im.alt = "";
+      im.addEventListener("load", function(){ loaded++; card.classList.add("has-img"); });
+      im.addEventListener("error", function(){ im.remove(); if (!box.querySelector("img")) box.remove(); });
+      im.src = u; box.insertBefore(im, box.querySelector(".gift-badge"));
+    });
   });
   var pf = document.getElementById("pf");
   (M.portfolio || []).forEach(function(src, i){

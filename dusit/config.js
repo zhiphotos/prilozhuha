@@ -41,9 +41,9 @@ window.PITCH_CONFIG = {
     // ИИ-концепты с отелем. Кладёшь файлы в dusit/media/ai/ — блок появится сам.
     // Видео вертикальные 9:16, до ~8 МБ каждое (подписи к ним — в i18n: tz.c1..c3)
     teasers: ["media/ai/video1.mp4", "media/ai/video2.mp4", "media/ai/video3.mp4"],
-    // ИИ-фотосессия: сколько есть файлов — столько и покажется (лишние имена можно оставить)
+    // ИИ-фото для блока «Подарок» (по порядку карточек 1–10). Можно дать несколько фото на карточку: ["a.jpg", "b.jpg"]
     aiPhotos: [
-      "media/ai/photo1.jpg", "media/ai/photo2.jpg", "media/ai/photo3.jpg",
+      "media/ai/photo1.jpg", "media/ai/photo2.jpg", ["media/ai/photo3.jpg", "media/ai/photo3b.jpg"],
       "media/ai/photo4.jpg", "media/ai/photo5.jpg", "media/ai/photo6.jpg",
       "media/ai/photo7.jpg", "media/ai/photo8.jpg", "media/ai/photo9.jpg", "media/ai/photo10.jpg",
     ],
