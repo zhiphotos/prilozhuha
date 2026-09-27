@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Family Story Proposal</title>
+<meta name="description" content="A creator-family collaboration proposal prepared exclusively for Dusit Thani Laguna Phuket.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600&family=Noto+Serif+Thai:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f2ea; --bg-2:#efe6d8; --ink:#1d2a2c; --muted:#5d6a6b;
+  --teal:#0f4c4f; --teal-2:#16676b; --gold:#b08a4a; --gold-soft:#e6d4b1;
+  --card:#fffdf9; --line:rgba(29,42,44,.12);
+  --serif:"Cormorant Garamond","Noto Serif Thai",Georgia,serif;
+  --sans:"Inter","Noto Sans Thai",system-ui,sans-serif;
+  --r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+html[lang="th"] body{line-height:1.8}
+img,video{display:block;max-width:100%}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);font-weight:600}
+html[lang="th"] .eyebrow,html[lang="th"] .k,html[lang="th"] .w,html[lang="th"] .tag{letter-spacing:.02em;text-transform:none}
+h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.1;letter-spacing:-.01em}
+html[lang="th"] h1,html[lang="th"] h2,html[lang="th"] h3{line-height:1.35;letter-spacing:0}
+h2{font-size:clamp(34px,5vw,56px);margin:10px 0 18px}
+h3{font-size:26px}
+.lead{font-size:clamp(17px,1.6vw,20px);color:var(--muted);max-width:720px}
+section{padding:110px 0}
+.center{text-align:center}.center .lead{margin:0 auto}
+
+/* top bar */
+.bar{position:fixed;inset:0 0 auto 0;z-index:50;display:flex;justify-content:space-between;align-items:center;padding:14px 20px;transition:background .3s,box-shadow .3s}
+.bar.solid{background:rgba(247,242,234,.92);backdrop-filter:blur(10px);box-shadow:0 1px 0 var(--line)}
+.brand{font-family:var(--serif);font-size:20px;font-weight:600;color:#fff;text-decoration:none;transition:color .3s}
+.bar.solid .brand{color:var(--ink)}
+.lang{display:flex;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:3px;backdrop-filter:blur(8px)}
+.bar.solid .lang{background:#fff;border-color:var(--line)}
+.lang button{border:0;background:transparent;color:#fff;font:600 13px var(--sans);padding:7px 14px;border-radius:999px;cursor:pointer;min-width:56px}
+.bar.solid .lang button{color:var(--ink)}
+.lang button.on{background:var(--gold);color:#fff!important}
+
+/* hero */
+.hero{position:relative;min-height:100svh;display:flex;align-items:flex-end;padding:0 0 80px;color:#fff;overflow:hidden;background:linear-gradient(160deg,#0f4c4f 0%,#1f6f6a 45%,#c9a66b 100%)}
+.hero .bgmedia{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,30,32,.25) 0%,rgba(10,30,32,.15) 40%,rgba(10,30,32,.75) 100%)}
+.hero .wrap{position:relative;z-index:2;width:100%}
+.hero .eyebrow{color:var(--gold-soft)}
+.hero h1{font-size:clamp(44px,8vw,104px);margin:14px 0 20px;max-width:14ch}
+.hero p{font-size:clamp(17px,1.8vw,21px);max-width:620px;opacity:.92}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:32px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:15px 26px;border-radius:999px;font:600 15px var(--sans);text-decoration:none;border:1px solid transparent;cursor:pointer;transition:transform .2s,background .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn.gold{background:var(--gold);color:#fff}
+.btn.ghost{border-color:rgba(255,255,255,.6);color:#fff}
+.btn.dark{background:var(--teal);color:#fff}
+.btn.line{border-color:var(--teal);color:var(--teal)}
+.exclusive{display:inline-block;margin-top:40px;font-size:13px;padding:8px 14px;border:1px solid rgba(255,255,255,.35);border-radius:999px;opacity:.9}
+
+/* placeholders */
+.ph{position:relative;background:linear-gradient(135deg,var(--gold-soft),#d9c7a6 50%,#a9c3bf);overflow:hidden}
+.ph>img,.ph>video{width:100%;height:100%;object-fit:cover}
+.ph .phl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;font-size:13px;color:rgba(29,42,44,.65);font-weight:500}
+.ph.loaded .phl{display:none}
+
+/* family */
+.fam-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:28px;align-items:center;margin-top:50px}
+.fam-main{border-radius:var(--r);aspect-ratio:4/5}
+.people{display:grid;gap:16px}
+.person{display:flex;gap:18px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.person .ph{width:92px;height:92px;border-radius:50%;flex:none}
+.person h3{font-size:24px}
+.person p{font-size:15px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}
+.stat{background:var(--teal);color:#fff;border-radius:var(--r);padding:26px}
+.stat b{display:block;font-family:var(--serif);font-size:44px;line-height:1;color:var(--gold-soft)}
+.stat span{font-size:14px;opacity:.85}
+
+/* why */
+.dark-sec{background:var(--teal);color:#fff}
+.dark-sec .lead{color:rgba(255,255,255,.78)}
+.why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:50px}
+.why{border:1px solid rgba(255,255,255,.18);border-radius:var(--r);padding:28px;background:rgba(255,255,255,.04)}
+.why .n{font-family:var(--serif);font-size:40px;color:var(--gold-soft);line-height:1}
+.why h3{margin:14px 0 8px;font-size:24px}
+.why p{font-size:15px;color:rgba(255,255,255,.78)}
+
+/* teasers */
+.teasers{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:50px}
+.teaser{border-radius:var(--r);aspect-ratio:9/16}
+.teaser-cap{margin-top:10px;font-size:14px;color:var(--muted)}
+
+/* ideas */
+.ideas{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:50px}
+.idea{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:26px;display:flex;gap:18px}
+.idea .ic{flex:none;width:48px;height:48px;border-radius:14px;background:var(--bg-2);display:flex;align-items:center;justify-content:center;font-size:22px}
+.idea h3{font-size:23px;margin-bottom:6px}
+.idea p{font-size:15px;color:var(--muted)}
+.tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--gold-soft);color:#6d5429;margin-top:10px}
+.tag.ai{background:#d6ebe9;color:var(--teal)}
+
+/* offers */
+.offers{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:50px;align-items:stretch}
+.offer{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:32px;display:flex;flex-direction:column}
+.offer.best{background:var(--teal);color:#fff;border-color:var(--teal);position:relative;box-shadow:0 30px 60px -30px rgba(15,76,79,.6)}
+.offer.best .ribbon{position:absolute;top:-13px;left:32px;background:var(--gold);color:#fff;font-size:12px;font-weight:600;padding:5px 12px;border-radius:999px;letter-spacing:.05em}
+.offer .k{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.offer.best .k{color:var(--gold-soft)}
+.offer h3{font-size:30px;margin:8px 0 10px}
+.offer>p{font-size:15px;color:var(--muted)}
+.offer.best>p{color:rgba(255,255,255,.8)}
+.offer ul{list-style:none;margin:20px 0 0;display:grid;gap:10px;font-size:15px}
+.offer li{padding-left:24px;position:relative}
+.offer li::before{content:"";position:absolute;left:2px;top:.62em;width:10px;height:10px;border-radius:50%;background:var(--gold)}
+
+/* numbers */
+.numbers{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:50px}
+.num{background:var(--card);padding:28px 22px}
+.num b{font-family:var(--serif);font-size:52px;line-height:1;color:var(--teal);display:block}
+.num span{font-size:14px;color:var(--muted)}
+
+/* timeline */
+.tl{margin-top:50px;display:grid;gap:0;border-left:2px solid var(--gold-soft);margin-left:8px}
+.step{position:relative;padding:0 0 34px 34px}
+.step::before{content:"";position:absolute;left:-9px;top:6px;width:16px;height:16px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 5px var(--bg)}
+.step .w{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.step h3{font-size:24px;margin:4px 0}
+.step p{color:var(--muted);font-size:15px;max-width:680px}
+
+/* portfolio */
+.pf{columns:3 260px;column-gap:16px;margin-top:50px}
+.pf .ph{break-inside:avoid;margin-bottom:16px;border-radius:14px;aspect-ratio:4/5}
+.pf .ph:nth-child(3n+2){aspect-ratio:1/1}
+.socials{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:40px}
+.soc{display:block;text-decoration:none;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px;transition:transform .2s,border-color .2s}
+.soc:hover{transform:translateY(-3px);border-color:var(--gold)}
+.soc small{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.soc b{display:block;font-size:16px;margin:4px 0 8px;word-break:break-all}
+.soc em{font-style:normal;font-family:var(--serif);font-size:32px;color:var(--teal)}
+
+/* ask */
+.ask{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:50px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:30px}
+.box h3{margin-bottom:14px}
+.box ul{list-style:none;display:grid;gap:10px;font-size:15px}
+.box li{padding-left:26px;position:relative}
+.box li::before{content:"✓";position:absolute;left:0;color:var(--gold);font-weight:700}
+
+/* cta */
+.final{background:linear-gradient(160deg,#0f4c4f,#0b3739);color:#fff;text-align:center}
+.final h2{max-width:16ch;margin-left:auto;margin-right:auto}
+.final .lead{color:rgba(255,255,255,.8);margin:0 auto}
+.final .ctas{justify-content:center}
+footer{padding:30px 0;font-size:13px;color:var(--muted);text-align:center}
+
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .8s ease,transform .8s ease}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+
+@media (max-width:900px){
+  section{padding:80px 0}
+  .fam-grid,.ask{grid-template-columns:1fr}
+  .why-grid,.offers,.ideas{grid-template-columns:1fr}
+  .numbers,.socials{grid-template-columns:repeat(2,1fr)}
+  .stats{grid-template-columns:1fr}
+  .teasers{grid-template-columns:repeat(3,1fr);gap:10px}
+}
+@media (max-width:560px){
+  .wrap{padding:0 16px}
+  .teasers{grid-template-columns:1fr 1fr}
+  .teasers>div:last-child{grid-column:1/-1;max-width:50%;justify-self:center;width:100%}
+  .num b{font-size:40px}
+  .brand{font-size:17px}
+}
+</style>
+</head>
+<body>
+
+<header class="bar" id="bar">
+  <a class="brand" href="#top" data-t="brand">The Family × Dusit</a>
+  <div class="lang" role="group" aria-label="Language">
+    <button type="button" data-lang="en" class="on">EN</button>
+    <button type="button" data-lang="th">ไทย</button>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <video class="bgmedia" id="heroVideo" muted loop playsinline autoplay></video>
+  <div class="wrap">
+    <div class="eyebrow" data-t="hero.eyebrow">Collaboration proposal · Dusit Thani Laguna Phuket</div>
+    <h1 data-t="hero.title">Your resort, told through one family's story.</h1>
+    <p data-t="hero.sub">We are a young creator family — Mom, Dad and little Mark. We film cinematic family travel content and build AI content systems. We'd love to make Dusit Thani Laguna Phuket the most talked-about family resort on Bang Tao.</p>
+    <div class="ctas">
+      <a class="btn gold" href="#teasers" data-t="hero.cta1">Watch what we already made for you</a>
+      <a class="btn ghost" href="#offers" data-t="hero.cta2">See the proposal</a>
+    </div>
+    <div class="exclusive" data-t="hero.exclusive">Prepared exclusively for the Marketing team of Dusit Thani Laguna Phuket</div>
+  </div>
+</section>
+
+<!-- FAMILY -->
+<section id="family">
+  <div class="wrap">
+    <div class="eyebrow" data-t="fam.eyebrow">Who we are</div>
+    <h2 data-t="fam.title">A real family. Real moments. Camera-ready.</h2>
+    <p class="lead" data-t="fam.lead">Families trust families. When parents plan a holiday, they look for people like them — not ads. That's exactly the audience we speak to every day.</p>
+    <div class="fam-grid">
+      <div class="ph fam-main reveal" data-media="family"><span class="phl">family.jpg</span></div>
+      <div class="people">
+        <div class="person reveal"><div class="ph" data-media="mom"><span class="phl">mom</span></div><div><h3 data-name="mom">Mom</h3><p data-t="fam.mom">Lifestyle & travel creator. Storytelling, styling, Reels that feel like a movie.</p></div></div>
+        <div class="person reveal"><div class="ph" data-media="dad"><span class="phl">dad</span></div><div><h3 data-name="dad">Dad</h3><p data-t="fam.dad">Director & AI producer. Cinematic video, drone, AI-powered production pipelines.</p></div></div>
+        <div class="person reveal"><div class="ph" data-media="mark"><span class="phl">mark</span></div><div><h3 data-name="kid">Mark</h3><p data-t="fam.mark">The star. Kids club reviewer, junior chef, sandcastle architect.</p></div></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat reveal"><b data-stat="reach">—</b><span data-t="fam.s1">monthly reach across our channels</span></div>
+      <div class="stat reveal"><b data-stat="views">—</b><span data-t="fam.s2">average views per Reel</span></div>
+      <div class="stat reveal"><b data-stat="audience">—</b><span data-t="fam.s3">core audience — Phuket's #1 source markets</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY -->
+<section class="dark-sec">
+  <div class="wrap">
+    <div class="eyebrow" data-t="why.eyebrow">Why this works for Dusit</div>
+    <h2 data-t="why.title">Your best family experiences deserve an audience.</h2>
+    <p class="lead" data-t="why.lead">Busy Bee Kids Club, the Children's Camp Out, junior chef classes, kayaking on the lagoon, Devarana Wellness, Bang Tao sunsets — these are stories, not amenities. We turn them into content people save, share and book.</p>
+    <div class="why-grid">
+      <div class="why reveal"><div class="n">01</div><h3 data-t="why.1h">Family = your core guest</h3><p data-t="why.1p">Authentic parent-and-child content converts families better than any polished campaign. We live it on camera for real.</p></div>
+      <div class="why reveal"><div class="n">02</div><h3 data-t="why.2h">Human + AI</h3><p data-t="why.2p">Real footage for trust, AI for scale: multilingual voice-overs, endless variations, fast edits — at a fraction of agency cost.</p></div>
+      <div class="why reveal"><div class="n">03</div><h3 data-t="why.3h">Content that stays</h3><p data-t="why.3p">We don't just post and leave. We can train your team and leave you an AI content system that keeps producing after we check out.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- TEASERS -->
+<section id="teasers">
+  <div class="wrap center">
+    <div class="eyebrow" data-t="tz.eyebrow">Already made — for you</div>
+    <h2 data-t="tz.title">We didn't just write a proposal. We started filming.</h2>
+    <p class="lead" data-t="tz.lead">Three pieces created at your resort, before we even met. Imagine two months of this.</p>
+  </div>
+  <div class="wrap">
+    <div class="teasers">
+      <div><div class="ph teaser reveal" data-media="teasers.0"><span class="phl">teaser1.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c1">Real footage · “Morning on Bang Tao”</div></div>
+      <div><div class="ph teaser reveal" data-media="teasers.1"><span class="phl">teaser2.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c2">AI-enhanced · “Mark's dream resort”</div></div>
+      <div><div class="ph teaser reveal" data-media="teasers.2"><span class="phl">teaser3.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c3">Multilingual · same Reel in EN / TH / RU / CN</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- IDEAS -->
+<section style="background:var(--bg-2)">
+  <div class="wrap">
+    <div class="eyebrow" data-t="id.eyebrow">Content series</div>
+    <h2 data-t="id.title">Six series, built around your resort.</h2>
+    <div class="ideas">
+      <div class="idea reveal"><div class="ic">🐝</div><div><h3 data-t="id.1h">Mark's Resort Diary</h3><p data-t="id.1p">A weekly kid's-eye review: Busy Bee Kids Club, bottomless ice cream, mini golf. The format kids want to watch and parents trust.</p><span class="tag" data-t="tag.real">Real video</span></div></div>
+      <div class="idea reveal"><div class="ic">⛺</div><div><h3 data-t="id.2h">Camp Out Under Phuket Stars</h3><p data-t="id.2p">The Children's Camp Out as a mini-documentary: tents, face painting, marshmallows at night. Pure emotional content.</p><span class="tag" data-t="tag.real">Real video</span></div></div>
+      <div class="idea reveal"><div class="ic">👨‍🍳</div><div><h3 data-t="id.3h">Junior Chef Mark</h3><p data-t="id.3p">Cooking with your chefs — Thai dishes step by step. Recipe Reels are among the most saved formats on Instagram.</p><span class="tag" data-t="tag.real">Real video</span></div></div>
+      <div class="idea reveal"><div class="ic">🌿</div><div><h3 data-t="id.4h">Parents Need a Holiday Too</h3><p data-t="id.4p">While Mark is at the Kids Club: Devarana Wellness, dinner for two, sunset on the beach. The honest parent angle.</p><span class="tag" data-t="tag.real">Real video</span></div></div>
+      <div class="idea reveal"><div class="ic">✨</div><div><h3 data-t="id.5h">Dusit Dreams (AI)</h3><p data-t="id.5p">Real shots transformed into animated, painted and fairy-tale worlds. Highly shareable, instantly recognisable.</p><span class="tag ai" data-t="tag.ai">AI</span></div></div>
+      <div class="idea reveal"><div class="ic">🌏</div><div><h3 data-t="id.6h">One Reel, Five Languages</h3><p data-t="id.6p">Each hero video re-voiced with AI in English, Thai, Russian, Chinese and more — reaching every key market from one shoot.</p><span class="tag ai" data-t="tag.ai">AI</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- OFFERS -->
+<section id="offers">
+  <div class="wrap center">
+    <div class="eyebrow" data-t="of.eyebrow">The proposal</div>
+    <h2 data-t="of.title">Three ways to work together.</h2>
+    <p class="lead" data-t="of.lead">All options are barter: accommodation for our family in exchange for content and technology. No agency fees.</p>
+  </div>
+  <div class="wrap">
+    <div class="offers">
+      <div class="offer reveal">
+        <div class="k" data-t="of.a.k">Option A</div>
+        <h3 data-t="of.a.h">AI Content Studio</h3>
+        <p data-t="of.a.p">We set up an AI content system for your team and train them to create content on their own.</p>
+        <ul>
+          <li data-t="of.a.1">AI toolkit set up for photo, video, Reels & copy</li>
+          <li data-t="of.a.2">Brand prompts & templates in Dusit style</li>
+          <li data-t="of.a.3">Online video lessons for staff (EN / TH)</li>
+          <li data-t="of.a.4">Live workshops on-site</li>
+          <li data-t="of.a.5">30 days of follow-up support</li>
+        </ul>
+      </div>
+      <div class="offer best reveal">
+        <div class="ribbon" data-t="of.best">Recommended</div>
+        <div class="k" data-t="of.c.k">Option C · Signature</div>
+        <h3 data-t="of.c.h">Content + AI Studio</h3>
+        <p data-t="of.c.p">Everything from A and B: two months of content, plus a trained team and an AI system that keeps working after we leave.</p>
+        <ul>
+          <li data-t="of.c.1">Full 2-month content production</li>
+          <li data-t="of.c.2">AI studio setup + staff training</li>
+          <li data-t="of.c.3">YouTube vlog series about the resort</li>
+          <li data-t="of.c.4">Multilingual versions for key markets</li>
+          <li data-t="of.c.5">Monthly performance report</li>
+        </ul>
+      </div>
+      <div class="offer reveal">
+        <div class="k" data-t="of.b.k">Option B</div>
+        <h3 data-t="of.b.h">2-Month Content Production</h3>
+        <p data-t="of.b.p">We live the resort and create a full content library — real and AI-powered.</p>
+        <ul>
+          <li data-t="of.b.1">Reels & TikToks, real + AI</li>
+          <li data-t="of.b.2">Professional photo library</li>
+          <li data-t="of.b.3">Collab posts on our Instagram</li>
+          <li data-t="of.b.4">YouTube family vlog episodes</li>
+          <li data-t="of.b.5">Full usage rights for Dusit</li>
+        </ul>
+      </div>
+    </div>
+    <div class="numbers">
+      <div class="num reveal"><b>40+</b><span data-t="nu.1">Reels & short videos</span></div>
+      <div class="num reveal"><b>300+</b><span data-t="nu.2">edited photos</span></div>
+      <div class="num reveal"><b>4</b><span data-t="nu.3">YouTube vlog episodes</span></div>
+      <div class="num reveal"><b>60+</b><span data-t="nu.4">Stories with links & tags</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section style="background:var(--bg-2)">
+  <div class="wrap">
+    <div class="eyebrow" data-t="tl.eyebrow">How it runs</div>
+    <h2 data-t="tl.title">Eight weeks, clearly planned.</h2>
+    <div class="tl">
+      <div class="step reveal"><div class="w" data-t="tl.1w">Week 0</div><h3 data-t="tl.1h">Brief & content plan</h3><p data-t="tl.1p">Call with your marketing team: goals, seasonal offers, brand rules. We deliver a content calendar for approval.</p></div>
+      <div class="step reveal"><div class="w" data-t="tl.2w">Weeks 1–2</div><h3 data-t="tl.2h">Hero shoot</h3><p data-t="tl.2p">Main photo & video shoot across the resort. First Reels live within days.</p></div>
+      <div class="step reveal"><div class="w" data-t="tl.3w">Weeks 3–6</div><h3 data-t="tl.3h">Series & AI studio</h3><p data-t="tl.3p">Weekly series go live. In parallel we set up the AI system and run training for your team.</p></div>
+      <div class="step reveal"><div class="w" data-t="tl.4w">Weeks 7–8</div><h3 data-t="tl.4h">Handover & report</h3><p data-t="tl.4p">Full content library, YouTube episodes, trained team, and a report with reach, engagement and growth.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PORTFOLIO -->
+<section id="work">
+  <div class="wrap">
+    <div class="eyebrow" data-t="pf.eyebrow">Our work</div>
+    <h2 data-t="pf.title">A taste of what we create.</h2>
+    <div class="pf" id="pf"></div>
+    <div class="socials" id="socials"></div>
+  </div>
+</section>
+
+<!-- ASK -->
+<section style="background:var(--bg-2)">
+  <div class="wrap">
+    <div class="eyebrow" data-t="ask.eyebrow">Fair exchange</div>
+    <h2 data-t="ask.title">What we need — and what you get.</h2>
+    <div class="ask">
+      <div class="box reveal">
+        <h3 data-t="ask.we">From Dusit</h3>
+        <ul>
+          <li data-t="ask.w1">One room for our family of three for the collaboration period</li>
+          <li data-t="ask.w2">Access to resort experiences for filming</li>
+          <li data-t="ask.w3">One contact person in the marketing team</li>
+          <li data-t="ask.w4">Flexible dates — we adapt to your occupancy</li>
+        </ul>
+      </div>
+      <div class="box reveal">
+        <h3 data-t="ask.you">For Dusit</h3>
+        <ul>
+          <li data-t="ask.y1">A content library worth far more than the stay</li>
+          <li data-t="ask.y2">Exposure to a new, engaged family audience</li>
+          <li data-t="ask.y3">A trained team and your own AI content system</li>
+          <li data-t="ask.y4">Rights to use all content in your channels & ads</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL -->
+<section class="final" id="contact">
+  <div class="wrap">
+    <div class="eyebrow" style="color:var(--gold-soft)" data-t="fi.eyebrow">Let's talk</div>
+    <h2 data-t="fi.title">Let's make Dusit the family resort everyone is talking about.</h2>
+    <p class="lead" data-t="fi.lead">We're already in Phuket and can meet this week. A 20-minute call is enough to start.</p>
+    <div class="ctas">
+      <a class="btn gold" id="cWa" href="#" data-t="fi.wa">WhatsApp</a>
+      <a class="btn ghost" id="cMail" href="#" data-t="fi.mail">Email us</a>
+      <a class="btn ghost" id="cTg" href="#">Telegram</a>
+    </div>
+  </div>
+</section>
+
+<footer data-t="foot">This proposal was created for Dusit Thani Laguna Phuket. Not affiliated with Dusit International.</footer>
+
+<script src="config.js"></script>
+<script src="i18n.js"></script>
+<script>
+(function(){
+  var C = window.PITCH_CONFIG || {};
+  var D = window.PITCH_I18N || {};
+  // English is the source text in the HTML itself
+  D.en = D.en || {};
+  document.querySelectorAll("[data-t]").forEach(function(el){
+    D.en[el.getAttribute("data-t")] = el.innerHTML;
+  });
+
+  // ---------- language ----------
+  function getLang(){
+    var q = new URLSearchParams(location.search).get("lang");
+    if (q === "th" || q === "en") return q;
+    try { var s = localStorage.getItem("pitch-lang"); if (s) return s; } catch(e){}
+    return (navigator.language || "").toLowerCase().indexOf("th") === 0 ? "th" : "en";
+  }
+  function setLang(l){
+    var dict = D[l] || D.en;
+    document.documentElement.lang = l;
+    document.querySelectorAll("[data-t]").forEach(function(el){
+      var k = el.getAttribute("data-t");
+      if (dict[k] != null) el.innerHTML = dict[k];
+      else if (D.en[k] != null) el.innerHTML = D.en[k];
+    });
+    document.querySelectorAll(".lang button").forEach(function(b){
+      b.classList.toggle("on", b.dataset.lang === l);
+    });
+    try { localStorage.setItem("pitch-lang", l); } catch(e){}
+    renderSocials(dict);
+  }
+  document.querySelectorAll(".lang button").forEach(function(b){
+    b.addEventListener("click", function(){ setLang(b.dataset.lang); });
+  });
+
+  // ---------- names & stats ----------
+  var f = C.family || {};
+  document.querySelectorAll("[data-name]").forEach(function(el){
+    var v = f[el.getAttribute("data-name")]; if (v) el.textContent = v;
+  });
+  var st = C.stats || {};
+  document.querySelectorAll("[data-stat]").forEach(function(el){
+    var v = st[el.getAttribute("data-stat")]; if (v) el.textContent = v;
+  });
+
+  // ---------- media with graceful fallback ----------
+  var M = C.media || {};
+  function pick(path){
+    return path.split(".").reduce(function(o,k){ return o == null ? o : o[k]; }, M);
+  }
+  function isVideo(src){ return /\.(mp4|webm|mov)$/i.test(src); }
+  function fill(box, src){
+    if (!src) return;
+    var el;
+    if (isVideo(src)){
+      el = document.createElement("video");
+      el.muted = true; el.loop = true; el.playsInline = true; el.autoplay = true;
+      el.setAttribute("playsinline",""); el.preload = "metadata";
+      el.addEventListener("loadeddata", function(){ box.classList.add("loaded"); });
+    } else {
+      el = document.createElement("img");
+      el.loading = "lazy"; el.alt = "";
+      el.addEventListener("load", function(){ box.classList.add("loaded"); });
+    }
+    el.addEventListener("error", function(){ el.remove(); });
+    el.src = src;
+    box.insertBefore(el, box.firstChild);
+  }
+  document.querySelectorAll("[data-media]").forEach(function(box){
+    fill(box, pick(box.getAttribute("data-media")));
+  });
+  var pf = document.getElementById("pf");
+  (M.portfolio || []).forEach(function(src, i){
+    var b = document.createElement("div");
+    b.className = "ph reveal";
+    b.innerHTML = '<span class="phl">' + src.split("/").pop() + "</span>";
+    pf.appendChild(b); fill(b, src);
+  });
+  var hv = document.getElementById("heroVideo");
+  if (M.heroPoster) hv.poster = M.heroPoster;
+  if (M.hero){ hv.addEventListener("error", function(){ hv.style.display = "none"; }, true); hv.src = M.hero; }
+
+  // ---------- socials ----------
+  function renderSocials(dict){
+    var box = document.getElementById("socials"); box.innerHTML = "";
+    (C.socials || []).forEach(function(s){
+      var a = document.createElement("a");
+      a.className = "soc"; a.href = s.url; a.target = "_blank"; a.rel = "noopener";
+      a.innerHTML = "<small></small><b></b><em></em> <span></span>";
+      a.children[0].textContent = s.label;
+      a.children[1].textContent = s.handle;
+      a.children[2].textContent = s.followers;
+      a.children[3].textContent = (dict && dict["soc.followers"]) || "followers";
+      a.children[3].style.cssText = "font-size:13px;color:var(--muted)";
+      box.appendChild(a);
+    });
+  }
+
+  // ---------- contacts ----------
+  var ct = C.contact || {};
+  var wa = document.getElementById("cWa"), ml = document.getElementById("cMail"), tg = document.getElementById("cTg");
+  if (ct.whatsapp) wa.href = "https://wa.me/" + ct.whatsapp; else wa.style.display = "none";
+  if (ct.email) ml.href = "mailto:" + ct.email + "?subject=" + encodeURIComponent("Dusit Thani Laguna Phuket × Family collaboration"); else ml.style.display = "none";
+  if (ct.telegram) tg.href = "https://t.me/" + ct.telegram; else tg.style.display = "none";
+
+  // ---------- header + reveal ----------
+  var bar = document.getElementById("bar");
+  function onScroll(){ bar.classList.toggle("solid", window.scrollY > 60); }
+  window.addEventListener("scroll", onScroll, { passive: true }); onScroll();
+
+  setLang(getLang());
+
+  if ("IntersectionObserver" in window){
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
+    }, { threshold: .12 });
+    document.querySelectorAll(".reveal").forEach(function(el){ io.observe(el); });
+  } else {
+    document.querySelectorAll(".reveal").forEach(function(el){ el.classList.add("in"); });
+  }
+})();
+</script>
+</body>
+</html>
