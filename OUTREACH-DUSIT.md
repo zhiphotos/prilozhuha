@@ -21,7 +21,8 @@
 **Формат почты Dusit (подтверждён двумя адресами):** `имя.XX@dusit.com`, где XX — две буквы из тайской фамилии (Sudpairak → `sp`, Pansiri → `ps`). Для иностранных имён формат не подтверждён — не угадывайте, спросите по телефону.
 
 **Что сделать прямо сейчас:**
-1. Письмо (раздел 3a) → **Кому:** `chissanucha.ps@dusit.com`. **Копия:** `dtlprsvn@dusit.com` с первой строкой «Could you please forward this to the Marketing Communications Manager?».
+1. Письмо (раздел 3a) → **Кому:** `chissanucha.ps@dusit.com` (сначала сверьте имя на LinkedIn: в базе два разных Pansiri). Бронирование в копию **не** ставить.
+1b. Отдельно, короткое письмо на `dtlprsvn@dusit.com`: *"Dear Reservations team, could you please forward the link below to your Marketing Communications Manager? It's a creator collaboration proposal prepared for your resort: https://dusit-laguna-creative-partnership.vercel.app — Thank you! Darina"*
 2. Если письмо на `chissanucha.ps@` вернётся с ошибкой — отправьте только на `dtlprsvn@dusit.com` и позвоните.
 3. Звонок на +66 7636 2999 (скрипт ниже): спросить имя и e-mail Marketing Communications Manager — и дослать письмо ему/ей.
 4. Instagram DM, LinkedIn: найдите Chissanucha Pansiri и Samir Wildemann, отправьте запрос в контакты с заметкой 3c.
@@ -83,29 +84,28 @@
 - B: `A gift for Smart Saver, Benjarong & Pool Villa (AI concepts)`
 - C: `October content for Dusit Thani Laguna Phuket — quick yes/no by 2 Oct?`
 
-**Текст письма (≈115 слов):**
-> Dear Khun [Name],
+**Текст письма (финальная версия после проверки):**
+> Dear Khun Chissanucha,
 >
-> We're Darina & Dima, a creator family (Instagram @zhiphotos, 31K, ~80% Russia/CIS; Dima edits YouTube for top Russian creators), travelling with our son Mark (almost 3).
+> We're Darina & Dima, a creator family (Instagram @zhiphotos, 31K, ~80% Russia/CIS; Dima edits YouTube for leading Russian creators), travelling with our son Mark (almost 3).
 >
-> We made **10 images for your current offers**, from Smart Saver to Benjarong. Here are three:
+> We made 10 AI concept images for your current offers, from Smart Saver to Benjarong. Three are below:
 >
-> **[photo2.jpg]  [photo5.jpg]  [photo7.jpg]**
+> **[photo5.jpg]  [photo7.jpg]  [photo4.jpg]** — подпись под каждой: *AI concept*
 >
-> All 10, with "why it sells" for each: **https://dusit-laguna-creative-partnership.vercel.app** (EN / ไทย / RU). They're yours the day you approve the stay.
+> All 10, with why each one sells: https://dusit-laguna-creative-partnership.vercel.app
 >
-> **Our ask:** 7–10 consecutive nights between 5–20 October, one room (2 adults + child), meals included, no fees. You pick one major project + one light task.
+> **Our ask:** 7–10 consecutive nights within 5–20 October, one room (2 adults + child), meals included, no fees. You pick one major project + one light task, and the 10 images are yours to keep, upscaled to 4K.
 >
-> We book flights on 2 October. Just reply with your pick of dates, or "no" — both help.
+> We book flights on 2 October, so a simple yes, no or preferred dates would help greatly.
 >
 > Warm regards,
-> Darina & Dima · WhatsApp/Telegram +7 962 202-88-85 · darinazizina@gmail.com
+> Darina & Dima · WhatsApp +7 962 202-88-85 · darinazizina@gmail.com
 
-**Какие картинки и почему:**
-- `photo2` (семья выходит из лобби): это одновременно «кто мы» и оффер Smart Saver. Сразу видно, что вы семья с ребёнком.
-- `photo5` (Benjarong на закате у лагуны): фирменный ресторан отеля и самый «дорогой» кадр. Вызывает реакцию «хочу это к себе в ленту».
-- `photo7` (ужин на пляже Casuarina): закат и F&B-выручка, на это смотрит директор.
-- Вставлять в тело письма, в ряд или по одной, шириной около 560 px. Под каждой картинкой мелкая подпись *AI concept by @zhiphotos*.
+**Тема:** `10 AI images for your current offers — Dusit Thani Laguna Phuket`
+
+**Какие картинки и почему:** `photo5` (Benjarong у лагуны — фирменный ресторан), `photo7` (ужин на пляже Casuarina — у него нет своего фото на сайте), `photo4` (вилла с бассейном на закате — самый дорогой продукт). Свадебные кадры и крупные планы детей в письмо не брать.
+
 
 ### b) Instagram DM → @dusitthanilagunaphuket (≈55 слов)
 > Sawasdee ka! We're Darina & Dima (@zhiphotos, 31K), a creator family with a 3-year-old. We made 10 images for your current offers — 3 attached, all 10 here: dusit-laguna-creative-partnership.vercel.app
