@@ -3,8 +3,8 @@
 // ============================================================
 window.PITCH_CONFIG = {
   family: {
-    mom: "Mom",         // имя мамы (латиницей)
-    dad: "Dad",         // имя папы
+    mom: "Darina",
+    dad: "Dima",
     kid: "Mark",
   },
 
@@ -35,8 +35,15 @@ window.PITCH_CONFIG = {
     mom: "media/mom.jpg",
     dad: "media/dad.jpg",
     mark: "media/mark.jpg",
-    // ИИ-концепты для отеля (вертикальные 9:16). Пока файлов нет — секция скрыта.
-    teasers: ["media/teaser1.mp4", "media/teaser2.mp4", "media/teaser3.mp4"],
+    // ИИ-концепты с отелем. Кладёшь файлы в dusit/media/ai/ — блок появится сам.
+    // Видео вертикальные 9:16, до ~8 МБ каждое (подписи к ним — в i18n: tz.c1..c3)
+    teasers: ["media/ai/video1.mp4", "media/ai/video2.mp4", "media/ai/video3.mp4"],
+    // ИИ-фотосессия: сколько есть файлов — столько и покажется (лишние имена можно оставить)
+    aiPhotos: [
+      "media/ai/photo1.jpg", "media/ai/photo2.jpg", "media/ai/photo3.jpg",
+      "media/ai/photo4.jpg", "media/ai/photo5.jpg", "media/ai/photo6.jpg",
+      "media/ai/photo7.jpg", "media/ai/photo8.jpg", "media/ai/photo9.jpg",
+    ],
     // Дополнительные работы (необязательно) — основное портфолио уже в media/pf/
     portfolio: [],
   },
