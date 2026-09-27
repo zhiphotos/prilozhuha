@@ -371,6 +371,19 @@ html[lang="th"] .gift-why b{font-family:var(--serif);font-style:italic;font-size
 html[lang="th"] .gift-use{letter-spacing:.02em;text-transform:none}
 @media (max-width:700px){.gifts{grid-template-columns:1fr}}
 @media (max-width:560px){.b-gift{top:22px;right:14px}}
+
+/* ---------- Thailand vibe videos ---------- */
+.vibe{margin-top:80px}
+.vibe .gal-p{color:rgba(243,236,221,.78)}
+.vibe-row{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:26px}
+.vibe-v{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:16px;border:6px solid var(--cream);background:var(--brown-2);box-shadow:0 20px 34px -20px rgba(0,0,0,.6)}
+.vibe-v.a-fly-l.in{transform:rotate(-2deg)}
+.vibe-v.a-fly-r.in{transform:rotate(2deg) translateY(18px)}
+.vibe-f figcaption{margin-top:12px;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:rgba(243,236,221,.75);text-align:center}
+.vibe-f:nth-child(even) figcaption{margin-top:30px}
+html[lang="th"] .vibe-f figcaption{letter-spacing:.02em;text-transform:none}
+@media (max-width:900px){.vibe-row{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.vibe-row{grid-template-columns:1fr 1fr;gap:14px}.vibe-v{border-width:4px}}
 </style>
 </head>
 <body>
@@ -453,6 +466,17 @@ html[lang="th"] .gift-use{letter-spacing:.02em;text-transform:none}
         <div class="txt"><small data-t="cs.3k">Hotel · Abkhazia</small><h3 data-t="cs.3h">Pitsunda</h3><p data-t="cs.3p">Rooms, bathrooms, gym, gardens and grounds — clean, bright and all in one consistent colour style.</p></div>
       </div>
     </div>
+    <div class="vibe">
+      <h3 class="gal-h reveal" data-t="pf.vibe">Our trips and shoots, on video</h3>
+      <p class="gal-p" data-t="pf.vibep">From our Thailand trips and hotel shoots — the mood we'll bring to your resort.</p>
+      <div class="vibe-row">
+        <figure class="vibe-f"><video class="vibe-v reveal a-fly-l" poster="media/vibe/thai1.jpg" muted loop playsinline autoplay preload="metadata"><source src="media/vibe/thai1.mp4" type="video/mp4"><source src="media/vibe/thai1.webm" type="video/webm"></video><figcaption data-t="vb.c1">Thailand · by the sea</figcaption></figure>
+        <figure class="vibe-f"><video class="vibe-v reveal a-fly-r" poster="media/vibe/thai2.jpg" muted loop playsinline autoplay preload="metadata"><source src="media/vibe/thai2.mp4" type="video/mp4"><source src="media/vibe/thai2.webm" type="video/webm"></video><figcaption data-t="vb.c2">Thailand · beach day</figcaption></figure>
+        <figure class="vibe-f"><video class="vibe-v reveal a-fly-l" poster="media/vibe/glamp1.jpg" muted loop playsinline autoplay preload="metadata"><source src="media/vibe/glamp1.mp4" type="video/mp4"><source src="media/vibe/glamp1.webm" type="video/webm"></video><figcaption data-t="vb.c3">Clever glamping · evening by the fire</figcaption></figure>
+        <figure class="vibe-f"><video class="vibe-v reveal a-fly-r" poster="media/vibe/glamp2.jpg" muted loop playsinline autoplay preload="metadata"><source src="media/vibe/glamp2.mp4" type="video/mp4"><source src="media/vibe/glamp2.webm" type="video/webm"></video><figcaption data-t="vb.c4">Clever glamping · drone</figcaption></figure>
+      </div>
+    </div>
+
 
     <h2 class="svc-title" data-t="sv.title">Photos that help guests choose you.</h2>
     <div class="svcs">
