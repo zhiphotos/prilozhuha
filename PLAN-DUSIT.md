@@ -29,7 +29,7 @@
 | `video1.mp4`, `video2.mp4`, `video3.mp4` | ИИ-видео 9:16, 5–15 сек, до ~8 МБ каждое |
 
 Подписи к видео меняются в `dusit/i18n.js` и `index.html` (ключи `tz.c1`–`tz.c3`). Сейчас там:
-1. «Первый день Марка в Busy Bee»
+1. «Первый день Марка в детском клубе»
 2. «Закат на Банг Тао в стиле живописи»
 3. «Один рилс на EN / TH / RU»
 
@@ -39,11 +39,11 @@
 - Видео: Kling / Veo / Runway / Hailuo из лучших ИИ-фото (image-to-video), 5–10 сек, плавная камера. Сверху монтаж Димы: музыка, титры.
 
 **Сцены (промпты-идеи, писать на английском):**
-- `young family (mother, father, 5-year-old boy) walking barefoot on Bang Tao beach at sunrise, luxury Thai resort with traditional roofs behind, soft golden light, linen clothes, editorial travel photography`
+- `young family (mother, father, toddler boy about three years old) walking barefoot on Bang Tao beach at sunrise, luxury Thai resort with traditional roofs behind, soft golden light, linen clothes, editorial travel photography`
 - `mother and son at a lagoon-side infinity pool, tropical gardens, Thai pavilion, candid laughter, 35mm film look`
-- `boy in a small chef hat cooking Thai food with a hotel chef, resort kitchen terrace, warm light`
+- `family dinner with a toddler in a Thai teak house over the lagoon, candlelight`
 - `family dinner on a beach deck at sunset, lanterns, Andaman sea, cinematic`
-- `kids camp-out tent under the stars on a resort lawn, fairy lights, marshmallows`
+- `toddler with parents at a lagoon-side pool at sunset, lanterns, warm light` (Марку почти 3 — сцены только с родителями)
 - `parents at a Thai spa pavilion among frangipani trees, serene, luxury wellness`
 - `aerial view of a beachfront resort with lagoons and palm trees, family on the beach` (видео)
 

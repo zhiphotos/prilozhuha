@@ -9,7 +9,7 @@
 
 ## Стратегия
 1. Закрыть самое заметное: новые главные фото всех 4 ресторанов и замену размытой карточки Smart Saver. Это деньги в F&B и прямые бронирования.
-2. Показать сегменты, которые курорт недоснимает: семьи (Busy Bee), велнес (Devarana), Premier Ocean Front. Лица подобрать так, чтобы себя узнали гости из России, Азии, Индии и Европы.
+2. Показать сегменты, которые курорт недоснимает: семьи с малышами, велнес (Devarana), Premier Ocean Front. Лица подобрать так, чтобы себя узнали гости из России, Азии, Индии и Европы.
 3. Всё выдержать в визуальном языке Dusit (кремовый, лён, шалфей, золото, мягкий свет). Тогда фото можно сразу ставить на сайт, в OTA и в Instagram.
 
 ## Фото (по приоритету)
@@ -23,7 +23,7 @@
 | 5 | **Smart Saver, замена размытого фото:** семья в лобби с тайской крышей. Показать «до/после» | Карточка предложения | 4:5 |
 | 6 | Stay Longer, продолжение: пара в белом льне на рассвете у воды | Карточка предложения, кампания | 4:5 |
 | 7 | Premier Ocean Front, утро, тюль, море, завтрак | Страница номера, Booking / Agoda / Trip.com | 16:9 + 4:5 |
-| 8 | Busy Bee и пляж: дети строят замок, мама в шалфейном | Kids Club, реклама на семьи | 4:5 |
+| 8 | Семья с малышом ~3 лет у моря: первые волны, песочный замок, мама в шалфейном | Страница Family, реклама на семьи с маленькими детьми | 4:5 |
 | 9 | Devarana: травяной чай в павильоне у лотосов | Спа, велнес-пакеты | 4:5 |
 | 10 | Тайское гостеприимство: жасминовая гирлянда для гостьи (без формы отеля) | Instagram, азиатские рынки | 4:5 |
 
@@ -35,7 +35,7 @@
 5. *Happy young family of three arriving in an open-air Thai-style lobby with pitched teak roof, cream linen outfits, child holding mother's hand, soft daylight, sharp, editorial luxury travel photo.*
 6. *Couple in white linen walking barefoot at the waterline at sunrise, palm silhouettes, soft pastel sky, candid, luxury beachfront resort campaign.*
 7. *Luxury ocean-front hotel room at morning, sheer curtains moving, white bedding, breakfast tray, woman in cream robe at open doors facing the Andaman Sea, sage and warm wood accents, calm, soft light.*
-8. *Two children building a sandcastle on a quiet palm-lined beach, mother in sage linen watching from a lounger, late-morning soft light, joyful candid family luxury resort photo.*
+8. *Toddler around three years old building a sandcastle at the water's edge on a quiet palm-lined beach, mother in sage linen kneeling beside him, late-morning soft light, joyful candid family luxury resort photo.*
 9. *Serene open-air Thai spa pavilion by a lotus pond, woman in cream robe holding herbal tea, steam rising, teak and stone textures, soft diffused light, mindful luxury wellness.*
 10. *Graceful Thai woman in simple silk attire offering a jasmine garland to a smiling guest in cream linen, traditional Thai wooden architecture, warm afternoon light, authentic hospitality moment.*
 
@@ -60,5 +60,6 @@
 - **Оффер.** «Все 10 фото и 3 видео в полном разрешении, без водяного знака, с правами на использование — в подарок при сотрудничестве. На месте доработаем на реальной локации и с блюдами вашего шефа.»
 
 ## Куда класть файлы
+- Марку 2 года 10 месяцев: детский клуб (обычно с 4 лет), junior chef и ночёвка у костра ему пока не подходят, поэтому в сценах он с родителями — море, бассейн, завтрак, закат.
 - Фото: `dusit/media/ai/photo1.jpg` … `photo10.jpg`, в порядке таблицы выше.
 - Видео: `dusit/media/ai/video1.mp4` … `video3.mp4`.
