@@ -72,8 +72,6 @@
 >
 > We're planning Phuket for **5–20 October** and would ask for **7–10 nights with meals included**, dates to suit your occupancy. We've already made a few AI concepts of your resort — they're in the proposal (EN / TH / RU): **[link]**
 >
-> For context: at your published rates the room is roughly THB 22–38K plus meals, while the two tasks you choose are valued at THB 80–280K at typical Phuket market rates (estimates on the page).
->
 > Could we have a 15-minute call this week?
 >
 > Warm regards, Darina & Dima · [WhatsApp] · @zhiphotos
@@ -86,7 +84,7 @@
 ---
 
 ## Что ещё советует агент по маркетингу (стоит сделать)
-- **Оценка в деньгах — сделано:** на сайте блок «Ваши затраты ≈ THB 22–38K» (7–10 ночей по их ценам от 3 096 бат) против «Что вы получаете THB 500K+» с разбивкой. Если узнаете реальный октябрьский тариф — поправить цифры в `dusit/index.html` (блок `.value`).
+- **Оценка в деньгах:** затраты отеля с сайта убраны по решению Дарины; на сайте осталась только ценность выбранной пары задач (THB 80–280K). Было: на сайте блок «Ваши затраты ≈ THB 22–38K» (7–10 ночей по их ценам от 3 096 бат) против «Что вы получаете THB 500K+» с разбивкой. Если узнаете реальный октябрьский тариф — поправить цифры в `dusit/index.html` (блок `.value`).
 - **Цифры аудитории:** если их пока мало — позиционироваться как продакшн-студия, а не инфлюенсеры (сайт уже сделан в этом ключе).
 - **Отзыв:** одна цитата от Freedom / Пицунды / Clever + контакт.
 - **Договор:** даты, номер, количество единиц контента, сроки сдачи, права (где и сколько отель может использовать), что будет при досрочном завершении.

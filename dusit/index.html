@@ -378,6 +378,23 @@ b,strong{font-weight:500}
 .gv-top b{white-space:nowrap}
 @media (max-width:520px){.gv{grid-template-columns:56px 1fr}}
 .v-num small{font-size:.5em;color:var(--muted)}
+
+/* AI studio */
+.ai-pts{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:44px}
+.ai-pts .why{background:var(--card);border:1px solid var(--line)}
+.ai-pts .n{color:var(--gold)}
+.ai-pts p{color:var(--muted)}
+.ai-gal{margin-top:60px}
+.gal-h{font-size:30px}
+.gal-p{color:var(--muted);margin-top:4px}
+.ai-gal .teasers{margin-top:24px}
+.ai-gal .aigrid{margin-top:24px}
+.aigrid img,.aigrid video{width:100%;margin-bottom:14px;break-inside:avoid;display:block}
+.value-line{text-align:center;margin-top:30px;font-size:18px;color:var(--ink)}
+.value-line b{font-family:var(--serif);font-weight:400;font-size:26px;color:var(--gold)}
+@media (max-width:900px){.ai-pts{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.ai-pts{grid-template-columns:1fr}.gal-h{font-size:26px}}
+.aigrid img,.aigrid video,.teaser,.case img,.pf .ph{border-radius:var(--r)!important}
 </style>
 </head>
 <body>
@@ -467,21 +484,36 @@ b,strong{font-weight:500}
     <div class="socials" id="socials"></div>
   </div>
 </section>
-<!-- TEASERS -->
-<section id="teasers">
-  <div class="wrap center">
-    <div class="eyebrow" data-t="tz.eyebrow">AI concepts — made for you before we arrive</div>
-    <h2 data-t="tz.title">We imagined your resort with our family in it.</h2>
-    <p class="lead" data-t="tz.lead">An AI photo shoot and short videos created specifically for Dusit Thani Laguna Phuket. Now picture the real thing in October.</p>
-  </div>
+<!-- AISTUDIO -->
+<section id="ai" style="background:var(--bg-2)">
   <div class="wrap">
-    <div class="teasers" id="tzv">
+    <div class="eyebrow" data-t="ai.eyebrow">AI studio</div>
+    <h2 data-t="ai.title">AI you can't tell from the real thing.</h2>
+    <p class="lead" data-t="ai.lead">We combine real shoots with high-end AI. The result looks exactly like a real photo shoot or film — and lets you create far more content, even after we leave.</p>
+    <div class="ai-pts">
+      <div class="why reveal"><div class="n">01</div><h3 data-t="ai.1h">Indistinguishable from real</h3><p data-t="ai.1p">Photos and videos in 5-star quality — sharp, high-resolution, no pixels. No one will know it's AI unless you tell them.</p></div>
+      <div class="why reveal"><div class="n">02</div><h3 data-t="ai.2h">Any model, in your real locations</h3><p data-t="ai.2p">Thai, European or any other models in your rooms, restaurants and on your beach — without organising a new shoot.</p></div>
+      <div class="why reveal"><div class="n">03</div><h3 data-t="ai.3h">Your voice in every language</h3><p data-t="ai.3p">Natural voice translation: your GM, chef or spa therapist speaks English, Thai, Russian, Chinese and more — in their own voice.</p></div>
+      <div class="why reveal"><div class="n">04</div><h3 data-t="ai.4h">Content that keeps coming</h3><p data-t="ai.4p">Once the system is set up, new content can be created from what we shoot — long after we check out.</p></div>
+    </div>
+
+    <div class="ai-gal" id="aiHotel">
+      <h3 class="gal-h" data-t="ai.hotel">Made with your resort</h3>
+      <p class="gal-p" data-t="ai.hotelp">Created before our visit from public images of the resort. Can you tell which is AI?</p>
+      <div class="teasers" id="tzv">
       <div data-slot><div class="ph teaser reveal" data-media="teasers.0"><span class="phl">teaser1.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c1">AI concept · “Mark's first day at Busy Bee”</div></div>
       <div data-slot><div class="ph teaser reveal" data-media="teasers.1"><span class="phl">teaser2.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c2">AI concept · “Bang Tao sunset, painted”</div></div>
       <div data-slot><div class="ph teaser reveal" data-media="teasers.2"><span class="phl">teaser3.mp4 · 9:16</span></div><div class="teaser-cap" data-t="tz.c3">Multilingual · one Reel in EN / TH / RU</div></div>
     </div>
-    <div class="aigrid" id="aigrid"></div>
-    <p class="ainote" data-t="tz.note">AI concepts created before our visit, based on public images of the resort. Final content will be shot on location.</p>
+      <div class="aigrid" id="aigrid"></div>
+    </div>
+
+    <div class="ai-gal" id="aiClients">
+      <h3 class="gal-h" data-t="ai.clients">Made for our clients</h3>
+      <p class="gal-p" data-t="ai.clientsp">We already do this for our clients — and they love the results.</p>
+      <div class="aigrid" id="clientgrid"></div>
+    </div>
+    <p class="ainote" data-t="ai.note">Every AI piece is sent to you for approval. Your rooms, food and facilities are always shown as they really are.</p>
   </div>
 </section>
 <!-- IDEAS -->
@@ -516,7 +548,7 @@ b,strong{font-weight:500}
     <div class="menu-grp">
       <div class="eyebrow" data-t="mn.major">Major project · choose one</div>
       <div class="gvs gvs3">
-        <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 9l5 3-5 3z"/></svg><b>≈ 220K</b></div><h3 data-t="mj.1h">Content production for your accounts</h3><p data-t="mj.1p">20+ Reels for your Instagram, 150+ photos: rooms for your website &amp; OTAs, restaurants in high resolution, drone (if permitted).</p></div>
+        <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 9l5 3-5 3z"/></svg><b>≈ 220K</b></div><h3 data-t="mj.1h">Content production for your accounts</h3><p data-t="mj.1p">20+ Reels for your Instagram, 150+ high-resolution photos in 5-star quality: rooms for your website &amp; OTAs, restaurants, drone (if permitted).</p></div>
         <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/></svg><b>≈ 60K</b></div><h3 data-t="mj.2h">AI content course for your team</h3><p data-t="mj.2p">Online lessons (EN / TH) and live online training, so your staff create photo, video and Reels on their own.</p></div>
         <div class="gv reveal"><div class="gv-top"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 13h.01M15 13h.01M9 17h6"/><circle cx="12" cy="3.5" r="1"/></svg><b>≈ 100K</b></div><h3 data-t="mj.3h">AI assistant or web app</h3><p data-t="mj.3p">An AI assistant that answers guest questions, or a simple web app for your team's daily work — prototype built with your IT.</p></div>
       </div>
@@ -531,37 +563,9 @@ b,strong{font-weight:500}
       </div>
     </div>
     <p class="menu-note" data-t="mn.note">We can do all of it — but we'd rather do the two things you need most, and do them beautifully. If it works well, we're happy to continue remotely.</p>
-    <div class="value reveal">
-      <div class="v-cost">
-        <div class="eyebrow" data-t="vl.cost">Your cost</div>
-        <div class="v-num">≈ THB 22–38K <small data-t="vl.meals">+ meals</small></div>
-        <p data-t="vl.costp">7–10 nights in one room at the published rates on your website (from THB 3,096 per night), plus meals for our family.</p>
-      </div>
-      <div class="v-get">
-        <div class="eyebrow" data-t="vl.get">What you receive</div>
-        <div class="v-num big">THB 80–280K</div>
-        <p data-t="vl.getp">The value of one major project plus one light task, estimated at typical Phuket market rates for comparable services (see the estimate on each card).</p>
-      </div>
-    </div>
+    <p class="value-line reveal" data-t="vl.line">The pair you choose is worth <b>THB 80–280K</b> at typical Phuket market rates.</p>
   </div>
 </section>
-<!-- QUICKWIN -->
-<section style="background:var(--bg-2)">
-  <div class="wrap qw">
-    <div>
-      <div class="eyebrow" data-t="qw.eyebrow">A quick win for your website</div>
-      <h2 data-t="qw.title">Sharper photos, more clicks.</h2>
-      <p class="lead" data-t="qw.lead">On large screens, some images on your website — for example on the dining pages — look low-resolution. Crisp, high-resolution photos make every page clearer and more clickable. During our stay we'll reshoot them in full quality.</p>
-    </div>
-    <div class="venues reveal">
-      <div>Benjarong<small data-t="qw.v1">Thai cuisine</small></div>
-      <div>La Trattoria<small data-t="qw.v2">Italian</small></div>
-      <div>Horizon Lounge<small data-t="qw.v3">Lounge &amp; bar</small></div>
-      <div>Casuarina Beach Club<small data-t="qw.v4">Beach club</small></div>
-    </div>
-  </div>
-</section>
-
 <!-- TIMELINE -->
 <section style="background:var(--bg-2)">
   <div class="wrap">
@@ -581,7 +585,7 @@ b,strong{font-weight:500}
     <h2 data-t="bs.title">Your brand stays in your hands.</h2>
     <div class="why-grid light">
       <div class="why reveal"><div class="n">01</div><h3 data-t="bs.1h">You approve everything</h3><p data-t="bs.1p">Every post, Reel and vlog is sent to your team before publishing.</p></div>
-      <div class="why reveal"><div class="n">02</div><h3 data-t="bs.2h">Real means real</h3><p data-t="bs.2p">We follow Dusit brand guidelines. Rooms, food and facilities are never AI-altered.</p></div>
+      <div class="why reveal"><div class="n">02</div><h3 data-t="bs.2h">Your product stays true</h3><p data-t="bs.2p">AI changes scenes, models and languages — never your rooms, food or facilities. You approve every piece.</p></div>
       <div class="why reveal"><div class="n">03</div><h3 data-t="bs.3h">Guest privacy first</h3><p data-t="bs.3p">No other guests or children on camera without written consent. Drone only with your permission and Thai registration.</p></div>
     </div>
   </div>
@@ -713,24 +717,28 @@ b,strong{font-weight:500}
   document.querySelectorAll("[data-media]").forEach(function(box){
     fill(box, pick(box.getAttribute("data-media")));
   });
-  // AI concepts (videos + photo shoot) are optional: the section stays hidden
-  // until at least one file exists; the video row only shows if a video exists
-  var tz = document.getElementById("teasers"), tzv = document.getElementById("tzv");
-  tz.style.display = "none"; tzv.style.display = "none";
+  // AI galleries are optional: each block stays hidden until at least one file exists
+  function gallery(boxId, gridId, list){
+    var box = document.getElementById(boxId), grid = document.getElementById(gridId);
+    (list || []).forEach(function(src){
+      var el = isVideo(src) ? document.createElement("video") : new Image();
+      if (isVideo(src)){ el.muted = true; el.loop = true; el.autoplay = true; el.playsInline = true; el.setAttribute("playsinline",""); }
+      el.addEventListener(isVideo(src) ? "loadeddata" : "load", function(){ box.style.display = ""; });
+      el.addEventListener("error", function(){ el.remove(); });
+      el.src = src; grid.appendChild(el);
+    });
+  }
+  var aiH = document.getElementById("aiHotel"), tzv = document.getElementById("tzv");
+  aiH.style.display = "none"; tzv.style.display = "none";
+  document.getElementById("aiClients").style.display = "none";
   (M.teasers || []).forEach(function(src){
     var v = document.createElement("video");
     v.preload = "metadata";
-    v.addEventListener("loadedmetadata", function(){ tz.style.display = ""; tzv.style.display = ""; });
+    v.addEventListener("loadedmetadata", function(){ aiH.style.display = ""; tzv.style.display = ""; });
     v.src = src;
   });
-  var ag = document.getElementById("aigrid");
-  (M.aiPhotos || []).forEach(function(src){
-    var im = new Image();
-    im.alt = "AI concept";
-    im.addEventListener("load", function(){ tz.style.display = ""; });
-    im.addEventListener("error", function(){ im.remove(); });
-    im.src = src; ag.appendChild(im);
-  });
+  gallery("aiHotel", "aigrid", M.aiPhotos);
+  gallery("aiClients", "clientgrid", M.clientWorks);
   var pf = document.getElementById("pf");
   (M.portfolio || []).forEach(function(src, i){
     var b = document.createElement("div");

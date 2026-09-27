@@ -44,6 +44,12 @@ window.PITCH_CONFIG = {
       "media/ai/photo4.jpg", "media/ai/photo5.jpg", "media/ai/photo6.jpg",
       "media/ai/photo7.jpg", "media/ai/photo8.jpg", "media/ai/photo9.jpg",
     ],
+    // ИИ-работы для клиентов (фото jpg / видео mp4) — кладёшь в dusit/media/clients/
+    clientWorks: [
+      "media/clients/work1.jpg", "media/clients/work2.jpg", "media/clients/work3.jpg",
+      "media/clients/work4.jpg", "media/clients/work5.jpg", "media/clients/work6.jpg",
+      "media/clients/video1.mp4", "media/clients/video2.mp4", "media/clients/video3.mp4",
+    ],
     // Дополнительные работы (необязательно) — основное портфолио уже в media/pf/
     portfolio: [],
   },
