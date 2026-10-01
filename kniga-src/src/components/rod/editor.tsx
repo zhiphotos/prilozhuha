@@ -33,11 +33,11 @@ import {
 import { toast } from "sonner";
 import { Button, Sheet, useNav } from "@/components/rod/chrome";
 import { BlockArt, InkLayer, PageSheet, PlacedBlock, boxOf, inkColor, PAGE_H } from "@/components/rod/page-view";
-import { imageFromTransfer, importImage, importImageUrl } from "@/lib/rod/image";
+import { imageFromTransfer, importFromLink, importImage } from "@/lib/rod/image";
 import { coverDesigns } from "@/lib/rod/layouts";
 import { liftSubject } from "@/lib/rod/lift";
 import { mediaDataUrl, resolveMedia, saveMedia, useMedia } from "@/lib/rod/media";
-import { FONT_FAMILY, PAGE_RATIO, PAPER, POLAROID, STICKERS, STICKER_ORDER, defaultStickerWidth, pageSide, safeArea, stickerRatio, stickerUrl } from "@/lib/rod/page-style";
+import { FONT_FAMILY, PAGE_RATIO, PAPER, SWATCHES, lookColors, POLAROID, STICKERS, STICKER_ORDER, defaultStickerWidth, pageSide, safeArea, stickerRatio, stickerUrl } from "@/lib/rod/page-style";
 import { FONT_LABEL, findPrompt } from "@/lib/rod/pages";
 import { scratch, stickSound, turnPage } from "@/lib/rod/sounds";
 import { recognition } from "@/lib/rod/speech";
@@ -410,7 +410,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       const text = await navigator.clipboard.readText();
       const link = text.split(/\s+/).find((part) => /^https?:\/\//.test(part));
       if (link) {
-        const ref = await importImageUrl(link);
+        const ref = await importFromLink(link);
         await placePhoto(ref);
         return;
       }
@@ -880,7 +880,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         </Sheet>
       ) : null}
 
-      {panel === "pinterest" ? <PinterestPanel onClose={() => setPanel(null)} onPaste={() => void pasteFromClipboard()} onLink={(link) => { setPanel(null); void importImageUrl(link).then((ref) => placePhoto(ref)).catch(() => toast("По этой ссылке картинка не скачалась. Нужна ссылка на саму картинку, а не на пин.")); }} /> : null}
+      {panel === "pinterest" ? <PinterestPanel onClose={() => setPanel(null)} onPaste={() => void pasteFromClipboard()} onLink={(link) => { setPanel(null); toast("Скачиваю картинку…"); void importFromLink(link).then((ref) => placePhoto(ref)).catch(() => toast("По этой ссылке картинка не скачалась. Попробуйте «Копировать изображение» и «Вставить».")); }} /> : null}
 
       {panel === "stickers" ? (
         <Sheet title="Стикеры" onClose={() => setPanel(null)}>
@@ -971,13 +971,17 @@ export function EditorScreen({ pageId }: { pageId: string }) {
               <input className="field" value={page.title} onChange={(event) => commit((p) => ({ ...p, title: event.target.value }), "title")} />
             </label>
           ) : null}
+          <p className="mb-2 text-sm text-muted">Цвет страницы</p>
+          <div className="mb-4">
+            <ColorRow value={page.bg} onPick={(bg) => commit((p) => ({ ...p, bg }), "page-bg")} onReset={page.bg ? () => commit((p) => ({ ...p, bg: undefined })) : undefined} />
+          </div>
           <p className="mb-2 text-sm text-muted">Бумага</p>
           <div className="mb-5 flex flex-wrap gap-2">
             {(Object.keys(PAPER) as PaperKind[]).map((paper) => (
               <button
                 key={paper}
                 type="button"
-                onClick={() => commit((p) => ({ ...p, paper }))}
+                onClick={() => commit((p) => ({ ...p, paper, bg: undefined }))}
                 className={cn("flex items-center gap-2 rounded-full bg-white/70 py-1.5 pl-1.5 pr-3 text-sm", page.paper === paper && "ring-2 ring-night")}
               >
                 <span className="size-7 rounded-full border border-line" style={{ background: PAPER[paper].bg }} />
@@ -1099,6 +1103,7 @@ function TextPanel({
   onDone: () => void;
 }) {
   const [value, setValue] = useState(block.text);
+  const [palette, setPalette] = useState(false);
   return (
     <div className="glass-strong sheet-in absolute inset-x-3 top-[calc(max(0.75rem,env(safe-area-inset-top))+3.6rem)] z-50 mx-auto max-w-xl rounded-[1.6rem] p-3">
       <textarea
@@ -1113,6 +1118,7 @@ function TextPanel({
         className="block w-full resize-none rounded-2xl bg-white/80 p-3 text-[17px] leading-snug text-ink outline-none"
         style={{ fontFamily: FONT_FAMILY[block.font] }}
       />
+      {palette ? <TextColors block={block} onPatch={onPatch} onClose={() => setPalette(false)} /> : null}
       <div className="no-scrollbar mt-2 flex items-center gap-1.5 overflow-x-auto">
         {(["script", "serif", "sans"] as FontKind[]).map((font) => (
           <BarBtn key={font} active={block.font === font} onClick={() => onPatch({ font } as Partial<PageBlock>)}>
@@ -1124,6 +1130,9 @@ function TextPanel({
             {s === "sm" ? "S" : s === "md" ? "M" : s === "lg" ? "L" : "XL"}
           </BarBtn>
         ))}
+        <BarBtn onClick={() => setPalette(true)}>
+          <span className="size-4 rounded-full border border-ink/20" style={{ background: lookColors(block.look, block.color, block.bg).fg }} /> Цвет
+        </BarBtn>
         <span className="flex-1" />
         <Button className="min-h-10 shrink-0 px-4" onClick={onDone}>
           Готово
@@ -1173,6 +1182,7 @@ function BlockBar({
   onFill: () => void;
 }) {
   const [caption, setCaption] = useState(false);
+  const [palette, setPalette] = useState(false);
   return (
     <div className="glass-strong no-scrollbar mx-auto flex max-w-xl gap-1.5 overflow-x-auto rounded-full p-1.5">
       {block.type === "text" ? (
@@ -1195,6 +1205,9 @@ function BlockBar({
               {look === "plain" ? "Без фона" : look === "card" ? "Карточка" : "Плашка"}
             </BarBtn>
           ))}
+          <BarBtn onClick={() => setPalette(true)}>
+            <span className="size-4 rounded-full border border-ink/20" style={{ background: lookColors(block.look, block.color, block.bg)[block.look === "card" || block.look === "pill" ? "bg" : "fg"] }} /> Цвет
+          </BarBtn>
           <BarBtn label="Выравнивание" onClick={() => onPatch({ align: block.align === "center" ? "left" : "center" } as Partial<PageBlock>)}>
             {block.align === "center" ? <AlignCenter className="size-4" /> : <AlignLeft className="size-4" />}
           </BarBtn>
@@ -1241,6 +1254,7 @@ function BlockBar({
       <BarBtn label="Удалить" danger onClick={onDelete}>
         <Trash2 className="size-4" /> Удалить
       </BarBtn>
+      {palette && block.type === "text" ? <TextColors block={block} onPatch={onPatch} onClose={() => setPalette(false)} /> : null}
       {caption && block.type === "photo" ? (
         <Sheet title="Подпись под фото" onClose={() => setCaption(false)}>
           <input autoFocus className="field" defaultValue={block.caption} placeholder="Кто, где, какой год" onChange={(event) => onPatch({ caption: event.target.value } as Partial<PageBlock>)} />
@@ -1251,6 +1265,53 @@ function BlockBar({
         </Sheet>
       ) : null}
     </div>
+  );
+}
+
+function ColorRow({ value, onPick, onReset, compact = false }: { value?: string; onPick: (color: string) => void; onReset?: () => void; compact?: boolean }) {
+  return (
+    <div className={cn("flex items-center gap-2", compact ? "no-scrollbar -mx-1 overflow-x-auto px-1 py-1 [&>*]:shrink-0" : "flex-wrap")}>
+      {SWATCHES.map((color) => (
+        <button
+          key={color}
+          type="button"
+          aria-label={color}
+          onClick={() => onPick(color)}
+          className={cn("size-9 rounded-full border border-ink/15 shadow-sm", value?.toLowerCase() === color && "ring-2 ring-night ring-offset-2")}
+          style={{ background: color }}
+        />
+      ))}
+      <label className="relative grid size-9 cursor-pointer place-items-center overflow-hidden rounded-full border border-ink/15 text-xs font-bold text-ink" style={{ background: "conic-gradient(#f66, #fd6, #6d6, #6df, #66f, #f6f, #f66)" }} title="Свой цвет">
+        <span className="rounded-full bg-white/85 px-1">+</span>
+        <input type="color" className="absolute inset-0 cursor-pointer opacity-0" value={value || "#c45d72"} onChange={(event) => onPick(event.target.value)} />
+      </label>
+      {onReset ? (
+        <button type="button" onClick={onReset} className="h-9 rounded-full bg-white/70 px-3 text-xs text-ink">
+          Как было
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function TextColors({ block, onPatch, onClose }: { block: Extract<PageBlock, { type: "text" }>; onPatch: (partial: Partial<PageBlock>) => void; onClose: () => void }) {
+  const boxed = block.look === "card" || block.look === "pill";
+  return (
+    <Sheet title="Цвет надписи" onClose={onClose} dim={false}>
+      <p className="mb-2 text-sm text-muted">Буквы</p>
+      <ColorRow compact value={block.color} onPick={(color) => onPatch({ color } as Partial<PageBlock>)} onReset={block.color ? () => onPatch({ color: undefined } as Partial<PageBlock>) : undefined} />
+      {boxed ? (
+        <>
+          <p className="mb-2 mt-4 text-sm text-muted">{block.look === "card" ? "Карточка" : "Плашка"}</p>
+          <ColorRow compact value={block.bg} onPick={(bg) => onPatch({ bg } as Partial<PageBlock>)} onReset={block.bg ? () => onPatch({ bg: undefined } as Partial<PageBlock>) : undefined} />
+        </>
+      ) : (
+        <p className="mt-3 text-xs text-muted">Цветной фон — у вида «Карточка» или «Плашка».</p>
+      )}
+      <Button className="mt-3 w-full" onClick={onClose}>
+        Готово
+      </Button>
+    </Sheet>
   );
 }
 
@@ -1378,7 +1439,7 @@ function PinterestPanel({ onClose, onPaste, onLink }: { onClose: () => void; onP
           if (link.trim()) onLink(link.trim());
         }}
       >
-        <input className="field" value={link} onChange={(event) => setLink(event.target.value)} placeholder="или ссылка на картинку" />
+        <input className="field" value={link} onChange={(event) => setLink(event.target.value)} placeholder="или вставьте ссылку на пин" />
         <Button type="submit" variant="soft" disabled={!link.trim()}>
           Взять
         </Button>

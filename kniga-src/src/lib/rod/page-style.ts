@@ -87,11 +87,30 @@ export function lookPad(look: TextLook | undefined): { x: number; y: number; rad
   return { x: 0, y: 0, radius: 0 };
 }
 
-export function lookColors(look: TextLook | undefined): { bg: string; fg: string } {
-  if (look === "card") return { bg: COLORS.night, fg: COLORS.paper };
-  if (look === "pill") return { bg: COLORS.blush, fg: COLORS.roseDeep };
-  return { bg: "transparent", fg: COLORS.ink };
+export function lookColors(look: TextLook | undefined, color?: string, bg?: string): { bg: string; fg: string } {
+  if (look === "card") return { bg: bg || COLORS.night, fg: color || COLORS.paper };
+  if (look === "pill") return { bg: bg || COLORS.blush, fg: color || COLORS.roseDeep };
+  return { bg: "transparent", fg: color || COLORS.ink };
 }
+
+/** Палитра для текста, плашек и страниц. */
+export const SWATCHES = [
+  "#2a2420",
+  "#ffffff",
+  "#fbf8f3",
+  "#8e3d52",
+  "#c45d72",
+  "#f6d5dc",
+  "#f3c9a8",
+  "#d9a441",
+  "#6f8a68",
+  "#dce6d6",
+  "#c9dbe8",
+  "#2f3e5c",
+  "#d9c9ec",
+  "#ece0cf",
+  "#8a6a4f",
+];
 
 /** Рамки фото: поля в % ширины блока. */
 export const POLAROID = { side: 5, top: 5, bottom: 18 } as const;

@@ -48,6 +48,53 @@ export async function importImage(source: Blob): Promise<string> {
   return saveMedia(blob);
 }
 
+/** Номер пина из ссылки вида pinterest.ru/pin/123…/ или …/pin/nazvanie--123/. */
+function pinId(url: string): string | null {
+  const match = url.match(/pinterest\.[a-z.]+\/pin\/(?:[^/?#]*?-)?(\d{6,})/i);
+  return match ? match[1] : null;
+}
+
+/** Короткая ссылка pin.it раскрывается через открытый читатель страниц (сам Pinterest сайтам не отвечает). */
+async function expandShortPin(url: string): Promise<string | null> {
+  const res = await fetch(`https://r.jina.ai/${url}`, { headers: { "X-Return-Format": "text" } }).catch(() => null);
+  if (!res || !res.ok) return null;
+  const body = await res.text();
+  return body.match(/https?:\/\/[a-z.]*pinterest\.[a-z.]+\/pin\/[^\s)"]+/i)?.[0] ?? null;
+}
+
+/** Адрес самой картинки пина — через открытый адрес виджетов Pinterest. */
+async function pinImage(url: string): Promise<string[]> {
+  let link = url;
+  if (/pin\.it\//i.test(link)) link = (await expandShortPin(link)) ?? link;
+  const id = pinId(link);
+  if (!id) return [];
+  const res = await fetch(`https://widgets.pinterest.com/v3/pidgets/pins/info/?pin_ids=${id}`).catch(() => null);
+  if (!res || !res.ok) return [];
+  const data = (await res.json().catch(() => null)) as { data?: Array<{ images?: Record<string, { url: string }> }> } | null;
+  const images = data?.data?.[0]?.images;
+  const best = images?.["564x"]?.url ?? images?.["237x"]?.url ?? images?.["236x"]?.url;
+  if (!best) return [];
+  return [upgradePin(best), best];
+}
+
+/** Ссылка на пин, короткая pin.it или прямая ссылка на картинку. */
+export async function importFromLink(link: string): Promise<string> {
+  if (/pinterest\.|pin\.it\//i.test(link)) {
+    const candidates = await pinImage(link);
+    for (const candidate of candidates) {
+      try {
+        return await importImageUrl(candidate);
+      } catch {
+        /* следующий размер */
+      }
+    }
+    if (!/i\.pinimg\.com/.test(link)) throw new Error("Пин не открылся");
+  }
+  const big = upgradePin(link);
+  if (big !== link) return importImageUrl(big).catch(() => importImageUrl(link));
+  return importImageUrl(link);
+}
+
 /** Картинка по адресу из интернета (перетащили из Pinterest или вставили ссылку). */
 export async function importImageUrl(url: string): Promise<string> {
   // Pinterest не разрешает сайтам скачивать свои картинки напрямую, поэтому второй заход — через открытый прокси картинок.
@@ -78,9 +125,7 @@ export async function imageFromTransfer(data: DataTransfer | null): Promise<stri
   const uri = fromHtml || data.getData("text/uri-list") || data.getData("text/plain");
   const link = uri.split(/\s+/).find((item) => /^https?:\/\//.test(item));
   if (!link) return null;
-  const big = upgradePin(link);
-  if (big === link) return importImageUrl(link);
-  return importImageUrl(big).catch(() => importImageUrl(link));
+  return importFromLink(link);
 }
 
 /** У Pinterest в ленте маленькие превью — просим оригинал. */
