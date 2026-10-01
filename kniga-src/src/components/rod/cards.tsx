@@ -27,8 +27,8 @@ export function CardsScreen() {
       const blocks: PageBlock[] = [{ id: crypto.randomUUID(), type: "text", x: 8, y: 5, w: 84, text: title, font: "serif", size: "lg" }];
       let y = 16;
       list.slice(0, 4).forEach((note, i) => {
-        blocks.push({ id: crypto.randomUUID(), type: "text", x: 8, y, w: 62, text: note.question, font: "sans", size: "sm", look: "card", rotate: i % 2 ? 1 : -1 });
-        blocks.push({ id: crypto.randomUUID(), type: "text", x: 12, y: y + 8, w: 80, text: note.answer, font: "script", size: "sm" });
+        blocks.push({ id: crypto.randomUUID(), type: "text", x: 8, y, w: 60, text: note.question, font: "sans", size: "sm", look: "card", rotate: i % 2 ? 1 : -1 });
+        blocks.push({ id: crypto.randomUUID(), type: "text", x: 12, y: y + 8, w: 80, text: note.answer, font: "script", size: "md" });
         y += 20;
       });
       const id = addPage({ title, kind: "page", paper: "lined", strokes: [], blocks });

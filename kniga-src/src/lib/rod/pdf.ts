@@ -1,9 +1,20 @@
-// Минимальный PDF: каждая страница — одна JPEG-картинка во весь лист. Формат 18 × 24 см.
+// Минимальный PDF: каждая страница — одна JPEG-картинка во весь лист.
+// У страниц с вылетами указаны TrimBox (обрезной формат) и BleedBox — так их понимает типография.
 
-const PAGE_W = 510.24;
-const PAGE_H = 680.32;
+export type PdfSheet = {
+  bytes: Uint8Array;
+  width: number;
+  height: number;
+  /** Размер листа с вылетами, pt. */
+  pageW?: number;
+  pageH?: number;
+  /** Вылет с каждой стороны, pt. */
+  bleed?: number;
+};
 
-export function buildJpegPdf(images: { bytes: Uint8Array; width: number; height: number }[], pageW = PAGE_W, pageH = PAGE_H): Uint8Array {
+export const MM = 72 / 25.4;
+
+export function buildJpegPdf(images: PdfSheet[], defaultW = 510.24, defaultH = 680.32): Uint8Array {
   const encoder = new TextEncoder();
   const chunks: Uint8Array[] = [];
   let position = 0;
@@ -30,9 +41,13 @@ export function buildJpegPdf(images: { bytes: Uint8Array; width: number; height:
   obj(`<< /Type /Pages /Count ${images.length} /Kids [${kids.join(" ")}] >>`);
   images.forEach((image) => {
     const pageIndex = offsets.length;
+    const pageW = image.pageW ?? defaultW;
+    const pageH = image.pageH ?? defaultH;
+    const b = image.bleed ?? 0;
     const content = `q\n${pageW.toFixed(2)} 0 0 ${pageH.toFixed(2)} 0 0 cm\n/Im0 Do\nQ\n`;
+    const boxes = b > 0 ? ` /BleedBox [0 0 ${pageW.toFixed(2)} ${pageH.toFixed(2)}] /TrimBox [${b.toFixed(2)} ${b.toFixed(2)} ${(pageW - b).toFixed(2)} ${(pageH - b).toFixed(2)}]` : "";
     obj(
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW.toFixed(2)} ${pageH.toFixed(2)}] /Contents ${pageIndex + 1} 0 R /Resources << /XObject << /Im0 ${pageIndex + 2} 0 R >> >> >>`,
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW.toFixed(2)} ${pageH.toFixed(2)}]${boxes} /Contents ${pageIndex + 1} 0 R /Resources << /XObject << /Im0 ${pageIndex + 2} 0 R >> >> >>`,
     );
     obj(`<< /Length ${encoder.encode(content).length} >>\nstream\n${content}endstream`);
     offsets.push(position);
