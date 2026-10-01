@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { BookOpen, Download, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeftRight, BookOpen, Lock, ChevronLeft, ChevronRight, Download, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, ScreenFrame, Sheet, TopBar, useNav } from "@/components/rod/chrome";
 import { PageSheet } from "@/components/rod/page-view";
+import { FULL_BOOK, FULL_BOOK_PAGES, fullBookPages } from "@/lib/rod/full-book";
 import { blankPage, coverPage, pageFromPhoto, pageFromPrompt, pageFromStory } from "@/lib/rod/layouts";
 import { PAGE_PROMPTS } from "@/lib/rod/pages";
 import { isBookReady, overallOf, partsOf, plural } from "@/lib/rod/progress";
@@ -67,27 +68,9 @@ export function BookScreen() {
         </button>
       ) : null}
 
-      <ul className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3">
-        {pages.map((page, index) => (
-          <li key={page.id}>
-            <button type="button" onClick={() => nav.go({ id: "editor", pageId: page.id })} className="group block w-full text-left">
-              <div className="thumb-shadow overflow-hidden rounded-[6px] transition group-active:scale-[0.98]">
-                <PageSheet page={page} meta={meta} editing />
-              </div>
-              <p className="mt-2 flex items-baseline gap-1.5 text-sm text-ink">
-                <span className="tabular-nums text-muted">{page.kind === "cover" ? "◆" : index}</span>
-                <span className="truncate font-medium">{page.kind === "cover" ? "Обложка" : page.title}</span>
-              </p>
-            </button>
-          </li>
-        ))}
-        <li>
-          <button type="button" onClick={() => setLibrary(true)} className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-[6px] border-2 border-dashed border-ink/20 bg-white/30 text-ink/70 backdrop-blur">
-            <Plus className="size-7" />
-            <span className="text-sm font-medium">Новая страница</span>
-          </button>
-        </li>
-      </ul>
+      <FullTemplate pages={pages} meta={meta} />
+
+      <PageGrid pages={pages} meta={meta} onOpen={(id) => nav.go({ id: "editor", pageId: id })} onAdd={() => setLibrary(true)} />
 
       <section className="glass mt-8 rounded-[2rem] p-5">
         <div className="flex items-center gap-2">
@@ -308,5 +291,176 @@ function PrintSheet({ pages, meta, onClose }: { pages: BookPage[]; meta: { dedic
         </ul>
       </div>
     </Sheet>
+  );
+}
+
+/** Миниатюры страниц. В режиме «Порядок» страницы перетаскиваются пальцем или сдвигаются стрелками. */
+function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { dedicatee: string; collector: string }; onOpen: (id: string) => void; onAdd: () => void }) {
+  const placePage = useRod((state) => state.placePage);
+  const [arrange, setArrange] = useState(false);
+  const [drag, setDrag] = useState<{ id: string; pointerId: number; dx: number; dy: number; x0: number; y0: number; over: number } | null>(null);
+  const first = pages[0]?.kind === "cover" ? 1 : 0;
+
+  const move = (id: string, to: number) => {
+    const target = Math.max(first, Math.min(pages.length - 1, to));
+    placePage(id, target);
+  };
+
+  const onDown = (event: React.PointerEvent, page: BookPage, index: number) => {
+    if (!arrange || page.kind === "cover") return;
+    if ((event.target as HTMLElement).closest("button[aria-label]")) return;
+    event.preventDefault();
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    setDrag({ id: page.id, pointerId: event.pointerId, dx: 0, dy: 0, x0: event.clientX, y0: event.clientY, over: index });
+  };
+
+  const onMove = (event: React.PointerEvent) => {
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const hit = document.elementsFromPoint(event.clientX, event.clientY).find((el) => el instanceof HTMLElement && el.dataset.idx && el.dataset.drag !== "1") as HTMLElement | undefined;
+    const over = hit ? Number(hit.dataset.idx) : drag.over;
+    setDrag({ ...drag, dx: event.clientX - drag.x0, dy: event.clientY - drag.y0, over: Math.max(first, over) });
+  };
+
+  const onUp = (event: React.PointerEvent) => {
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const from = pages.findIndex((page) => page.id === drag.id);
+    if (from !== drag.over) move(drag.id, drag.over);
+    setDrag(null);
+  };
+
+  return (
+    <>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p className="text-sm text-muted">{arrange ? "Тащите страницу на новое место или жмите стрелки" : `${plural(pages.length, "страница", "страницы", "страниц")}`}</p>
+        {pages.length > 1 ? (
+          <Button variant={arrange ? "primary" : "soft"} className="min-h-10 px-4" onClick={() => setArrange((v) => !v)}>
+            {arrange ? "Готово" : <><ArrowLeftRight className="size-4" /> Порядок</>}
+          </Button>
+        ) : null}
+      </div>
+      <ul className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3">
+        {pages.map((page, index) => {
+          const dragging = drag?.id === page.id;
+          const target = drag && !dragging && drag.over === index;
+          return (
+            <li
+              key={page.id}
+              data-idx={index}
+              data-drag={dragging ? "1" : undefined}
+              className={cn("relative", arrange && page.kind !== "cover" && "touch-none select-none", dragging && "z-30")}
+              style={dragging ? { transform: `translate(${drag.dx}px, ${drag.dy}px) scale(1.06)`, pointerEvents: "none" } : undefined}
+              onPointerDown={(event) => onDown(event, page, index)}
+              onPointerMove={onMove}
+              onPointerUp={onUp}
+              onPointerCancel={onUp}
+            >
+              <button type="button" onClick={() => (arrange ? undefined : onOpen(page.id))} className={cn("group block w-full text-left", arrange && page.kind !== "cover" && "cursor-grab")}>
+                <div className={cn("thumb-shadow overflow-hidden rounded-[6px] transition", !arrange && "group-active:scale-[0.98]", arrange && page.kind !== "cover" && "animate-[wiggle_0.4s_ease-in-out_infinite_alternate]", target && "ring-4 ring-rose", dragging && "shadow-2xl")}>
+                  <PageSheet page={page} meta={meta} editing />
+                </div>
+              </button>
+              {arrange && page.kind !== "cover" ? (
+                <div className="mt-2 flex items-center justify-between gap-1">
+                  <button type="button" aria-label="Раньше" disabled={index <= first} onClick={() => move(page.id, index - 1)} className="grid size-9 place-items-center rounded-full bg-white/80 text-ink disabled:opacity-30">
+                    <ChevronLeft className="size-4" />
+                  </button>
+                  <span className="truncate text-xs text-ink">
+                    {index}. {page.title}
+                  </span>
+                  <button type="button" aria-label="Позже" disabled={index >= pages.length - 1} onClick={() => move(page.id, index + 1)} className="grid size-9 place-items-center rounded-full bg-white/80 text-ink disabled:opacity-30">
+                    <ChevronRight className="size-4" />
+                  </button>
+                </div>
+              ) : (
+                <p className="mt-2 flex items-baseline gap-1.5 text-sm text-ink">
+                  <span className="tabular-nums text-muted">{page.kind === "cover" ? "◆" : index}</span>
+                  <span className="truncate font-medium">{page.kind === "cover" ? "Обложка" : page.title}</span>
+                </p>
+              )}
+            </li>
+          );
+        })}
+        {!arrange ? (
+          <li>
+            <button type="button" onClick={onAdd} className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-[6px] border-2 border-dashed border-ink/20 bg-white/30 text-ink/70 backdrop-blur">
+              <Plus className="size-7" />
+              <span className="text-sm font-medium">Новая страница</span>
+            </button>
+          </li>
+        ) : null}
+      </ul>
+    </>
+  );
+}
+
+/** Полный шаблон на 100 страниц — только для тех, у кого открыта программа. */
+function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: string; collector: string } }) {
+  const nav = useNav();
+  const open = useRod((state) => state.programOpen);
+  const addPage = useRod((state) => state.addPage);
+  const placePage = useRod((state) => state.placePage);
+  const [ask, setAsk] = useState(false);
+  const added = pages.some((page) => page.promptId?.startsWith("full:"));
+
+  const add = () => {
+    if (!pages.some((page) => page.kind === "cover")) placePage(addPage(coverPage(meta)), 0);
+    fullBookPages().forEach((page) => addPage(page));
+    setAsk(false);
+    toast(`В книгу добавлено ${FULL_BOOK_PAGES} страниц по главам`);
+  };
+
+  let start = 2;
+  const chapters = FULL_BOOK.map((chapter) => {
+    const count = chapter.pages.reduce((sum, page) => sum + page.kinds.length, 0);
+    const range = `${start}–${start + count - 1}`;
+    start += count;
+    return { ...chapter, range };
+  });
+
+  return (
+    <section className={cn("mb-6 rounded-[2rem] p-5", open ? "aurora" : "glass")}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/60">Для участников программы</p>
+          <h2 className="display-title mt-1 text-[1.7rem] leading-tight text-ink">Полный шаблон Книги рода · 100 страниц</h2>
+        </div>
+        {!open ? (
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/80 text-rose-deep">
+            <Lock className="size-4" />
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-2 text-sm text-ink/70">Одна ветка рода — как историческое расследование: дома, любовь, судьбы, кухня, тайны и наследие. На каждой странице подсказка, что туда внести.</p>
+      <ol className="mt-3 grid gap-1 text-sm text-ink">
+        {chapters.map((chapter) => (
+          <li key={chapter.n} className="flex gap-2">
+            <span className="w-14 shrink-0 tabular-nums text-ink/50">{chapter.range}</span>
+            <span>
+              {chapter.n}. {chapter.title}
+            </span>
+          </li>
+        ))}
+      </ol>
+      {open ? (
+        added ? (
+          <p className="mt-4 text-sm font-medium text-ink">Шаблон уже в книге — листайте и заполняйте страницы.</p>
+        ) : ask ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button onClick={add}>Да, добавить {FULL_BOOK_PAGES} страниц</Button>
+            <Button variant="white" onClick={() => setAsk(false)}>
+              Отмена
+            </Button>
+          </div>
+        ) : (
+          <Button className="mt-4" onClick={() => setAsk(true)}>
+            Добавить шаблон в мою книгу
+          </Button>
+        )
+      ) : (
+        <Button className="mt-4" onClick={() => nav.tab({ id: "lessons" })}>
+          <Lock className="size-4" /> Откроется с программой «Книга рода»
+        </Button>
+      )}
+    </section>
   );
 }

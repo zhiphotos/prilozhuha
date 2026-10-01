@@ -185,7 +185,7 @@ function PaySheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Программа «Книга рода»" onClose={onClose}>
       <p className="display-title text-4xl text-ink">{PROGRAM_PRICE}</p>
-      <p className="mt-2 text-sm text-muted">Шесть уроков откроются здесь же: интервью, девичья фамилия, фотография, места, глава и сборка книги.</p>
+      <p className="mt-2 text-sm text-muted">Шесть уроков откроются здесь же: интервью, девичья фамилия, фотография, места, глава и сборка книги. И полный шаблон Книги рода на 100 страниц.</p>
       {PAY_URL ? (
         <Button className="mt-4 w-full" onClick={() => window.open(PAY_URL, "_blank", "noopener")}>
           Оплатить

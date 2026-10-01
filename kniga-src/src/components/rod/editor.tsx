@@ -41,7 +41,7 @@ import { FONT_FAMILY, PAGE_RATIO, PAPER, SWATCHES, lookColors, POLAROID, STICKER
 import { FONT_LABEL, findPrompt } from "@/lib/rod/pages";
 import { scratch, stickSound, turnPage } from "@/lib/rod/sounds";
 import { recognition } from "@/lib/rod/speech";
-import { useRod } from "@/lib/rod/store";
+import { flushBook, useRod } from "@/lib/rod/store";
 import type { BookPage, FontKind, InkStroke, PageBlock, PaperKind, PhotoFrame, TextLook } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
 
@@ -64,7 +64,7 @@ type Gesture = {
   last?: Box;
 };
 
-const STYLE_KEY = "kniga-photo-style";
+const STYLE_KEY = "kniga-photo-style-v2";
 const STYLES: { id: PhotoStyle; label: string }[] = [
   { id: "cutout", label: "Стикер без фона" },
   { id: "polaroid", label: "Полароид" },
@@ -93,9 +93,9 @@ function loadRatio(src: string): Promise<number> {
 function savedStyle(): PhotoStyle {
   try {
     const value = localStorage.getItem(STYLE_KEY) as PhotoStyle | null;
-    return value && STYLES.some((item) => item.id === value) ? value : "cutout";
+    return value && STYLES.some((item) => item.id === value) ? value : "polaroid";
   } catch {
-    return "cutout";
+    return "polaroid";
   }
 }
 
@@ -251,7 +251,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   // ——— Вставка из буфера: ⌘V ———
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
-      if ((event.target as HTMLElement)?.closest?.("input, textarea")) return;
+      if ((event.target as HTMLElement)?.closest?.("input, textarea, [contenteditable]")) return;
       const data = event.clipboardData;
       if (!data) return;
       event.preventDefault();
@@ -319,8 +319,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   };
 
   // ——— Фото ———
-  async function placePhoto(ref: string, at?: { x: number; y: number }, forced?: PhotoStyle) {
-    const target = slotTarget ? page?.blocks.find((b) => b.id === slotTarget && b.type === "slot") : null;
+  async function placePhoto(ref: string, at?: { x: number; y: number }, forced?: PhotoStyle, intoSlot = true) {
+    const target = intoSlot && slotTarget ? current()?.blocks.find((b) => b.id === slotTarget && b.type === "slot") : null;
     const chosen = forced ?? style;
     const ratio = await loadRatio(ref);
     const frame: PhotoFrame = target && target.type === "slot" ? target.frame : chosen === "cutout" ? "sticker" : chosen;
@@ -346,6 +346,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     setSelected(block.id);
     setSlotTarget(null);
     setPanel(null);
+    flushBook();
     if (chosen === "cutout" && !target) void cutOut(block.id, ref);
   }
 
@@ -382,16 +383,41 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const list = [...(files ?? [])].filter((file) => file.type.startsWith("image/") || /\.(heic|jpe?g|png|webp)$/i.test(file.name));
     if (!list.length) return;
     setPanel(null);
+    const wait = toast.loading(list.length > 1 ? `Загружаю ${list.length} фото…` : "Загружаю фото…");
     void (async () => {
+      let ok = 0;
       for (const [i, file] of list.slice(0, 8).entries()) {
         try {
           const ref = await importImage(file);
-          await placePhoto(ref, list.length > 1 ? { x: 30 + (i % 2) * 40, y: 25 + Math.floor(i / 2) * 25 } : undefined);
-        } catch {
-          toast("Этот снимок не открылся. Выберите JPG или PNG.");
+          await placePhoto(ref, list.length > 1 ? { x: 30 + (i % 2) * 40, y: 25 + Math.floor(i / 2) * 25 } : undefined, undefined, i === 0);
+          ok += 1;
+        } catch (error) {
+          toast(`«${file.name}» не открылся: ${error instanceof Error ? error.message : "неизвестная ошибка"}. Пришлите Claude этот текст.`, { duration: 9000 });
         }
       }
+      toast.dismiss(wait);
+      if (ok && list.length > 1) toast(`Добавлено фото: ${ok}`);
     })();
+  };
+
+  const fromLink = (link: string) => {
+    const wait = toast.loading("Скачиваю картинку…");
+    void importFromLink(link)
+      .then((ref) => placePhoto(ref))
+      .catch((error: unknown) => toast(`Картинка по ссылке не скачалась (${error instanceof Error ? error.message : "ошибка"}). Попробуйте «Копировать изображение» → «Вставить».`, { duration: 9000 }))
+      .finally(() => toast.dismiss(wait));
+  };
+
+  const fromTransfer = (data: DataTransfer) => {
+    const text = data.getData("text/plain").trim();
+    const wait = toast.loading("Загружаю картинку…");
+    void imageFromTransfer(data)
+      .then((ref) => {
+        if (ref) void placePhoto(ref);
+        else toast(text ? "Во вставленном нет картинки или ссылки на неё." : "В буфере нет картинки.");
+      })
+      .catch((error: unknown) => toast(`Картинка не вставилась (${error instanceof Error ? error.message : "ошибка"}).`, { duration: 9000 }))
+      .finally(() => toast.dismiss(wait));
   };
 
   const pasteFromClipboard = async () => {
@@ -410,13 +436,13 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       const text = await navigator.clipboard.readText();
       const link = text.split(/\s+/).find((part) => /^https?:\/\//.test(part));
       if (link) {
-        const ref = await importFromLink(link);
-        await placePhoto(ref);
+        fromLink(link);
         return;
       }
       toast("В буфере нет картинки. В Pinterest нажмите на фото → «Копировать» (или сохраните его) и попробуйте ещё раз.");
     } catch {
-      toast("Не получилось взять картинку из буфера. Сохраните её в фото телефона и добавьте через «Фото».");
+      toast("Браузер не дал прочитать буфер. Удерживайте пальцем пунктирное поле в окне Pinterest → «Вставить».", { duration: 9000 });
+      setPanel("pinterest");
     }
   };
 
@@ -611,8 +637,11 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
     setDropping(false);
-    const at = toPct(event.clientX, event.clientY);
+    const raw = toPct(event.clientX, event.clientY);
+    const at = raw.x >= 0 && raw.x <= 100 && raw.y >= 0 && raw.y <= 100 ? raw : undefined;
+    const wait = toast.loading("Загружаю картинку…");
     void imageFromTransfer(event.dataTransfer)
+      .finally(() => toast.dismiss(wait))
       .then((ref) => {
         if (ref) void placePhoto(ref, at);
         else toast("Сюда можно перетащить картинку");
@@ -640,7 +669,17 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const cursor = tool === "hand" ? "default" : tool === "erase" ? "cell" : "crosshair";
 
   return (
-    <div className="editor-root fixed inset-0 z-40 flex flex-col">
+    <div
+      className="editor-root fixed inset-0 z-40 flex flex-col"
+      onDragOver={(event) => {
+        event.preventDefault();
+        setDropping(true);
+      }}
+      onDragLeave={(event) => {
+        if (event.target === event.currentTarget) setDropping(false);
+      }}
+      onDrop={onDrop}
+    >
       {/* Верх */}
       <header className="flex items-center gap-2 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <button type="button" className="glass-strong grid size-11 shrink-0 place-items-center rounded-full" aria-label="К книге" onClick={() => nav.back()}>
@@ -685,12 +724,6 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           onPointerMove={onSheetMove}
           onPointerUp={onSheetUp}
           onPointerCancel={onSheetUp}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setDropping(true);
-          }}
-          onDragLeave={() => setDropping(false)}
-          onDrop={onDrop}
           onContextMenu={(event) => event.preventDefault()}
         >
           {/* Вылет под обрез: сюда можно тянуть фото, всё остальное отрежется */}
@@ -880,7 +913,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         </Sheet>
       ) : null}
 
-      {panel === "pinterest" ? <PinterestPanel onClose={() => setPanel(null)} onPaste={() => void pasteFromClipboard()} onLink={(link) => { setPanel(null); toast("Скачиваю картинку…"); void importFromLink(link).then((ref) => placePhoto(ref)).catch(() => toast("По этой ссылке картинка не скачалась. Попробуйте «Копировать изображение» и «Вставить».")); }} /> : null}
+      {panel === "pinterest" ? <PinterestPanel onClose={() => setPanel(null)} onPaste={() => void pasteFromClipboard()} onLink={(link) => { setPanel(null); fromLink(link); }} onPasteData={(data) => { setPanel(null); fromTransfer(data); }} /> : null}
 
       {panel === "stickers" ? (
         <Sheet title="Стикеры" onClose={() => setPanel(null)}>
@@ -1393,7 +1426,7 @@ function ArchiveThumb({ src, alt, onClick }: { src: string; alt: string; onClick
   );
 }
 
-function PinterestPanel({ onClose, onPaste, onLink }: { onClose: () => void; onPaste: () => void; onLink: (link: string) => void }) {
+function PinterestPanel({ onClose, onPaste, onLink, onPasteData }: { onClose: () => void; onPaste: () => void; onLink: (link: string) => void; onPasteData: (data: DataTransfer) => void }) {
   const [query, setQuery] = useState("");
   const [link, setLink] = useState("");
   const open = () => {
@@ -1429,7 +1462,23 @@ function PinterestPanel({ onClose, onPaste, onLink }: { onClose: () => void; onP
           <b>Телефон.</b> В Pinterest нажмите на фото → «Копировать изображение» или сохраните его. Вернитесь сюда и нажмите «Вставить».
         </p>
       </div>
-      <Button variant="soft" className="mt-4 w-full" onClick={onPaste}>
+      <div
+        contentEditable
+        suppressContentEditableWarning
+        role="textbox"
+        aria-label="Поле для вставки"
+        onPaste={(event) => {
+          event.preventDefault();
+          onPasteData(event.clipboardData);
+        }}
+        onInput={(event) => {
+          (event.currentTarget as HTMLDivElement).textContent = "";
+        }}
+        className="mt-4 grid min-h-20 place-items-center rounded-3xl border-2 border-dashed border-rose/50 bg-white/60 px-4 text-center text-sm text-ink outline-none focus:border-rose"
+        data-placeholder="Нажмите и удерживайте здесь → «Вставить»"
+      />
+      <p className="mt-1 text-center text-xs text-muted">На iPhone — самый надёжный способ: удерживайте пальцем поле выше и выберите «Вставить».</p>
+      <Button variant="soft" className="mt-3 w-full" onClick={onPaste}>
         <ClipboardPaste className="size-4" /> Вставить скопированную картинку
       </Button>
       <form

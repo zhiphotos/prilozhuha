@@ -75,5 +75,6 @@
 - Обложка — обычные блоки (`designed: true`), готовые дизайны — `coverDesigns` в `layouts.ts`; старые обложки-картинки переводятся в блоки при запуске.
 - Редактор — `components/rod/editor.tsx` (выделение, отмена, перо, вырезка фона, Pinterest), книга с перелистыванием —
   `flipbook.tsx`, шаблоны страниц — `lib/rod/layouts.ts`, стикеры — `lib/rod/page-style.ts`.
+- Полный шаблон на 100 страниц (7 глав, структура Дарины) — `lib/rod/full-book.ts`, открывается только при `programOpen`.
 - Оплата и видео уроков — `lib/rod/config.ts`: `PAY_URL`, `ACCESS_CODES` (сейчас тестовый код «КНИГА»), `LESSON_VIDEO`.
 - Серверного ИИ (xAI) на Pages нет: `spa/studio-ai.static.ts` — заглушка.
