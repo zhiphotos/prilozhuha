@@ -74,7 +74,7 @@ export function PageSheet({
       style={{ ...paperStyle(page.paper), aspectRatio: `1 / ${PAGE_RATIO}`, containerType: "inline-size" }}
     >
       <div className="paper-grain pointer-events-none absolute inset-0" />
-      {page.kind === "cover" ? <CoverArt meta={meta} /> : null}
+      {page.kind === "cover" && !page.designed ? <CoverArt meta={meta} /> : null}
       {children ?? (
         <>
           {page.blocks.map((block) => (

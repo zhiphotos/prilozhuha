@@ -329,7 +329,7 @@ export async function paintPage(page: BookPage, meta: CoverMeta, setup?: PrintSe
   if (!ctx) throw new Error("Не удалось собрать страницу");
   ctx.translate(bleed, bleed);
   paintPaper(ctx, page.paper, bleed);
-  if (page.kind === "cover") await paintCover(ctx, meta);
+  if (page.kind === "cover" && !page.designed) await paintCover(ctx, meta);
   for (const block of page.blocks) {
     if (block.type === "text") paintText(ctx, block);
     else if (block.type === "photo") await paintPhoto(ctx, block);

@@ -116,8 +116,68 @@ export function blankPage(): Omit<BookPage, "id"> {
   return { title: "Чистая страница", kind: "page", paper: "dots", strokes: [], blocks: [] };
 }
 
-export function coverPage(): Omit<BookPage, "id"> {
-  return { title: "Обложка", kind: "cover", paper: "rose", strokes: [], blocks: [] };
+export type CoverMeta = { dedicatee: string; collector: string };
+
+function forWhom(meta: CoverMeta) {
+  return meta.dedicatee.trim() ? `для тебя, ${meta.dedicatee.trim()}` : "для тех, кто откроет позже";
+}
+
+function signed(meta: CoverMeta, y: number, x = 10, w = 80, align: "left" | "center" = "center"): PageBlock | null {
+  return meta.collector.trim() ? text({ x, y, w, text: `собрал(а) ${meta.collector.trim()}`, font: "sans", size: "sm", align }) : null;
+}
+
+/** Готовые дизайны обложки. Всё на них — обычные блоки: двигаются, меняются, удаляются. */
+export function coverDesigns(meta: CoverMeta): { id: string; label: string; page: Omit<BookPage, "id"> }[] {
+  const make = (label: string, paper: BookPage["paper"], blocks: Array<PageBlock | null>) => ({
+    id: label,
+    label,
+    page: { title: "Обложка", kind: "cover" as const, designed: true, paper, strokes: [], blocks: blocks.filter((b): b is PageBlock => b !== null) },
+  });
+  return [
+    make("Классика", "rose", [
+      text({ x: 10, y: 17, w: 80, text: "СЕМЕЙНАЯ ЛЕТОПИСЬ", font: "sans", size: "sm", align: "center" }),
+      text({ x: 8, y: 23, w: 84, text: "Книга\nрода", size: "xl", align: "center" }),
+      sticker("branch", 38, 52, 24),
+      text({ x: 10, y: 72, w: 80, text: forWhom(meta), font: "script", size: "lg", align: "center" }),
+      signed(meta, 82),
+    ]),
+    make("Фото на всю обложку", "kraft", [
+      slot(0, 0, 100, 100, "Фото на обложку", "none"),
+      text({ x: 16, y: 68, w: 68, text: "Книга рода", size: "lg", look: "card", align: "center" }),
+      text({ x: 25, y: 82, w: 50, text: forWhom(meta), font: "sans", size: "sm", look: "pill", align: "center" }),
+    ]),
+    make("Крафт и полароид", "kraft", [
+      slot(22, 12, 56, 52, "Старое фото", "polaroid", -2),
+      sticker("tape", 39, 9, 22, -3),
+      text({ x: 10, y: 70, w: 80, text: "Книга рода", size: "lg", align: "center" }),
+      text({ x: 10, y: 79, w: 80, text: forWhom(meta), font: "script", size: "md", align: "center" }),
+      signed(meta, 87),
+    ]),
+    make("Шалфей", "sage", [
+      sticker("leaf", 80, 9, 10, 12),
+      text({ x: 9, y: 50, w: 82, text: "Книга\nрода", size: "xl" }),
+      text({ x: 9, y: 80, w: 82, text: forWhom(meta), font: "script", size: "md" }),
+      signed(meta, 87, 9, 82, "left"),
+    ]),
+    make("Дневник", "dots", [
+      text({ x: 9, y: 9, w: 56, text: "Книга рода", size: "lg", look: "card", rotate: -2 }),
+      slot(38, 28, 52, 48, "Фото", "sticker", 3),
+      sticker("heart", 14, 44, 12, -8),
+      sticker("sparkle", 80, 12, 9),
+      text({ x: 9, y: 82, w: 70, text: forWhom(meta), font: "script", size: "lg" }),
+    ]),
+  ];
+}
+
+export function coverPage(meta: CoverMeta = { dedicatee: "", collector: "" }): Omit<BookPage, "id"> {
+  return coverDesigns(meta)[0].page;
+}
+
+/** Старая обложка (картинкой) превращается в блоки — её можно двигать. Свои блоки остаются сверху. */
+export function migrateCover(page: BookPage, meta: CoverMeta): BookPage {
+  if (page.kind !== "cover" || page.designed) return page;
+  const design = coverDesigns(meta)[0].page;
+  return { ...page, designed: true, blocks: [...design.blocks, ...page.blocks] };
 }
 
 /** Страница из готовой истории: заголовок и текст главы. */

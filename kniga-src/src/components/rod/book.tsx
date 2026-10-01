@@ -55,9 +55,9 @@ export function BookScreen() {
       </div>
 
       {!hasCover ? (
-        <button type="button" onClick={() => open(coverPage(), 0)} className="aurora mb-5 flex w-full items-center gap-4 rounded-[2rem] p-5 text-left">
+        <button type="button" onClick={() => open(coverPage(meta), 0)} className="aurora mb-5 flex w-full items-center gap-4 rounded-[2rem] p-5 text-left">
           <div className="w-20 shrink-0 overflow-hidden rounded-md shadow-lg">
-            <PageSheet page={{ id: "c", ...coverPage() }} meta={meta} />
+            <PageSheet page={{ id: "c", ...coverPage(meta) }} meta={meta} />
           </div>
           <span>
             <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-ink/60">Начните отсюда</span>

@@ -101,7 +101,7 @@ export type PageBlock =
       w: number;
       text: string;
       font: FontKind;
-      size: "sm" | "md" | "lg";
+      size: "sm" | "md" | "lg" | "xl";
       look?: TextLook;
       align?: "left" | "center";
       placeholder?: string;
@@ -128,6 +128,8 @@ export type BookPage = {
   id: string;
   title: string;
   kind: "cover" | "page";
+  /** Обложка собрана из блоков, которые можно двигать (новые обложки). */
+  designed?: boolean;
   paper: PaperKind;
   promptId?: string;
   strokes: InkStroke[];

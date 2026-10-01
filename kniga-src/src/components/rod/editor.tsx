@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { Button, Sheet, useNav } from "@/components/rod/chrome";
 import { BlockArt, InkLayer, PageSheet, PlacedBlock, boxOf, inkColor, PAGE_H } from "@/components/rod/page-view";
 import { imageFromTransfer, importImage, importImageUrl } from "@/lib/rod/image";
+import { coverDesigns } from "@/lib/rod/layouts";
 import { liftSubject } from "@/lib/rod/lift";
 import { mediaDataUrl, resolveMedia, saveMedia, useMedia } from "@/lib/rod/media";
 import { FONT_FAMILY, PAGE_RATIO, PAPER, POLAROID, STICKERS, STICKER_ORDER, defaultStickerWidth, pageSide, safeArea, stickerRatio, stickerUrl } from "@/lib/rod/page-style";
@@ -45,7 +46,7 @@ import type { BookPage, FontKind, InkStroke, PageBlock, PaperKind, PhotoFrame, T
 import { cn } from "@/lib/cn";
 
 type Tool = "hand" | "pen" | "marker" | "erase";
-type Panel = "photo" | "pinterest" | "stickers" | "help" | "menu" | null;
+type Panel = "photo" | "pinterest" | "stickers" | "help" | "menu" | "covers" | null;
 type PhotoStyle = "cutout" | "polaroid" | "none" | "tape" | "sticker";
 type Box = { x: number; y: number; w: number; h: number | null; rotate: number };
 type Gesture = {
@@ -801,9 +802,18 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             }}
           />
         ) : (
-          <p className="h-11 truncate pt-3 text-center text-xs text-muted">
-            Пунктир — охранное поле: текст внутри. Фото можно тянуть за край листа — «на вылет».
-          </p>
+          page.kind === "cover" ? (
+            <div className="flex h-11 items-center justify-center gap-2">
+              <Button variant="soft" className="min-h-10 shrink-0 whitespace-nowrap" onClick={() => setPanel("covers")}>
+                <Sparkles className="size-4" /> Дизайн обложки
+              </Button>
+              <span className="truncate text-xs text-muted">Всё двигается и удаляется</span>
+            </div>
+          ) : (
+            <p className="h-11 truncate pt-3 text-center text-xs text-muted">
+              Пунктир — охранное поле: текст внутри. Фото можно тянуть за край листа — «на вылет».
+            </p>
+          )
         )}
       </div>
 
@@ -921,8 +931,40 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         />
       ) : null}
 
+      {panel === "covers" ? (
+        <Sheet title="Дизайн обложки" onClose={() => setPanel(null)} className="max-w-2xl">
+          <p className="mb-3 text-sm text-muted">Выберите основу — потом всё на ней можно двигать, менять шрифт, цвет бумаги, добавлять фото и стикеры. Отменить — стрелкой ↶.</p>
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {coverDesigns(meta).map((design) => (
+              <li key={design.id}>
+                <button
+                  type="button"
+                  className="block w-full text-left"
+                  onClick={() => {
+                    const own = page.blocks.filter((b) => b.type === "photo" || (b.type === "sticker" && !design.page.blocks.some((d) => d.type === "sticker" && d.kind === b.kind)));
+                    commit((p) => ({ ...p, designed: true, paper: design.page.paper, blocks: [...design.page.blocks.map((b) => ({ ...b, id: id() })), ...own.filter((b) => b.type === "photo")] }));
+                    setSelected(null);
+                    setPanel(null);
+                  }}
+                >
+                  <div className="thumb-shadow overflow-hidden rounded-[4px]">
+                    <PageSheet page={{ id: design.id, ...design.page }} meta={meta} editing />
+                  </div>
+                  <span className="mt-1 block text-xs font-medium text-ink">{design.label}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Sheet>
+      ) : null}
+
       {panel === "menu" ? (
         <Sheet title="Страница" onClose={() => setPanel(null)}>
+          {page.kind === "cover" ? (
+            <Button className="mb-4 w-full" onClick={() => setPanel("covers")}>
+              <Sparkles className="size-4" /> Другой дизайн обложки
+            </Button>
+          ) : null}
           {page.kind !== "cover" ? (
             <label className="mb-4 block">
               <span className="mb-1 block text-sm text-muted">Название в оглавлении</span>
@@ -1077,9 +1119,9 @@ function TextPanel({
             <span style={{ fontFamily: FONT_FAMILY[font] }}>{FONT_LABEL[font]}</span>
           </BarBtn>
         ))}
-        {(["sm", "md", "lg"] as const).map((s) => (
+        {(["sm", "md", "lg", "xl"] as const).map((s) => (
           <BarBtn key={s} active={block.size === s} onClick={() => onPatch({ size: s } as Partial<PageBlock>)}>
-            {s === "sm" ? "S" : s === "md" ? "M" : "L"}
+            {s === "sm" ? "S" : s === "md" ? "M" : s === "lg" ? "L" : "XL"}
           </BarBtn>
         ))}
         <span className="flex-1" />
@@ -1143,9 +1185,9 @@ function BlockBar({
               <span style={{ fontFamily: FONT_FAMILY[font] }}>{FONT_LABEL[font]}</span>
             </BarBtn>
           ))}
-          {(["sm", "md", "lg"] as const).map((s) => (
+          {(["sm", "md", "lg", "xl"] as const).map((s) => (
             <BarBtn key={s} active={block.size === s} onClick={() => onPatch({ size: s } as Partial<PageBlock>)}>
-              {s === "sm" ? "S" : s === "md" ? "M" : "L"}
+              {s === "sm" ? "S" : s === "md" ? "M" : s === "lg" ? "L" : "XL"}
             </BarBtn>
           ))}
           {(["plain", "card", "pill"] as TextLook[]).map((look) => (

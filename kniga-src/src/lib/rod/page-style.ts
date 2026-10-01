@@ -68,15 +68,15 @@ export const FONT_FAMILY: Record<FontKind, string> = {
 export const FONT_WEIGHT: Record<FontKind, number> = { serif: 600, sans: 500, script: 500 };
 
 // В книге 25×25 см: sm ≈ 13–14 pt, md ≈ 19 pt, lg ≈ 34 pt. На 30×30 всё пропорционально крупнее.
-const SIZE: Record<FontKind, Record<"sm" | "md" | "lg", number>> = {
-  serif: { sm: 2.1, md: 2.9, lg: 5.2 },
-  sans: { sm: 1.75, md: 2.3, lg: 4 },
-  script: { sm: 2.8, md: 3.8, lg: 6.2 },
+const SIZE: Record<FontKind, Record<"sm" | "md" | "lg" | "xl", number>> = {
+  serif: { sm: 2.1, md: 2.9, lg: 5.2, xl: 11 },
+  sans: { sm: 1.75, md: 2.3, lg: 4, xl: 7 },
+  script: { sm: 2.8, md: 3.8, lg: 6.2, xl: 10 },
 };
 
-const LEADING: Record<FontKind, number> = { serif: 1.2, sans: 1.4, script: 1.1 };
+const LEADING: Record<FontKind, number> = { serif: 1.15, sans: 1.4, script: 1.1 };
 
-export function textMetrics(font: FontKind, size: "sm" | "md" | "lg") {
+export function textMetrics(font: FontKind, size: "sm" | "md" | "lg" | "xl") {
   return { size: SIZE[font][size], leading: LEADING[font] };
 }
 
