@@ -1,0 +1,306 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ivory: #f3eee6;
+  --color-paper: #faf7f2;
+  --color-ink: #1c1915;
+  --color-muted: #6f675e;
+  --color-line: #e4dcd0;
+  --color-rose: #c45d72;
+  --color-rose-deep: #8e3d52;
+  --color-blush: #f6d5dc;
+  --color-sage: #6f8a68;
+  --color-sage-soft: #dce6d6;
+  --color-night: #1c1915;
+  --font-sans: "Manrope", "Segoe UI", sans-serif;
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-script: "Caveat", "Segoe Script", cursive;
+  --radius-4xl: 1.75rem;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    min-height: 100vh;
+    background-color: var(--color-ivory);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: var(--color-blush);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-rose);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 639px) {
+    input,
+    textarea,
+    select {
+      font-size: 1rem;
+    }
+  }
+}
+
+@layer components {
+  .atmosphere {
+    background-color: var(--color-ivory);
+    background-image:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--color-ivory) 46%, transparent),
+        color-mix(in oklab, var(--color-ivory) 58%, transparent)
+      ),
+      url("/atmosphere.jpg");
+    background-size: cover;
+    background-position: center 20%;
+    background-attachment: fixed;
+  }
+
+  .glass {
+    background: color-mix(in oklab, var(--color-paper) 86%, transparent);
+    border: 1px solid color-mix(in oklab, white 72%, var(--color-line));
+    box-shadow:
+      0 24px 50px -28px color-mix(in oklab, var(--color-ink) 42%, transparent),
+      inset 0 1px 0 color-mix(in oklab, white 80%, transparent);
+    backdrop-filter: blur(18px) saturate(1.2);
+  }
+
+  .glass-dark {
+    background: color-mix(in oklab, var(--color-night) 88%, transparent);
+    color: var(--color-paper);
+    border: 1px solid color-mix(in oklab, white 16%, transparent);
+    box-shadow: 0 24px 50px -28px color-mix(in oklab, var(--color-ink) 55%, transparent);
+    backdrop-filter: blur(18px) saturate(1.15);
+  }
+
+  .wash-blush {
+    background: linear-gradient(
+      165deg,
+      color-mix(in oklab, var(--color-blush) 88%, white),
+      color-mix(in oklab, var(--color-paper) 80%, var(--color-blush))
+    );
+  }
+
+  .wash-sage {
+    background: linear-gradient(
+      165deg,
+      color-mix(in oklab, var(--color-sage-soft) 90%, white),
+      color-mix(in oklab, var(--color-paper) 78%, var(--color-sage-soft))
+    );
+  }
+
+  .field {
+    width: 100%;
+    border-radius: 1rem;
+    border: 1px solid var(--color-line);
+    background: color-mix(in oklab, var(--color-paper) 88%, transparent);
+    padding: 0.85rem 1rem;
+    color: var(--color-ink);
+    font: inherit;
+    line-height: 1.45;
+  }
+
+  .field::placeholder {
+    color: color-mix(in oklab, var(--color-muted) 80%, white);
+  }
+
+  .dock {
+    padding-bottom: max(0.6rem, env(safe-area-inset-bottom));
+  }
+
+  .paper-cream {
+    background-color: var(--color-paper);
+    background-image: radial-gradient(circle at 20% 10%, color-mix(in oklab, white 70%, transparent), transparent 42%);
+  }
+
+  .paper-lined {
+    background-color: var(--color-paper);
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 1.65rem,
+      color-mix(in oklab, var(--color-line) 80%, white) 1.7rem
+    );
+  }
+
+  .paper-rose {
+    background-color: color-mix(in oklab, var(--color-blush) 55%, var(--color-paper));
+  }
+
+  .paper-sage {
+    background-color: color-mix(in oklab, var(--color-sage-soft) 70%, var(--color-paper));
+  }
+
+  .page-stage {
+    width: min(100%, 28rem);
+    margin-inline: auto;
+  }
+
+  @media (min-width: 64rem) {
+    .page-stage {
+      width: 100%;
+      margin-inline: 0;
+    }
+  }
+
+  .book-shell {
+    box-shadow:
+      0 30px 50px -28px color-mix(in oklab, var(--color-ink) 55%, transparent),
+      8px 0 0 color-mix(in oklab, var(--color-line) 80%, white),
+      14px 0 0 color-mix(in oklab, var(--color-blush) 70%, white);
+  }
+
+  .ink-surface {
+    touch-action: none;
+  }
+
+  .scrap-block {
+    touch-action: none;
+  }
+
+  .sticker-lay {
+    filter: drop-shadow(0 12px 8px color-mix(in oklab, var(--color-ink) 34%, transparent));
+  }
+
+  .subject-shot {
+    touch-action: pan-y;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .subject-shot img {
+    -webkit-user-drag: none;
+    pointer-events: none;
+  }
+
+  .subject-hold {
+    transform: scale(1.045);
+    filter:
+      drop-shadow(0 0 1px var(--color-paper))
+      drop-shadow(0 0 3px var(--color-paper))
+      drop-shadow(0 16px 14px color-mix(in oklab, var(--color-ink) 32%, transparent));
+    transition: transform 280ms ease;
+  }
+
+  .subject-pop {
+    animation: subject-pop 460ms cubic-bezier(0.16, 1.25, 0.32, 1);
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .card-back {
+    background-color: var(--color-rose-deep);
+    color: var(--color-paper);
+    background-image:
+      radial-gradient(circle at 18% 16%, color-mix(in oklab, var(--color-blush) 42%, transparent), transparent 32%),
+      repeating-linear-gradient(
+        45deg,
+        transparent 0 12px,
+        color-mix(in oklab, var(--color-blush) 22%, transparent) 12px 13px
+      );
+  }
+
+  .card-face {
+    background: color-mix(in oklab, var(--color-paper) 92%, white);
+  }
+
+  .page-flip {
+    animation: page-flip 320ms ease;
+  }
+
+  .card-stage {
+    height: min(24rem, calc(100svh - 22rem));
+    min-height: 16rem;
+  }
+}
+
+@keyframes subject-pop {
+  from {
+    transform: scale(1.12);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes page-flip {
+  from {
+    opacity: 0.4;
+    transform: perspective(900px) rotateY(-12deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .page-flip,
+  .subject-hold,
+  .subject-pop {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .atmosphere {
+    background: white !important;
+  }
+
+  .glass,
+  .glass-dark,
+  .wash-blush,
+  .wash-sage {
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+}
