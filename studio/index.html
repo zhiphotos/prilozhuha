@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Студия Дарины</title>
+<meta name="theme-color" content="#f4f5f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141917" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Студия">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prata&family=Golos+Text:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-row">
+    <h1>Студия</h1>
+    <button class="icon-btn" id="settingsBtn" type="button" aria-label="Настройки и перенос">⋯</button>
+  </div>
+  <div class="accs" role="tablist" aria-label="Аккаунт">
+    <button class="acc" data-acc="rod" role="tab" type="button"><span class="acc-name">Книга Рода</span><span class="acc-count" id="count-rod"></span></button>
+    <button class="acc" data-acc="zhi" role="tab" type="button"><span class="acc-name">@zhiphotos</span><span class="acc-count" id="count-zhi"></span></button>
+  </div>
+  <nav class="secs" id="secs" aria-label="Разделы"></nav>
+  <div class="filters">
+    <div class="seg" role="radiogroup" aria-label="Показать">
+      <button type="button" data-view="todo">В работе</button>
+      <button type="button" data-view="done">Сделано</button>
+      <button type="button" data-view="removed">Убрано</button>
+    </div>
+    <input id="search" type="search" placeholder="Поиск" aria-label="Поиск" autocomplete="off">
+  </div>
+</header>
+
+<main id="list" aria-live="polite"></main>
+
+<button class="fab" id="addBtn" type="button" aria-label="Добавить свою идею">+</button>
+
+<div class="sheet-bg" id="sheetBg" hidden></div>
+
+<section class="sheet" id="addSheet" hidden aria-label="Новая идея">
+  <h2>Своя идея</h2>
+  <label for="addText">Текст</label>
+  <textarea id="addText" rows="4" placeholder="Хук или мысль, которая пришла"></textarea>
+  <label for="addSec">Раздел</label>
+  <select id="addSec"></select>
+  <p class="hint" id="addAccHint"></p>
+  <div class="sheet-actions">
+    <button type="button" class="ghost" data-close>Отмена</button>
+    <button type="button" class="primary" id="addSave">Сохранить</button>
+  </div>
+</section>
+
+<section class="sheet" id="setSheet" hidden aria-label="Настройки">
+  <h2>Перенос и отчёт</h2>
+  <p class="hint">Отметки хранятся в этом браузере. Чтобы Claude узнал, что ты сделала, и забрал твои идеи в общий список, скопируй отчёт и вставь в чат.</p>
+  <button type="button" class="primary wide" id="copyReport">Скопировать отчёт для Claude</button>
+  <p class="hint">Переезд на другой телефон или браузер: скопируй код здесь и вставь его там.</p>
+  <button type="button" class="ghost wide" id="copyCode">Скопировать код отметок</button>
+  <label for="importCode">Вставить код с другого устройства</label>
+  <textarea id="importCode" rows="3" placeholder="Вставь код сюда"></textarea>
+  <div class="sheet-actions">
+    <button type="button" class="ghost" data-close>Закрыть</button>
+    <button type="button" class="primary" id="importBtn">Загрузить код</button>
+  </div>
+  <p class="hint" id="dataInfo"></p>
+</section>
+
+<div class="toast" id="toast" hidden><span id="toastText"></span><button type="button" id="toastUndo">Вернуть</button></div>
+
+<script src="app.js"></script>
+</body>
+</html>
