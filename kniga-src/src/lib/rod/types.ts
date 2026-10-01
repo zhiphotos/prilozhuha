@@ -103,6 +103,9 @@ export type PageBlock =
       font: FontKind;
       size: "sm" | "md" | "lg" | "xl";
       look?: TextLook;
+      /** Свой цвет букв и фона карточки/плашки. */
+      color?: string;
+      bg?: string;
       align?: "left" | "center";
       placeholder?: string;
     } & Placed)
@@ -130,6 +133,8 @@ export type BookPage = {
   kind: "cover" | "page";
   /** Обложка собрана из блоков, которые можно двигать (новые обложки). */
   designed?: boolean;
+  /** Свой цвет страницы поверх выбранной бумаги. */
+  bg?: string;
   paper: PaperKind;
   promptId?: string;
   strokes: InkStroke[];

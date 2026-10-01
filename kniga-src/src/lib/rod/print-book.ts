@@ -99,7 +99,7 @@ function noShadow(ctx: CanvasRenderingContext2D) {
   ctx.shadowOffsetY = 0;
 }
 
-function paintPaper(ctx: CanvasRenderingContext2D, paper: PaperKind, bleed: number) {
+function paintPaper(ctx: CanvasRenderingContext2D, paper: PaperKind, bleed: number, custom?: string) {
   const bg: Record<PaperKind, string> = {
     cream: "#fbf8f3",
     lined: "#fbf8f3",
@@ -108,7 +108,7 @@ function paintPaper(ctx: CanvasRenderingContext2D, paper: PaperKind, bleed: numb
     sage: "#e7eee2",
     kraft: "#ece0cf",
   };
-  ctx.fillStyle = bg[paper];
+  ctx.fillStyle = custom || bg[paper];
   ctx.fillRect(-bleed, -bleed, W + bleed * 2, H + bleed * 2);
   if (paper === "lined") {
     ctx.fillStyle = COLORS.line;
@@ -179,7 +179,7 @@ function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { ty
   if (!block.text.trim()) return;
   const metrics = textMetrics(block.font, block.size);
   const pad = lookPad(block.look);
-  const colors = lookColors(block.look);
+  const colors = lookColors(block.look, block.color, block.bg);
   const px = metrics.size * U;
   const lh = px * metrics.leading;
   ctx.font = `${FONT_WEIGHT[block.font]} ${px}px ${FONT_FAMILY[block.font]}`;
@@ -328,7 +328,7 @@ export async function paintPage(page: BookPage, meta: CoverMeta, setup?: PrintSe
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Не удалось собрать страницу");
   ctx.translate(bleed, bleed);
-  paintPaper(ctx, page.paper, bleed);
+  paintPaper(ctx, page.paper, bleed, page.bg);
   if (page.kind === "cover" && !page.designed) await paintCover(ctx, meta);
   for (const block of page.blocks) {
     if (block.type === "text") paintText(ctx, block);
@@ -426,7 +426,7 @@ export async function downloadPrintCover(pages: BookPage[], meta: CoverMeta, set
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Не удалось собрать обложку");
   const bg: Record<PaperKind, string> = { cream: "#fbf8f3", lined: "#fbf8f3", dots: "#fbf8f3", rose: "#f8e4e8", sage: "#e7eee2", kraft: "#ece0cf" };
-  ctx.fillStyle = bg[cover.paper];
+  ctx.fillStyle = cover.bg || bg[cover.paper];
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   // Задняя сторона
   W = trim;

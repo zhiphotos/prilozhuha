@@ -71,7 +71,7 @@ export function PageSheet({
   return (
     <div
       className={cn("page-sheet relative w-full", clip && "overflow-hidden", className)}
-      style={{ ...paperStyle(page.paper), aspectRatio: `1 / ${PAGE_RATIO}`, containerType: "inline-size" }}
+      style={{ ...paperStyle(page.paper), ...(page.bg ? { backgroundColor: page.bg } : {}), aspectRatio: `1 / ${PAGE_RATIO}`, containerType: "inline-size" }}
     >
       <div className="paper-grain pointer-events-none absolute inset-0" />
       {page.kind === "cover" && !page.designed ? <CoverArt meta={meta} /> : null}
@@ -194,7 +194,7 @@ export function BlockArt({ block, editing = false }: { block: PageBlock; editing
 export function TextArt({ block, editing }: { block: Extract<PageBlock, { type: "text" }>; editing: boolean }) {
   const metrics = textMetrics(block.font, block.size);
   const pad = lookPad(block.look);
-  const colors = lookColors(block.look);
+  const colors = lookColors(block.look, block.color, block.bg);
   const empty = !block.text.trim();
   if (empty && !editing) return null;
   return (
