@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import { MEDIA_STORE, STATE_STORE, idbClear, idbGet, idbSet } from "@/lib/rod/idb";
 import type {
   Audience,
   BookPage,
@@ -11,6 +12,8 @@ import type {
   Story,
   TimelineEvent,
 } from "@/lib/rod/types";
+
+export type TrashedPage = { page: BookPage; index: number; at: string };
 
 type RodState = {
   onboarded: boolean;
@@ -25,6 +28,7 @@ type RodState = {
   documents: FamilyDoc[];
   notes: CardNote[];
   pages: BookPage[];
+  trash: TrashedPage[];
   programOpen: boolean;
   doneLessons: string[];
   finishOnboarding: (input: { audience: Audience; dedicatee: string; collector: string }) => void;
@@ -47,7 +51,11 @@ type RodState = {
   addPage: (input: Omit<BookPage, "id">) => string;
   updatePage: (id: string, updater: (page: BookPage) => BookPage) => void;
   movePage: (id: string, direction: -1 | 1) => void;
+  placePage: (id: string, index: number) => void;
+  duplicatePage: (id: string) => string | null;
   removePage: (id: string) => void;
+  restorePage: (id: string) => void;
+  purgeTrash: () => void;
   openProgram: () => void;
   completeLesson: (id: string) => void;
   resetAll: () => void;
@@ -66,12 +74,57 @@ const empty = {
   documents: [] as FamilyDoc[],
   notes: [] as CardNote[],
   pages: [] as BookPage[],
+  trash: [] as TrashedPage[],
   programOpen: false,
   doneLessons: [] as string[],
 };
 
 function uid(): string {
   return crypto.randomUUID();
+}
+
+const KEY = "kniga-roda";
+let saveTimer: number | undefined;
+let lastValue: string | null = null;
+
+// Состояние пишется в IndexedDB с небольшой задержкой: при наборе текста не надо сохранять каждую букву.
+const bookStorage: StateStorage = {
+  getItem: async (name) => {
+    const stored = await idbGet<string>(STATE_STORE, name).catch(() => undefined);
+    if (stored) return stored;
+    try {
+      return localStorage.getItem(name);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (name, value) => {
+    lastValue = value;
+    window.clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(() => {
+      const next = lastValue;
+      lastValue = null;
+      if (next !== null) void idbSet(STATE_STORE, name, next).catch(() => undefined);
+    }, 250);
+  },
+  removeItem: async (name) => {
+    await idbSet(STATE_STORE, name, "").catch(() => undefined);
+  },
+};
+
+export function flushBook(): void {
+  if (lastValue === null) return;
+  window.clearTimeout(saveTimer);
+  const next = lastValue;
+  lastValue = null;
+  void idbSet(STATE_STORE, KEY, next).catch(() => undefined);
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", flushBook);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushBook();
+  });
 }
 
 export const useRod = create<RodState>()(
@@ -94,7 +147,7 @@ export const useRod = create<RodState>()(
       addPlace: (input) => set((state) => ({ places: [{ ...input, id: uid() }, ...state.places] })),
       removePlace: (id) => set((state) => ({ places: state.places.filter((place) => place.id !== id) })),
       addPhoto: (input) => {
-        if (get().photos.length >= 12) return false;
+        if (get().photos.length >= 600) return false;
         set((state) => ({ photos: [{ ...input, id: uid() }, ...state.photos] }));
         return true;
       },
@@ -135,16 +188,66 @@ export const useRod = create<RodState>()(
           pages.splice(next, 0, item);
           return { pages };
         }),
-      removePage: (id) => set((state) => ({ pages: state.pages.filter((page) => page.id !== id) })),
+      placePage: (id, index) =>
+        set((state) => {
+          const from = state.pages.findIndex((page) => page.id === id);
+          if (from < 0) return state;
+          const pages = state.pages.slice();
+          const [item] = pages.splice(from, 1);
+          pages.splice(Math.max(0, Math.min(index, pages.length)), 0, item);
+          return { pages };
+        }),
+      duplicatePage: (id) => {
+        const source = get().pages.find((page) => page.id === id);
+        if (!source) return null;
+        const copy = {
+          ...source,
+          id: uid(),
+          kind: "page" as const,
+          title: `${source.title} (копия)`,
+          blocks: source.blocks.map((block) => ({ ...block, id: uid() })),
+          strokes: source.strokes.map((stroke) => ({ ...stroke, id: uid() })),
+        };
+        set((state) => {
+          const index = state.pages.findIndex((page) => page.id === id);
+          const pages = state.pages.slice();
+          pages.splice(index + 1, 0, copy);
+          return { pages };
+        });
+        return copy.id;
+      },
+      removePage: (id) =>
+        set((state) => {
+          const index = state.pages.findIndex((page) => page.id === id);
+          if (index < 0) return state;
+          const page = state.pages[index];
+          return {
+            pages: state.pages.filter((item) => item.id !== id),
+            trash: [{ page, index, at: new Date().toISOString() }, ...state.trash].slice(0, 60),
+          };
+        }),
+      restorePage: (id) =>
+        set((state) => {
+          const item = state.trash.find((entry) => entry.page.id === id);
+          if (!item) return state;
+          const pages = state.pages.slice();
+          pages.splice(Math.min(item.index, pages.length), 0, item.page);
+          return { pages, trash: state.trash.filter((entry) => entry.page.id !== id) };
+        }),
+      purgeTrash: () => set({ trash: [] }),
       openProgram: () => set({ programOpen: true }),
       completeLesson: (id) =>
         set((state) => ({
           doneLessons: state.doneLessons.includes(id) ? state.doneLessons : [...state.doneLessons, id],
         })),
-      resetAll: () => set({ ...empty }),
+      resetAll: () => {
+        set({ ...empty });
+        void idbClear(MEDIA_STORE).catch(() => undefined);
+      },
     }),
     {
-      name: "kniga-roda",
+      name: KEY,
+      storage: createJSONStorage(() => bookStorage),
       skipHydration: true,
     },
   ),

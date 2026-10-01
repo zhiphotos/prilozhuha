@@ -269,8 +269,8 @@ function toPng(canvas: HTMLCanvasElement): string {
   let current = canvas;
   let url = current.toDataURL("image/png");
   let guard = 0;
-  while (url.length > 280_000 && guard < 5) {
-    const scale = Math.min(0.72, Math.sqrt(280_000 / url.length) * 0.9);
+  while (url.length > 3_000_000 && guard < 5) {
+    const scale = Math.min(0.72, Math.sqrt(3_000_000 / url.length) * 0.9);
     const small = document.createElement("canvas");
     small.width = Math.max(1, Math.round(current.width * scale));
     small.height = Math.max(1, Math.round(current.height * scale));
@@ -285,7 +285,7 @@ function toPng(canvas: HTMLCanvasElement): string {
 /** PNG data URL of the cut-out, or null when the backdrop is too busy to lift. */
 export async function layAsSticker(dataUrl: string): Promise<string | null> {
   const image = await loadImage(dataUrl);
-  const max = 560;
+  const max = 1400;
   const scale = Math.min(1, max / Math.max(image.width, image.height));
   const width = Math.max(1, Math.round(image.width * scale));
   const height = Math.max(1, Math.round(image.height * scale));
@@ -299,7 +299,7 @@ export async function layAsSticker(dataUrl: string): Promise<string | null> {
   const lifted = cutBackground(pixels.data, width, height);
   if (!lifted) return null;
   context.putImageData(pixels, 0, 0);
-  return toPng(trimCanvas(canvas));
+  return toPng(outline(trimCanvas(canvas)));
 }
 
 function alphaStats(data: Uint8ClampedArray, width: number, height: number) {
@@ -420,5 +420,32 @@ export function canvasToSticker(canvas: HTMLCanvasElement, soften = false): stri
   const stats = alphaStats(data, width, height);
   if (stats.clearRatio < 0.06 || stats.clearRatio > 0.92) return null;
   if (stats.center < 40 && stats.corner < 40) return null;
-  return toPng(trimCanvas(canvas));
+  return toPng(outline(trimCanvas(canvas)));
+}
+
+/** Белая обводка вокруг вырезанного объекта — как у стикера из iPhone. */
+export function outline(source: HTMLCanvasElement): HTMLCanvasElement {
+  const pad = Math.max(4, Math.round(Math.max(source.width, source.height) * 0.028));
+  const out = document.createElement("canvas");
+  out.width = source.width + pad * 2;
+  out.height = source.height + pad * 2;
+  const ctx = out.getContext("2d");
+  if (!ctx) return source;
+  const white = document.createElement("canvas");
+  white.width = source.width;
+  white.height = source.height;
+  const wctx = white.getContext("2d");
+  if (!wctx) return source;
+  wctx.drawImage(source, 0, 0);
+  wctx.globalCompositeOperation = "source-in";
+  wctx.fillStyle = "#ffffff";
+  wctx.fillRect(0, 0, white.width, white.height);
+  const steps = 24;
+  for (let i = 0; i < steps; i += 1) {
+    const angle = (i / steps) * Math.PI * 2;
+    ctx.drawImage(white, pad + Math.cos(angle) * pad, pad + Math.sin(angle) * pad);
+  }
+  ctx.drawImage(white, pad, pad);
+  ctx.drawImage(source, pad, pad);
+  return out;
 }

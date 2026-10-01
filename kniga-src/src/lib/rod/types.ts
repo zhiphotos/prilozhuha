@@ -60,22 +60,53 @@ export type CardNote = {
   createdAt: string;
 };
 
-export type PaperKind = "cream" | "lined" | "rose" | "sage";
+export type PaperKind = "cream" | "lined" | "rose" | "sage" | "dots" | "kraft";
 export type FontKind = "serif" | "sans" | "script";
-export type StickerKind = "heart" | "star" | "leaf" | "home" | "seal" | "sun" | "tape" | "bubble";
+export type StickerKind =
+  | "heart"
+  | "star"
+  | "leaf"
+  | "home"
+  | "seal"
+  | "sun"
+  | "tape"
+  | "bubble"
+  | "flower"
+  | "sparkle"
+  | "envelope"
+  | "swirl"
+  | "tape-sage"
+  | "branch";
+export type TextLook = "plain" | "card" | "pill";
 export type PhotoFrame = "none" | "polaroid" | "sticker" | "tape";
 
 type Placed = { rotate?: number };
 
 export type InkStroke = {
   id: string;
-  color: "ink" | "rose" | "sage";
+  color: "ink" | "rose" | "sage" | "gold" | "white";
+  /** Толщина в % ширины страницы. */
   width: number;
+  /** Маркер полупрозрачный. */
+  alpha?: number;
   points: number[];
 };
 
 export type PageBlock =
-  | ({ id: string; type: "text"; x: number; y: number; w: number; text: string; font: FontKind; size: "sm" | "md" | "lg" } & Placed)
+  | ({
+      id: string;
+      type: "text";
+      x: number;
+      y: number;
+      w: number;
+      text: string;
+      font: FontKind;
+      size: "sm" | "md" | "lg";
+      look?: TextLook;
+      align?: "left" | "center";
+      placeholder?: string;
+    } & Placed)
+  | ({ id: string; type: "slot"; x: number; y: number; w: number; h: number; label: string; frame: PhotoFrame } & Placed)
   | ({
       id: string;
       type: "photo";
@@ -117,7 +148,9 @@ export type Screen =
   | { id: "archive"; tab: ArchiveTab }
   | { id: "photo-new" }
   | { id: "surname" }
-  | { id: "book" };
+  | { id: "book" }
+  | { id: "editor"; pageId: string }
+  | { id: "flip"; pageId?: string };
 
 export type LessonLink =
   | "people"

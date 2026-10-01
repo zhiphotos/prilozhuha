@@ -73,11 +73,11 @@ export function partsOf(data: RodSnapshot): ProgressPart[] {
     return sum + score;
   }, 0);
   return [
-    { key: "family", label: "Предки", value: clamp((familyPoints / 8) * 100) },
-    { key: "places", label: "Дома", value: clamp(((data.places.length + extraPlaces) / 4) * 100) },
-    { key: "photos", label: "Фотографии", value: clamp(((data.photos.length + extraPhotos) / 6) * 100) },
-    { key: "stories", label: "Истории", value: clamp(((data.stories.length + extraStories) / 4) * 100) },
-    { key: "docs", label: "Документы", value: clamp(((data.documents.length + extraDocs) / 3) * 100) },
+    { key: "family", label: "👨‍👩‍👧 Семья", value: clamp((familyPoints / 8) * 100) },
+    { key: "places", label: "📍 Места", value: clamp(((data.places.length + extraPlaces) / 4) * 100) },
+    { key: "photos", label: "📸 Фотографии", value: clamp(((data.photos.length + extraPhotos) / 6) * 100) },
+    { key: "stories", label: "📖 Истории", value: clamp(((data.stories.length + extraStories) / 4) * 100) },
+    { key: "docs", label: "📄 Документы", value: clamp(((data.documents.length + extraDocs) / 3) * 100) },
   ];
 }
 
@@ -176,7 +176,7 @@ export function nextStep(data: RodSnapshot, overall: number): NextStep {
             ? { id: "stories" }
             : { id: "archive", tab: "docs" };
   return {
-    title: `Добить пробел: ${weakest?.label.toLowerCase() ?? "семья"}`,
+    title: `Добавить: ${weakest?.label.replace(/^\S+\s/, "").toLowerCase() ?? "семья"}`,
     detail: "Самый тонкий слой книги сейчас здесь.",
     screen,
   };

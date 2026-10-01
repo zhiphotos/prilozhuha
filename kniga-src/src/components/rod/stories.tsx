@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { STORY_TEMPLATES, findTemplate } from "@/lib/rod/content";
 import { composeStory } from "@/lib/rod/narrative";
 import { useRod } from "@/lib/rod/store";
+import { pageFromStory } from "@/lib/rod/layouts";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
 
 export function StoriesScreen() {
@@ -132,8 +133,7 @@ export function WizardScreen({ templateId }: { templateId: string }) {
                   answers,
                   narrative: (draft || narrative).trim(),
                 });
-                nav.tab({ id: "stories" });
-                nav.go({ id: "story", storyId: id });
+                nav.replace({ id: "story", storyId: id });
               }}
             >
               Сохранить в книгу
@@ -151,6 +151,8 @@ export function WizardScreen({ templateId }: { templateId: string }) {
 export function StoryScreen({ storyId }: { storyId: string }) {
   const nav = useNav();
   const story = useRod((state) => state.stories.find((item) => item.id === storyId));
+  const addPage = useRod((state) => state.addPage);
+  const inBook = useRod((state) => state.pages.find((page) => page.promptId === `story:${storyId}`));
   if (!story) {
     return (
       <ScreenFrame>
@@ -162,9 +164,22 @@ export function StoryScreen({ storyId }: { storyId: string }) {
     <ScreenFrame>
       <TopBar title={story.title} kicker="Глава" onBack={nav.back} />
       <article className="glass whitespace-pre-wrap rounded-4xl p-6 font-display text-xl leading-relaxed text-ink">{story.narrative}</article>
-      <Button className="mt-4" variant="soft" onClick={() => nav.go({ id: "book" })}>
-        Посмотреть в книге
-      </Button>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {inBook ? (
+          <Button variant="soft" onClick={() => nav.go({ id: "editor", pageId: inBook.id })}>
+            Открыть страницу в книге
+          </Button>
+        ) : (
+          <Button
+            onClick={() => {
+              const id = addPage({ ...pageFromStory(story.title, story.narrative), promptId: `story:${story.id}` });
+              nav.go({ id: "editor", pageId: id });
+            }}
+          >
+            Поставить в книгу
+          </Button>
+        )}
+      </div>
     </ScreenFrame>
   );
 }

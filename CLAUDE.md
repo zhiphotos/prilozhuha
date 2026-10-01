@@ -64,6 +64,13 @@
 
 Исходники — `kniga-src/` (React + Vite, перенесено из Grok). Собранная версия для GitHub Pages лежит
 в `kr-k3nu7rmszt/` — нарочно неочевидное имя, ссылку знает только Дарина, страница с `noindex`.
-Пересборка: `cd kniga-src && npm ci && npm run build:pages` (пишет в `../kr-k3nu7rmszt`), закоммитить обе папки.
-Данные пользователя хранятся только в браузере (localStorage `kniga-roda`). Серверного ИИ (xAI) на Pages нет:
-`spa/studio-ai.static.ts` заменяет распознавание почерка и сборку историй мягкой ошибкой.
+Пересборка: `cd kniga-src && npm ci --ignore-scripts && npm run build:pages` (пишет в `../kr-k3nu7rmszt`), закоммитить обе папки.
+
+- Данные — только в браузере: состояние и фото в IndexedDB (`lib/rod/idb.ts`, `media.ts`, фото — ссылки `media:<id>`).
+  Копия книги в файл `.kniga` — ⚙ на главной (`lib/rod/backup.ts`).
+- Страница книги 18×24 см; все размеры в % ширины листа (на экране `cqw`). `components/rod/page-view.tsx` рисует
+  страницу на экране, `lib/rod/print-book.ts` — то же самое на холсте 300 dpi для PDF. Меняешь одно — меняй второе.
+- Редактор — `components/rod/editor.tsx` (выделение, отмена, перо, вырезка фона, Pinterest), книга с перелистыванием —
+  `flipbook.tsx`, шаблоны страниц — `lib/rod/layouts.ts`, стикеры — `lib/rod/page-style.ts`.
+- Оплата и видео уроков — `lib/rod/config.ts`: `PAY_URL`, `ACCESS_CODES` (сейчас тестовый код «КНИГА»), `LESSON_VIDEO`.
+- Серверного ИИ (xAI) на Pages нет: `spa/studio-ai.static.ts` — заглушка.

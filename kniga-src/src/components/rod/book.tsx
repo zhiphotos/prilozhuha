@@ -1,152 +1,240 @@
-import { audienceTitle } from "@/lib/rod/content";
-import { countsOf, isBookReady, overallOf, partsOf, plural } from "@/lib/rod/progress";
+import { useMemo, useState } from "react";
+import { BookOpen, Download, Plus, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button, ScreenFrame, Sheet, TopBar, useNav } from "@/components/rod/chrome";
+import { PageSheet } from "@/components/rod/page-view";
+import { blankPage, coverPage, pageFromPhoto, pageFromPrompt, pageFromStory } from "@/lib/rod/layouts";
+import { PAGE_PROMPTS } from "@/lib/rod/pages";
+import { isBookReady, overallOf, partsOf, plural } from "@/lib/rod/progress";
+import { downloadFamilyBook } from "@/lib/rod/print-book";
 import { useRod } from "@/lib/rod/store";
-import { Button, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
+import type { BookPage, PaperKind } from "@/lib/rod/types";
+import { PAPER } from "@/lib/rod/page-style";
+import { cn } from "@/lib/cn";
 
 export function BookScreen() {
   const nav = useNav();
   const data = useRod();
-  const snapshot = {
-    people: data.people,
-    places: data.places,
-    photos: data.photos,
-    stories: data.stories,
-    documents: data.documents,
-    notes: data.notes,
-    events: data.events,
-    audience: data.audience,
-    dedicatee: data.dedicatee,
-  };
+  const { pages, trash, stories, photos, people, addPage, restorePage, purgeTrash } = data;
+  const meta = { dedicatee: data.dedicatee, collector: data.collector };
+  const [library, setLibrary] = useState(false);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [showTrash, setShowTrash] = useState(false);
+  const snapshot = { ...data, pages };
   const overall = overallOf(partsOf(snapshot));
-  const ready = isBookReady(snapshot, overall);
-  const counts = countsOf(snapshot);
-  const events = [...data.events].sort((a, b) => yearNum(a.year) - yearNum(b.year));
-  const coverName = data.collector.trim() || "Семья";
-  const forWhom = data.dedicatee.trim() || audienceTitle(data.audience);
+  const ready = isBookReady(snapshot, overall) || pages.length >= 6;
+  const name = data.dedicatee.trim() || data.collector.trim();
+
+  const open = (page: Omit<BookPage, "id"> | null, at?: number) => {
+    if (!page) return;
+    const id = addPage(page);
+    if (at !== undefined) useRod.getState().placePage(id, at);
+    nav.go({ id: "editor", pageId: id });
+  };
+
+  const usedPrompts = new Set(pages.map((page) => page.promptId).filter(Boolean));
+  const missing = PAGE_PROMPTS.filter((prompt) => !usedPrompts.has(prompt.id));
+  const storyOut = stories.filter((story) => !usedPrompts.has(`story:${story.id}`));
+  const usedSrc = new Set(pages.flatMap((page) => page.blocks.map((block) => (block.type === "photo" ? block.src : ""))));
+  const photoOut = photos.filter((photo) => !usedSrc.has(photo.dataUrl));
+  const noMaiden = people.filter((person) => /бабуш|мам/i.test(person.relation) && !person.maidenName.trim());
+  const hasCover = pages.some((page) => page.kind === "cover");
+
+  const printFile = () => {
+    setSaving("Готовлю…");
+    void downloadFamilyBook(pages, meta, (done, total) => setSaving(`${done + 1} из ${total}…`))
+      .then(() => toast("«Книга рода.pdf» сохранён: 18×24 см, 300 dpi"))
+      .catch(() => toast("Файл не собрался. Попробуйте ещё раз."))
+      .finally(() => setSaving(null));
+  };
 
   return (
     <ScreenFrame>
-      <div className="no-print">
-        <TopBar title="Книга" kicker="Первая версия" onBack={nav.back} action={
-          <Button variant="soft" onClick={() => window.print()}>
-            Печать или PDF
-          </Button>
-        } />
+      <TopBar kicker="Моя книга" title={name ? `Книга рода · ${name}` : "Книга рода"} />
+
+      <div className="mb-5 grid grid-cols-[1fr_auto] gap-2 sm:flex">
+        <Button className="min-h-12" disabled={pages.length === 0} onClick={() => nav.go({ id: "flip" })}>
+          <BookOpen className="size-4" /> Листать книгу
+        </Button>
+        <Button variant="soft" className="min-h-12" disabled={pages.length === 0 || Boolean(saving)} onClick={printFile}>
+          <Download className="size-4" /> {saving ?? "PDF"}
+        </Button>
       </div>
-      {ready ? (
-        <p className="mb-4 font-display text-3xl text-ink">Ты собрал достаточно материала для своей первой книги рода.</p>
-      ) : (
-        <p className="mb-4 text-muted">
-          Книга уже открывается черновиком. Она станет плотнее, когда появятся люди, хотя бы одна история и фотографии или места.
-        </p>
-      )}
-      <article className="grid gap-4">
-        <section className="glass-dark rounded-4xl p-6 sm:p-8">
-          <p className="text-sm text-blush">Книга рода</p>
-          <h2 className="mt-3 font-display text-5xl text-paper">{coverName}</h2>
-          <p className="mt-3 text-paper/80">{forWhom}</p>
-        </section>
-        <section className="glass rounded-4xl p-6">
-          <h2 className="font-display text-3xl text-ink">Сейчас в ней</h2>
-          <p className="mt-2 text-sm text-muted">
-            {plural(counts.photos, "фотография", "фотографии", "фотографий")} · {plural(counts.people, "родственник", "родственника", "родственников")} ·{" "}
-            {plural(counts.stories, "история", "истории", "историй")} · {plural(counts.places, "место", "места", "мест")} ·{" "}
-            {plural(counts.notes, "разговор", "разговора", "разговоров")}
-          </p>
-        </section>
-        <section className="glass rounded-4xl p-6">
-          <h2 className="font-display text-3xl text-ink">Люди</h2>
-          {data.people.length === 0 ? <p className="mt-2 text-sm text-muted">Имён пока нет.</p> : null}
-          <ul className="mt-3 grid gap-3">
-            {data.people.map((person) => (
-              <li key={person.id}>
-                <p className="font-medium text-ink">
-                  {person.name} <span className="font-normal text-muted">· {person.relation}</span>
-                </p>
-                <p className="text-sm text-muted">
-                  {[person.birthYear && `род. ${person.birthYear}`, person.maidenName && `девичья ${person.maidenName}`, person.notes]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-        <section className="glass rounded-4xl p-6">
-          <h2 className="font-display text-3xl text-ink">Лента</h2>
-          {events.length === 0 ? <p className="mt-2 text-sm text-muted">Годы ещё не расставлены.</p> : null}
-          <ul className="mt-3 grid gap-2">
-            {events.map((event) => (
-              <li key={event.id} className="text-ink">
-                <span className="tabular-nums text-rose-deep">{event.year}</span> — {event.title}
-                {event.detail ? <span className="text-muted">. {event.detail}</span> : null}
-              </li>
-            ))}
-          </ul>
-        </section>
-        {data.stories.map((story) => (
-          <section key={story.id} className="glass rounded-4xl p-6">
-            <h2 className="font-display text-3xl text-ink">{story.title}</h2>
-            <p className="mt-3 whitespace-pre-wrap text-ink">{story.narrative}</p>
-          </section>
+
+      {!hasCover ? (
+        <button type="button" onClick={() => open(coverPage(), 0)} className="aurora mb-5 flex w-full items-center gap-4 rounded-[2rem] p-5 text-left">
+          <div className="w-20 shrink-0 overflow-hidden rounded-md shadow-lg">
+            <PageSheet page={{ id: "c", ...coverPage() }} meta={meta} />
+          </div>
+          <span>
+            <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-ink/60">Начните отсюда</span>
+            <span className="display-title mt-1 block text-3xl text-ink">Открыть обложку</span>
+            <span className="mt-1 block text-sm text-ink/70">Для кого книга — уже первая страница.</span>
+          </span>
+        </button>
+      ) : null}
+
+      <ul className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3">
+        {pages.map((page, index) => (
+          <li key={page.id}>
+            <button type="button" onClick={() => nav.go({ id: "editor", pageId: page.id })} className="group block w-full text-left">
+              <div className="thumb-shadow overflow-hidden rounded-[6px] transition group-active:scale-[0.98]">
+                <PageSheet page={page} meta={meta} editing />
+              </div>
+              <p className="mt-2 flex items-baseline gap-1.5 text-sm text-ink">
+                <span className="tabular-nums text-muted">{page.kind === "cover" ? "◆" : index}</span>
+                <span className="truncate font-medium">{page.kind === "cover" ? "Обложка" : page.title}</span>
+              </p>
+            </button>
+          </li>
         ))}
-        {data.photos.length > 0 ? (
-          <section className="grid gap-3 sm:grid-cols-2">
-            {data.photos.map((photo) => (
-              <figure key={photo.id} className="glass overflow-hidden rounded-4xl">
-                <img src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="aspect-[4/3] w-full object-cover" />
-                <figcaption className="p-4 text-sm text-ink">
-                  <span className="font-medium">{photo.who}</span>
-                  <span className="mt-1 block text-muted">
-                    {[photo.where, photo.year, photo.what, photo.photographer && `снимал ${photo.photographer}`].filter(Boolean).join(" · ")}
-                  </span>
-                </figcaption>
-              </figure>
-            ))}
-          </section>
-        ) : null}
-        {data.places.length > 0 ? (
-          <section className="glass rounded-4xl p-6">
-            <h2 className="font-display text-3xl text-ink">Места</h2>
-            <ul className="mt-3 grid gap-2">
-              {data.places.map((place) => (
-                <li key={place.id}>
-                  <p className="font-medium text-ink">{place.name}</p>
-                  <p className="text-sm text-muted">{[place.years, place.note].filter(Boolean).join(" · ")}</p>
-                </li>
+        <li>
+          <button type="button" onClick={() => setLibrary(true)} className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-[6px] border-2 border-dashed border-ink/20 bg-white/30 text-ink/70 backdrop-blur">
+            <Plus className="size-7" />
+            <span className="text-sm font-medium">Новая страница</span>
+          </button>
+        </li>
+      </ul>
+
+      <section className="glass mt-8 rounded-[2rem] p-5">
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-4 text-rose-deep" />
+          <h2 className="display-title text-2xl text-ink">Чего не хватает книге</h2>
+        </div>
+        <div className="mt-4 grid gap-4">
+          {storyOut.length > 0 ? (
+            <Suggest title="Истории, которых ещё нет на страницах">
+              {storyOut.slice(0, 6).map((story) => (
+                <Chip key={story.id} onClick={() => open({ ...pageFromStory(story.title, story.narrative), promptId: `story:${story.id}` })}>
+                  + {story.title}
+                </Chip>
               ))}
-            </ul>
-          </section>
-        ) : null}
-        {data.notes.length > 0 ? (
-          <section className="glass rounded-4xl p-6">
-            <h2 className="font-display text-3xl text-ink">Разговоры</h2>
-            <ul className="mt-3 grid gap-3">
-              {data.notes.map((note) => (
-                <li key={note.id}>
-                  <p className="text-sm text-rose-deep">{note.situationTitle}</p>
-                  <p className="font-medium text-ink">{note.question}</p>
-                  <p className="text-sm text-muted">{note.answer}</p>
-                </li>
+            </Suggest>
+          ) : null}
+          {photoOut.length > 0 ? (
+            <Suggest title={`${plural(photoOut.length, "фотография", "фотографии", "фотографий")} из архива ещё не в книге`}>
+              {photoOut.slice(0, 4).map((photo) => (
+                <Chip key={photo.id} onClick={() => open(pageFromPhoto(photo.dataUrl, [photo.who, photo.year].filter(Boolean).join(", "), [photo.what, photo.where && `Где: ${photo.where}`, photo.photographer && `Снимал(а): ${photo.photographer}`].filter(Boolean).join("\n")))}>
+                  + {photo.who || "Фото"}
+                </Chip>
               ))}
-            </ul>
-          </section>
-        ) : null}
-        <section className="wash-blush no-print rounded-4xl p-6">
-          <h2 className="font-display text-3xl text-ink">
-            {ready ? "Не знаешь, как превратить эти материалы в настоящую историю семьи?" : "Когда материалов станет больше, их ещё предстоит превратить в главы"}
-          </h2>
-          <p className="mt-2 text-sm text-muted">Программа «Книга рода» про голос, структуру и бережность к чужой памяти — не про то, как завести таблицу.</p>
-          <Button className="mt-4" onClick={() => nav.go({ id: "lessons" })}>
-            Посмотреть программу «Книга рода»
-          </Button>
+            </Suggest>
+          ) : null}
+          {missing.length > 0 ? (
+            <Suggest title="Страницы, которые ещё не открыты">
+              {missing.slice(0, 8).map((prompt) => (
+                <Chip key={prompt.id} onClick={() => open(pageFromPrompt(prompt.id))}>
+                  + {prompt.title}
+                </Chip>
+              ))}
+            </Suggest>
+          ) : null}
+          {noMaiden.length > 0 ? (
+            <Suggest title="Узнать девичью фамилию">
+              {noMaiden.map((person) => (
+                <Chip key={person.id} onClick={() => nav.go({ id: "archive", tab: "people" })}>
+                  {person.name || person.relation}
+                </Chip>
+              ))}
+            </Suggest>
+          ) : null}
+          {storyOut.length + photoOut.length + missing.length + noMaiden.length === 0 ? <p className="text-sm text-muted">Всё собранное уже стоит на страницах. Самое время листать.</p> : null}
+        </div>
+      </section>
+
+      <section className={cn("mt-4 rounded-[2rem] p-5", ready ? "aurora" : "glass")}>
+        <h2 className="display-title text-2xl text-ink">
+          {ready ? "Ты собрал(а) материал для первой Книги рода" : "Когда страниц станет больше"}
+        </h2>
+        <p className="mt-2 text-sm text-ink/70">
+          {ready
+            ? "Не знаешь, как превратить эти материалы в настоящую историю семьи? В программе — главы, голос и сборка книги."
+            : `${plural(pages.length, "страница", "страницы", "страниц")} в книге. Курс подождёт, пока захочется собрать из этого историю.`}
+        </p>
+        <Button className="mt-4" variant={ready ? "primary" : "soft"} onClick={() => nav.tab({ id: "lessons" })}>
+          Программа «Книга рода»
+        </Button>
+      </section>
+
+      {trash.length > 0 ? (
+        <section className="mt-4">
+          <button type="button" className="flex items-center gap-2 text-sm text-muted" onClick={() => setShowTrash((v) => !v)}>
+            <Trash2 className="size-4" /> Корзина · {trash.length}
+          </button>
+          {showTrash ? (
+            <div className="mt-3">
+              <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                {trash.map((item) => (
+                  <li key={item.page.id} className="opacity-90">
+                    <div className="thumb-shadow overflow-hidden rounded-[6px] grayscale-[40%]">
+                      <PageSheet page={item.page} meta={meta} />
+                    </div>
+                    <button type="button" className="mt-1 flex items-center gap-1 text-xs font-medium text-rose-deep" onClick={() => restorePage(item.page.id)}>
+                      <RotateCcw className="size-3" /> Вернуть
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <button type="button" className="mt-3 text-xs text-muted underline" onClick={() => purgeTrash()}>
+                Очистить корзину навсегда
+              </button>
+            </div>
+          ) : null}
         </section>
-      </article>
+      ) : null}
+
+      {library ? <Library meta={meta} onClose={() => setLibrary(false)} onPick={(page) => { setLibrary(false); open(page); }} /> : null}
     </ScreenFrame>
   );
 }
 
-function yearNum(value: string): number {
-  const match = value.match(/\d{3,4}/);
-  return match ? Number(match[0]) : 9999;
+function Suggest({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="mb-2 text-sm text-muted">{title}</p>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}
+
+function Chip({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="rounded-full bg-white/80 px-3.5 py-2 text-sm font-medium text-ink shadow-[0_6px_16px_-10px_rgba(42,36,32,.4)] active:scale-[0.97]">
+      {children}
+    </button>
+  );
+}
+
+function Library({ meta, onClose, onPick }: { meta: { dedicatee: string; collector: string }; onClose: () => void; onPick: (page: Omit<BookPage, "id">) => void }) {
+  const templates = useMemo(() => PAGE_PROMPTS.map((prompt) => ({ prompt, page: pageFromPrompt(prompt.id) })), []);
+  return (
+    <Sheet title="Новая страница" onClose={onClose} className="max-w-2xl">
+      <p className="mb-2 text-sm text-muted">Чистый лист</p>
+      <div className="no-scrollbar -mx-1 mb-5 flex gap-3 overflow-x-auto px-1 pb-2">
+        {(Object.keys(PAPER) as PaperKind[]).map((paper) => (
+          <button key={paper} type="button" className="w-20 shrink-0 text-left" onClick={() => onPick({ ...blankPage(), paper })}>
+            <div className="thumb-shadow overflow-hidden rounded-[4px]">
+              <PageSheet page={{ id: paper, ...blankPage(), paper }} meta={meta} />
+            </div>
+            <span className="mt-1 block text-xs text-ink">{PAPER[paper].label}</span>
+          </button>
+        ))}
+      </div>
+      <p className="mb-2 text-sm text-muted">Готовые страницы — с рамками под фото и вопросами</p>
+      <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+        {templates.map(({ prompt, page }) =>
+          page ? (
+            <li key={prompt.id}>
+              <button type="button" className="block w-full text-left" onClick={() => onPick(pageFromPrompt(prompt.id) ?? page)}>
+                <div className="thumb-shadow overflow-hidden rounded-[4px]">
+                  <PageSheet page={{ id: prompt.id, ...page }} meta={meta} editing />
+                </div>
+                <span className="mt-1 block text-xs font-medium leading-tight text-ink">{prompt.title}</span>
+              </button>
+            </li>
+          ) : null,
+        )}
+      </ul>
+    </Sheet>
+  );
 }

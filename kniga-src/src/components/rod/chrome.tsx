@@ -1,12 +1,6 @@
-import { createContext, useContext, type ButtonHTMLAttributes, type ReactNode } from "react";
-import {
-  Archive,
-  BookOpen,
-  ChevronLeft,
-  GraduationCap,
-  PenLine,
-  MessageCircle,
-} from "lucide-react";
+import { createContext, useContext, useEffect, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { BookOpen, ChevronLeft, GraduationCap, Home, MessageCircle, PenLine, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { Screen } from "@/lib/rod/types";
 
@@ -14,6 +8,7 @@ export type Nav = {
   go: (screen: Screen) => void;
   back: () => void;
   tab: (screen: Screen) => void;
+  replace: (screen: Screen) => void;
   screen: Screen;
 };
 
@@ -34,16 +29,17 @@ export function Button({
   className,
   type = "button",
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "soft" | "night" }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "soft" | "night" | "white" }) {
   return (
     <button
       type={type}
       className={cn(
-        "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45",
-        variant === "primary" && "bg-rose text-paper hover:bg-rose-deep",
-        variant === "ghost" && "bg-transparent text-ink hover:bg-paper/70",
-        variant === "soft" && "bg-paper text-ink hover:bg-blush",
-        variant === "night" && "bg-night text-paper hover:bg-ink",
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45",
+        variant === "primary" && "bg-night text-paper shadow-[0_10px_24px_-12px_rgba(42,36,32,0.6)] hover:bg-ink",
+        variant === "ghost" && "bg-white/0 text-ink hover:bg-white/50",
+        variant === "soft" && "glass text-ink hover:bg-white/70",
+        variant === "night" && "bg-rose-deep text-paper hover:bg-rose",
+        variant === "white" && "bg-white text-ink shadow-[0_10px_24px_-14px_rgba(42,36,32,0.5)]",
         className,
       )}
       {...props}
@@ -51,15 +47,7 @@ export function Button({
   );
 }
 
-export function Field({
-  label,
-  children,
-  hint,
-}: {
-  label: string;
-  hint?: string;
-  children: ReactNode;
-}) {
+export function Field({ label, children, hint }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
@@ -69,32 +57,17 @@ export function Field({
   );
 }
 
-export function TopBar({
-  title,
-  kicker,
-  onBack,
-  action,
-}: {
-  title: string;
-  kicker?: string;
-  onBack?: () => void;
-  action?: ReactNode;
-}) {
+export function TopBar({ title, kicker, onBack, action }: { title: string; kicker?: string; onBack?: () => void; action?: ReactNode }) {
   return (
     <div className="mb-5 flex items-start gap-3">
       {onBack ? (
-        <button
-          type="button"
-          onClick={onBack}
-          className="glass grid size-11 shrink-0 place-items-center rounded-full text-ink"
-          aria-label="Назад"
-        >
+        <button type="button" onClick={onBack} className="glass grid size-11 shrink-0 place-items-center rounded-full text-ink" aria-label="Назад">
           <ChevronLeft className="size-5" />
         </button>
       ) : null}
       <div className="min-w-0 flex-1 pt-0.5">
-        {kicker ? <p className="text-sm text-rose-deep">{kicker}</p> : null}
-        <h1 className="font-display text-3xl leading-tight text-ink sm:text-4xl">{title}</h1>
+        {kicker ? <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-deep/80">{kicker}</p> : null}
+        <h1 className="display-title mt-1 text-[2.1rem] leading-[1.05] text-ink sm:text-5xl">{title}</h1>
       </div>
       {action}
     </div>
@@ -102,10 +75,10 @@ export function TopBar({
 }
 
 const TABS: { id: string; label: string; icon: typeof BookOpen; screen: Screen }[] = [
-  { id: "home", label: "Книга", icon: BookOpen, screen: { id: "home" } },
+  { id: "home", label: "Главная", icon: Home, screen: { id: "home" } },
+  { id: "book", label: "Книга", icon: BookOpen, screen: { id: "book" } },
   { id: "cards", label: "Вопросы", icon: MessageCircle, screen: { id: "cards" } },
   { id: "stories", label: "Истории", icon: PenLine, screen: { id: "stories" } },
-  { id: "archive", label: "Архив", icon: Archive, screen: { id: "archive", tab: "people" } },
   { id: "lessons", label: "Уроки", icon: GraduationCap, screen: { id: "lessons" } },
 ];
 
@@ -113,7 +86,7 @@ export function tabKey(screen: Screen): string {
   if (screen.id === "lessons" || screen.id === "lesson") return "lessons";
   if (screen.id === "cards" || screen.id === "deck") return "cards";
   if (screen.id === "stories" || screen.id === "wizard" || screen.id === "story") return "stories";
-  if (screen.id === "archive" || screen.id === "photo-new") return "archive";
+  if (screen.id === "book" || screen.id === "editor" || screen.id === "flip") return "book";
   return "home";
 }
 
@@ -121,8 +94,8 @@ export function Dock() {
   const nav = useNav();
   const current = tabKey(nav.screen);
   return (
-    <nav className="dock glass no-print fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 px-2 pt-2 lg:hidden">
-      <ul className="mx-auto grid max-w-lg grid-cols-5">
+    <nav className="dock no-print fixed inset-x-0 bottom-0 z-30 px-3 lg:hidden">
+      <ul className="glass-strong mx-auto grid max-w-md grid-cols-5 rounded-[1.6rem] p-1.5">
         {TABS.map((item) => {
           const Icon = item.icon;
           const active = current === item.id;
@@ -132,11 +105,11 @@ export function Dock() {
                 type="button"
                 onClick={() => nav.tab(item.screen)}
                 className={cn(
-                  "flex min-h-12 w-full flex-col items-center justify-center gap-0.5 rounded-2xl text-xs",
-                  active ? "text-rose-deep" : "text-muted",
+                  "flex min-h-12 w-full flex-col items-center justify-center gap-0.5 rounded-[1.2rem] text-[11px] font-medium transition",
+                  active ? "bg-night text-paper" : "text-ink/70",
                 )}
               >
-                <Icon className="size-5" strokeWidth={active ? 2.3 : 1.8} />
+                <Icon className="size-[1.15rem]" strokeWidth={active ? 2.2 : 1.7} />
                 {item.label}
               </button>
             </li>
@@ -151,8 +124,8 @@ export function SideNav() {
   const nav = useNav();
   const current = tabKey(nav.screen);
   return (
-    <aside className="glass no-print sticky top-6 hidden h-fit flex-col gap-1 rounded-4xl p-3 lg:flex">
-      <p className="px-3 pb-2 pt-2 font-display text-2xl text-ink">Книга рода</p>
+    <aside className="glass no-print sticky top-6 hidden h-fit flex-col gap-1 rounded-[2rem] p-3 lg:flex">
+      <p className="display-title px-3 pb-2 pt-2 text-2xl text-ink">Книга рода</p>
       {TABS.map((item) => {
         const Icon = item.icon;
         const active = current === item.id;
@@ -161,22 +134,66 @@ export function SideNav() {
             key={item.id}
             type="button"
             onClick={() => nav.tab(item.screen)}
-            className={cn(
-              "flex min-h-11 items-center gap-3 rounded-full px-3 text-left text-sm font-medium",
-              active ? "bg-night text-paper" : "text-ink hover:bg-paper/80",
-            )}
+            className={cn("flex min-h-11 items-center gap-3 rounded-full px-3 text-left text-sm font-medium", active ? "bg-night text-paper" : "text-ink hover:bg-white/60")}
           >
             <Icon className="size-4" />
             {item.label}
           </button>
         );
       })}
+      <button type="button" onClick={() => nav.go({ id: "archive", tab: "people" })} className="mt-2 flex min-h-11 items-center gap-3 rounded-full px-3 text-left text-sm text-muted hover:bg-white/60">
+        Архив семьи
+      </button>
     </aside>
   );
 }
 
 export function ScreenFrame({ children }: { children: ReactNode }) {
   return <div className="rise mx-auto w-full max-w-3xl">{children}</div>;
+}
+
+/** Нижняя шторка. Закрывается крестиком, тапом по фону и кнопкой «Назад» телефона не перехватывает. */
+export function Sheet({
+  title,
+  onClose,
+  children,
+  className,
+  dim = true,
+}: {
+  title?: string;
+  onClose: () => void;
+  children: ReactNode;
+  className?: string;
+  dim?: boolean;
+}) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return createPortal(
+    <div
+      className={cn("fixed inset-0 z-[60] flex items-end justify-center p-2 sm:items-center sm:p-4", dim ? "bg-ink/30 backdrop-blur-[2px]" : "pointer-events-none")}
+      role="dialog"
+      aria-modal={dim}
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className={cn("glass-strong sheet-in pointer-events-auto max-h-[86svh] w-full max-w-lg overflow-auto rounded-[2rem] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]", className)}>
+        <div className="mb-3 flex items-start justify-between gap-3">
+          {title ? <h2 className="display-title text-[1.7rem] leading-tight text-ink">{title}</h2> : <span />}
+          <button type="button" className="grid size-9 shrink-0 place-items-center rounded-full bg-white/70 text-ink" onClick={onClose} aria-label="Закрыть">
+            <X className="size-4" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>,
+    document.body,
+  );
 }
 
 export function linkScreen(to: string): Screen {
