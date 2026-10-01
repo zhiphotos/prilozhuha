@@ -4,6 +4,7 @@ import { DOC_KINDS, EXAMPLE_TIMELINE, RELATIONS } from "@/lib/rod/content";
 import { useRod } from "@/lib/rod/store";
 import type { ArchiveTab } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
+import { MediaImg } from "@/components/rod/media-img";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
 
 const TABS: { id: ArchiveTab; label: string }[] = [
@@ -18,13 +19,13 @@ export function ArchiveScreen({ tab }: { tab: ArchiveTab }) {
   const nav = useNav();
   return (
     <ScreenFrame>
-      <TopBar kicker="Архив" title="Что уже собрано" />
+      <TopBar kicker="Архив семьи" title="Что уже собрано" onBack={nav.back} />
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto pb-1">
         {TABS.map((item) => (
           <button
             key={item.id}
             type="button"
-            onClick={() => nav.tab({ id: "archive", tab: item.id })}
+            onClick={() => nav.replace({ id: "archive", tab: item.id })}
             className={cn(
               "shrink-0 rounded-full px-4 py-2 text-sm font-medium",
               tab === item.id ? "bg-night text-paper" : "glass text-ink",
@@ -59,7 +60,7 @@ function PeoplePane() {
   return (
     <div className="grid gap-4">
       <form
-        className="glass grid gap-3 rounded-4xl p-5"
+        className="glass grid gap-3 rounded-[2rem] p-5"
         onSubmit={(event) => {
           event.preventDefault();
           if (!name.trim()) return;
@@ -96,7 +97,7 @@ function PeoplePane() {
         {people.map((person) => (
           <li key={person.id} className="glass rounded-3xl p-4">
             <button type="button" className="w-full text-left" onClick={() => setOpenId((value) => (value === person.id ? null : person.id))}>
-              <p className="font-display text-2xl text-ink">{person.name}</p>
+              <p className="display-title text-2xl text-ink">{person.name}</p>
               <p className="text-sm text-muted">
                 {person.relation}
                 {person.birthYear ? ` · ${person.birthYear}` : ""}
@@ -146,7 +147,7 @@ function TimePane() {
   return (
     <div className="grid gap-4">
       <form
-        className="glass grid gap-3 rounded-4xl p-5"
+        className="glass grid gap-3 rounded-[2rem] p-5"
         onSubmit={(event) => {
           event.preventDefault();
           if (!year.trim() || !title.trim()) return;
@@ -181,7 +182,7 @@ function TimePane() {
           <li key={event.id} className="relative pb-5">
             <span className="absolute -left-[1.4rem] top-1.5 size-2.5 rounded-full bg-rose" />
             <p className="text-sm tabular-nums text-rose-deep">{event.year}</p>
-            <p className="font-display text-2xl text-ink">{event.title}</p>
+            <p className="display-title text-2xl text-ink">{event.title}</p>
             {event.detail ? <p className="text-sm text-muted">{event.detail}</p> : null}
             {!showingExample ? (
               <button type="button" className="mt-1 text-sm text-muted underline" onClick={() => removeEvent(event.id)}>
@@ -205,8 +206,8 @@ function PhotosPane() {
       {photos.length === 0 ? <p className="text-sm text-muted">Подпись важнее фильтра. Один старый снимок уже глава.</p> : null}
       <ul className="grid gap-3 sm:grid-cols-2">
         {photos.map((photo) => (
-          <li key={photo.id} className="glass overflow-hidden rounded-4xl">
-            <img src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="aspect-[4/3] w-full object-cover" />
+          <li key={photo.id} className="glass overflow-hidden rounded-[2rem]">
+            <MediaImg src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="aspect-[4/3] w-full object-cover" />
             <div className="p-4">
               <p className="font-medium text-ink">{photo.who || "Без подписи"}</p>
               <p className="text-sm text-muted">
@@ -235,7 +236,7 @@ function PlacesPane() {
   return (
     <div className="grid gap-3">
       <form
-        className="glass grid gap-3 rounded-4xl p-5"
+        className="glass grid gap-3 rounded-[2rem] p-5"
         onSubmit={(event) => {
           event.preventDefault();
           if (!name.trim()) return;
@@ -261,7 +262,7 @@ function PlacesPane() {
       <ul className="grid gap-2">
         {places.map((place) => (
           <li key={place.id} className="glass rounded-3xl p-4">
-            <p className="font-display text-2xl text-ink">{place.name}</p>
+            <p className="display-title text-2xl text-ink">{place.name}</p>
             {place.years ? <p className="text-sm text-rose-deep">{place.years}</p> : null}
             {place.note ? <p className="mt-1 text-sm text-muted">{place.note}</p> : null}
             <button type="button" className="mt-2 text-sm text-muted underline" onClick={() => removePlace(place.id)}>
@@ -285,7 +286,7 @@ function DocsPane() {
   return (
     <div className="grid gap-3">
       <form
-        className="glass grid gap-3 rounded-4xl p-5"
+        className="glass grid gap-3 rounded-[2rem] p-5"
         onSubmit={(event) => {
           event.preventDefault();
           if (!title.trim()) return;

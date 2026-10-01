@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildJpegPdf } from "./print-book.ts";
+import { buildJpegPdf } from "./pdf.ts";
 
 const jpeg = Uint8Array.from(
   Buffer.from(
@@ -26,9 +26,9 @@ test("print file is a multi-page pdf of the page images", () => {
   const start = Number(text.match(/startxref\s+(\d+)/)?.[1]);
   assert.equal(new TextDecoder().decode(pdf.slice(start, start + 4)), "xref");
   const objectAt = (id: number) => {
-    const line = text.match(new RegExp(`\\n${String(id).padStart(10, "0")} 00000 n`));
-    assert.ok(line?.index !== undefined);
-    const offset = Number(text.slice(line.index + 1, line.index + 11));
+    const rows = text.slice(start).split("\n").slice(2);
+    const offset = Number(rows[id]?.slice(0, 10));
+    assert.ok(Number.isFinite(offset));
     return new TextDecoder().decode(pdf.slice(offset, offset + 12));
   };
   assert.equal(objectAt(1).startsWith("1 0 obj"), true);

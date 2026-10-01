@@ -2,9 +2,10 @@ import { useRef, useState } from "react";
 import { Mic, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { BONUS_PROMPTS, SITUATIONS, findSituation, type Situation } from "@/lib/rod/content";
-import { storiesFromTalk } from "@/lib/rod/studio-ai";
 import { turnPage } from "@/lib/rod/sounds";
 import { useRod } from "@/lib/rod/store";
+import type { PageBlock } from "@/lib/rod/types";
+import { recognition, type SpeechRec } from "@/lib/rod/speech";
 import { Button, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
 import { cn } from "@/lib/cn";
 
@@ -13,40 +14,28 @@ export function CardsScreen() {
   const notes = useRod((state) => state.notes);
   const removeNote = useRod((state) => state.removeNote);
   const addPage = useRod((state) => state.addPage);
-  const [busy, setBusy] = useState(false);
   const words = notes.reduce((sum, note) => sum + note.answer.trim().split(/\s+/).filter(Boolean).length, 0);
   const play = SITUATIONS.filter((item) => item.play);
   const talks = SITUATIONS.filter((item) => !item.play);
 
   const harvest = () => {
-    const transcript = notes
-      .slice(0, 40)
-      .map((note) => `Колода: ${note.situationTitle}\nВопрос: ${note.question}\nОтвет: ${note.answer}`)
-      .join("\n\n");
-    setBusy(true);
-    void storiesFromTalk({ data: { transcript } })
-      .then((result) => {
-        if (!result.ok) {
-          toast(result.error);
-          return;
-        }
-        result.pages.forEach((draft) => {
-          addPage({
-            title: draft.title,
-            kind: "page",
-            paper: "cream",
-            strokes: [],
-            blocks: [
-              { id: crypto.randomUUID(), type: "text", x: 8, y: 6, w: 84, text: draft.title, font: "serif", size: "lg" },
-              { id: crypto.randomUUID(), type: "voice", x: 8, y: 22, w: 84, title: "Из карточек", transcript: draft.text },
-            ],
-          });
-        });
-        toast(result.pages.length > 1 ? "Из ответов собрались страницы книги" : "Страница из ответов готова");
-        nav.tab({ id: "home" });
-      })
-      .catch(() => toast("Не получилось собрать страницы. Ответы никуда не делись."))
-      .finally(() => setBusy(false));
+    // Каждая колода — своя страница: вопрос карточкой, ответ рукописным.
+    const groups = new Map<string, typeof notes>();
+    notes.slice(0, 40).forEach((note) => groups.set(note.situationTitle, [...(groups.get(note.situationTitle) ?? []), note]));
+    let first: string | null = null;
+    groups.forEach((list, title) => {
+      const blocks: PageBlock[] = [{ id: crypto.randomUUID(), type: "text", x: 8, y: 5, w: 84, text: title, font: "serif", size: "lg" }];
+      let y = 16;
+      list.slice(0, 4).forEach((note, i) => {
+        blocks.push({ id: crypto.randomUUID(), type: "text", x: 8, y, w: 62, text: note.question, font: "sans", size: "sm", look: "card", rotate: i % 2 ? 1 : -1 });
+        blocks.push({ id: crypto.randomUUID(), type: "text", x: 12, y: y + 8, w: 80, text: note.answer, font: "script", size: "sm" });
+        y += 20;
+      });
+      const id = addPage({ title, kind: "page", paper: "lined", strokes: [], blocks });
+      first ??= id;
+    });
+    toast(groups.size > 1 ? "Из ответов собрались страницы книги" : "Страница из ответов готова");
+    if (first) nav.go({ id: "editor", pageId: first });
   };
 
   return (
@@ -68,8 +57,8 @@ export function CardsScreen() {
               ? `Около ${words} слов. Ещё пара живых ответов — и можно собрать страницы.`
               : `Около ${words} слов. Уже можно собрать страницы.`}
         </p>
-        <Button className="mt-4" disabled={busy || words < 12} onClick={harvest}>
-          {busy ? "Смотрим, что накопилось…" : "Собрать страницы из ответов"}
+        <Button className="mt-4" disabled={words < 12} onClick={harvest}>
+          Собрать страницы из ответов
         </Button>
       </section>
 
@@ -366,21 +355,4 @@ function answersLabel(count: number) {
   if (n10 === 1 && n100 !== 11) return "ответ";
   if (n10 >= 2 && n10 <= 4 && (n100 < 10 || n100 >= 20)) return "ответа";
   return "ответов";
-}
-
-type SpeechRec = {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-  onerror: (() => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-
-function recognition(): SpeechRec | null {
-  const host = window as unknown as { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecognition?: new () => SpeechRec };
-  const Ctor = host.SpeechRecognition ?? host.webkitSpeechRecognition;
-  return Ctor ? new Ctor() : null;
 }

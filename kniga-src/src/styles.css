@@ -2,20 +2,21 @@
 
 @theme {
   --color-ivory: #f3eee6;
-  --color-paper: #faf7f2;
-  --color-ink: #1c1915;
-  --color-muted: #6f675e;
-  --color-line: #e4dcd0;
+  --color-paper: #fbf8f3;
+  --color-ink: #2a2420;
+  --color-muted: #75695f;
+  --color-line: #e6ddd1;
   --color-rose: #c45d72;
   --color-rose-deep: #8e3d52;
   --color-blush: #f6d5dc;
   --color-sage: #6f8a68;
   --color-sage-soft: #dce6d6;
-  --color-night: #1c1915;
-  --font-sans: "Manrope", "Segoe UI", sans-serif;
-  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --color-night: #2a2420;
+  --font-sans: "Manrope Variable", "Manrope", "Segoe UI", sans-serif;
+  --font-display: "Manrope Variable", "Manrope", "Segoe UI", sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
   --font-script: "Caveat", "Segoe Script", cursive;
-  --radius-4xl: 1.75rem;
+  --radius-4xl: 2rem;
 }
 
 @layer base {
@@ -68,34 +69,151 @@
 
 @layer components {
   .atmosphere {
-    background-color: var(--color-ivory);
-    background-image:
-      linear-gradient(
-        180deg,
-        color-mix(in oklab, var(--color-ivory) 46%, transparent),
-        color-mix(in oklab, var(--color-ivory) 58%, transparent)
-      ),
-      url("/atmosphere.jpg");
+    background-color: #efe6dc;
+  }
+
+  /* Размытая фотография + цветные пятна — как стекло на референсах. */
+  .atmosphere::before {
+    content: "";
+    position: fixed;
+    inset: -40px;
+    z-index: -2;
+    background-image: url("/atmosphere.jpg");
     background-size: cover;
-    background-position: center 20%;
-    background-attachment: fixed;
+    background-position: center 30%;
+    filter: blur(28px) saturate(1.15);
+    transform: scale(1.08);
+  }
+
+  .atmosphere::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(60% 45% at 8% 8%, rgb(246 213 220 / 0.85), transparent 70%),
+      radial-gradient(55% 40% at 95% 30%, rgb(220 230 214 / 0.75), transparent 70%),
+      radial-gradient(60% 45% at 80% 100%, rgb(232 214 238 / 0.7), transparent 70%),
+      radial-gradient(50% 40% at 0% 85%, rgb(250 222 196 / 0.65), transparent 70%),
+      rgb(251 248 243 / 0.35);
+  }
+
+  .display-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.035em;
   }
 
   .glass {
-    background: color-mix(in oklab, var(--color-paper) 86%, transparent);
-    border: 1px solid color-mix(in oklab, white 72%, var(--color-line));
+    background: rgb(255 255 255 / 0.42);
+    border: 1px solid rgb(255 255 255 / 0.65);
     box-shadow:
-      0 24px 50px -28px color-mix(in oklab, var(--color-ink) 42%, transparent),
-      inset 0 1px 0 color-mix(in oklab, white 80%, transparent);
-    backdrop-filter: blur(18px) saturate(1.2);
+      0 20px 44px -30px rgb(42 36 32 / 0.45),
+      inset 0 1px 0 rgb(255 255 255 / 0.7);
+    backdrop-filter: blur(22px) saturate(1.4);
+    -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  }
+
+  .glass-strong {
+    background: rgb(255 255 255 / 0.68);
+    border: 1px solid rgb(255 255 255 / 0.8);
+    box-shadow: 0 22px 50px -28px rgb(42 36 32 / 0.5);
+    backdrop-filter: blur(26px) saturate(1.5);
+    -webkit-backdrop-filter: blur(26px) saturate(1.5);
   }
 
   .glass-dark {
-    background: color-mix(in oklab, var(--color-night) 88%, transparent);
+    background: rgb(42 36 32 / 0.82);
     color: var(--color-paper);
-    border: 1px solid color-mix(in oklab, white 16%, transparent);
-    box-shadow: 0 24px 50px -28px color-mix(in oklab, var(--color-ink) 55%, transparent);
-    backdrop-filter: blur(18px) saturate(1.15);
+    border: 1px solid rgb(255 255 255 / 0.14);
+    box-shadow: 0 24px 50px -28px rgb(42 36 32 / 0.6);
+    backdrop-filter: blur(22px) saturate(1.2);
+    -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  }
+
+  .toolbar-dark {
+    background: rgb(42 36 32 / 0.86);
+    border: 1px solid rgb(255 255 255 / 0.12);
+    box-shadow: 0 20px 40px -20px rgb(42 36 32 / 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Переливающийся градиент — для главного на экране. */
+  .aurora {
+    background:
+      radial-gradient(80% 90% at 0% 0%, #b9e0dc 0%, transparent 60%),
+      radial-gradient(70% 80% at 100% 10%, #f6c9b4 0%, transparent 60%),
+      radial-gradient(90% 90% at 70% 100%, #d9c3f0 0%, transparent 65%),
+      linear-gradient(135deg, #f7d6dd, #f3e3d3);
+    border: 1px solid rgb(255 255 255 / 0.7);
+    box-shadow: 0 24px 50px -30px rgb(142 61 82 / 0.55);
+  }
+
+  .sun-mark {
+    background:
+      radial-gradient(circle at 50% 50%, #fff 0 28%, transparent 29%),
+      conic-gradient(from 0deg, #fff 0 4deg, transparent 4deg 15deg, #fff 15deg 19deg, transparent 19deg 30deg, #fff 30deg 34deg, transparent 34deg 45deg, #fff 45deg 49deg, transparent 49deg 60deg, #fff 60deg 64deg, transparent 64deg 75deg, #fff 75deg 79deg, transparent 79deg 90deg, #fff 90deg 94deg, transparent 94deg 105deg, #fff 105deg 109deg, transparent 109deg 120deg, #fff 120deg 124deg, transparent 124deg 135deg, #fff 135deg 139deg, transparent 139deg 150deg, #fff 150deg 154deg, transparent 154deg 165deg, #fff 165deg 169deg, transparent 169deg 180deg, #fff 180deg 184deg, transparent 184deg 195deg, #fff 195deg 199deg, transparent 199deg 210deg, #fff 210deg 214deg, transparent 214deg 225deg, #fff 225deg 229deg, transparent 229deg 240deg, #fff 240deg 244deg, transparent 244deg 255deg, #fff 255deg 259deg, transparent 259deg 270deg, #fff 270deg 274deg, transparent 274deg 285deg, #fff 285deg 289deg, transparent 289deg 300deg, #fff 300deg 304deg, transparent 304deg 315deg, #fff 315deg 319deg, transparent 319deg 330deg, #fff 330deg 334deg, transparent 334deg 345deg, #fff 345deg 349deg, transparent 349deg 360deg),
+      linear-gradient(135deg, #c45d72, #e2a35f);
+  }
+
+  .editor-root,
+  .flip-root {
+    background: transparent;
+  }
+
+  .book-page-shadow {
+    box-shadow:
+      0 30px 60px -30px rgb(42 36 32 / 0.55),
+      0 2px 6px rgb(42 36 32 / 0.08);
+  }
+
+  .thumb-shadow {
+    box-shadow:
+      0 16px 30px -18px rgb(42 36 32 / 0.55),
+      0 1px 3px rgb(42 36 32 / 0.1);
+  }
+
+  .photo-shadow {
+    box-shadow: 0 1.2cqw 2.4cqw -0.8cqw rgb(42 36 32 / 0.38);
+  }
+
+  .sticker-art {
+    filter: drop-shadow(0 0.6cqw 0.8cqw rgb(42 36 32 / 0.25));
+    -webkit-user-drag: none;
+  }
+
+  .paper-grain {
+    background-image:
+      radial-gradient(120% 80% at 10% 0%, rgb(255 255 255 / 0.5), transparent 50%),
+      radial-gradient(100% 70% at 100% 100%, rgb(42 36 32 / 0.04), transparent 60%);
+  }
+
+  .endpaper {
+    background-color: #8e3d52;
+    background-image:
+      radial-gradient(circle at 25% 25%, rgb(255 255 255 / 0.14) 0 1.2px, transparent 1.6px),
+      radial-gradient(circle at 75% 75%, rgb(255 255 255 / 0.1) 0 1.2px, transparent 1.6px);
+    background-size: 14px 14px;
+  }
+
+  .cut-shimmer {
+    background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.6) 45%, transparent 70%);
+    background-size: 220% 100%;
+    animation: shimmer 1.2s linear infinite;
+  }
+
+  .sheet-in {
+    animation: sheet-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .handle {
+    touch-action: none;
+  }
+
+  .rod-toast {
+    border-radius: 1.2rem !important;
+    font-family: var(--font-sans) !important;
   }
 
   .wash-blush {
@@ -116,9 +234,9 @@
 
   .field {
     width: 100%;
-    border-radius: 1rem;
-    border: 1px solid var(--color-line);
-    background: color-mix(in oklab, var(--color-paper) 88%, transparent);
+    border-radius: 1.1rem;
+    border: 1px solid rgb(255 255 255 / 0.8);
+    background: rgb(255 255 255 / 0.72);
     padding: 0.85rem 1rem;
     color: var(--color-ink);
     font: inherit;
@@ -130,7 +248,11 @@
   }
 
   .dock {
-    padding-bottom: max(0.6rem, env(safe-area-inset-bottom));
+    padding-bottom: max(0.7rem, env(safe-area-inset-bottom));
+  }
+
+  .rise {
+    animation: rise 320ms ease both;
   }
 
   .paper-cream {
@@ -243,6 +365,26 @@
   .card-stage {
     height: min(24rem, calc(100svh - 22rem));
     min-height: 16rem;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 

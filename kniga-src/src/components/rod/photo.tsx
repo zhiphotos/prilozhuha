@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImagePlus } from "lucide-react";
-import { compressImage } from "@/lib/rod/image";
+import { importImage } from "@/lib/rod/image";
+import { MediaImg } from "@/components/rod/media-img";
 import { useRod } from "@/lib/rod/store";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
 
@@ -23,7 +24,7 @@ export function PhotoNewScreen() {
     if (!file) return;
     setBusy(true);
     try {
-      const next = await compressImage(file);
+      const next = await importImage(file);
       setDataUrl(next);
     } catch (error) {
       toast(error instanceof Error ? error.message : "Снимок не открылся");
@@ -44,12 +45,12 @@ export function PhotoNewScreen() {
         onChange={(event) => void onFile(event.target.files?.[0])}
       />
       {dataUrl ? (
-        <img src={dataUrl} alt="Предпросмотр семейной фотографии" className="mt-4 aspect-[4/3] w-full rounded-4xl object-cover" />
+        <MediaImg src={dataUrl} alt="Предпросмотр семейной фотографии" className="mt-4 max-h-[60vh] w-full rounded-[2rem] object-contain shadow-lg" />
       ) : (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="glass mt-4 flex min-h-48 w-full flex-col items-center justify-center gap-2 rounded-4xl p-6 text-ink"
+          className="glass mt-4 flex min-h-48 w-full flex-col items-center justify-center gap-2 rounded-[2rem] p-6 text-ink"
         >
           <ImagePlus className="size-6 text-rose-deep" />
           <span className="font-medium">{busy ? "Открываем снимок…" : "Сфотографировать или выбрать"}</span>
@@ -76,7 +77,7 @@ export function PhotoNewScreen() {
             personId,
           });
           if (!ok) {
-            toast("В альбоме уже 12 фотографий. Удалите одну, чтобы добавить новую.");
+            toast("Архив переполнен. Удалите несколько фото.");
             return;
           }
           toast("Фотография сохранена вместе с историей");
