@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import { DEFAULT_PRINT, type PrintSetup } from "@/lib/rod/page-style";
 import { MEDIA_STORE, STATE_STORE, idbClear, idbGet, idbSet } from "@/lib/rod/idb";
 import type {
   Audience,
@@ -31,6 +32,8 @@ type RodState = {
   trash: TrashedPage[];
   programOpen: boolean;
   doneLessons: string[];
+  print: PrintSetup;
+  setPrint: (patch: Partial<PrintSetup>) => void;
   finishOnboarding: (input: { audience: Audience; dedicatee: string; collector: string }) => void;
   updateProfile: (input: { audience: Audience; dedicatee: string; collector: string }) => void;
   addPerson: (input: Omit<Person, "id">) => void;
@@ -77,6 +80,7 @@ const empty = {
   trash: [] as TrashedPage[],
   programOpen: false,
   doneLessons: [] as string[],
+  print: DEFAULT_PRINT as PrintSetup,
 };
 
 function uid(): string {
@@ -236,6 +240,7 @@ export const useRod = create<RodState>()(
         }),
       purgeTrash: () => set({ trash: [] }),
       openProgram: () => set({ programOpen: true }),
+      setPrint: (patch) => set((state) => ({ print: { ...state.print, ...patch } })),
       completeLesson: (id) =>
         set((state) => ({
           doneLessons: state.doneLessons.includes(id) ? state.doneLessons : [...state.doneLessons, id],

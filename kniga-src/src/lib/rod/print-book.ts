@@ -12,15 +12,19 @@ import {
   stickerUrl,
   textMetrics,
 } from "@/lib/rod/page-style";
-import { buildJpegPdf } from "@/lib/rod/pdf";
+import { MM, buildJpegPdf, type PdfSheet } from "@/lib/rod/pdf";
+import type { PrintSetup } from "@/lib/rod/page-style";
 import type { BookPage, PageBlock, PaperKind } from "@/lib/rod/types";
 
 export type CoverMeta = { dedicatee: string; collector: string };
 
-/** 180 мм при 300 dpi. */
-const W = 2126;
-const H = Math.round(W * PAGE_RATIO);
-const U = W / 100;
+const DPI = 300;
+const PX_PER_MM = DPI / 25.4;
+
+// Размеры текущей страницы. Рисование идёт по одной странице за раз, поэтому хватает модульных переменных.
+let W = 2126;
+let H = Math.round(W * PAGE_RATIO);
+let U = W / 100;
 
 const SHADOW = "rgba(42, 36, 32, 0.3)";
 
@@ -95,7 +99,7 @@ function noShadow(ctx: CanvasRenderingContext2D) {
   ctx.shadowOffsetY = 0;
 }
 
-function paintPaper(ctx: CanvasRenderingContext2D, paper: PaperKind) {
+function paintPaper(ctx: CanvasRenderingContext2D, paper: PaperKind, bleed: number) {
   const bg: Record<PaperKind, string> = {
     cream: "#fbf8f3",
     lined: "#fbf8f3",
@@ -105,15 +109,15 @@ function paintPaper(ctx: CanvasRenderingContext2D, paper: PaperKind) {
     kraft: "#ece0cf",
   };
   ctx.fillStyle = bg[paper];
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(-bleed, -bleed, W + bleed * 2, H + bleed * 2);
   if (paper === "lined") {
     ctx.fillStyle = COLORS.line;
-    for (let y = 9 * U + 6.6 * U; y < H; y += 6.8 * U) ctx.fillRect(0, y, W, 0.2 * U);
+    for (let y = 9 * U + 6.6 * U; y < H + bleed; y += 6.8 * U) ctx.fillRect(-bleed, y, W + bleed * 2, 0.2 * U);
   }
   if (paper === "dots") {
     ctx.fillStyle = "#d9cfc2";
-    for (let y = 2.5 * U; y < H; y += 5 * U) {
-      for (let x = 2.5 * U; x < W; x += 5 * U) {
+    for (let y = 2.5 * U - Math.ceil(bleed / (5 * U)) * 5 * U; y < H + bleed; y += 5 * U) {
+      for (let x = 2.5 * U - Math.ceil(bleed / (5 * U)) * 5 * U; x < W + bleed; x += 5 * U) {
         ctx.beginPath();
         ctx.arc(x, y, 0.34 * U, 0, Math.PI * 2);
         ctx.fill();
@@ -311,13 +315,20 @@ function paintStrokes(ctx: CanvasRenderingContext2D, page: BookPage) {
   });
 }
 
-export async function paintPage(page: BookPage, meta: CoverMeta): Promise<HTMLCanvasElement> {
+/** Страница в печатном размере: обрезной формат + вылеты. Без setup — превью 18 см без вылетов. */
+export async function paintPage(page: BookPage, meta: CoverMeta, setup?: PrintSetup): Promise<HTMLCanvasElement> {
+  const trim = setup ? Math.round(setup.size * 10 * PX_PER_MM) : 2126;
+  const bleed = setup ? Math.round(setup.bleed * PX_PER_MM) : 0;
+  W = trim;
+  H = Math.round(trim * PAGE_RATIO);
+  U = W / 100;
   const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
+  canvas.width = W + bleed * 2;
+  canvas.height = H + bleed * 2;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Не удалось собрать страницу");
-  paintPaper(ctx, page.paper);
+  ctx.translate(bleed, bleed);
+  paintPaper(ctx, page.paper, bleed);
   if (page.kind === "cover") await paintCover(ctx, meta);
   for (const block of page.blocks) {
     if (block.type === "text") paintText(ctx, block);
@@ -328,7 +339,7 @@ export async function paintPage(page: BookPage, meta: CoverMeta): Promise<HTMLCa
   return canvas;
 }
 
-function canvasJpeg(canvas: HTMLCanvasElement): Promise<{ bytes: Uint8Array; width: number; height: number }> {
+function canvasJpeg(canvas: HTMLCanvasElement): Promise<PdfSheet> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       async (blob) => {
@@ -356,22 +367,100 @@ async function fontsReady() {
   await document.fonts.ready;
 }
 
-export async function downloadFamilyBook(pages: BookPage[], meta: CoverMeta, onProgress?: (done: number, total: number) => void) {
-  if (!pages.length) throw new Error("В книге ещё нет страниц");
-  await fontsReady();
-  const sheets = [];
-  for (const [index, page] of pages.entries()) {
-    onProgress?.(index, pages.length);
-    sheets.push(await canvasJpeg(await paintPage(page, meta)));
-  }
-  const pdf = buildJpegPdf(sheets);
+function save(pdf: Uint8Array, name: string) {
   const blob = new Blob([Uint8Array.from(pdf)], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "Книга рода.pdf";
+  link.download = name;
   document.body.appendChild(link);
   link.click();
   link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/** Превью всей книги одним файлом — посмотреть или распечатать дома. */
+export async function downloadFamilyBook(pages: BookPage[], meta: CoverMeta, onProgress?: (done: number, total: number) => void) {
+  if (!pages.length) throw new Error("В книге ещё нет страниц");
+  await fontsReady();
+  const sheets: PdfSheet[] = [];
+  for (const [index, page] of pages.entries()) {
+    onProgress?.(index, pages.length);
+    const sheet = await canvasJpeg(await paintPage(page, meta, { size: 20, bleed: 0, spine: 0 }));
+    sheets.push({ ...sheet, pageW: 200 * MM, pageH: 200 * MM });
+  }
+  save(buildJpegPdf(sheets), "Книга рода — просмотр.pdf");
+}
+
+/**
+ * Блок страниц для типографии: без обложки, каждая страница с вылетами, 300 dpi,
+ * число страниц чётное (в конце добавляется чистая).
+ */
+export async function downloadPrintBlock(pages: BookPage[], meta: CoverMeta, setup: PrintSetup, onProgress?: (done: number, total: number) => void) {
+  const inner = pages.filter((page) => page.kind !== "cover");
+  if (!inner.length) throw new Error("В книге ещё нет страниц");
+  const list = inner.length % 2 ? [...inner, { id: "blank", title: "", kind: "page" as const, paper: inner[inner.length - 1].paper, strokes: [], blocks: [] }] : inner;
+  await fontsReady();
+  const side = (setup.size * 10 + setup.bleed * 2) * MM;
+  const sheets: PdfSheet[] = [];
+  for (const [index, page] of list.entries()) {
+    onProgress?.(index, list.length);
+    const sheet = await canvasJpeg(await paintPage(page, meta, setup));
+    sheets.push({ ...sheet, pageW: side, pageH: side, bleed: setup.bleed * MM });
+  }
+  save(buildJpegPdf(sheets), `Книга рода — блок ${setup.size}x${setup.size} (${list.length} стр).pdf`);
+  return list.length;
+}
+
+/** Обложка разворотом: задняя сторона + корешок + лицевая, с вылетами (или загибом) по краям. */
+export async function downloadPrintCover(pages: BookPage[], meta: CoverMeta, setup: PrintSetup) {
+  await fontsReady();
+  const cover = pages.find((page) => page.kind === "cover") ?? { id: "cover", title: "Обложка", kind: "cover" as const, paper: "rose" as const, strokes: [], blocks: [] };
+  const front = await paintPage(cover, meta, { ...setup, bleed: 0 });
+  const trim = front.width;
+  const bleed = Math.round(setup.bleed * PX_PER_MM);
+  const spine = Math.round(setup.spine * PX_PER_MM);
+  const canvas = document.createElement("canvas");
+  canvas.width = trim * 2 + spine + bleed * 2;
+  canvas.height = trim + bleed * 2;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Не удалось собрать обложку");
+  const bg: Record<PaperKind, string> = { cream: "#fbf8f3", lined: "#fbf8f3", dots: "#fbf8f3", rose: "#f8e4e8", sage: "#e7eee2", kraft: "#ece0cf" };
+  ctx.fillStyle = bg[cover.paper];
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Задняя сторона
+  W = trim;
+  H = trim;
+  U = trim / 100;
+  ctx.save();
+  ctx.translate(bleed, bleed);
+  ctx.fillStyle = COLORS.roseDeep;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `500 ${4.2 * U}px ${FONT_FAMILY.script}`;
+  ctx.fillText("Эту книгу можно продолжать.", trim / 2, trim * 0.46);
+  ctx.fillText("Следующую страницу допишет уже другой.", trim / 2, trim * 0.46 + 5.4 * U);
+  ctx.restore();
+  // Корешок
+  if (spine > 0) {
+    ctx.save();
+    ctx.fillStyle = "rgba(142, 61, 82, 0.08)";
+    ctx.fillRect(bleed + trim, 0, spine, canvas.height);
+    const fontPx = Math.min(spine * 0.55, 6 * U);
+    if (fontPx > 14) {
+      ctx.translate(bleed + trim + spine / 2, canvas.height / 2);
+      ctx.rotate(Math.PI / 2);
+      ctx.fillStyle = COLORS.ink;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `600 ${fontPx}px ${FONT_FAMILY.serif}`;
+      ctx.fillText(meta.dedicatee.trim() ? `Книга рода · ${meta.dedicatee.trim()}` : "Книга рода", 0, 0, trim * 0.8);
+    }
+    ctx.restore();
+  }
+  // Лицевая сторона
+  ctx.drawImage(front, bleed + trim + spine, bleed);
+  const sheet = await canvasJpeg(canvas);
+  const pdf = buildJpegPdf([{ ...sheet, pageW: canvas.width / PX_PER_MM * MM, pageH: canvas.height / PX_PER_MM * MM, bleed: setup.bleed * MM }]);
+  save(pdf, `Книга рода — обложка ${setup.size}x${setup.size}, корешок ${setup.spine} мм.pdf`);
 }

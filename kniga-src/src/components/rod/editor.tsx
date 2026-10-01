@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import {
   AlignCenter,
@@ -27,6 +27,8 @@ import {
   Trash2,
   Type,
   Undo2,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, Sheet, useNav } from "@/components/rod/chrome";
@@ -34,7 +36,7 @@ import { BlockArt, InkLayer, PageSheet, PlacedBlock, boxOf, inkColor, PAGE_H } f
 import { imageFromTransfer, importImage, importImageUrl } from "@/lib/rod/image";
 import { liftSubject } from "@/lib/rod/lift";
 import { mediaDataUrl, resolveMedia, saveMedia, useMedia } from "@/lib/rod/media";
-import { FONT_FAMILY, FONT_WEIGHT, PAGE_RATIO, PAPER, POLAROID, STICKERS, STICKER_ORDER, defaultStickerWidth, lookColors, lookPad, stickerUrl, textMetrics } from "@/lib/rod/page-style";
+import { FONT_FAMILY, PAGE_RATIO, PAPER, POLAROID, STICKERS, STICKER_ORDER, defaultStickerWidth, pageSide, safeArea, stickerRatio, stickerUrl } from "@/lib/rod/page-style";
 import { FONT_LABEL, findPrompt } from "@/lib/rod/pages";
 import { scratch, stickSound, turnPage } from "@/lib/rod/sounds";
 import { recognition } from "@/lib/rod/speech";
@@ -107,6 +109,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const dedicatee = useRod((state) => state.dedicatee);
   const collector = useRod((state) => state.collector);
   const archive = useRod((state) => state.photos);
+  const print = useRod((state) => state.print);
   const page = pages.find((item) => item.id === pageId) ?? null;
   const index = pages.findIndex((item) => item.id === pageId);
   const meta = useMemo(() => ({ dedicatee, collector }), [dedicatee, collector]);
@@ -123,6 +126,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const [live, setLive] = useState<InkStroke | null>(null);
   const [busy, setBusy] = useState<Record<string, string>>({});
   const [dropping, setDropping] = useState(false);
+  const [zoom, setZoom] = useState(1);
   const [, setTick] = useState(0);
 
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -275,11 +279,42 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   }
 
   const selectedBlock = page.blocks.find((b) => b.id === selected) ?? null;
+  const editingBlock = (() => {
+    const b = page.blocks.find((item) => item.id === editing);
+    return b && b.type === "text" ? b : null;
+  })();
 
   const toPct = (clientX: number, clientY: number) => {
     const rect = sheetRef.current?.getBoundingClientRect();
     if (!rect) return { x: 50, y: 50 };
     return { x: ((clientX - rect.left) / rect.width) * 100, y: ((clientY - rect.top) / rect.height) * 100 };
+  };
+
+  // ——— Охранное поле ———
+  const side = pageSide(index, pages[0]?.kind === "cover");
+  const safe = safeArea(print.size, side);
+  const bleedPct = (print.bleed / (print.size * 10)) * 100;
+
+  /** Текст и стикеры остаются внутри охранного поля. Фото — либо внутри, либо «на вылет» за край листа. */
+  const fitSafe = (b: PageBlock): PageBlock => {
+    const el = document.querySelector(`[data-block="${b.id}"]`) as HTMLElement | null;
+    const sheetH = sheetRef.current?.offsetHeight || 1;
+    const L = safe.left;
+    const R = 100 - safe.right;
+    const T = safe.top;
+    const B = 100 - safe.bottom;
+    const bleedable = (b.type === "photo" && !(b.frame === "sticker" && b.cut)) || b.type === "slot";
+    if (!bleedable) {
+      let w = "w" in b && typeof b.w === "number" ? b.w : 10;
+      if (b.type === "text") w = Math.min(w, R - L);
+      const h = b.type === "photo" ? b.h : b.type === "sticker" ? (b.w ?? 10) * stickerRatio(b.kind) : el ? (el.offsetHeight / sheetH) * 100 : 6;
+      const x = clamp(b.x, L, Math.max(L, R - w));
+      const y = clamp(b.y, T, Math.max(T, B - h));
+      return { ...b, x: round(x), y: round(y), ...("w" in b ? { w: round(w) } : {}) } as PageBlock;
+    }
+    const [x, w] = snapAxis(b.x, b.w, L, R, bleedPct);
+    const [y, h] = snapAxis(b.y, b.h, T, B, bleedPct);
+    return { ...b, x: round(x), y: round(y), w: round(w), h: round(h) } as PageBlock;
   };
 
   // ——— Фото ———
@@ -301,6 +336,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       const tilt = frame === "none" ? 0 : Math.round((Math.random() * 6 - 3) * 10) / 10;
       block = { id: id(), type: "photo", x: clamp(cx - w / 2, -10, 90), y: clamp(cy - h / 2, -5, 92), w, h, rotate: tilt, src: ref, caption: "", frame };
     }
+    if (!target) block = fitSafe(block) as typeof block;
     stickSound();
     commit((p) => ({
       ...p,
@@ -389,7 +425,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     if (tool === "hand" && !pen) return false;
     event.stopPropagation();
     event.preventDefault();
-    if (editing) (document.activeElement as HTMLElement | null)?.blur();
+    setEditing(null);
     setSelected(null);
     sheetRef.current?.setPointerCapture(event.pointerId);
     const p = toPct(event.clientX, event.clientY);
@@ -461,7 +497,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     if (startDraw(event)) return;
     if (event.target === event.currentTarget || (event.target as HTMLElement).dataset.bg) {
       setSelected(null);
-      if (editing) (document.activeElement as HTMLElement | null)?.blur();
+      setEditing(null);
     }
   };
 
@@ -470,7 +506,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     if (editing === block.id && mode === "move") return;
     event.stopPropagation();
     event.preventDefault();
-    if (editing && editing !== block.id) (document.activeElement as HTMLElement | null)?.blur();
+    if (editing && editing !== block.id) setEditing(null);
     const wrapper = (event.currentTarget as HTMLElement).closest("[data-block]") as HTMLElement | null;
     const rect = wrapper?.getBoundingClientRect();
     const center = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined;
@@ -538,7 +574,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           const next = { ...b, x: round(final.x), y: round(final.y), rotate: final.rotate } as PageBlock;
           if ("w" in next) (next as { w?: number }).w = round(final.w);
           if ((next.type === "photo" || next.type === "slot") && final.h !== null) next.h = round(final.h);
-          return next;
+          return fitSafe(next);
         }),
       }));
       return;
@@ -637,11 +673,13 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       </header>
 
       {/* Лист */}
-      <div ref={stageRef} className="relative flex min-h-0 flex-1 items-center justify-center px-2">
+      <div className="relative min-h-0 flex-1">
+      <div ref={stageRef} className="no-scrollbar absolute inset-0 overflow-auto">
+      <div className="flex min-h-full items-center justify-center p-3" style={{ width: zoom > 1 ? size.w * zoom + 24 : "100%" }}>
         <div
           ref={sheetRef}
-          className={cn("book-page-shadow relative touch-none select-none rounded-[6px]", dropping && "ring-4 ring-rose/60")}
-          style={{ width: size.w, cursor }}
+          className={cn("book-page-shadow relative select-none rounded-[2px]", dropping && "ring-4 ring-rose/60")}
+          style={{ width: size.w * zoom, cursor, touchAction: tool === "hand" && zoom > 1 ? "pan-x pan-y" : "none" }}
           onPointerDown={onSheetDown}
           onPointerMove={onSheetMove}
           onPointerUp={onSheetUp}
@@ -654,13 +692,14 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           onDrop={onDrop}
           onContextMenu={(event) => event.preventDefault()}
         >
-          <PageSheet page={page} meta={meta} hideStrokes clip={false} className="rounded-[6px]">
+          {/* Вылет под обрез: сюда можно тянуть фото, всё остальное отрежется */}
+          <div className="pointer-events-none absolute rounded-[2px] border border-dashed border-rose/40" style={{ inset: `-${bleedPct}%` }} />
+          <PageSheet page={page} meta={meta} hideStrokes clip={false} className="rounded-[2px]">
             <div data-bg="1" className="absolute inset-0" />
             {page.blocks.map((block) => {
               const box = ghost?.id === block.id ? ghost.box : null;
               const shown = box ? ({ ...block, x: box.x, y: box.y, rotate: box.rotate, ...("w" in block ? { w: box.w } : {}), ...((block.type === "photo" || block.type === "slot") && box.h !== null ? { h: box.h } : {}) } as PageBlock) : block;
               const isSel = selected === block.id;
-              const isEdit = editing === block.id && block.type === "text";
               return (
                 <PlacedBlock
                   key={block.id}
@@ -669,18 +708,15 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                   className={cn("touch-none", isSel && "z-20")}
                   onPointerDown={(event) => beginGesture(event, block, "move")}
                 >
-                  {isEdit && block.type === "text" ? (
-                    <TextEditor block={block} onChange={(text) => patchBlock(block.id, { text } as Partial<PageBlock>, `text:${block.id}`)} onDone={() => setEditing(null)} />
-                  ) : (
-                    <BlockArt block={shown} editing />
-                  )}
+                  <BlockArt block={shown} editing />
+                  {editing === block.id ? <span className="pointer-events-none absolute -inset-[4px] rounded-[4px] border-2 border-rose" /> : null}
                   {busy[block.id] ? (
                     <div className="pointer-events-none absolute inset-0 grid place-items-center">
                       <span className="cut-shimmer absolute inset-0 rounded-[1.4cqw]" />
                       <span className="relative rounded-full bg-night/85 px-3 py-1 text-xs text-paper">{busy[block.id]}</span>
                     </div>
                   ) : null}
-                  {isSel && !isEdit && tool === "hand" ? (
+                  {isSel && editing !== block.id && tool === "hand" ? (
                     <Handles
                       onTurn={(event) => beginGesture(event, block, "turn")}
                       onSize={(event) => beginGesture(event, block, "size")}
@@ -690,9 +726,24 @@ export function EditorScreen({ pageId }: { pageId: string }) {
               );
             })}
           </PageSheet>
-          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[6px]" style={{ containerType: "inline-size" }}>
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[2px]" style={{ containerType: "inline-size" }}>
             <InkLayer strokes={page.strokes} live={live} />
           </div>
+          {/* Охранное поле и зона корешка */}
+          <div
+            className={cn("pointer-events-none absolute z-30 border border-dashed transition-colors", ghost ? "border-rose" : "border-rose/35")}
+            style={{ left: `${safe.left}%`, right: `${safe.right}%`, top: `${safe.top}%`, bottom: `${safe.bottom}%` }}
+          />
+          {side !== "single" ? (
+            <div
+              className="pointer-events-none absolute inset-y-0 z-30"
+              style={{
+                [side === "right" ? "left" : "right"]: 0,
+                width: `${safe[side === "right" ? "left" : "right"]}%`,
+                background: `linear-gradient(${side === "right" ? "90deg" : "270deg"}, rgba(142,61,82,.10), rgba(142,61,82,0))`,
+              }}
+            />
+          ) : null}
           {page.blocks.length === 0 && page.strokes.length === 0 && page.kind !== "cover" ? (
             <div className="pointer-events-none absolute inset-x-6 top-1/2 -translate-y-1/2 text-center text-sm text-muted">
               Пустой лист. Добавьте текст, фото или стикер снизу — или перетащите картинку прямо сюда.
@@ -700,6 +751,27 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           ) : null}
         </div>
       </div>
+      </div>
+        <div className="glass-strong absolute bottom-2 right-3 z-10 flex items-center rounded-full p-1">
+          <IconBtn label="Мельче" disabled={zoom <= 1} onClick={() => setZoom((z) => Math.max(1, z - 0.5))}>
+            <ZoomOut className="size-4" />
+          </IconBtn>
+          <span className="w-10 text-center text-xs tabular-nums text-ink">{Math.round(zoom * 100)}%</span>
+          <IconBtn label="Крупнее" disabled={zoom >= 3} onClick={() => setZoom((z) => Math.min(3, z + 0.5))}>
+            <ZoomIn className="size-4" />
+          </IconBtn>
+        </div>
+      </div>
+
+      {editingBlock ? (
+        <TextPanel
+          key={editingBlock.id}
+          block={editingBlock}
+          onChange={(text) => patchBlock(editingBlock.id, { text } as Partial<PageBlock>, `text:${editingBlock.id}`)}
+          onPatch={(partial) => patchBlock(editingBlock.id, partial)}
+          onDone={() => setEditing(null)}
+        />
+      ) : null}
 
       {/* Контекстная панель выделенного */}
       <div className="px-3 pt-2">
@@ -730,7 +802,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           />
         ) : (
           <p className="h-11 truncate pt-3 text-center text-xs text-muted">
-            {editing ? "Пишите. Нажмите на пустое место листа, чтобы закончить." : "Нажмите на элемент, чтобы выбрать. Ещё раз по тексту — писать. Тащите пальцем, чтобы двигать."}
+            Пунктир — охранное поле: текст внутри. Фото можно тянуть за край листа — «на вылет».
           </p>
         )}
       </div>
@@ -887,6 +959,46 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   );
 }
 
+/** Край по оси: внутри охранного поля или за краем листа на вылет. Возвращает [начало, длина]. */
+function snapAxis(start: number, len: number, lo: number, hi: number, bleed: number): [number, number] {
+  let s = start;
+  let n = len;
+  let startBleed = false;
+  if (s < lo) {
+    if (s < lo / 2) {
+      s = -bleed;
+      startBleed = true;
+    } else s = lo;
+  }
+  const e = s + n;
+  if (e > hi) {
+    if (e > (hi + 100) / 2) {
+      if (startBleed) n = 100 + bleed * 2;
+      else {
+        s = 100 + bleed - n;
+        if (s < lo) {
+          if (s < lo / 2) {
+            s = -bleed;
+            n = 100 + bleed * 2;
+          } else {
+            s = lo;
+            n = 100 + bleed - lo;
+          }
+        }
+      }
+    } else {
+      s = hi - n;
+      if (s < lo && !startBleed) {
+        s = lo;
+        n = hi - lo;
+      } else if (startBleed) {
+        n = hi + bleed;
+      }
+    }
+  }
+  return [s, n];
+}
+
 function round(v: number) {
   return Math.round(v * 100) / 100;
 }
@@ -933,48 +1045,49 @@ function Handles({ onTurn, onSize }: { onTurn: (event: React.PointerEvent) => vo
   );
 }
 
-function TextEditor({ block, onChange, onDone }: { block: Extract<PageBlock, { type: "text" }>; onChange: (text: string) => void; onDone: () => void }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  const metrics = textMetrics(block.font, block.size);
-  const pad = lookPad(block.look);
-  const colors = lookColors(block.look);
+function TextPanel({
+  block,
+  onChange,
+  onPatch,
+  onDone,
+}: {
+  block: Extract<PageBlock, { type: "text" }>;
+  onChange: (text: string) => void;
+  onPatch: (partial: Partial<PageBlock>) => void;
+  onDone: () => void;
+}) {
   const [value, setValue] = useState(block.text);
-  useLayoutEffect(() => {
-    const area = ref.current;
-    if (!area) return;
-    area.style.height = "auto";
-    area.style.height = `${area.scrollHeight}px`;
-  }, [value]);
-  const style: CSSProperties = {
-    fontFamily: FONT_FAMILY[block.font],
-    fontWeight: FONT_WEIGHT[block.font],
-    fontSize: `${metrics.size}cqw`,
-    lineHeight: metrics.leading,
-    padding: `${pad.y}cqw ${pad.x}cqw`,
-    background: block.look === "plain" || !block.look ? "rgba(255,255,255,0.55)" : colors.bg,
-    color: colors.fg,
-    borderRadius: block.look === "pill" ? "999px" : `${Math.max(pad.radius, 1)}cqw`,
-    textAlign: block.align ?? "left",
-  };
   return (
-    <textarea
-      id={`edit-${block.id}`}
-      ref={ref}
-      value={value}
-      rows={1}
-      placeholder={block.placeholder || "Пишите здесь"}
-      onPointerDown={(event) => event.stopPropagation()}
-      onChange={(event) => {
-        setValue(event.target.value);
-        onChange(event.target.value);
-      }}
-      onBlur={onDone}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") (event.target as HTMLTextAreaElement).blur();
-      }}
-      style={style}
-      className="block w-full resize-none overflow-hidden whitespace-pre-wrap break-words outline-2 outline-rose/60 [outline-style:dashed] placeholder:opacity-40"
-    />
+    <div className="glass-strong sheet-in absolute inset-x-3 top-[calc(max(0.75rem,env(safe-area-inset-top))+3.6rem)] z-50 mx-auto max-w-xl rounded-[1.6rem] p-3">
+      <textarea
+        id={`edit-${block.id}`}
+        value={value}
+        rows={4}
+        placeholder={block.placeholder || "Пишите здесь — текст сразу появится на странице"}
+        onChange={(event) => {
+          setValue(event.target.value);
+          onChange(event.target.value);
+        }}
+        className="block w-full resize-none rounded-2xl bg-white/80 p-3 text-[17px] leading-snug text-ink outline-none"
+        style={{ fontFamily: FONT_FAMILY[block.font] }}
+      />
+      <div className="no-scrollbar mt-2 flex items-center gap-1.5 overflow-x-auto">
+        {(["script", "serif", "sans"] as FontKind[]).map((font) => (
+          <BarBtn key={font} active={block.font === font} onClick={() => onPatch({ font } as Partial<PageBlock>)}>
+            <span style={{ fontFamily: FONT_FAMILY[font] }}>{FONT_LABEL[font]}</span>
+          </BarBtn>
+        ))}
+        {(["sm", "md", "lg"] as const).map((s) => (
+          <BarBtn key={s} active={block.size === s} onClick={() => onPatch({ size: s } as Partial<PageBlock>)}>
+            {s === "sm" ? "S" : s === "md" ? "M" : "L"}
+          </BarBtn>
+        ))}
+        <span className="flex-1" />
+        <Button className="min-h-10 shrink-0 px-4" onClick={onDone}>
+          Готово
+        </Button>
+      </div>
+    </div>
   );
 }
 

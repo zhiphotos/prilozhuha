@@ -134,7 +134,7 @@ export function FlipBookScreen({ pageId }: { pageId?: string }) {
   const printFile = () => {
     setSaving("Готовлю файл…");
     void downloadFamilyBook(pages, meta, (done, total) => setSaving(`Страница ${done + 1} из ${total}…`))
-      .then(() => toast("Файл «Книга рода.pdf» сохранён. Формат 18×24 см, 300 dpi — можно нести в типографию."))
+      .then(() => toast("Просмотр книги сохранён. Файл для типографии — в «Книга» → «Печать»."))
       .catch(() => toast("Файл не собрался. Попробуйте ещё раз."))
       .finally(() => setSaving(null));
   };

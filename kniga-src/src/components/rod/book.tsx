@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
-import { BookOpen, Download, Plus, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { BookOpen, Download, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, ScreenFrame, Sheet, TopBar, useNav } from "@/components/rod/chrome";
 import { PageSheet } from "@/components/rod/page-view";
 import { blankPage, coverPage, pageFromPhoto, pageFromPrompt, pageFromStory } from "@/lib/rod/layouts";
 import { PAGE_PROMPTS } from "@/lib/rod/pages";
 import { isBookReady, overallOf, partsOf, plural } from "@/lib/rod/progress";
-import { downloadFamilyBook } from "@/lib/rod/print-book";
+import { downloadFamilyBook, downloadPrintBlock, downloadPrintCover } from "@/lib/rod/print-book";
 import { useRod } from "@/lib/rod/store";
 import type { BookPage, PaperKind } from "@/lib/rod/types";
-import { PAPER } from "@/lib/rod/page-style";
+import { BOOK_SIZES, GUTTER_MM, PAPER, SAFE_MM } from "@/lib/rod/page-style";
 import { cn } from "@/lib/cn";
 
 export function BookScreen() {
@@ -18,7 +18,7 @@ export function BookScreen() {
   const { pages, trash, stories, photos, people, addPage, restorePage, purgeTrash } = data;
   const meta = { dedicatee: data.dedicatee, collector: data.collector };
   const [library, setLibrary] = useState(false);
-  const [saving, setSaving] = useState<string | null>(null);
+  const [printing, setPrinting] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
   const snapshot = { ...data, pages };
   const overall = overallOf(partsOf(snapshot));
@@ -40,13 +40,6 @@ export function BookScreen() {
   const noMaiden = people.filter((person) => /бабуш|мам/i.test(person.relation) && !person.maidenName.trim());
   const hasCover = pages.some((page) => page.kind === "cover");
 
-  const printFile = () => {
-    setSaving("Готовлю…");
-    void downloadFamilyBook(pages, meta, (done, total) => setSaving(`${done + 1} из ${total}…`))
-      .then(() => toast("«Книга рода.pdf» сохранён: 18×24 см, 300 dpi"))
-      .catch(() => toast("Файл не собрался. Попробуйте ещё раз."))
-      .finally(() => setSaving(null));
-  };
 
   return (
     <ScreenFrame>
@@ -56,8 +49,8 @@ export function BookScreen() {
         <Button className="min-h-12" disabled={pages.length === 0} onClick={() => nav.go({ id: "flip" })}>
           <BookOpen className="size-4" /> Листать книгу
         </Button>
-        <Button variant="soft" className="min-h-12" disabled={pages.length === 0 || Boolean(saving)} onClick={printFile}>
-          <Download className="size-4" /> {saving ?? "PDF"}
+        <Button variant="soft" className="min-h-12" disabled={pages.length === 0} onClick={() => setPrinting(true)}>
+          <Printer className="size-4" /> Печать
         </Button>
       </div>
 
@@ -183,6 +176,7 @@ export function BookScreen() {
         </section>
       ) : null}
 
+      {printing ? <PrintSheet pages={pages} meta={meta} onClose={() => setPrinting(false)} /> : null}
       {library ? <Library meta={meta} onClose={() => setLibrary(false)} onPick={(page) => { setLibrary(false); open(page); }} /> : null}
     </ScreenFrame>
   );
@@ -235,6 +229,84 @@ function Library({ meta, onClose, onPick }: { meta: { dedicatee: string; collect
           ) : null,
         )}
       </ul>
+    </Sheet>
+  );
+}
+
+function PrintSheet({ pages, meta, onClose }: { pages: BookPage[]; meta: { dedicatee: string; collector: string }; onClose: () => void }) {
+  const print = useRod((state) => state.print);
+  const setPrint = useRod((state) => state.setPrint);
+  const [busy, setBusy] = useState<string | null>(null);
+  const inner = pages.filter((page) => page.kind !== "cover").length;
+  const total = inner + (inner % 2);
+  const run = (label: string, job: () => Promise<unknown>) => {
+    setBusy(label);
+    void job()
+      .then(() => toast("Файл сохранён в «Загрузки»"))
+      .catch((error: unknown) => toast(error instanceof Error ? error.message : "Файл не собрался"))
+      .finally(() => setBusy(null));
+  };
+  return (
+    <Sheet title="Файл для типографии" onClose={onClose}>
+      <p className="text-sm text-muted">Формат книги</p>
+      <div className="mt-2 flex gap-2">
+        {BOOK_SIZES.map((size) => (
+          <button key={size} type="button" onClick={() => setPrint({ size })} className={cn("flex-1 rounded-2xl px-3 py-3 text-center", print.size === size ? "bg-night text-paper" : "bg-white/70 text-ink")}>
+            <span className="block text-lg font-semibold">
+              {size}×{size}
+            </span>
+            <span className="text-xs opacity-70">см</span>
+          </button>
+        ))}
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <label className="block">
+          <span className="mb-1 block text-sm text-muted">Вылеты, мм</span>
+          <select className="field" value={print.bleed} onChange={(event) => setPrint({ bleed: Number(event.target.value) })}>
+            {[3, 4, 5].map((mm) => (
+              <option key={mm} value={mm}>
+                {mm} мм с каждой стороны
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-sm text-muted">Корешок, мм</span>
+          <input className="field" type="number" min={0} max={80} value={print.spine} onChange={(event) => setPrint({ spine: Math.max(0, Number(event.target.value) || 0) })} />
+        </label>
+      </div>
+      <div className="mt-4 grid gap-2">
+        <Button className="min-h-12" disabled={Boolean(busy) || inner === 0} onClick={() => run("block", () => downloadPrintBlock(pages, meta, print, (d, t) => setBusy(`Страница ${d + 1} из ${t}…`)))}>
+          <Download className="size-4" /> {busy && busy !== "cover" && busy !== "preview" ? busy : `Блок страниц · ${total} стр.`}
+        </Button>
+        <Button variant="soft" className="min-h-12" disabled={Boolean(busy)} onClick={() => run("cover", () => downloadPrintCover(pages, meta, print))}>
+          <Download className="size-4" /> {busy === "cover" ? "Собираю обложку…" : "Обложка разворотом"}
+        </Button>
+        <Button variant="ghost" disabled={Boolean(busy)} onClick={() => run("preview", () => downloadFamilyBook(pages, meta))}>
+          Просмотр всей книги одним файлом
+        </Button>
+      </div>
+      <div className="mt-5 rounded-3xl bg-white/60 p-4 text-sm text-ink">
+        <p className="font-semibold">Что внутри файлов</p>
+        <ul className="mt-2 grid list-disc gap-1 pl-5 text-ink/80">
+          <li>
+            Страница {print.size}×{print.size} см + вылеты {print.bleed} мм: файл {print.size * 10 + print.bleed * 2}×{print.size * 10 + print.bleed * 2} мм, 300 dpi, RGB.
+          </li>
+          <li>Обрезной формат отмечен в PDF (TrimBox) — типография увидит, где резать.</li>
+          <li>
+            Охранное поле {SAFE_MM} мм от края и {GUTTER_MM} мм у корешка — в редакторе это пунктир.
+          </li>
+          <li>Блок — без обложки, число страниц чётное: если нужно, в конце добавлена чистая.</li>
+          <li>Обложка — один разворот: задник + корешок + лицо, с вылетами по краям.</li>
+        </ul>
+        <p className="mt-3 font-semibold">Перед заказом спросите в типографии</p>
+        <ul className="mt-2 grid list-disc gap-1 pl-5 text-ink/80">
+          <li>сколько мм вылетов и нужен ли «загиб» для твёрдой обложки (обычно 15–20 мм вместо вылета);</li>
+          <li>толщину корешка для {total} страниц — впишите её выше;</li>
+          <li>минимальное число страниц и кратность (часто 20+ и кратно 2 или 4);</li>
+          <li>принимают ли RGB или нужен CMYK — большинство фотокниг печатают из RGB.</li>
+        </ul>
+      </div>
     </Sheet>
   );
 }

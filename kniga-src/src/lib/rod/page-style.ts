@@ -2,9 +2,40 @@
 // Все размеры — в процентах ширины страницы (на экране это единицы cqw).
 import type { FontKind, PaperKind, StickerKind, TextLook } from "@/lib/rod/types";
 
-/** Формат книги: 18 × 24 см. */
-export const PAGE_MM = { w: 180, h: 240 } as const;
-export const PAGE_RATIO = PAGE_MM.h / PAGE_MM.w;
+/** Книга квадратная: страница на экране и в печати — квадрат. Размер в см выбирается при печати. */
+export const PAGE_RATIO = 1;
+
+export type BookSize = 20 | 25 | 30;
+export const BOOK_SIZES: BookSize[] = [20, 25, 30];
+
+/** Охранное поле от края обреза и от корешка, мм. */
+export const SAFE_MM = 10;
+export const GUTTER_MM = 15;
+
+export type PrintSetup = { size: BookSize; bleed: number; spine: number };
+export const DEFAULT_PRINT: PrintSetup = { size: 30, bleed: 5, spine: 10 };
+
+/**
+ * Безопасная зона страницы в % стороны листа.
+ * side: "right" — правая страница разворота (корешок слева), "left" — левая, "single" — обложка.
+ */
+export function safeArea(size: BookSize, side: "left" | "right" | "single") {
+  const safe = (SAFE_MM / (size * 10)) * 100;
+  const gutter = (GUTTER_MM / (size * 10)) * 100;
+  return {
+    top: safe,
+    bottom: safe,
+    left: side === "right" ? gutter : safe,
+    right: side === "left" ? gutter : safe,
+  };
+}
+
+/** Чётные страницы книги — левые, нечётные — правые (обложка не считается). */
+export function pageSide(index: number, hasCover: boolean): "left" | "right" | "single" {
+  if (hasCover && index === 0) return "single";
+  const n = hasCover ? index : index + 1;
+  return n % 2 === 1 ? "right" : "left";
+}
 
 export const COLORS = {
   ink: "#2a2420",
@@ -36,10 +67,11 @@ export const FONT_FAMILY: Record<FontKind, string> = {
 
 export const FONT_WEIGHT: Record<FontKind, number> = { serif: 600, sans: 500, script: 500 };
 
+// В книге 25×25 см: sm ≈ 13–14 pt, md ≈ 19 pt, lg ≈ 34 pt. На 30×30 всё пропорционально крупнее.
 const SIZE: Record<FontKind, Record<"sm" | "md" | "lg", number>> = {
-  serif: { sm: 3.6, md: 4.8, lg: 8 },
-  sans: { sm: 3, md: 3.8, lg: 6 },
-  script: { sm: 4.8, md: 6.2, lg: 9 },
+  serif: { sm: 2.1, md: 2.9, lg: 5.2 },
+  sans: { sm: 1.75, md: 2.3, lg: 4 },
+  script: { sm: 2.8, md: 3.8, lg: 6.2 },
 };
 
 const LEADING: Record<FontKind, number> = { serif: 1.2, sans: 1.4, script: 1.1 };
@@ -50,8 +82,8 @@ export function textMetrics(font: FontKind, size: "sm" | "md" | "lg") {
 
 /** Внутренние поля у карточки и плашки — в % ширины страницы. */
 export function lookPad(look: TextLook | undefined): { x: number; y: number; radius: number } {
-  if (look === "card") return { x: 3.4, y: 2.6, radius: 3 };
-  if (look === "pill") return { x: 3, y: 1.1, radius: 50 };
+  if (look === "card") return { x: 2.4, y: 1.8, radius: 2 };
+  if (look === "pill") return { x: 2, y: 0.7, radius: 50 };
   return { x: 0, y: 0, radius: 0 };
 }
 
@@ -202,7 +234,7 @@ export function stickerRatio(kind: StickerKind): number {
 }
 
 export function defaultStickerWidth(kind: StickerKind): number {
-  if (kind === "tape" || kind === "tape-sage") return 30;
-  if (kind === "branch" || kind === "swirl") return 26;
-  return 15;
+  if (kind === "tape" || kind === "tape-sage") return 22;
+  if (kind === "branch" || kind === "swirl") return 20;
+  return 10;
 }
