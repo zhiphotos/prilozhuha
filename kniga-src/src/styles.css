@@ -446,3 +446,17 @@
     backdrop-filter: none !important;
   }
 }
+
+[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-muted);
+}
+
+@keyframes wiggle {
+  from {
+    transform: rotate(-0.8deg);
+  }
+  to {
+    transform: rotate(0.8deg);
+  }
+}

@@ -30,9 +30,26 @@ function hasAlpha(context: CanvasRenderingContext2D, width: number, height: numb
   return false;
 }
 
+function isHeic(blob: Blob) {
+  const name = blob instanceof File ? blob.name : "";
+  return /image\/hei[cf]/i.test(blob.type) || /\.hei[cf]$/i.test(name);
+}
+
+/** Фото с iPhone (HEIC) Chrome и Windows не открывают — переводим в JPEG. */
+async function decodable(source: Blob): Promise<HTMLImageElement> {
+  try {
+    return await decode(source);
+  } catch (error) {
+    if (!isHeic(source)) throw error;
+    const { default: heic2any } = await import("heic2any");
+    const converted = await heic2any({ blob: source, toType: "image/jpeg", quality: 0.9 });
+    return decode(Array.isArray(converted) ? converted[0] : converted);
+  }
+}
+
 /** Уменьшает до печатного размера и кладёт в хранилище. Возвращает ссылку "media:…". */
 export async function importImage(source: Blob): Promise<string> {
-  const image = await decode(source);
+  const image = await decodable(source);
   const scale = Math.min(1, PRINT_MAX / Math.max(image.width, image.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(image.width * scale));
@@ -40,7 +57,7 @@ export async function importImage(source: Blob): Promise<string> {
   const context = canvas.getContext("2d", { willReadFrequently: true });
   if (!context) throw new Error("Не удалось прочитать снимок");
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
-  const png = source.type === "image/png" && hasAlpha(context, canvas.width, canvas.height);
+  const png = /image\/(png|webp|gif)/.test(source.type) && hasAlpha(context, canvas.width, canvas.height);
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, png ? "image/png" : "image/jpeg", png ? undefined : 0.86),
   );
