@@ -54,7 +54,21 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
       return;
     }
     let line = "";
-    words.forEach((word) => {
+    // Слово длиннее строки режем по буквам — как на экране (break-words), иначе оно уезжает за край листа.
+    const pieces = words.flatMap((word) => {
+      if (ctx.measureText(word).width <= maxWidth) return [word];
+      const parts: string[] = [];
+      let chunk = "";
+      for (const ch of word) {
+        if (chunk && ctx.measureText(chunk + ch).width > maxWidth) {
+          parts.push(chunk);
+          chunk = ch;
+        } else chunk += ch;
+      }
+      if (chunk) parts.push(chunk);
+      return parts;
+    });
+    pieces.forEach((word) => {
       const next = line ? `${line} ${word}` : word;
       if (ctx.measureText(next).width <= maxWidth || !line) line = next;
       else {

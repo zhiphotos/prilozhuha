@@ -33,6 +33,10 @@ type RodState = {
   programOpen: boolean;
   doneLessons: string[];
   print: PrintSetup;
+  /** Картинки-ориентиры для дизайна («вайб»), в книгу не печатаются. */
+  moodboard: string[];
+  addMood: (ref: string) => void;
+  removeMood: (ref: string) => void;
   setPrint: (patch: Partial<PrintSetup>) => void;
   finishOnboarding: (input: { audience: Audience; dedicatee: string; collector: string }) => void;
   updateProfile: (input: { audience: Audience; dedicatee: string; collector: string }) => void;
@@ -81,6 +85,7 @@ const empty = {
   programOpen: false,
   doneLessons: [] as string[],
   print: DEFAULT_PRINT as PrintSetup,
+  moodboard: [] as string[],
 };
 
 function uid(): string {
@@ -240,6 +245,8 @@ export const useRod = create<RodState>()(
         }),
       purgeTrash: () => set({ trash: [] }),
       openProgram: () => set({ programOpen: true }),
+      addMood: (ref) => set((state) => ({ moodboard: [ref, ...state.moodboard].slice(0, 120) })),
+      removeMood: (ref) => set((state) => ({ moodboard: state.moodboard.filter((item) => item !== ref) })),
       setPrint: (patch) => set((state) => ({ print: { ...state.print, ...patch } })),
       completeLesson: (id) =>
         set((state) => ({
