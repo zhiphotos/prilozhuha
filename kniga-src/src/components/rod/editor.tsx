@@ -18,7 +18,9 @@ import {
   Mic,
   MoreHorizontal,
   PenLine,
+  Maximize,
   Redo2,
+  Ruler,
   RotateCcw,
   Scissors,
   Search,
@@ -35,6 +37,7 @@ import { Button, Sheet, useNav } from "@/components/rod/chrome";
 import { BlockArt, InkLayer, PageSheet, PlacedBlock, boxOf, inkColor, PAGE_H } from "@/components/rod/page-view";
 import { imageFromTransfer, importFromLink, importImage } from "@/lib/rod/image";
 import { coverDesigns } from "@/lib/rod/layouts";
+import { MoodBoard } from "@/components/rod/moodboard";
 import { liftSubject } from "@/lib/rod/lift";
 import { mediaDataUrl, resolveMedia, saveMedia, useMedia } from "@/lib/rod/media";
 import { FONT_FAMILY, PAGE_RATIO, PAPER, SWATCHES, lookColors, POLAROID, STICKERS, STICKER_ORDER, defaultStickerWidth, pageSide, safeArea, stickerRatio, stickerUrl } from "@/lib/rod/page-style";
@@ -47,7 +50,7 @@ import { cn } from "@/lib/cn";
 
 type Tool = "hand" | "pen" | "marker" | "erase";
 type Panel = "photo" | "pinterest" | "stickers" | "help" | "menu" | "covers" | null;
-type PhotoStyle = "cutout" | "polaroid" | "none" | "tape" | "sticker";
+type PhotoStyle = "cutout" | "polaroid" | "none" | "tape" | "sticker" | "full";
 type Box = { x: number; y: number; w: number; h: number | null; rotate: number };
 type Gesture = {
   id: string;
@@ -71,6 +74,7 @@ const STYLES: { id: PhotoStyle; label: string }[] = [
   { id: "sticker", label: "С белой каймой" },
   { id: "tape", label: "На скотче" },
   { id: "none", label: "Просто фото" },
+  { id: "full", label: "На всю страницу" },
 ];
 
 const INK: InkStroke["color"][] = ["ink", "rose", "sage", "gold", "white"];
@@ -120,6 +124,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const [tool, setTool] = useState<Tool>("hand");
   const [ink, setInk] = useState<InkStroke["color"]>("ink");
   const [thin, setThin] = useState(false);
+  const [straight, setStraight] = useState(false);
+  const penSeen = useRef(false);
   const [panel, setPanel] = useState<Panel>(null);
   const [slotTarget, setSlotTarget] = useState<string | null>(null);
   const [style, setStyleState] = useState<PhotoStyle>(() => savedStyle());
@@ -128,6 +134,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const [busy, setBusy] = useState<Record<string, string>>({});
   const [dropping, setDropping] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [mood, setMood] = useState(false);
   const [, setTick] = useState(0);
 
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -135,7 +142,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const gesture = useRef<Gesture | null>(null);
-  const drawing = useRef<{ pointerId: number; points: number[]; erase: boolean } | null>(null);
+  const drawing = useRef<{ pointerId: number; points: number[]; erase: boolean; straight: boolean; still?: number; lx: number; ly: number } | null>(null);
   const undo = useRef<BookPage[]>([]);
   const redo = useRef<BookPage[]>([]);
   const lastGroup = useRef<{ key: string; at: number } | null>(null);
@@ -296,6 +303,14 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const safe = safeArea(print.size, side);
   const bleedPct = (print.bleed / (print.size * 10)) * 100;
 
+  /** Фото на весь лист вместе с вылетами — под обрез. */
+  const fullPage = () => ({ x: round(-bleedPct), y: round(-bleedPct), w: round(100 + bleedPct * 2), h: round(100 + bleedPct * 2), rotate: 0, frame: "none" as PhotoFrame });
+
+  const warnFull = (ratio: number) => {
+    const crop = Math.abs(ratio - 1) > 0.05 ? (ratio > 1 ? " Фото вытянуто вверх — сверху и снизу его подрежет до квадрата." : " Фото широкое — по бокам его подрежет до квадрата.") : "";
+    toast(`Фото на всю страницу. При печати по краям срежется ~${print.bleed} мм.${crop} Лица и надписи держите внутри пунктира.`, { duration: 9000 });
+  };
+
   /** Текст и стикеры остаются внутри охранного поля. Фото — либо внутри, либо «на вылет» за край листа. */
   const fitSafe = (b: PageBlock): PageBlock => {
     const el = document.querySelector(`[data-block="${b.id}"]`) as HTMLElement | null;
@@ -323,7 +338,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const target = intoSlot && slotTarget ? current()?.blocks.find((b) => b.id === slotTarget && b.type === "slot") : null;
     const chosen = forced ?? style;
     const ratio = await loadRatio(ref);
-    const frame: PhotoFrame = target && target.type === "slot" ? target.frame : chosen === "cutout" ? "sticker" : chosen;
+    const frame: PhotoFrame = target && target.type === "slot" ? target.frame : chosen === "cutout" ? "sticker" : chosen === "full" ? "none" : chosen;
     let block: Extract<PageBlock, { type: "photo" }>;
     if (target && target.type === "slot") {
       block = { id: id(), type: "photo", x: target.x, y: target.y, w: target.w, h: target.h, rotate: target.rotate ?? 0, src: ref, caption: "", frame };
@@ -337,12 +352,15 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       const tilt = frame === "none" ? 0 : Math.round((Math.random() * 6 - 3) * 10) / 10;
       block = { id: id(), type: "photo", x: clamp(cx - w / 2, -10, 90), y: clamp(cy - h / 2, -5, 92), w, h, rotate: tilt, src: ref, caption: "", frame };
     }
-    if (!target) block = fitSafe(block) as typeof block;
+    const full = chosen === "full" && !target;
+    if (full) block = { ...block, ...fullPage() };
+    else if (!target) block = fitSafe(block) as typeof block;
     stickSound();
     commit((p) => ({
       ...p,
-      blocks: target ? p.blocks.map((b) => (b.id === target.id ? block : b)) : [...p.blocks, block],
+      blocks: target ? p.blocks.map((b) => (b.id === target.id ? block : b)) : full ? [block, ...p.blocks] : [...p.blocks, block],
     }));
+    if (full) warnFull(ratio);
     setSelected(block.id);
     setSlotTarget(null);
     setPanel(null);
@@ -448,16 +466,20 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   // ——— Жесты на листе ———
   const startDraw = (event: React.PointerEvent) => {
-    const pen = event.pointerType === "pen";
-    if (tool === "hand" && !pen) return false;
+    // Рисуем только в режиме пера. В обычном режиме и пальцем, и стилусом двигаем фото и текст.
+    if (tool === "hand") return false;
+    if (event.pointerType === "pen") penSeen.current = true;
     event.stopPropagation();
     event.preventDefault();
+    // Ладонь на экране, пока рисуют стилусом, не оставляет следов.
+    if (event.pointerType === "touch" && penSeen.current) return true;
     setEditing(null);
     setSelected(null);
     sheetRef.current?.setPointerCapture(event.pointerId);
     const p = toPct(event.clientX, event.clientY);
     const erase = tool === "erase";
-    drawing.current = { pointerId: event.pointerId, points: [round(p.x), round(p.y)], erase };
+    drawing.current = { pointerId: event.pointerId, points: [round(p.x), round(p.y)], erase, straight: false, lx: p.x, ly: p.y };
+    armStraighten();
     if (erase) {
       scratch("erase");
       eraseAt(p, true);
@@ -466,6 +488,21 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       setLive(makeStroke([round(p.x), round(p.y)]));
     }
     return true;
+  };
+
+  /** Задержали перо на месте ~0,6 с — линия выпрямляется (как в GoodNotes). */
+  const armStraighten = () => {
+    const draw = drawing.current;
+    if (!draw || draw.erase) return;
+    window.clearTimeout(draw.still);
+    draw.still = window.setTimeout(() => {
+      const d = drawing.current;
+      if (!d || d.erase || d.points.length < 6) return;
+      d.straight = true;
+      d.points = lineOf(d.points[0], d.points[1], d.lx, d.ly);
+      setLive(makeStroke(d.points.slice()));
+      if (typeof navigator.vibrate === "function") navigator.vibrate(8);
+    }, 600);
   };
 
   const makeStroke = (points: number[]): InkStroke => {
@@ -496,7 +533,13 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       for (const e of events.length ? events : [event.nativeEvent]) {
         const p = toPct(e.clientX, e.clientY);
         if (draw.erase) eraseAt(p, false);
+        else if (draw.straight) draw.points = lineOf(draw.points[0], draw.points[1], p.x, p.y);
         else draw.points.push(round(p.x), round(p.y));
+        if (!draw.straight && Math.hypot(p.x - draw.lx, p.y - draw.ly) > 0.6) {
+          draw.lx = p.x;
+          draw.ly = p.y;
+          armStraighten();
+        }
       }
       if (!draw.erase) setLive(makeStroke(draw.points.slice()));
       return;
@@ -507,10 +550,13 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const onSheetUp = (event: React.PointerEvent) => {
     const draw = drawing.current;
     if (draw && draw.pointerId === event.pointerId) {
+      window.clearTimeout(draw.still);
       drawing.current = null;
       setLive(null);
       if (!draw.erase && draw.points.length >= 2) {
-        const points = draw.points.length === 2 ? [...draw.points, draw.points[0] + 0.01, draw.points[1] + 0.01] : draw.points;
+        let points = draw.points.length === 2 ? [...draw.points, draw.points[0] + 0.01, draw.points[1] + 0.01] : draw.points;
+        if (straight && !draw.straight && points.length >= 4) points = lineOf(points[0], points[1], points[points.length - 2], points[points.length - 1]);
+        else if (!draw.straight) points = smooth(points);
         const stroke = { ...makeStroke(points), id: id() };
         commit((p) => ({ ...p, strokes: [...p.strokes, stroke] }));
       }
@@ -529,7 +575,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   };
 
   const beginGesture = (event: React.PointerEvent, block: PageBlock, mode: Gesture["mode"]) => {
-    if (tool !== "hand" || event.pointerType === "pen") return;
+    if (tool !== "hand") return;
     if (editing === block.id && mode === "move") return;
     event.stopPropagation();
     event.preventDefault();
@@ -810,7 +856,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       {/* Контекстная панель выделенного */}
       <div className="px-3 pt-2">
         {tool !== "hand" ? (
-          <PenBar tool={tool} setTool={setTool} ink={ink} setInk={setInk} thin={thin} setThin={setThin} />
+          <PenBar tool={tool} setTool={setTool} ink={ink} setInk={setInk} thin={thin} setThin={setThin} straight={straight} setStraight={setStraight} />
         ) : selectedBlock && !editing ? (
           <BlockBar
             block={selectedBlock}
@@ -832,6 +878,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             onFill={() => {
               setSlotTarget(selectedBlock.id);
               setPanel("photo");
+            }}
+            onFull={() => {
+              if (selectedBlock.type !== "photo") return;
+              const full = { ...selectedBlock, ...fullPage(), cut: selectedBlock.cut } as PageBlock;
+              commit((p) => ({ ...p, blocks: [full, ...p.blocks.filter((b) => b.id !== selectedBlock.id)] }));
+              void loadRatio(selectedBlock.src).then(warnFull);
             }}
           />
         ) : (
@@ -874,6 +926,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         </div>
       </nav>
 
+      <MoodBoard open={mood} onToggle={() => setMood((v) => !v)} onPlace={(ref) => void placePhoto(ref, undefined, undefined, false)} />
+
       <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" onChange={(event) => { onFiles(event.target.files); event.target.value = ""; }} />
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(event) => { onFiles(event.target.files); event.target.value = ""; }} />
 
@@ -909,6 +963,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
               </ul>
             </>
           ) : null}
+          {style === "full" && !slotTarget ? <p className="mt-4 rounded-2xl bg-blush/70 p-3 text-xs text-ink">⚠️ Фото ляжет на весь лист под обрез. В типографии края срежутся на {print.bleed} мм с каждой стороны, а не квадратное фото обрежется до квадрата. Важное держите внутри пунктира.</p> : null}
           {style === "cutout" && !slotTarget ? <p className="mt-4 text-xs text-muted">Фон уберётся сам, фото ляжет стикером с белой обводкой. В первый раз вырезка скачивается около минуты.</p> : null}
         </Sheet>
       ) : null}
@@ -1078,6 +1133,30 @@ function snapAxis(start: number, len: number, lo: number, hi: number, bleed: num
   return [s, n];
 }
 
+/** Прямая от начала до конца; почти горизонтальная/вертикальная/диагональная — встаёт ровно. */
+function lineOf(x0: number, y0: number, x1: number, y1: number): number[] {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy);
+  const angle = Math.atan2(dy, dx);
+  const step = Math.PI / 4;
+  const snapped = Math.round(angle / step) * step;
+  const a = Math.abs(angle - snapped) < (5 * Math.PI) / 180 ? snapped : angle;
+  return [round(x0), round(y0), round(x0 + Math.cos(a) * len), round(y0 + Math.sin(a) * len)];
+}
+
+/** Сглаживание дрожащей руки (Чайкин, один проход). */
+function smooth(points: number[]): number[] {
+  if (points.length < 8) return points;
+  const out = [points[0], points[1]];
+  for (let i = 0; i + 3 < points.length; i += 2) {
+    const [x0, y0, x1, y1] = [points[i], points[i + 1], points[i + 2], points[i + 3]];
+    out.push(round(0.75 * x0 + 0.25 * x1), round(0.75 * y0 + 0.25 * y1), round(0.25 * x0 + 0.75 * x1), round(0.25 * y0 + 0.75 * y1));
+  }
+  out.push(points[points.length - 2], points[points.length - 1]);
+  return out;
+}
+
 function round(v: number) {
   return Math.round(v * 100) / 100;
 }
@@ -1203,7 +1282,9 @@ function BlockBar({
   onLayer,
   onCut,
   onFill,
+  onFull,
 }: {
+  onFull: () => void;
   block: PageBlock;
   busy: boolean;
   onPatch: (partial: Partial<PageBlock>) => void;
@@ -1260,6 +1341,9 @@ function BlockBar({
               {frame === "polaroid" ? "Полароид" : frame === "sticker" ? "Кайма" : frame === "tape" ? "Скотч" : "Фото"}
             </BarBtn>
           ))}
+          <BarBtn onClick={onFull}>
+            <Maximize className="size-4" /> На всю страницу
+          </BarBtn>
           <BarBtn onClick={() => setCaption((v) => !v)} active={caption}>
             Подпись
           </BarBtn>
@@ -1355,7 +1439,11 @@ function PenBar({
   setInk,
   thin,
   setThin,
+  straight,
+  setStraight,
 }: {
+  straight: boolean;
+  setStraight: (v: boolean) => void;
   tool: Tool;
   setTool: (tool: Tool) => void;
   ink: InkStroke["color"];
@@ -1390,6 +1478,9 @@ function PenBar({
       ))}
       <BarBtn active={thin} onClick={() => setThin(!thin)}>
         Тонко
+      </BarBtn>
+      <BarBtn active={straight} onClick={() => setStraight(!straight)}>
+        <Ruler className="size-4" /> Ровные линии
       </BarBtn>
       <BarBtn onClick={() => setTool("hand")}>Готово</BarBtn>
     </div>
