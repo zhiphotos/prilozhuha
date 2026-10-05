@@ -8,11 +8,12 @@
     { id: 'carousels', name: 'Карусели', intro: 'Хуки для каруселей.' },
     { id: 'threads', name: 'Threads', intro: 'Темы для Threads: польза, споры, мифы, личный опыт.' },
     { id: 'ideas', name: 'Идеи', intro: 'Твои черновики, оформленные в посты, и то, что из них родилось.' },
+    { id: 'captions', name: 'Описания', intro: 'Подписи под посты, карусели и рилс. Вставляй свои через +, правь и копируй одной кнопкой. Копируется только текст подписи.' },
     { id: 'fixes', name: 'Поправить', intro: 'Что поменять в профиле, воронке и плане.' },
     { id: 'pains', name: 'Боли', intro: 'Что чувствует аудитория — чтобы понимать её. В постах не дави на боль: назови её одной строкой и сразу покажи, как станет легче.' },
     { id: 'mine', name: 'Мои', intro: 'Идеи, которые ты добавила сама. Отправь их Claude через ⋯, чтобы он оформил.' }
   ];
-  var ADDABLE = ['reels', 'carousels', 'threads', 'ideas', 'fixes'];
+  var ADDABLE = ['captions', 'reels', 'carousels', 'threads', 'ideas', 'fixes'];
   var ACC_NAME = { rod: 'Книга Рода', zhi: '@zhiphotos' };
   var KEY = 'studio.v1';
 
@@ -57,7 +58,7 @@
       if (it.acc !== acc) return false;
       if (sec === 'new') { if (!isNew(it)) return false; }
       else if (sec === 'mine') { if (!it.mine) return false; }
-      else if (it.sec !== sec || it.mine) return false;
+      else if (it.sec !== sec || (it.mine && sec !== 'captions')) return false;
       return view ? statusOf(it) === view : true;
     });
   }
@@ -111,7 +112,7 @@
       : pool(state.acc, sec, state.view);
 
     if (state.view === 'todo' && !q) {
-      rows.sort(function (a, b) { return (isNew(b) ? 1 : 0) - (isNew(a) ? 1 : 0); });
+      rows.sort(function (a, b) { return ((b.mine ? 2 : 0) + (isNew(b) ? 1 : 0)) - ((a.mine ? 2 : 0) + (isNew(a) ? 1 : 0)); });
     } else if (state.view !== 'todo') {
       var map = state.view === 'done' ? state.done : state.removed;
       rows.sort(function (a, b) { return (map[b.id] || 0) - (map[a.id] || 0); });
@@ -149,6 +150,7 @@
         (it.text ? '<div class="text">' + esc(it.text) + '</div>' : '') +
         '<div class="actions">' +
         '<button type="button" class="act-copy" data-act="copy">Скопировать</button>' +
+        (it.mine ? '<button type="button" data-act="edit">Изменить</button>' : '') +
         (st === 'removed' ? '<button type="button" data-act="restore">Вернуть</button>'
           : '<button type="button" data-act="remove">' + (it.mine ? 'Удалить' : 'Убрать') + '</button>') +
         '</div></div></div></article>';
@@ -229,7 +231,12 @@
       return;
     }
     if (act === 'restore') { delete state.removed[id]; save(); render(); toast('Вернула в работу'); return; }
-    if (act === 'copy') { copyText(it.title + (it.text ? '\n\n' + it.text : '')); }
+    if (act === 'copy') {
+      if (it.sec === 'captions') copyText(it.full || it.text || it.title, 'Описание скопировано');
+      else copyText(it.title + (it.text ? '\n\n' + it.text : ''));
+      return;
+    }
+    if (act === 'edit') { openAdd(it); }
   });
 
   $('toastUndo').addEventListener('click', function () {
@@ -251,26 +258,49 @@
   $('sheetBg').addEventListener('click', closeSheets);
   document.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', closeSheets); });
 
-  $('addBtn').addEventListener('click', function () {
+  var editing = null;
+  function syncAddForm() {
+    var cap = $('addSec').value === 'captions';
+    $('addLabelRow').hidden = !cap;
+    $('addText').placeholder = cap ? 'Вставь подпись целиком — с переносами и эмодзи' : 'Хук или мысль, которая пришла';
+    $('addText').rows = cap ? 10 : 4;
+  }
+  function openAdd(it) {
+    editing = it || null;
     var sel = $('addSec');
     sel.innerHTML = ADDABLE.map(function (s) { return '<option value="' + s + '">' + esc(secName(s)) + '</option>'; }).join('');
-    sel.value = ADDABLE.indexOf(state.sec) > -1 ? state.sec : 'reels';
-    $('addAccHint').textContent = 'Попадёт в аккаунт ' + ACC_NAME[state.acc] + ', в раздел «Мои» и в выбранный раздел.';
-    $('addText').value = '';
+    sel.value = it ? it.sec : (ADDABLE.indexOf(state.sec) > -1 ? state.sec : 'reels');
+    $('addTitle').textContent = it ? 'Изменить' : 'Своя идея или описание';
+    $('addAccHint').textContent = 'Аккаунт: ' + ACC_NAME[it ? it.acc : state.acc] + '. Хранится в этом браузере — раз в неделю отправляй отчёт Claude (⋯), чтобы ничего не потерять.';
+    $('addLabel').value = it && it.sec === 'captions' && it.label ? it.label : '';
+    $('addText').value = it ? (it.full || (it.title + (it.text ? '\n' + it.text : ''))) : '';
+    syncAddForm();
     openSheet('addSheet');
-    setTimeout(function () { $('addText').focus(); }, 50);
-  });
+    setTimeout(function () { (it || sel.value !== 'captions' ? $('addText') : $('addLabel')).focus(); }, 50);
+  }
+  $('addSec').addEventListener('change', syncAddForm);
+  $('addBtn').addEventListener('click', function () { openAdd(null); });
   $('addSave').addEventListener('click', function () {
-    var text = $('addText').value.trim();
-    if (!text) { $('addText').focus(); return; }
-    var lines = text.split('\n');
-    state.mine.unshift({
-      id: 'mine-' + Date.now(), acc: state.acc, sec: $('addSec').value,
-      title: lines[0], text: lines.slice(1).join('\n').trim(), tag: '', added: new Date().toISOString().slice(0, 10), mine: true
-    });
-    state.sec = 'mine'; state.view = 'todo';
+    var text = $('addText').value.replace(/\s+$/, '');
+    if (!text.trim()) { $('addText').focus(); return; }
+    var sec = $('addSec').value, label = $('addLabel').value.trim();
+    var first = text.trim().split('\n')[0];
+    var fields = sec === 'captions'
+      ? { title: label || (first.length > 70 ? first.slice(0, 70) + '…' : first), text: text, full: text, label: label }
+      : { title: first, text: text.trim().split('\n').slice(1).join('\n').trim(), full: '', label: '' };
+    if (editing) {
+      Object.assign(editing, fields, { sec: sec });
+      toast('Сохранено');
+    } else {
+      state.mine.unshift(Object.assign({
+        id: 'mine-' + Date.now(), acc: state.acc, sec: sec, tag: '',
+        added: new Date().toISOString().slice(0, 10), mine: true
+      }, fields));
+      toast(sec === 'captions' ? 'Описание сохранено' : 'Идея сохранена');
+    }
+    state.sec = sec === 'captions' ? 'captions' : 'mine'; state.view = 'todo';
+    editing = null;
     save(); closeSheets(); render();
-    toast('Идея сохранена');
   });
 
   $('settingsBtn').addEventListener('click', function () {
@@ -291,8 +321,11 @@
       lines.push('Сделано (' + d.length + '):');
       d.forEach(function (it) { lines.push('✓ [' + it.id + '] ' + it.title); });
       if (m.length) {
-        lines.push('Мои идеи (' + m.length + '):');
-        m.forEach(function (it) { lines.push('+ [' + secName(it.sec) + '] ' + it.title + (it.text ? ' — ' + it.text.replace(/\n/g, ' ') : '')); });
+        lines.push('Мои идеи и описания (' + m.length + '):');
+        m.forEach(function (it) {
+          if (it.sec === 'captions') lines.push('+ [Описания] ' + (it.label || 'без названия') + ':\n' + (it.full || it.text) + '\n---');
+          else lines.push('+ [' + secName(it.sec) + '] ' + it.title + (it.text ? ' — ' + it.text.replace(/\n/g, ' ') : ''));
+        });
       }
     });
     var r = all().filter(function (it) { return state.removed[it.id]; });
