@@ -41,16 +41,20 @@
 
 <main id="list" aria-live="polite"></main>
 
-<button class="fab" id="addBtn" type="button" aria-label="Добавить свою идею">+</button>
+<button class="fab" id="addBtn" type="button" aria-label="Добавить идею или описание">+</button>
 
 <div class="sheet-bg" id="sheetBg" hidden></div>
 
 <section class="sheet" id="addSheet" hidden aria-label="Новая идея">
-  <h2>Своя идея</h2>
-  <label for="addText">Текст</label>
-  <textarea id="addText" rows="4" placeholder="Хук или мысль, которая пришла"></textarea>
+  <h2 id="addTitle">Своя идея или описание</h2>
   <label for="addSec">Раздел</label>
   <select id="addSec"></select>
+  <div id="addLabelRow" class="field" hidden>
+    <label for="addLabel">Для какого поста</label>
+    <input id="addLabel" type="text" placeholder="Например: рилс «Письмо прабабушки»" autocomplete="off">
+  </div>
+  <label for="addText">Текст</label>
+  <textarea id="addText" rows="4" placeholder="Хук или мысль, которая пришла"></textarea>
   <p class="hint" id="addAccHint"></p>
   <div class="sheet-actions">
     <button type="button" class="ghost" data-close>Отмена</button>
