@@ -1,0 +1,462 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ivory: #f3eee6;
+  --color-paper: #fbf8f3;
+  --color-ink: #2a2420;
+  --color-muted: #75695f;
+  --color-line: #e6ddd1;
+  --color-rose: #c45d72;
+  --color-rose-deep: #8e3d52;
+  --color-blush: #f6d5dc;
+  --color-sage: #6f8a68;
+  --color-sage-soft: #dce6d6;
+  --color-night: #2a2420;
+  --font-sans: "Manrope Variable", "Manrope", "Segoe UI", sans-serif;
+  --font-display: "Manrope Variable", "Manrope", "Segoe UI", sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-script: "Caveat", "Segoe Script", cursive;
+  --radius-4xl: 2rem;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    min-height: 100vh;
+    background-color: var(--color-ivory);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: var(--color-blush);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-rose);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 639px) {
+    input,
+    textarea,
+    select {
+      font-size: 1rem;
+    }
+  }
+}
+
+@layer components {
+  .atmosphere {
+    background-color: #efe6dc;
+  }
+
+  /* Размытая фотография + цветные пятна — как стекло на референсах. */
+  .atmosphere::before {
+    content: "";
+    position: fixed;
+    inset: -40px;
+    z-index: -2;
+    background-image: url("/atmosphere.jpg");
+    background-size: cover;
+    background-position: center 30%;
+    filter: blur(28px) saturate(1.15);
+    transform: scale(1.08);
+  }
+
+  .atmosphere::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(60% 45% at 8% 8%, rgb(246 213 220 / 0.85), transparent 70%),
+      radial-gradient(55% 40% at 95% 30%, rgb(220 230 214 / 0.75), transparent 70%),
+      radial-gradient(60% 45% at 80% 100%, rgb(232 214 238 / 0.7), transparent 70%),
+      radial-gradient(50% 40% at 0% 85%, rgb(250 222 196 / 0.65), transparent 70%),
+      rgb(251 248 243 / 0.35);
+  }
+
+  .display-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.035em;
+  }
+
+  .glass {
+    background: rgb(255 255 255 / 0.42);
+    border: 1px solid rgb(255 255 255 / 0.65);
+    box-shadow:
+      0 20px 44px -30px rgb(42 36 32 / 0.45),
+      inset 0 1px 0 rgb(255 255 255 / 0.7);
+    backdrop-filter: blur(22px) saturate(1.4);
+    -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  }
+
+  .glass-strong {
+    background: rgb(255 255 255 / 0.68);
+    border: 1px solid rgb(255 255 255 / 0.8);
+    box-shadow: 0 22px 50px -28px rgb(42 36 32 / 0.5);
+    backdrop-filter: blur(26px) saturate(1.5);
+    -webkit-backdrop-filter: blur(26px) saturate(1.5);
+  }
+
+  .glass-dark {
+    background: rgb(42 36 32 / 0.82);
+    color: var(--color-paper);
+    border: 1px solid rgb(255 255 255 / 0.14);
+    box-shadow: 0 24px 50px -28px rgb(42 36 32 / 0.6);
+    backdrop-filter: blur(22px) saturate(1.2);
+    -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  }
+
+  .toolbar-dark {
+    background: rgb(42 36 32 / 0.86);
+    border: 1px solid rgb(255 255 255 / 0.12);
+    box-shadow: 0 20px 40px -20px rgb(42 36 32 / 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Переливающийся градиент — для главного на экране. */
+  .aurora {
+    background:
+      radial-gradient(80% 90% at 0% 0%, #b9e0dc 0%, transparent 60%),
+      radial-gradient(70% 80% at 100% 10%, #f6c9b4 0%, transparent 60%),
+      radial-gradient(90% 90% at 70% 100%, #d9c3f0 0%, transparent 65%),
+      linear-gradient(135deg, #f7d6dd, #f3e3d3);
+    border: 1px solid rgb(255 255 255 / 0.7);
+    box-shadow: 0 24px 50px -30px rgb(142 61 82 / 0.55);
+  }
+
+  .sun-mark {
+    background:
+      radial-gradient(circle at 50% 50%, #fff 0 28%, transparent 29%),
+      conic-gradient(from 0deg, #fff 0 4deg, transparent 4deg 15deg, #fff 15deg 19deg, transparent 19deg 30deg, #fff 30deg 34deg, transparent 34deg 45deg, #fff 45deg 49deg, transparent 49deg 60deg, #fff 60deg 64deg, transparent 64deg 75deg, #fff 75deg 79deg, transparent 79deg 90deg, #fff 90deg 94deg, transparent 94deg 105deg, #fff 105deg 109deg, transparent 109deg 120deg, #fff 120deg 124deg, transparent 124deg 135deg, #fff 135deg 139deg, transparent 139deg 150deg, #fff 150deg 154deg, transparent 154deg 165deg, #fff 165deg 169deg, transparent 169deg 180deg, #fff 180deg 184deg, transparent 184deg 195deg, #fff 195deg 199deg, transparent 199deg 210deg, #fff 210deg 214deg, transparent 214deg 225deg, #fff 225deg 229deg, transparent 229deg 240deg, #fff 240deg 244deg, transparent 244deg 255deg, #fff 255deg 259deg, transparent 259deg 270deg, #fff 270deg 274deg, transparent 274deg 285deg, #fff 285deg 289deg, transparent 289deg 300deg, #fff 300deg 304deg, transparent 304deg 315deg, #fff 315deg 319deg, transparent 319deg 330deg, #fff 330deg 334deg, transparent 334deg 345deg, #fff 345deg 349deg, transparent 349deg 360deg),
+      linear-gradient(135deg, #c45d72, #e2a35f);
+  }
+
+  .editor-root,
+  .flip-root {
+    background: transparent;
+  }
+
+  .book-page-shadow {
+    box-shadow:
+      0 30px 60px -30px rgb(42 36 32 / 0.55),
+      0 2px 6px rgb(42 36 32 / 0.08);
+  }
+
+  .thumb-shadow {
+    box-shadow:
+      0 16px 30px -18px rgb(42 36 32 / 0.55),
+      0 1px 3px rgb(42 36 32 / 0.1);
+  }
+
+  .photo-shadow {
+    box-shadow: 0 1.2cqw 2.4cqw -0.8cqw rgb(42 36 32 / 0.38);
+  }
+
+  .sticker-art {
+    filter: drop-shadow(0 0.6cqw 0.8cqw rgb(42 36 32 / 0.25));
+    -webkit-user-drag: none;
+  }
+
+  .paper-grain {
+    background-image:
+      radial-gradient(120% 80% at 10% 0%, rgb(255 255 255 / 0.5), transparent 50%),
+      radial-gradient(100% 70% at 100% 100%, rgb(42 36 32 / 0.04), transparent 60%);
+  }
+
+  .endpaper {
+    background-color: #8e3d52;
+    background-image:
+      radial-gradient(circle at 25% 25%, rgb(255 255 255 / 0.14) 0 1.2px, transparent 1.6px),
+      radial-gradient(circle at 75% 75%, rgb(255 255 255 / 0.1) 0 1.2px, transparent 1.6px);
+    background-size: 14px 14px;
+  }
+
+  .cut-shimmer {
+    background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.6) 45%, transparent 70%);
+    background-size: 220% 100%;
+    animation: shimmer 1.2s linear infinite;
+  }
+
+  .sheet-in {
+    animation: sheet-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .handle {
+    touch-action: none;
+  }
+
+  .rod-toast {
+    border-radius: 1.2rem !important;
+    font-family: var(--font-sans) !important;
+  }
+
+  .wash-blush {
+    background: linear-gradient(
+      165deg,
+      color-mix(in oklab, var(--color-blush) 88%, white),
+      color-mix(in oklab, var(--color-paper) 80%, var(--color-blush))
+    );
+  }
+
+  .wash-sage {
+    background: linear-gradient(
+      165deg,
+      color-mix(in oklab, var(--color-sage-soft) 90%, white),
+      color-mix(in oklab, var(--color-paper) 78%, var(--color-sage-soft))
+    );
+  }
+
+  .field {
+    width: 100%;
+    border-radius: 1.1rem;
+    border: 1px solid rgb(255 255 255 / 0.8);
+    background: rgb(255 255 255 / 0.72);
+    padding: 0.85rem 1rem;
+    color: var(--color-ink);
+    font: inherit;
+    line-height: 1.45;
+  }
+
+  .field::placeholder {
+    color: color-mix(in oklab, var(--color-muted) 80%, white);
+  }
+
+  .dock {
+    padding-bottom: max(0.7rem, env(safe-area-inset-bottom));
+  }
+
+  .rise {
+    animation: rise 320ms ease both;
+  }
+
+  .paper-cream {
+    background-color: var(--color-paper);
+    background-image: radial-gradient(circle at 20% 10%, color-mix(in oklab, white 70%, transparent), transparent 42%);
+  }
+
+  .paper-lined {
+    background-color: var(--color-paper);
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 1.65rem,
+      color-mix(in oklab, var(--color-line) 80%, white) 1.7rem
+    );
+  }
+
+  .paper-rose {
+    background-color: color-mix(in oklab, var(--color-blush) 55%, var(--color-paper));
+  }
+
+  .paper-sage {
+    background-color: color-mix(in oklab, var(--color-sage-soft) 70%, var(--color-paper));
+  }
+
+  .page-stage {
+    width: min(100%, 28rem);
+    margin-inline: auto;
+  }
+
+  @media (min-width: 64rem) {
+    .page-stage {
+      width: 100%;
+      margin-inline: 0;
+    }
+  }
+
+  .book-shell {
+    box-shadow:
+      0 30px 50px -28px color-mix(in oklab, var(--color-ink) 55%, transparent),
+      8px 0 0 color-mix(in oklab, var(--color-line) 80%, white),
+      14px 0 0 color-mix(in oklab, var(--color-blush) 70%, white);
+  }
+
+  .ink-surface {
+    touch-action: none;
+  }
+
+  .scrap-block {
+    touch-action: none;
+  }
+
+  .sticker-lay {
+    filter: drop-shadow(0 12px 8px color-mix(in oklab, var(--color-ink) 34%, transparent));
+  }
+
+  .subject-shot {
+    touch-action: pan-y;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .subject-shot img {
+    -webkit-user-drag: none;
+    pointer-events: none;
+  }
+
+  .subject-hold {
+    transform: scale(1.045);
+    filter:
+      drop-shadow(0 0 1px var(--color-paper))
+      drop-shadow(0 0 3px var(--color-paper))
+      drop-shadow(0 16px 14px color-mix(in oklab, var(--color-ink) 32%, transparent));
+    transition: transform 280ms ease;
+  }
+
+  .subject-pop {
+    animation: subject-pop 460ms cubic-bezier(0.16, 1.25, 0.32, 1);
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .card-back {
+    background-color: var(--color-rose-deep);
+    color: var(--color-paper);
+    background-image:
+      radial-gradient(circle at 18% 16%, color-mix(in oklab, var(--color-blush) 42%, transparent), transparent 32%),
+      repeating-linear-gradient(
+        45deg,
+        transparent 0 12px,
+        color-mix(in oklab, var(--color-blush) 22%, transparent) 12px 13px
+      );
+  }
+
+  .card-face {
+    background: color-mix(in oklab, var(--color-paper) 92%, white);
+  }
+
+  .page-flip {
+    animation: page-flip 320ms ease;
+  }
+
+  .card-stage {
+    height: min(24rem, calc(100svh - 22rem));
+    min-height: 16rem;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes subject-pop {
+  from {
+    transform: scale(1.12);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes page-flip {
+  from {
+    opacity: 0.4;
+    transform: perspective(900px) rotateY(-12deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .page-flip,
+  .subject-hold,
+  .subject-pop {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .atmosphere {
+    background: white !important;
+  }
+
+  .glass,
+  .glass-dark,
+  .wash-blush,
+  .wash-sage {
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-muted);
+}
+
+@keyframes wiggle {
+  from {
+    transform: rotate(-0.8deg);
+  }
+  to {
+    transform: rotate(0.8deg);
+  }
+}
