@@ -87,14 +87,25 @@ export function lookPad(look: TextLook | undefined): { x: number; y: number; rad
   return { x: 0, y: 0, radius: 0 };
 }
 
-export function lookColors(look: TextLook | undefined, color?: string, bg?: string): { bg: string; fg: string } {
-  if (look === "card") return { bg: bg || COLORS.night, fg: color || COLORS.paper };
+export function lookColors(look: TextLook | undefined, color?: string, bg?: string, darkPage = false): { bg: string; fg: string } {
+  if (look === "card") return { bg: bg || (darkPage ? COLORS.paper : COLORS.night), fg: color || (darkPage ? COLORS.ink : COLORS.paper) };
   if (look === "pill") return { bg: bg || COLORS.blush, fg: color || COLORS.roseDeep };
-  return { bg: "transparent", fg: color || COLORS.ink };
+  return { bg: "transparent", fg: color || (darkPage ? COLORS.paper : COLORS.ink) };
+}
+
+/** Тёмная ли страница — тогда текст по умолчанию светлый. */
+export function isDark(color?: string): boolean {
+  if (!color || !/^#[0-9a-f]{6}$/i.test(color)) return false;
+  const n = parseInt(color.slice(1), 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return 0.299 * r + 0.587 * g + 0.114 * b < 110;
 }
 
 /** Палитра для текста, плашек и страниц. */
 export const SWATCHES = [
+  "#000000",
   "#2a2420",
   "#ffffff",
   "#fbf8f3",

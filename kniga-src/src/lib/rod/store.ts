@@ -61,6 +61,7 @@ type RodState = {
   placePage: (id: string, index: number) => void;
   duplicatePage: (id: string) => string | null;
   removePage: (id: string) => void;
+  removePages: (ids: string[]) => void;
   restorePage: (id: string) => void;
   purgeTrash: () => void;
   openProgram: () => void;
@@ -232,7 +233,17 @@ export const useRod = create<RodState>()(
           const page = state.pages[index];
           return {
             pages: state.pages.filter((item) => item.id !== id),
-            trash: [{ page, index, at: new Date().toISOString() }, ...state.trash].slice(0, 60),
+            trash: [{ page, index, at: new Date().toISOString() }, ...state.trash].slice(0, 300),
+          };
+        }),
+      removePages: (ids) =>
+        set((state) => {
+          const gone = new Set(ids);
+          const at = new Date().toISOString();
+          const removed = state.pages.map((page, index) => ({ page, index, at })).filter((item) => gone.has(item.page.id));
+          return {
+            pages: state.pages.filter((page) => !gone.has(page.id)),
+            trash: [...removed.reverse(), ...state.trash].slice(0, 300),
           };
         }),
       restorePage: (id) =>

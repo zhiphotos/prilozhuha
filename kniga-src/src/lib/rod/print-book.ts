@@ -6,6 +6,7 @@ import {
   FONT_WEIGHT,
   PAGE_RATIO,
   POLAROID,
+  isDark,
   lookColors,
   lookPad,
   stickerRatio,
@@ -189,11 +190,11 @@ function rotateAround(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
   ctx.translate(-w / 2, -h / 2);
 }
 
-function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { type: "text" }>) {
+function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { type: "text" }>, dark = false) {
   if (!block.text.trim()) return;
   const metrics = textMetrics(block.font, block.size);
   const pad = lookPad(block.look);
-  const colors = lookColors(block.look, block.color, block.bg);
+  const colors = lookColors(block.look, block.color, block.bg, dark);
   const px = metrics.size * U;
   const lh = px * metrics.leading;
   ctx.font = `${FONT_WEIGHT[block.font]} ${px}px ${FONT_FAMILY[block.font]}`;
@@ -345,7 +346,7 @@ export async function paintPage(page: BookPage, meta: CoverMeta, setup?: PrintSe
   paintPaper(ctx, page.paper, bleed, page.bg);
   if (page.kind === "cover" && !page.designed) await paintCover(ctx, meta);
   for (const block of page.blocks) {
-    if (block.type === "text") paintText(ctx, block);
+    if (block.type === "text") paintText(ctx, block, isDark(page.bg));
     else if (block.type === "photo") await paintPhoto(ctx, block);
     else if (block.type === "sticker") await paintSticker(ctx, block);
   }

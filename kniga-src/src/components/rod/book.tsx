@@ -297,7 +297,21 @@ function PrintSheet({ pages, meta, onClose }: { pages: BookPage[]; meta: { dedic
 /** Миниатюры страниц. В режиме «Порядок» страницы перетаскиваются пальцем или сдвигаются стрелками. */
 function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { dedicatee: string; collector: string }; onOpen: (id: string) => void; onAdd: () => void }) {
   const placePage = useRod((state) => state.placePage);
+  const removePages = useRod((state) => state.removePages);
+  const restorePage = useRod((state) => state.restorePage);
   const [arrange, setArrange] = useState(false);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [confirmAll, setConfirmAll] = useState(false);
+
+  const drop = (ids: string[]) => {
+    if (!ids.length) return;
+    removePages(ids);
+    setPicked([]);
+    toast(ids.length === 1 ? "Страница в корзине" : `${ids.length} страниц в корзине`, {
+      action: { label: "Вернуть", onClick: () => [...ids].reverse().forEach((id) => restorePage(id)) },
+      duration: 8000,
+    });
+  };
   const [drag, setDrag] = useState<{ id: string; pointerId: number; dx: number; dy: number; x0: number; y0: number; over: number } | null>(null);
   const first = pages[0]?.kind === "cover" ? 1 : 0;
 
@@ -307,8 +321,12 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
   };
 
   const onDown = (event: React.PointerEvent, page: BookPage, index: number) => {
-    if (!arrange || page.kind === "cover") return;
+    if (!arrange) return;
     if ((event.target as HTMLElement).closest("button[aria-label]")) return;
+    if (page.kind === "cover") {
+      setPicked((list) => (list.includes(page.id) ? list.filter((id) => id !== page.id) : [...list, page.id]));
+      return;
+    }
     event.preventDefault();
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
     setDrag({ id: page.id, pointerId: event.pointerId, dx: 0, dy: 0, x0: event.clientX, y0: event.clientY, over: index });
@@ -324,20 +342,48 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
   const onUp = (event: React.PointerEvent) => {
     if (!drag || drag.pointerId !== event.pointerId) return;
     const from = pages.findIndex((page) => page.id === drag.id);
-    if (from !== drag.over) move(drag.id, drag.over);
+    const moved = Math.hypot(drag.dx, drag.dy) > 8;
+    if (moved && from !== drag.over) move(drag.id, drag.over);
+    // Простое касание без перетаскивания — выбрать страницу.
+    if (!moved) setPicked((list) => (list.includes(drag.id) ? list.filter((id) => id !== drag.id) : [...list, drag.id]));
     setDrag(null);
   };
 
   return (
     <>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-sm text-muted">{arrange ? "Тащите страницу на новое место или жмите стрелки" : `${plural(pages.length, "страница", "страницы", "страниц")}`}</p>
-        {pages.length > 1 ? (
-          <Button variant={arrange ? "primary" : "soft"} className="min-h-10 px-4" onClick={() => setArrange((v) => !v)}>
-            {arrange ? "Готово" : <><ArrowLeftRight className="size-4" /> Порядок</>}
+        <p className="text-sm text-muted">{arrange ? "Тащите — поменять место. Коснитесь — выбрать." : `${plural(pages.length, "страница", "страницы", "страниц")}`}</p>
+        {pages.length > 0 ? (
+          <Button variant={arrange ? "primary" : "soft"} className="min-h-10 shrink-0 px-4" onClick={() => { setArrange((v) => !v); setPicked([]); setConfirmAll(false); }}>
+            {arrange ? "Готово" : <><ArrowLeftRight className="size-4" /> Порядок и удаление</>}
           </Button>
         ) : null}
       </div>
+      {arrange ? (
+        <div className="glass sticky top-2 z-20 mb-4 flex flex-wrap items-center gap-2 rounded-[1.4rem] p-2">
+          <Button variant="white" className="min-h-10 px-3" onClick={() => setPicked(picked.length === pages.length ? [] : pages.map((page) => page.id))}>
+            {picked.length === pages.length ? "Снять выбор" : "Выбрать все"}
+          </Button>
+          <Button className="min-h-10 px-3" variant="night" disabled={!picked.length} onClick={() => drop(picked)}>
+            <Trash2 className="size-4" /> Удалить выбранные{picked.length ? ` · ${picked.length}` : ""}
+          </Button>
+          {confirmAll ? (
+            <span className="flex items-center gap-2">
+              <Button className="min-h-10 px-3" variant="night" onClick={() => { drop(pages.map((page) => page.id)); setConfirmAll(false); }}>
+                Да, все {pages.length}
+              </Button>
+              <Button variant="ghost" className="min-h-10 px-3" onClick={() => setConfirmAll(false)}>
+                Отмена
+              </Button>
+            </span>
+          ) : (
+            <Button variant="ghost" className="min-h-10 px-3 text-rose-deep" onClick={() => setConfirmAll(true)}>
+              Удалить все страницы
+            </Button>
+          )}
+          <span className="w-full px-1 text-xs text-muted">Удалённое лежит в корзине внизу экрана — его можно вернуть.</span>
+        </div>
+      ) : null}
       <ul className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3">
         {pages.map((page, index) => {
           const dragging = drag?.id === page.id;
@@ -355,10 +401,18 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
               onPointerCancel={onUp}
             >
               <button type="button" onClick={() => (arrange ? undefined : onOpen(page.id))} className={cn("group block w-full text-left", arrange && page.kind !== "cover" && "cursor-grab")}>
-                <div className={cn("thumb-shadow overflow-hidden rounded-[6px] transition", !arrange && "group-active:scale-[0.98]", arrange && page.kind !== "cover" && "animate-[wiggle_0.4s_ease-in-out_infinite_alternate]", target && "ring-4 ring-rose", dragging && "shadow-2xl")}>
+                <div className={cn("thumb-shadow overflow-hidden rounded-[6px] transition", !arrange && "group-active:scale-[0.98]", arrange && page.kind !== "cover" && "animate-[wiggle_0.4s_ease-in-out_infinite_alternate]", target && "ring-4 ring-rose", dragging && "shadow-2xl", arrange && picked.includes(page.id) && "ring-4 ring-night")}>
                   <PageSheet page={page} meta={meta} editing />
                 </div>
               </button>
+              {arrange ? (
+                <>
+                  <span className={cn("pointer-events-none absolute left-2 top-2 grid size-6 place-items-center rounded-full border-2 border-white text-xs font-bold shadow", picked.includes(page.id) ? "bg-night text-paper" : "bg-white/70 text-transparent")}>✓</span>
+                  <button type="button" aria-label="Удалить страницу" onClick={() => drop([page.id])} className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-white/90 text-rose-deep shadow">
+                    <Trash2 className="size-4" />
+                  </button>
+                </>
+              ) : null}
               {arrange && page.kind !== "cover" ? (
                 <div className="mt-2 flex items-center justify-between gap-1">
                   <button type="button" aria-label="Раньше" disabled={index <= first} onClick={() => move(page.id, index - 1)} className="grid size-9 place-items-center rounded-full bg-white/80 text-ink disabled:opacity-30">

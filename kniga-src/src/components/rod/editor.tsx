@@ -20,6 +20,8 @@ import {
   PenLine,
   Maximize,
   Redo2,
+  ArrowLeftRight,
+  Square,
   Ruler,
   RotateCcw,
   Scissors,
@@ -117,6 +119,29 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const print = useRod((state) => state.print);
   const page = pages.find((item) => item.id === pageId) ?? null;
   const index = pages.findIndex((item) => item.id === pageId);
+  const hasCover = pages[0]?.kind === "cover";
+  // Соседняя страница разворота: левые — чётные, правые — нечётные (обложка не считается, страница 1 смотрит на форзац).
+  const pageNo = hasCover ? index : index + 1;
+  const partnerNo = pageNo % 2 === 1 ? pageNo - 1 : pageNo + 1;
+  const partnerIndex = index < 0 || (hasCover && index === 0) || partnerNo < 2 ? -1 : hasCover ? partnerNo : partnerNo - 1;
+  const partner = partnerIndex >= 0 ? (pages[partnerIndex] ?? null) : null;
+  const [spread, setSpreadState] = useState(() => {
+    try {
+      const saved = localStorage.getItem("kniga-spread");
+      return saved ? saved === "1" : window.innerWidth >= 700;
+    } catch {
+      return true;
+    }
+  });
+  const setSpread = (next: boolean) => {
+    setSpreadState(next);
+    try {
+      localStorage.setItem("kniga-spread", next ? "1" : "0");
+    } catch {
+      /* без запоминания */
+    }
+  };
+  const twoUp = spread && Boolean(partner);
   const meta = useMemo(() => ({ dedicatee, collector }), [dedicatee, collector]);
 
   const [selected, setSelected] = useState<string | null>(null);
@@ -163,14 +188,14 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     if (!stage) return;
     const fit = () => {
       const rect = stage.getBoundingClientRect();
-      const w = Math.max(160, Math.min(rect.width - 8, (rect.height - 8) / PAGE_RATIO, 720));
+      const w = Math.max(140, Math.min(twoUp ? (rect.width - 24) / 2 : rect.width - 8, (rect.height - 8) / PAGE_RATIO, 720));
       setSize({ w, h: w * PAGE_RATIO });
     };
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(stage);
     return () => observer.disconnect();
-  }, [page?.id]);
+  }, [page?.id, twoUp]);
 
   useEffect(() => {
     undo.current = [];
@@ -752,6 +777,11 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           <IconBtn label="Повторить" disabled={!redo.current.length} onClick={doRedo}>
             <Redo2 className="size-[18px]" />
           </IconBtn>
+          {partner ? (
+            <IconBtn label={spread ? "Одна страница" : "Разворот"} onClick={() => setSpread(!spread)}>
+              {spread ? <Square className="size-[18px]" /> : <BookOpen className="size-[18px]" />}
+            </IconBtn>
+          ) : null}
           <IconBtn label="Ещё" onClick={() => setPanel("menu")}>
             <MoreHorizontal className="size-[18px]" />
           </IconBtn>
@@ -761,7 +791,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       {/* Лист */}
       <div className="relative min-h-0 flex-1">
       <div ref={stageRef} className="no-scrollbar absolute inset-0 overflow-auto">
-      <div className="flex min-h-full items-center justify-center p-3" style={{ width: zoom > 1 ? size.w * zoom + 24 : "100%" }}>
+      <div className="flex min-h-full items-center justify-center p-3" style={{ width: zoom > 1 ? size.w * zoom * (twoUp ? 2 : 1) + 24 : "100%" }}>
+        {twoUp && partner && side === "right" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="left" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
         <div
           ref={sheetRef}
           className={cn("book-page-shadow relative select-none rounded-[2px]", dropping && "ring-4 ring-rose/60")}
@@ -830,6 +861,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             </div>
           ) : null}
         </div>
+        {twoUp && partner && side === "left" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="right" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
       </div>
       </div>
         <div className="glass-strong absolute bottom-2 right-3 z-10 flex items-center rounded-full p-1">
@@ -878,6 +910,28 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             onFill={() => {
               setSlotTarget(selectedBlock.id);
               setPanel("photo");
+            }}
+            onWrite={() => {
+              if (selectedBlock.type !== "photo") return;
+              const b = selectedBlock;
+              const polaroid = b.frame === "polaroid";
+              const text: PageBlock = {
+                id: id(),
+                type: "text",
+                x: round(b.x + b.w * 0.07),
+                y: round(polaroid ? b.y + b.h - (b.w * POLAROID.bottom) / 100 + 0.6 : b.y + b.h * 0.72),
+                w: round(b.w * 0.86),
+                text: "",
+                font: "script",
+                size: "md",
+                align: "center",
+                rotate: b.rotate ?? 0,
+                color: polaroid ? undefined : "#ffffff",
+                placeholder: "Надпись на фото",
+              };
+              stickSound();
+              flushSync(() => addBlock(text));
+              startEditing(text.id);
             }}
             onFull={() => {
               if (selectedBlock.type !== "photo") return;
@@ -1079,6 +1133,17 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           </div>
           <div className="grid gap-2">
             <MenuRow icon={<BookOpen className="size-4" />} label="Листать книгу" onClick={() => { setPanel(null); nav.go({ id: "flip", pageId: page.id }); }} />
+            {partner ? (
+              <MenuRow
+                icon={<ArrowLeftRight className="size-4" />}
+                label={`Поменять местами с соседней «${partner.title}»`}
+                onClick={() => {
+                  useRod.getState().placePage(page.id, partnerIndex);
+                  setPanel(null);
+                  toast("Страницы разворота поменялись местами");
+                }}
+              />
+            ) : null}
             <MenuRow icon={<Copy className="size-4" />} label="Сделать копию страницы" onClick={() => { const copy = duplicatePage(page.id); setPanel(null); if (copy) nav.replace({ id: "editor", pageId: copy }); }} />
             <div className="grid grid-cols-2 gap-2">
               <MenuRow icon={<ChevronLeft className="size-4" />} label="Раньше в книге" disabled={index <= 0} onClick={() => movePage(page.id, -1)} />
@@ -1283,8 +1348,10 @@ function BlockBar({
   onCut,
   onFill,
   onFull,
+  onWrite,
 }: {
   onFull: () => void;
+  onWrite: () => void;
   block: PageBlock;
   busy: boolean;
   onPatch: (partial: Partial<PageBlock>) => void;
@@ -1341,6 +1408,9 @@ function BlockBar({
               {frame === "polaroid" ? "Полароид" : frame === "sticker" ? "Кайма" : frame === "tape" ? "Скотч" : "Фото"}
             </BarBtn>
           ))}
+          <BarBtn onClick={onWrite} active>
+            <Type className="size-4" /> Надпись
+          </BarBtn>
           <BarBtn onClick={onFull}>
             <Maximize className="size-4" /> На всю страницу
           </BarBtn>
@@ -1640,5 +1710,23 @@ function HelpSheet({ title, questions, onClose, onInsert }: { title: string; que
         Поставить на страницу
       </Button>
     </Sheet>
+  );
+}
+
+/** Соседняя страница разворота: видна рядом, нажали — редактируете её. */
+function PartnerPage({ page, meta, width, side, onOpen }: { page: BookPage; meta: { dedicatee: string; collector: string }; width: number; side: "left" | "right"; onOpen: () => void }) {
+  return (
+    <button type="button" onClick={onOpen} className="group relative shrink-0 text-left" style={{ width }} aria-label={`Перейти к странице «${page.title}»`}>
+      <div className="book-page-shadow overflow-hidden rounded-[2px] opacity-90 transition group-hover:opacity-100">
+        <PageSheet page={page} meta={meta} editing />
+      </div>
+      <div
+        className="pointer-events-none absolute inset-y-0 w-[8%]"
+        style={{ [side === "left" ? "right" : "left"]: 0, background: `linear-gradient(${side === "left" ? "270deg" : "90deg"}, rgba(42,36,32,.18), rgba(42,36,32,0))` }}
+      />
+      <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-night/75 px-3 py-1 text-[11px] text-paper opacity-0 transition group-hover:opacity-100">
+        Нажмите, чтобы оформлять
+      </span>
+    </button>
   );
 }

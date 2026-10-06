@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { ImagePlus } from "lucide-react";
 import { useMedia } from "@/lib/rod/media";
 import {
@@ -7,6 +7,7 @@ import {
   FONT_WEIGHT,
   PAGE_RATIO,
   POLAROID,
+  isDark,
   lookColors,
   lookPad,
   stickerRatio,
@@ -17,6 +18,9 @@ import type { BookPage, InkStroke, PageBlock, PaperKind } from "@/lib/rod/types"
 import { cn } from "@/lib/cn";
 
 export type CoverMeta = { dedicatee: string; collector: string };
+
+/** Тёмная страница: текст и карточки по умолчанию светлые. */
+const DarkPage = createContext(false);
 
 /** Высота страницы в единицах ширины (для координат по вертикали). */
 export const PAGE_H = 100 * PAGE_RATIO;
@@ -69,11 +73,12 @@ export function PageSheet({
   clip?: boolean;
 }) {
   return (
+    <DarkPage.Provider value={isDark(page.bg)}>
     <div
       className={cn("page-sheet relative w-full", clip && "overflow-hidden", className)}
       style={{ ...paperStyle(page.paper), ...(page.bg ? { backgroundColor: page.bg } : {}), aspectRatio: `1 / ${PAGE_RATIO}`, containerType: "inline-size" }}
     >
-      <div className="paper-grain pointer-events-none absolute inset-0" />
+      {isDark(page.bg) ? null : <div className="paper-grain pointer-events-none absolute inset-0" />}
       {page.kind === "cover" && !page.designed ? <CoverArt meta={meta} /> : null}
       {children ?? (
         <>
@@ -86,6 +91,7 @@ export function PageSheet({
       )}
       {hideStrokes ? null : <InkLayer strokes={page.strokes} />}
     </div>
+    </DarkPage.Provider>
   );
 }
 
@@ -194,7 +200,8 @@ export function BlockArt({ block, editing = false }: { block: PageBlock; editing
 export function TextArt({ block, editing }: { block: Extract<PageBlock, { type: "text" }>; editing: boolean }) {
   const metrics = textMetrics(block.font, block.size);
   const pad = lookPad(block.look);
-  const colors = lookColors(block.look, block.color, block.bg);
+  const dark = useContext(DarkPage);
+  const colors = lookColors(block.look, block.color, block.bg, dark);
   const empty = !block.text.trim();
   if (empty && !editing) return null;
   return (
