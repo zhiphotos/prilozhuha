@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Карта проектов</title>
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<meta name="googlebot" content="noindex, nofollow">
+<meta name="theme-color" content="#f4f5f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141917" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prata&family=Golos+Text:wght@400;500;600&display=swap">
+<style>
+/* Карта: три мира в колонках (мамы · корни · творцы), стрелки — кто кого толкает. Под картой — порядок, объём, неделя. */
+:root{
+  --bg:#f4f5f1; --surface:#fff; --fg:#1d2321; --muted:#5f6863; --line:#d6dbd3;
+  --mom:#b0602a; --mom-soft:#f7ebe1; --rod:#7a3b5c; --rod-soft:#f3e7ee; --zhi:#2f6b4f; --zhi-soft:#e5f0ea;
+  --money:#8a6a12; --money-soft:#f5eed9; --edge:#8c958f;
+  --display:"Prata",Georgia,serif; --body:"Golos Text",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#141917; --surface:#1d2321; --fg:#e7ebe8; --muted:#9aa49f; --line:#323b37;
+  --mom:#eaa06d; --mom-soft:#33251a; --rod:#dca2bf; --rod-soft:#33222c; --zhi:#8ccaa8; --zhi-soft:#1d3027;
+  --money:#e3c46e; --money-soft:#2e2814; --edge:#6c7570; color-scheme:dark}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+h1{font:400 1.45rem/1.1 var(--display);margin:0}
+.back{color:var(--muted);text-decoration:none;font-size:.95rem;border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--surface)}
+main{max-width:760px;margin:0 auto;padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 40px);display:flex;flex-direction:column;gap:28px}
+h2{font:400 1.2rem/1.2 var(--display);margin:0 0 10px}
+.hint{color:var(--muted);font-size:.88rem;margin:0}
+
+/* map */
+.mapwrap{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 6px 8px}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.cols span:nth-child(1){color:var(--mom)} .cols span:nth-child(2){color:var(--rod)} .cols span:nth-child(3){color:var(--zhi)}
+.map{position:relative;height:550px}
+.map svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.node{position:absolute;transform:translate(-50%,0);width:30%;max-width:170px;border-radius:12px;border:1.5px solid var(--c);background:var(--cs);color:var(--fg);padding:7px 4px;text-align:center;line-height:1.2;z-index:2}
+.node b{display:block;font-size:.76rem;font-weight:600;color:var(--c)}
+.node small{display:block;font-size:.66rem;color:var(--muted);margin-top:2px}
+.node.big{padding:10px 6px;border-width:2.5px}
+.node.big b{font-size:.8rem}
+.node.money{border-style:solid;border-radius:999px;--c:var(--money);--cs:var(--money-soft)}
+.node.later{border-style:dashed;opacity:.85}
+.node .badge{position:absolute;top:-9px;right:-6px;background:var(--rod);color:var(--bg);font-size:.66rem;font-weight:600;border-radius:999px;padding:2px 7px}
+.mom{--c:var(--mom);--cs:var(--mom-soft)} .rod{--c:var(--rod);--cs:var(--rod-soft)} .zhi{--c:var(--zhi);--cs:var(--zhi-soft)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.78rem;color:var(--muted);padding:8px 8px 0}
+.legend i{display:inline-block;width:22px;height:0;border-top:2px solid var(--edge);vertical-align:middle;margin-right:5px}
+.legend i.d{border-top-style:dashed}
+.legend i.m{width:12px;height:12px;border:1.5px solid var(--money);background:var(--money-soft);border-radius:999px}
+
+/* lists */
+.pushes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.pushes li{display:grid;grid-template-columns:26px 1fr;gap:8px;font-size:.93rem}
+.num{width:22px;height:22px;border-radius:50%;background:var(--fg);color:var(--bg);font-size:.72rem;font-weight:600;display:grid;place-items:center}
+.stages{display:flex;flex-direction:column;gap:10px}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.stage.now{border:2px solid var(--rod)}
+.stage .t{font-weight:600}
+.stage .w{font-size:.75rem;font-weight:600;color:var(--rod);text-transform:uppercase;letter-spacing:.06em}
+.stage ul{margin:0;padding-left:1.1em;font-size:.92rem;display:flex;flex-direction:column;gap:3px}
+.acc{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.acc h3{margin:0;font-size:1.02rem;color:var(--c)}
+.acc .sub{font-size:.85rem;color:var(--muted);margin:-4px 0 0}
+.rub{display:grid;grid-template-columns:1fr auto auto;gap:4px 10px;align-items:baseline;font-size:.9rem;border-top:1px solid var(--line);padding-top:7px}
+.rub span:nth-child(2){font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+.who{font-size:.7rem;border-radius:5px;padding:2px 6px;white-space:nowrap}
+.who.me{background:var(--fg);color:var(--bg)} .who.ai{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.rub em{grid-column:1/-1;font-style:normal;color:var(--muted);font-size:.8rem;margin-top:-3px}
+.total{font-size:.85rem;font-weight:600}
+.week{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.week table{border-collapse:collapse;min-width:620px;width:100%;font-size:.8rem}
+.week th,.week td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.week tr:last-child td{border-bottom:0}
+.week th{font-weight:600;color:var(--muted);font-size:.72rem;text-transform:uppercase}
+.week td:first-child{font-weight:600;white-space:nowrap}
+.week .me{color:var(--fg);font-weight:600}
+
+/* sheet */
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surface);border-radius:18px 18px 0 0;padding:18px 16px calc(env(safe-area-inset-bottom,0px) + 20px);max-height:82vh;overflow:auto;max-width:760px;margin:0 auto;border-top:4px solid var(--c)}
+.sheet h3{margin:0 0 4px;font:400 1.3rem/1.2 var(--display);color:var(--c)}
+.sheet .role{margin:0 0 10px;font-size:.95rem}
+.sheet dl{margin:0;display:flex;flex-direction:column;gap:8px}
+.sheet dt{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.sheet dd{margin:0;font-size:.93rem;white-space:pre-line}
+.sheet .close{margin-top:14px;width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Карта проектов</h1>
+  <a class="back" href="./">← Студия</a>
+</header>
+
+<main>
+<section>
+  <div class="mapwrap">
+    <div class="cols"><span>Мамы</span><span>Корни · №1</span><span>Творцы</span></div>
+    <div class="map" id="map"><svg id="edges" aria-hidden="true"></svg></div>
+    <div class="legend"><span><i></i>ведёт людей</span><span><i class="d"></i>позже или взаимно</span><span><i class="m"></i>деньги</span></div>
+  </div>
+  <p class="hint" style="margin-top:8px">Нажми на любой кружок — откроется, что там делать, в каком объёме и кто делает.</p>
+</section>
+
+<section>
+  <h2>Как проекты толкают друг друга</h2>
+  <ol class="pushes" id="pushes"></ol>
+</section>
+
+<section>
+  <h2>Что первым</h2>
+  <div class="stages">
+    <div class="stage now">
+      <span class="w">Сейчас · ~6 недель</span>
+      <span class="t">Раскачать Книгу Рода — продукт готов, аккаунт нулевой</span>
+      <ul>
+        <li>Книга Рода — пост каждый день</li>
+        <li>Threads — каждый день, мамы и Кики</li>
+        <li>@zhiphotos — 1 актёрский ролик раз в 2 недели + всё, что из него выжимается</li>
+      </ul>
+    </div>
+    <div class="stage">
+      <span class="w">Потом · когда в Книге Роде запас на 2 недели</span>
+      <span class="t">Актёрский ролик каждую неделю</span>
+      <ul>
+        <li>Пробные рилс на каждый ролик</li>
+        <li>Бренды внутри сюжета</li>
+      </ul>
+    </div>
+    <div class="stage">
+      <span class="w">Дальше</span>
+      <span class="t">Приложение для творцов</span>
+      <ul>
+        <li>Показываешь, как сама решаешь задачи в нём и как любой может сделать такое же</li>
+        <li>Медитации — внутрь приложения</li>
+        <li>Тогда же решаем про отдельный профиль про вайбкодинг</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Рубрики и объём в неделю</h2>
+  <div style="display:flex;flex-direction:column;gap:12px" id="accs"></div>
+</section>
+
+<section>
+  <h2>Неделя</h2>
+  <div class="week">
+    <table>
+      <thead><tr><th></th><th>Пн</th><th>Вт</th><th>Ср</th><th>Чт</th><th>Пт</th><th>Сб</th><th>Вс</th></tr></thead>
+      <tbody>
+        <tr><td style="color:var(--rod)">Книга Рода</td><td>ИИ-ролик</td><td>Карусель</td><td class="me">ASMR</td><td>ИИ-ролик</td><td>Карусель-глубина</td><td class="me">ASMR</td><td>ИИ-ролик</td></tr>
+        <tr><td style="color:var(--zhi)">@zhiphotos</td><td class="me">Актёрский (раз в 2 нед)</td><td>Бэкстейдж</td><td class="me">Для творцов</td><td>Монтаж с кодом / полезная карусель</td><td class="me">Разбор ролика</td><td>Пробные рилс</td><td>Моя неделя</td></tr>
+        <tr><td style="color:var(--mom)">Threads</td><td colspan="7">Каждый день: 1–2 поста про мам и Кики + 1 про вайбкодинг</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="hint" style="margin-top:8px">Жирное — снимаешь ты. Остальное монтирует ИИ.</p>
+</section>
+</main>
+
+<div class="sheet-bg" id="bg" hidden></div>
+<section class="sheet" id="sheet" hidden aria-live="polite">
+  <h3 id="sTitle"></h3>
+  <p class="role" id="sRole"></p>
+  <dl id="sList"></dl>
+  <button type="button" class="close" id="sClose">Закрыть</button>
+</section>
+
+<script>
+(function () {
+  'use strict';
+  // x — центр колонки в %, y — верх узла в px
+  var N = {
+    threads: { x: 17, y: 20, w: 'mom', t: 'Threads', s: 'каждый день',
+      role: 'Каждый день ведёт мам в Кики и в Telegram. Здесь же — вайбкодинг.',
+      d: { 'Рубрики': 'Мамы и Кики — 1–2 поста в день\nВайбкодинг: что сделала сегодня, как делаю приложение для мам — 1 пост в день',
+           'Кто делает': 'Ты говоришь голосом, бот превращает в посты',
+           'Куда ведёт': 'Мамы → Кики и Telegram. Вайбкодинг → ДоВайб-кодились',
+           'Зачем так': 'Историю мамского приложения пока держим здесь — отдельный профиль не нужен' } },
+    tg: { x: 17, y: 175, w: 'mom', t: 'Telegram', s: 'мамы-тестировщицы',
+      role: 'Комьюнити мам, которые вместе с тобой улучшают Кики.',
+      d: { 'Объём': 'Пишешь, когда выходит обновление Кики', 'Дальше': 'Первые подписчицы Кики' } },
+    kiki: { x: 17, y: 340, w: 'mom', t: 'Кики', s: 'приложение для мам',
+      role: 'Упрощает мамам жизнь и само ведёт их в Книгу Рода.',
+      d: { 'Внутри': 'Реклама Книги Рода. Позже — модуль Книги Рода и подписка с ИИ',
+           'Что сделать': 'Проверить, что карточки ведут на актуальную страницу Книги Рода' } },
+    kikimoney: { x: 17, y: 470, w: 'mom', t: 'Подписка Кики', s: 'позже', money: 1, later: 1,
+      role: 'Канал монетизации мамского приложения.', d: { 'Когда': 'После теста с мамами из Telegram' } },
+
+    brands: { x: 50, y: 20, w: 'zhi', t: 'Бренды', s: 'украшения в сюжете', money: 1,
+      role: 'Вещи от брендов — внутри актёрских роликов, а не рекламой.',
+      d: { 'Как': 'Вещь — деталь истории, крупно 1–2 секунды\nОтметка в подписи и в сторис с бэкстейджа\nОдин бренд на ролик' } },
+    rod: { x: 50, y: 160, w: 'rod', t: 'Книга Рода', s: 'каждый день', big: 1, badge: '№1',
+      role: 'Семья, корни, глубина, самопознание. Сейчас главный: продукт готов, аккаунт нулевой.',
+      d: { 'Рубрики': 'ИИ-ролики — 3 в неделю\nКарусели (польза и глубина) — 2 в неделю\nASMR: сканирую фото, читаю письма бабушки, оформляю страницы на планшете в своём приложении — 2 в неделю',
+           'Кто делает': 'ИИ монтирует ролики и карусели. Ты снимаешь ASMR — один вечер в неделю',
+           'Прогрев': 'Раскопала свои качества → иди их проявлять: БНК и вайбкодинг' } },
+    rodmoney: { x: 50, y: 340, w: 'rod', t: 'Уроки + приложение', s: '2 000 и 4 000 ₽', money: 1,
+      role: 'Всё в одном месте: уроки по Книге Рода и приложение, где её собирают.',
+      d: { 'Уроки': '[2 000 ₽ — уточни: 2 000 или 2 026]', 'Приложение + уроки': '4 000 ₽, подписка', 'Слово': 'РОД' } },
+
+    actor: { x: 83, y: 20, w: 'zhi', t: 'Актёрский ролик', s: 'твоя главная работа', big: 1,
+      role: 'Глубокие сценарии про боли большинства и страх проявляться. Только ты.',
+      d: { 'Объём': 'Сейчас — 1 раз в 2 недели. Потом — каждую неделю',
+           'Из одного ролика': 'Бэкстейдж, разбор, монтаж с кодом, карусель кадров, пробные версии, посты в Threads, сторис',
+           'Помощник': 'Claude-режиссёр: напиши «разверни концепт» — получишь сценарий по кадрам и шот-лист' } },
+    zhi: { x: 83, y: 175, w: 'zhi', t: '@zhiphotos', s: 'проявленность', big: 1,
+      role: 'Проявляться самой, вдохновлять творцов, которые боятся показываться, и продавать вайбкодинг и БНК.',
+      d: { 'Рубрики': 'Актёрский ролик — раз в 1–2 недели (ты)\nБэкстейдж «как снимала» — 1 (ИИ монтирует)\nРазбор ролика — 1 (ты, разговорный)\nМонтаж с кодом — раз в 2 недели (ИИ)\nРазговорные для творцов, которые боятся проявляться — 1–2 (ты, кофе)\nКарусель «Что я сделала за неделю»: приложения, лошади, жизнь — 1 (ИИ)\nПолезная карусель — 1 (ИИ)\nПробные рилс — 2–3 варианта к каждому ролику, только для неподписанных (ИИ)' } },
+    zhimoney: { x: 83, y: 340, w: 'zhi', t: 'БНК · ДоВайб', s: 'позже — приложение для творцов', money: 1,
+      role: 'Что продаёт личный аккаунт.',
+      d: { 'БНК': 'Блог на коленке — проявиться и вести блог с ИИ. Слово БЛОГ', 'ДоВайб-кодились': 'Своё приложение без кода. Слово КОД',
+           'Позже — приложение для творцов': 'Подписка, твои медитации внутри. Продавать — показывая, как сама решаешь в нём задачи' } }
+  };
+  // [от, к, тип, номер]: 's' — сплошная, 'd' — пунктир
+  var E = [
+    ['threads', 'tg', 's'], ['tg', 'kiki', 's'], ['kiki', 'kikimoney', 'd'],
+    ['kiki', 'rod', 's', 1], ['rod', 'rodmoney', 's'], ['rod', 'zhimoney', 's', 2],
+    ['zhi', 'rod', 'd', 3], ['actor', 'zhi', 's', 4], ['actor', 'brands', 's', 5], ['zhi', 'zhimoney', 's']
+  ];
+  var P = [
+    'Кики → Книга Рода: внутри мамского приложения реклама Книги Рода, позже — её модуль.',
+    'Книга Рода → БНК и вайбкодинг: «раскопала свои качества — иди их проявлять».',
+    '@zhiphotos ↔ Книга Рода: совместный ролик раз в неделю, аудитории делятся.',
+    'Актёрский ролик → @zhiphotos: один ролик даёт около 10 единиц контента.',
+    'Актёрский ролик → бренды: украшения внутри сюжета приносят деньги.',
+    'А ещё: Threads → вайбкодинг. Посты о том, как делаешь приложения, ведут в ДоВайб.'
+  ];
+
+  var map = document.getElementById('map'), svg = document.getElementById('edges');
+  Object.keys(N).forEach(function (k) {
+    var n = N[k], b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'node ' + n.w + (n.big ? ' big' : '') + (n.money ? ' money' : '') + (n.later ? ' later' : '');
+    b.style.left = n.x + '%'; b.style.top = n.y + 'px';
+    b.innerHTML = '<b></b><small></small>' + (n.badge ? '<span class="badge"></span>' : '');
+    b.querySelector('b').textContent = n.t;
+    b.querySelector('small').textContent = n.s;
+    if (n.badge) b.querySelector('.badge').textContent = n.badge;
+    b.addEventListener('click', function () { open(k); });
+    n.el = b; map.appendChild(b);
+  });
+  document.getElementById('pushes').innerHTML = P.map(function (t, i) {
+    return '<li><span class="num"' + (i === P.length - 1 ? ' style="background:var(--muted)">+' : '>' + (i + 1)) + '</span><span>' + t.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span></li>';
+  }).join('');
+
+  function box(n) {
+    var m = map.getBoundingClientRect(), r = n.el.getBoundingClientRect();
+    return { x: r.left - m.left, y: r.top - m.top, w: r.width, h: r.height, cx: r.left - m.left + r.width / 2, cy: r.top - m.top + r.height / 2 };
+  }
+  function clip(b, tx, ty) { // точка на краю прямоугольника по направлению к (tx,ty)
+    var dx = tx - b.cx, dy = ty - b.cy;
+    if (!dx && !dy) return [b.cx, b.cy];
+    var sx = dx ? (b.w / 2 + 3) / Math.abs(dx) : Infinity, sy = dy ? (b.h / 2 + 3) / Math.abs(dy) : Infinity, s = Math.min(sx, sy);
+    return [b.cx + dx * s, b.cy + dy * s];
+  }
+  function draw() {
+    var cs = getComputedStyle(document.documentElement), edge = cs.getPropertyValue('--edge').trim() || '#888', fg = cs.getPropertyValue('--fg').trim(), bg = cs.getPropertyValue('--bg').trim();
+    var h = '<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="' + edge + '"/></marker></defs>';
+    E.forEach(function (e) {
+      var a = box(N[e[0]]), b = box(N[e[1]]);
+      var p = clip(a, b.cx, b.cy), q = clip(b, a.cx, a.cy);
+      var both = e[0] === 'zhi' && e[1] === 'rod';
+      h += '<line x1="' + p[0] + '" y1="' + p[1] + '" x2="' + q[0] + '" y2="' + q[1] + '" stroke="' + edge + '" stroke-width="1.6"' +
+        (e[2] === 'd' ? ' stroke-dasharray="5 4"' : '') + ' marker-end="url(#ar)"' + (both ? ' marker-start="url(#ar)"' : '') + '/>';
+      if (e[3]) {
+        var mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2;
+        if (Math.hypot(q[0] - p[0], q[1] - p[1]) < 50) my -= 17;
+        h += '<circle cx="' + mx + '" cy="' + my + '" r="10" fill="' + fg + '"/><text x="' + mx + '" y="' + (my + 4) + '" text-anchor="middle" font-size="11" font-weight="600" fill="' + bg + '" font-family="system-ui,sans-serif">' + e[3] + '</text>';
+      }
+    });
+    svg.innerHTML = h;
+  }
+  draw();
+  window.addEventListener('resize', draw);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+  if (window.matchMedia) { var mq = window.matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', draw); }
+
+  // объём по аккаунтам
+  var A = [
+    { w: 'rod', t: 'Книга Рода', s: 'каждый день · 7 в неделю', r: [
+      ['ИИ-ролики', '3', 'ai', 'Находки, оживлённые фото, вайб-ролики — из банка хуков в студии'],
+      ['Карусели: польза и глубина', '2', 'ai', 'Корни, самопознание, вопросы маме, шаги'],
+      ['ASMR', '2', 'me', 'Сканирую фото, читаю письма бабушки, оформляю страницы на планшете в своём приложении. Снимай 4 за один вечер']] },
+    { w: 'zhi', t: '@zhiphotos', s: '5–7 в неделю', r: [
+      ['Актёрский ролик', '½–1', 'me', 'Сейчас раз в 2 недели, потом каждую неделю'],
+      ['Разговорные для творцов', '1–2', 'me', 'Мысли для тех, кто боится проявляться. Кофе, без музыки'],
+      ['Разбор ролика', '1', 'me', 'О чём ролик на самом деле'],
+      ['Бэкстейдж «как снимала»', '1', 'ai', 'ИИ монтирует из исходников'],
+      ['Монтаж с кодом', '½', 'ai', 'Экран + голос → КОД'],
+      ['Карусель «Что я сделала за неделю»', '1', 'ai', 'Приложения, лошади, книга, жизнь — лояльность'],
+      ['Полезная карусель', '1', 'ai', 'Прикладная польза для творцов'],
+      ['Пробные рилс', '2–3', 'ai', 'Варианты хуков к готовым роликам']] },
+    { w: 'mom', t: 'Threads', s: '2–3 поста в день', r: [
+      ['Мамы и Кики', '7–14', 'ai', 'Ты голосом — бот пишет посты'],
+      ['Вайбкодинг', '7', 'ai', 'Что сделала сегодня, как делаю приложения']] }
+  ];
+  document.getElementById('accs').innerHTML = A.map(function (a) {
+    return '<div class="acc ' + a.w + '"><h3>' + a.t + '</h3><p class="sub">' + a.s + '</p>' +
+      a.r.map(function (r) {
+        return '<div class="rub"><span>' + r[0] + '</span><span>' + r[1] + '</span><span class="who ' + r[2] + '">' + (r[2] === 'me' ? 'ты' : 'ИИ') + '</span><em>' + r[3] + '</em></div>';
+      }).join('') + '</div>';
+  }).join('');
+
+  // карточка узла
+  var sheet = document.getElementById('sheet'), bg = document.getElementById('bg');
+  function open(k) {
+    var n = N[k];
+    sheet.className = 'sheet ' + n.w;
+    document.getElementById('sTitle').textContent = n.t + (n.badge ? ' · ' + n.badge : '');
+    document.getElementById('sRole').textContent = n.role;
+    var dl = document.getElementById('sList'); dl.innerHTML = '';
+    Object.keys(n.d).forEach(function (key) {
+      var dt = document.createElement('dt'), dd = document.createElement('dd');
+      dt.textContent = key; dd.textContent = n.d[key]; dl.appendChild(dt); dl.appendChild(dd);
+    });
+    bg.hidden = false; sheet.hidden = false;
+    document.getElementById('sClose').focus();
+  }
+  function close() { bg.hidden = true; sheet.hidden = true; }
+  bg.addEventListener('click', close);
+  document.getElementById('sClose').addEventListener('click', close);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+})();
+</script>
+</body>
+</html>
