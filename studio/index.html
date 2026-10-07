@@ -63,6 +63,21 @@
   </div>
 </section>
 
+<section class="sheet" id="scriptSheet" hidden aria-label="Сценарий">
+  <h2>Скинуть сценарий</h2>
+  <label for="scriptTitle">Название ролика</label>
+  <input id="scriptTitle" type="text" placeholder="Например: «Письмо прабабушки»" autocomplete="off">
+  <label for="scriptKind">Какой ролик</label>
+  <select id="scriptKind"><option value="short">Маленький (рилс)</option><option value="long">Большой (длинный, влог, актёрский)</option></select>
+  <label for="scriptText">Сценарий</label>
+  <textarea id="scriptText" rows="9" placeholder="Вставь сценарий целиком"></textarea>
+  <p class="hint" id="scriptAccHint"></p>
+  <div class="sheet-actions">
+    <button type="button" class="ghost" data-close>Отмена</button>
+    <button type="button" class="primary" id="scriptSave">Сохранить</button>
+  </div>
+</section>
+
 <section class="sheet" id="setSheet" hidden aria-label="Настройки">
   <h2>Перенос и отчёт</h2>
   <p class="hint">Отметки хранятся в этом браузере. Чтобы Claude узнал, что ты сделала, и забрал твои идеи в общий список, скопируй отчёт и вставь в чат.</p>

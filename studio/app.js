@@ -4,6 +4,7 @@
   var SECTIONS = [
     { id: 'new', name: 'Новое', intro: 'То, что Claude добавил с твоего прошлого визита.' },
     { id: 'plan', name: 'План', intro: 'Как всё устроено: какой аккаунт за что отвечает, сколько выкладывать, что делает ИИ, а что ты. Начни отсюда.' },
+    { id: 'shoots', name: 'Съёмка', intro: 'Папки съёмок. Скинь сценарий, Claude разберёт его на шаги подготовки, съёмки и монтажа, а ты отмечаешь сделанное внутри каждого ролика.' },
     { id: 'pins', name: 'Закрепы', intro: 'Карусели для закрепа: текст по слайдам и подпись.' },
     { id: 'reels', name: 'Рилс', intro: 'Хуки для рилс. Нажми на карточку, чтобы увидеть, что внутри и какой хвост.' },
     { id: 'carousels', name: 'Карусели', intro: 'Хуки для каруселей.' },
@@ -19,6 +20,7 @@
   var KEY = 'studio.v1';
 
   var items = [];
+  var shoots = [];
   var dataUpdated = '';
   var state = load();
   var undoFn = null, toastTimer = null;
@@ -31,6 +33,9 @@
     s.removed = s.removed || {};
     s.seen = s.seen || null;
     s.mine = s.mine || [];
+    s.steps = s.steps || {};
+    s.scripts = s.scripts || [];
+    s.sfOpen = s.sfOpen || {};
     s.acc = s.acc || 'rod';
     s.sec = s.sec || 'reels';
     s.view = s.view || 'todo';
@@ -64,6 +69,113 @@
     });
   }
 
+
+  // ---------- съёмка: папки -> ролики -> шаги ----------
+  var KIND_NAME = { long: 'Большой', short: 'Маленький' };
+  function videoSteps(v) {
+    var out = [];
+    (v.phases || []).forEach(function (ph) { (ph.steps || []).forEach(function (st) { out.push(st); }); });
+    return out;
+  }
+  function prog(steps) {
+    var d = steps.filter(function (st) { return state.steps[st.id]; }).length;
+    return { d: d, n: steps.length, p: steps.length ? Math.round(d / steps.length * 100) : 0 };
+  }
+  function folderSteps(f) {
+    var out = [];
+    (f.videos || []).forEach(function (v) { out = out.concat(videoSteps(v)); });
+    return out;
+  }
+  function openVideosLeft(acc) {
+    var n = 0;
+    shoots.forEach(function (f) {
+      if (f.acc !== acc) return;
+      (f.videos || []).forEach(function (v) { var p = prog(videoSteps(v)); if (!p.n || p.d < p.n) n++; });
+    });
+    return n;
+  }
+  function pendingScripts(acc) {
+    var taken = {};
+    shoots.forEach(function (f) { if (f.from) taken[f.from] = 1; (f.videos || []).forEach(function (v) { if (v.from) taken[v.from] = 1; }); });
+    return state.scripts.filter(function (sc) { return sc.acc === acc && !taken[sc.id]; });
+  }
+  function bar(p) {
+    return '<span class="sf-bar" aria-hidden="true"><i style="width:' + p.p + '%"></i></span>';
+  }
+
+  function renderShoots(acc) {
+    var html = '<p class="sec-intro">' + esc(SECTIONS.filter(function (s) { return s.id === 'shoots'; })[0].intro) + '</p>';
+    html += '<button type="button" class="primary sf-new" data-sf="newscript">+ Скинуть сценарий</button>';
+
+    var pend = pendingScripts(acc);
+    if (pend.length) {
+      html += '<h3 class="sf-h">Ждут разбора</h3>';
+      pend.forEach(function (sc) {
+        var open = state.sfOpen[sc.id];
+        html += '<article class="sf-pend' + (open ? ' open' : '') + '" data-sc="' + esc(sc.id) + '">' +
+          '<button type="button" class="sf-vhead" data-sf="tog" data-id="' + esc(sc.id) + '"><span class="title">' + esc(sc.title) + '</span>' +
+          '<span class="meta"><span class="tag">' + KIND_NAME[sc.kind] + '</span><span class="tag sec">не разобран</span></span></button>' +
+          '<div class="sf-in"><div class="text">' + esc(sc.text) + '</div>' +
+          '<p class="hint">Нажми «Скопировать для Claude», вставь в чат. Он разложит сценарий на шаги, и ролик появится ниже в папке.</p>' +
+          '<div class="actions"><button type="button" class="act-copy" data-sf="copyscript" data-id="' + esc(sc.id) + '">Скопировать для Claude</button>' +
+          '<button type="button" data-sf="delscript" data-id="' + esc(sc.id) + '">Удалить</button></div></div></article>';
+      });
+    }
+
+    var folders = shoots.filter(function (f) { return f.acc === acc; });
+    if (!folders.length && !pend.length) {
+      html += '<p class="empty">Папок съёмок пока нет. Скинь первый сценарий кнопкой выше или скажи Claude в чате, что снимаешь, и он соберёт папку сам.</p>';
+    }
+    folders.forEach(function (f) {
+      var fp = prog(folderSteps(f));
+      var fo = state.sfOpen[f.id];
+      html += '<section class="sf-folder' + (fo ? ' open' : '') + '">' +
+        '<button type="button" class="sf-fhead" data-sf="tog" data-id="' + esc(f.id) + '" aria-expanded="' + !!fo + '">' +
+        '<span class="sf-fold" aria-hidden="true"></span>' +
+        '<span class="sf-ftxt"><span class="title">' + esc(f.title) + '</span>' +
+        '<span class="sf-sub">' + (f.videos || []).length + ' ' + plural((f.videos || []).length, 'ролик', 'ролика', 'роликов') + ' · ' + fp.d + ' из ' + fp.n + ' шагов</span>' +
+        bar(fp) + '</span></button>';
+      if (fo) {
+        html += '<div class="sf-in">' + (f.note ? '<div class="text sf-note">' + esc(f.note) + '</div>' : '');
+        (f.videos || []).forEach(function (v) {
+          var vp = prog(videoSteps(v));
+          var vo = state.sfOpen[v.id];
+          var done = vp.n && vp.d === vp.n;
+          html += '<article class="sf-video' + (vo ? ' open' : '') + (done ? ' is-done' : '') + '">' +
+            '<button type="button" class="sf-vhead" data-sf="tog" data-id="' + esc(v.id) + '" aria-expanded="' + !!vo + '">' +
+            '<span class="title">' + (done ? '✓ ' : '') + esc(v.title) + '</span>' +
+            '<span class="meta"><span class="tag">' + (KIND_NAME[v.kind] || 'Ролик') + '</span><span class="tag sec">' + vp.d + '/' + vp.n + '</span></span>' + bar(vp) + '</button>';
+          if (vo) {
+            html += '<div class="sf-in">';
+            (v.phases || []).forEach(function (ph) {
+              var pp = prog(ph.steps || []);
+              html += '<div class="sf-phase"><h4>' + esc(ph.name) + ' <span>' + pp.d + '/' + pp.n + '</span></h4>';
+              (ph.steps || []).forEach(function (st) {
+                var on = !!state.steps[st.id];
+                html += '<button type="button" class="sf-step' + (on ? ' on' : '') + '" data-sf="step" data-id="' + esc(st.id) + '" aria-pressed="' + on + '">' +
+                  '<span class="box"><span>✓</span></span><span class="st"><b>' + esc(st.t) + '</b>' + (st.d ? '<small>' + esc(st.d) + '</small>' : '') + '</span></button>';
+              });
+              html += '</div>';
+            });
+            if (v.script) {
+              html += '<details class="sf-script"><summary>Сценарий</summary><div class="text">' + esc(v.script) + '</div>' +
+                '<div class="actions"><button type="button" class="act-copy" data-sf="copytext" data-id="' + esc(v.id) + '">Скопировать сценарий</button></div></details>';
+            }
+            html += '</div>';
+          }
+          html += '</article>';
+        });
+        html += '</div>';
+      }
+      html += '</section>';
+    });
+    return html;
+  }
+  function plural(n, a, b, c) {
+    var m = n % 100, k = n % 10;
+    return (m > 10 && m < 20) ? c : k === 1 ? a : (k > 1 && k < 5) ? b : c;
+  }
+
   // ---------- render ----------
   function renderAccs() {
     document.body.classList.toggle('acc-zhi', state.acc === 'zhi');
@@ -81,7 +193,7 @@
     var nav = $('secs');
     nav.innerHTML = '';
     SECTIONS.forEach(function (s) {
-      var todo = pool(state.acc, s.id, 'todo').length;
+      var todo = s.id === 'shoots' ? openVideosLeft(state.acc) : pool(state.acc, s.id, 'todo').length;
       if ((s.id === 'new' || s.id === 'mine') && !pool(state.acc, s.id).length) return;
       var hasNew = s.id !== 'new' && pool(state.acc, s.id, 'todo').some(isNew);
       var b = document.createElement('button');
@@ -97,6 +209,7 @@
   }
 
   function renderFilters() {
+    document.querySelector('.seg').style.visibility = (state.sec === 'shoots' && !(state.q || '').trim()) ? 'hidden' : '';
     document.querySelectorAll('.seg button').forEach(function (b) {
       b.setAttribute('aria-checked', String(b.dataset.view === state.view));
       b.setAttribute('role', 'radio');
@@ -108,6 +221,7 @@
     var q = (state.q || '').trim().toLowerCase();
     var sec = state.sec;
     if (sec !== 'new' && sec !== 'mine' && !SECTIONS.some(function (s) { return s.id === sec; })) sec = state.sec = 'reels';
+    if (sec === 'shoots' && !q) { list.innerHTML = renderShoots(state.acc); return; }
     var rows = q
       ? all().filter(function (it) { return it.acc === state.acc && statusOf(it) === state.view && (it.title + ' ' + (it.text || '')).toLowerCase().indexOf(q) > -1; })
       : pool(state.acc, sec, state.view);
@@ -240,6 +354,53 @@
     if (act === 'edit') { openAdd(it); }
   });
 
+
+  function scriptMessage(sc) {
+    return 'Разбери сценарий в раздел «Съёмка» студии (' + ACC_NAME[sc.acc] + ', ролик: ' + (sc.kind === 'long' ? 'большой' : 'маленький') + ').\n' +
+      'id сценария: ' + sc.id + '\nНазвание: ' + sc.title + '\n\n' + sc.text;
+  }
+  function findVideo(id) {
+    for (var i = 0; i < shoots.length; i++) for (var j = 0; j < (shoots[i].videos || []).length; j++) if (shoots[i].videos[j].id === id) return shoots[i].videos[j];
+  }
+  $('list').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-sf]');
+    if (!b) return;
+    var act = b.dataset.sf, id = b.dataset.id;
+    if (act === 'tog') { state.sfOpen[id] = !state.sfOpen[id]; save(); renderList(); return; }
+    if (act === 'step') {
+      if (state.steps[id]) delete state.steps[id]; else state.steps[id] = Date.now();
+      save(); var y = window.scrollY; render(); window.scrollTo(0, y); return;
+    }
+    if (act === 'newscript') { openScript(); return; }
+    var sc = state.scripts.filter(function (x) { return x.id === id; })[0];
+    if (act === 'copyscript' && sc) { copyText(scriptMessage(sc), 'Скопировано. Вставь в чат с Claude'); return; }
+    if (act === 'delscript' && sc) {
+      var idx = state.scripts.indexOf(sc);
+      state.scripts.splice(idx, 1); save(); render();
+      toast('Удалено', function () { state.scripts.splice(idx, 0, sc); save(); render(); });
+      return;
+    }
+    if (act === 'copytext') { var v = findVideo(id); if (v) copyText(v.script); }
+  });
+
+  $('scriptSave').addEventListener('click', function () {
+    var text = $('scriptText').value.replace(/\s+$/, '');
+    if (!text.trim()) { $('scriptText').focus(); return; }
+    var title = $('scriptTitle').value.trim() || text.trim().split('\n')[0].slice(0, 60);
+    state.scripts.unshift({
+      id: 'scr-' + Date.now(), acc: state.acc, kind: $('scriptKind').value, title: title, text: text.trim(),
+      added: new Date().toISOString().slice(0, 10)
+    });
+    state.sec = 'shoots'; state.q = ''; $('search').value = '';
+    save(); closeSheets(); render(); toast('Сценарий сохранён. Теперь скопируй его для Claude');
+  });
+  function openScript() {
+    $('scriptTitle').value = ''; $('scriptText').value = ''; $('scriptKind').value = 'short';
+    $('scriptAccHint').textContent = 'Аккаунт: ' + ACC_NAME[state.acc] + '. Сценарий хранится в этом браузере, пока Claude не разберёт его на шаги.';
+    openSheet('scriptSheet');
+    setTimeout(function () { $('scriptText').focus(); }, 50);
+  }
+
   $('toastUndo').addEventListener('click', function () {
     if (undoFn) undoFn();
     undoFn = null; $('toast').hidden = true;
@@ -255,7 +416,7 @@
 
   // ---------- sheets ----------
   function openSheet(id) { $('sheetBg').hidden = false; $(id).hidden = false; }
-  function closeSheets() { $('sheetBg').hidden = true; $('addSheet').hidden = true; $('setSheet').hidden = true; }
+  function closeSheets() { $('sheetBg').hidden = true; $('addSheet').hidden = true; $('setSheet').hidden = true; $('scriptSheet').hidden = true; }
   $('sheetBg').addEventListener('click', closeSheets);
   document.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', closeSheets); });
 
@@ -280,7 +441,7 @@
     setTimeout(function () { (it || sel.value !== 'captions' ? $('addText') : $('addLabel')).focus(); }, 50);
   }
   $('addSec').addEventListener('change', syncAddForm);
-  $('addBtn').addEventListener('click', function () { openAdd(null); });
+  $('addBtn').addEventListener('click', function () { if (state.sec === 'shoots') openScript(); else openAdd(null); });
   $('addSave').addEventListener('click', function () {
     var text = $('addText').value.replace(/\s+$/, '');
     if (!text.trim()) { $('addText').focus(); return; }
@@ -311,7 +472,7 @@
   });
 
   function exportState() {
-    return { done: state.done, removed: state.removed, seen: state.seen, mine: state.mine };
+    return { done: state.done, removed: state.removed, seen: state.seen, mine: state.mine, steps: state.steps, scripts: state.scripts };
   }
   $('copyReport').addEventListener('click', function () {
     var lines = ['Отчёт из Студии (' + new Date().toLocaleDateString('ru-RU') + ')'];
@@ -329,6 +490,22 @@
         });
       }
     });
+    var sf = [];
+    ['rod', 'zhi'].forEach(function (a) {
+      var fl = shoots.filter(function (f) { return f.acc === a; });
+      var pd = pendingScripts(a);
+      if (!fl.length && !pd.length) return;
+      sf.push('', '== Съёмка · ' + ACC_NAME[a] + ' ==');
+      fl.forEach(function (f) {
+        (f.videos || []).forEach(function (v) {
+          var all_ = videoSteps(v), p = prog(all_);
+          sf.push('▸ [' + v.id + '] ' + v.title + ' — ' + p.d + '/' + p.n + (p.n && p.d === p.n ? ' (готов)' : ''));
+          all_.filter(function (st) { return state.steps[st.id]; }).forEach(function (st) { sf.push('  ✓ [' + st.id + '] ' + st.t); });
+        });
+      });
+      pd.forEach(function (sc) { sf.push('+ [Сценарий ' + sc.id + ', ' + (sc.kind === 'long' ? 'большой' : 'маленький') + '] ' + sc.title + ':\n' + sc.text + '\n---'); });
+    });
+    if (sf.length) lines = lines.concat(sf);
     var r = all().filter(function (it) { return state.removed[it.id]; });
     if (r.length) { lines.push('', 'Убрано (' + r.length + '):'); r.forEach(function (it) { lines.push('× [' + it.id + '] ' + it.title); }); }
     copyText(lines.join('\n'), 'Отчёт скопирован — вставь в чат с Claude');
@@ -341,7 +518,7 @@
     var raw = $('importCode').value.trim().replace(/^STUDIO1:/, '');
     try {
       var s = JSON.parse(decodeURIComponent(escape(atob(raw))));
-      state.done = s.done || {}; state.removed = s.removed || {}; state.seen = s.seen || state.seen; state.mine = s.mine || [];
+      state.done = s.done || {}; state.removed = s.removed || {}; state.seen = s.seen || state.seen; state.mine = s.mine || []; state.steps = s.steps || {}; state.scripts = s.scripts || [];
       save(); closeSheets(); render(); toast('Отметки загружены');
     } catch (e) { toast('Код не подошёл. Скопируй его целиком ещё раз'); }
   });
@@ -351,6 +528,7 @@
     .then(function (r) { return r.json(); })
     .then(function (d) {
       items = d.items || [];
+      shoots = d.shoots || [];
       dataUpdated = d.updated || '';
       if (!state.seen) {
         state.seen = {};
