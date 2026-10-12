@@ -1,6 +1,6 @@
 // Общие размеры и рисунки страницы. Экран и PDF берут их отсюда, поэтому печать совпадает с тем, что видно.
 // Все размеры — в процентах ширины страницы (на экране это единицы cqw).
-import type { FontKind, PaperKind, StickerKind, TextLook } from "@/lib/rod/types";
+import type { FontKind, FontRef, PaperKind, StickerKind, TextLook } from "@/lib/rod/types";
 
 /** Книга квадратная: страница на экране и в печати — квадрат. Размер в см выбирается при печати. */
 export const PAGE_RATIO = 1;
@@ -67,6 +67,28 @@ export const FONT_FAMILY: Record<FontKind, string> = {
 
 export const FONT_WEIGHT: Record<FontKind, number> = { serif: 600, sans: 500, script: 500 };
 
+export const isCustomFont = (font: FontRef): font is `custom:${string}` => font.startsWith("custom:");
+/** Имя семейства для своего шрифта в document.fonts. */
+export const customFamily = (font: `custom:${string}`) => `kr-${font.slice(7)}`;
+
+export function fontFamily(font: FontRef): string {
+  if (isCustomFont(font)) return `"${customFamily(font)}", ${FONT_FAMILY.script}`;
+  return FONT_FAMILY[font];
+}
+
+export function fontWeight(font: FontRef): number {
+  return isCustomFont(font) ? 400 : FONT_WEIGHT[font];
+}
+
+/** Страница на экране «в пикселях»: 1000 px = ширина страницы. */
+export const PX_PAGE = 1000;
+
+/** Ширина блока в % страницы: одна на экран, ластик и печать (у стикера без `w` это 15). */
+export function blockW(b: { type: string; w?: number }): number {
+  if (typeof b.w === "number") return b.w;
+  return b.type === "sticker" ? 15 : 40;
+}
+
 // В книге 25×25 см: sm ≈ 13–14 pt, md ≈ 19 pt, lg ≈ 34 pt. На 30×30 всё пропорционально крупнее.
 const SIZE: Record<FontKind, Record<"sm" | "md" | "lg" | "xl", number>> = {
   serif: { sm: 2.1, md: 2.9, lg: 5.2, xl: 11 },
@@ -76,8 +98,10 @@ const SIZE: Record<FontKind, Record<"sm" | "md" | "lg" | "xl", number>> = {
 
 const LEADING: Record<FontKind, number> = { serif: 1.15, sans: 1.4, script: 1.1 };
 
-export function textMetrics(font: FontKind, size: "sm" | "md" | "lg" | "xl") {
-  return { size: SIZE[font][size], leading: LEADING[font] };
+export function textMetrics(font: FontRef, size: "sm" | "md" | "lg" | "xl", px?: number) {
+  const kind: FontKind = isCustomFont(font) ? "script" : font;
+  const base = SIZE[kind][size];
+  return { size: px ? (px / PX_PAGE) * 100 : base, leading: LEADING[kind] };
 }
 
 /** Внутренние поля у карточки и плашки — в % ширины страницы. */

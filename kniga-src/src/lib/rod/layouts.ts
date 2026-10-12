@@ -1,5 +1,6 @@
 // Готовые развороты-шаблоны, как в цифровых дневниках: заголовок, рамки под фото, поля, карточка с вопросом.
 import { findPrompt, type PagePrompt } from "@/lib/rod/pages";
+import { legacyStrokesToBlocks } from "@/lib/rod/ink";
 import type { BookPage, PageBlock } from "@/lib/rod/types";
 
 const id = () => crypto.randomUUID();
@@ -237,5 +238,7 @@ export function migratePage(page: BookPage): BookPage {
     changed = true;
     return { ...stroke, width: stroke.width === 7 ? 2 : 0.6 };
   });
+  // Чернила со старых страниц переезжают в блоки-рисунки.
+  if (strokes.length) return { ...page, blocks: [...blocks, ...legacyStrokesToBlocks(strokes)], strokes: [] };
   return changed ? { ...page, blocks, strokes } : page;
 }

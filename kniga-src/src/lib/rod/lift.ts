@@ -1,14 +1,11 @@
 /** Cut a subject out of a photo. The model runs only in the browser. */
-export async function liftSubject(dataUrl: string, onProgress?: (label: string) => void): Promise<string | null> {
+export async function liftSubject(dataUrl: string, onProgress?: (label: string) => void, mode: "auto" | "precise" = "auto"): Promise<string | null> {
   if (import.meta.env.SSR) return null;
-  // На телефоне нейросеть (~70 МБ в памяти) может перезагрузить вкладку — там только быстрая вырезка по фону.
-  if (isPhone()) {
-    onProgress?.("Вырезаю…");
-    const { layAsSticker } = await import("./sticker");
-    return layAsSticker(dataUrl).catch(() => null);
-  }
-  const { liftOnClient } = await import("./lift.client");
-  return liftOnClient(dataUrl, onProgress);
+  const { liftOnClient, LIGHT_MODELS, PRECISE_MODELS } = await import("./lift.client");
+  // Большая нейросеть (~70 МБ в памяти) на телефоне может перезагрузить вкладку, поэтому по умолчанию там лёгкая (для людей);
+  // «Убрать фон точнее» запускает большую и на телефоне.
+  if (isPhone() && mode === "auto") return liftOnClient(dataUrl, onProgress, LIGHT_MODELS);
+  return liftOnClient(dataUrl, onProgress, PRECISE_MODELS);
 }
 
 function isPhone(): boolean {

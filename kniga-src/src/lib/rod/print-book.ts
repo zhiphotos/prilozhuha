@@ -1,11 +1,16 @@
 // Печатная версия: каждая страница рисуется на холсте 300 dpi по тем же правилам, что и на экране.
 import { resolveMedia } from "@/lib/rod/media";
+import { cropGeom } from "@/lib/rod/crop";
+import { strokeGeom } from "@/lib/rod/ink";
+import { maskImageUrl } from "@/lib/rod/mask";
 import {
   COLORS,
   FONT_FAMILY,
-  FONT_WEIGHT,
   PAGE_RATIO,
+  blockW,
   POLAROID,
+  fontFamily,
+  fontWeight,
   isDark,
   lookColors,
   lookPad,
@@ -15,7 +20,10 @@ import {
 } from "@/lib/rod/page-style";
 import { MM, buildJpegPdf, type PdfSheet } from "@/lib/rod/pdf";
 import type { PrintSetup } from "@/lib/rod/page-style";
-import type { BookPage, PageBlock, PaperKind } from "@/lib/rod/types";
+import { shapeParts, shapeStyle } from "@/lib/rod/shapes";
+import { spreadGhosts } from "@/lib/rod/spread";
+import { backPage } from "@/lib/rod/store";
+import type { BookPage, PageBlock, PaperKind, SpineSetup } from "@/lib/rod/types";
 
 export type CoverMeta = { dedicatee: string; collector: string };
 
@@ -93,6 +101,46 @@ function cover(ctx: CanvasRenderingContext2D, image: HTMLImageElement, x: number
   const sw = w / scale;
   const sh = h / scale;
   ctx.drawImage(image, (image.width - sw) / 2, (image.height - sh) / 2, sw, sh, x, y, w, h);
+}
+
+const alphaCache = new WeakMap<HTMLImageElement, boolean>();
+
+/** Есть ли у картинки прозрачные места (вырезанный PNG). Под такой не кладём белую подложку. */
+function hasAlpha(image: HTMLImageElement): boolean {
+  const known = alphaCache.get(image);
+  if (known !== undefined) return known;
+  const c = document.createElement("canvas");
+  c.width = 48;
+  c.height = 48;
+  const x = c.getContext("2d", { willReadFrequently: true });
+  let result = false;
+  if (x) {
+    x.drawImage(image, 0, 0, 48, 48);
+    const data = x.getImageData(0, 0, 48, 48).data;
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] < 245) {
+        result = true;
+        break;
+      }
+    }
+  }
+  alphaCache.set(image, result);
+  return result;
+}
+
+/** «Обрезка по рамке» с учётом кадрирования: то, что выбрано пальцем. */
+function coverCropped(ctx: CanvasRenderingContext2D, image: HTMLImageElement, x: number, y: number, w: number, h: number, crop?: { cx: number; cy: number; z: number }) {
+  if (!crop) {
+    cover(ctx, image, x, y, w, h);
+    return;
+  }
+  const g = cropGeom({ w, h }, image.height / Math.max(1, image.width), crop);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  ctx.drawImage(image, x + g.left, y + g.top, g.dw, g.dh);
+  ctx.restore();
 }
 
 function contain(ctx: CanvasRenderingContext2D, image: HTMLImageElement, x: number, y: number, w: number, h: number) {
@@ -192,12 +240,12 @@ function rotateAround(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
 
 function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { type: "text" }>, dark = false) {
   if (!block.text.trim()) return;
-  const metrics = textMetrics(block.font, block.size);
+  const metrics = textMetrics(block.font, block.size, block.px);
   const pad = lookPad(block.look);
   const colors = lookColors(block.look, block.color, block.bg, dark);
   const px = metrics.size * U;
   const lh = px * metrics.leading;
-  ctx.font = `${FONT_WEIGHT[block.font]} ${px}px ${FONT_FAMILY[block.font]}`;
+  ctx.font = `${fontWeight(block.font)} ${px}px ${fontFamily(block.font)}`;
   const boxW = (block.w / 100) * W;
   const innerW = boxW - pad.x * 2 * U;
   const lines = wrap(ctx, block.text, innerW);
@@ -218,10 +266,11 @@ function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { ty
   ctx.fillStyle = colors.fg;
   ctx.textBaseline = "middle";
   const center = block.align === "center";
-  ctx.textAlign = center ? "center" : "left";
+  const right = block.align === "right";
+  ctx.textAlign = center ? "center" : right ? "right" : "left";
   lines.forEach((line, index) => {
     const ly = pad.y * U + index * lh + lh / 2;
-    ctx.fillText(line, center ? bgW / 2 : pad.x * U, ly);
+    ctx.fillText(line, center ? bgW / 2 : right ? bgW - pad.x * U : pad.x * U, ly);
   });
   ctx.restore();
 }
@@ -233,20 +282,21 @@ async function paintPhoto(ctx: CanvasRenderingContext2D, block: Extract<PageBloc
   const h = (block.h / 100) * H;
   const lifted = block.frame === "sticker" && Boolean(block.cut);
   const image = await loadMedia(lifted && block.cut ? block.cut : block.src);
+  const lit = block.shadow !== false;
   ctx.save();
   rotateAround(ctx, x, y, w, h, block.rotate ?? 0);
   if (lifted) {
-    shadow(ctx, 1, 0.8);
+    if (lit) shadow(ctx, 1, 0.8);
     if (image) contain(ctx, image, 0, 0, w, h);
   } else if (block.frame === "polaroid") {
     const side = (POLAROID.side / 100) * w;
     const top = (POLAROID.top / 100) * w;
     const bottom = (POLAROID.bottom / 100) * w;
-    shadow(ctx);
+    if (lit) shadow(ctx);
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, w, h);
     noShadow(ctx);
-    if (image) cover(ctx, image, side, top, w - side * 2, h - top - bottom);
+    if (image) coverCropped(ctx, image, side, top, w - side * 2, h - top - bottom, block.crop);
     if (block.caption.trim()) {
       const size = Math.min(5, block.w * 0.075) * U;
       ctx.fillStyle = COLORS.ink;
@@ -257,7 +307,7 @@ async function paintPhoto(ctx: CanvasRenderingContext2D, block: Extract<PageBloc
     }
   } else if (block.frame === "sticker") {
     const border = 1.4 * U;
-    shadow(ctx);
+    if (lit) shadow(ctx);
     ctx.fillStyle = "#ffffff";
     rounded(ctx, 0, 0, w, h, 2.2 * U);
     ctx.fill();
@@ -265,20 +315,30 @@ async function paintPhoto(ctx: CanvasRenderingContext2D, block: Extract<PageBloc
     ctx.save();
     rounded(ctx, border, border, w - border * 2, h - border * 2, 0.9 * U);
     ctx.clip();
-    if (image) cover(ctx, image, border, border, w - border * 2, h - border * 2);
+    if (image) coverCropped(ctx, image, border, border, w - border * 2, h - border * 2, block.crop);
     ctx.restore();
   } else {
-    const radius = block.frame === "tape" ? 0.6 * U : 1.4 * U;
-    shadow(ctx);
-    ctx.fillStyle = "#ffffff";
-    rounded(ctx, 0, 0, w, h, radius);
-    ctx.fill();
-    noShadow(ctx);
-    ctx.save();
-    rounded(ctx, 0, 0, w, h, radius);
-    ctx.clip();
-    if (image) cover(ctx, image, 0, 0, w, h);
-    ctx.restore();
+    const radius = block.frame === "tape" ? 0.6 * U : lit ? 1.4 * U : 0;
+    const transparent = image ? hasAlpha(image) : false;
+    if (transparent) {
+      // Вырезанный PNG: никакой белой подложки, тень (если включена) по самому рисунку.
+      if (lit) shadow(ctx, 1.6, 0.9);
+      if (image) coverCropped(ctx, image, 0, 0, w, h, block.crop);
+      noShadow(ctx);
+    } else {
+      if (lit) {
+        shadow(ctx);
+        ctx.fillStyle = "#ffffff";
+        rounded(ctx, 0, 0, w, h, radius);
+        ctx.fill();
+        noShadow(ctx);
+      }
+      ctx.save();
+      rounded(ctx, 0, 0, w, h, radius);
+      ctx.clip();
+      if (image) coverCropped(ctx, image, 0, 0, w, h, block.crop);
+      ctx.restore();
+    }
     if (block.frame === "tape") {
       const tape = await loadImage(stickerUrl("tape"));
       if (tape) {
@@ -290,6 +350,67 @@ async function paintPhoto(ctx: CanvasRenderingContext2D, block: Extract<PageBloc
       }
     }
   }
+  ctx.restore();
+}
+
+function paintShape(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { type: "shape" }>) {
+  const x = (block.x / 100) * W;
+  const y = (block.y / 100) * H;
+  const w = (block.w / 100) * W;
+  const h = (block.h / 100) * H;
+  const style = shapeStyle(block);
+  ctx.save();
+  rotateAround(ctx, x, y, w, h, block.rotate ?? 0);
+  ctx.scale(U, U);
+  for (const part of shapeParts(block.shape, block.w, block.h, style.strokeW)) {
+    const path = new Path2D(part.d);
+    if (part.fill && style.fill) {
+      ctx.fillStyle = style.fill;
+      ctx.fill(path);
+    }
+    if (part.stroke && style.stroke) {
+      ctx.strokeStyle = style.stroke;
+      ctx.lineWidth = style.strokeW;
+      ctx.lineCap = part.cap ?? "round";
+      ctx.lineJoin = "round";
+      ctx.setLineDash(part.dash ? part.dash.split(" ").map(Number) : []);
+      ctx.stroke(path);
+    }
+  }
+  ctx.restore();
+}
+
+function paintStrokeList(ctx: CanvasRenderingContext2D, strokes: import("@/lib/rod/types").InkStroke[]) {
+  for (const stroke of strokes) {
+    const g = strokeGeom(stroke);
+    if (!g.d) continue;
+    const path = new Path2D(g.d);
+    ctx.save();
+    ctx.globalAlpha *= g.alpha;
+    if (g.fill) {
+      ctx.fillStyle = g.color;
+      ctx.fill(path);
+    } else {
+      ctx.strokeStyle = g.color;
+      ctx.lineWidth = g.width;
+      ctx.lineCap = g.cap;
+      ctx.lineJoin = "round";
+      ctx.setLineDash(g.dash ? g.dash.split(" ").map(Number) : []);
+      ctx.stroke(path);
+    }
+    ctx.restore();
+  }
+}
+
+function paintInk(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { type: "ink" }>) {
+  const x = (block.x / 100) * W;
+  const y = (block.y / 100) * H;
+  const w = (block.w / 100) * W;
+  const h = (block.h / 100) * H;
+  ctx.save();
+  rotateAround(ctx, x, y, w, h, block.rotate ?? 0);
+  ctx.scale(w / block.ow, h / block.oh);
+  paintStrokeList(ctx, block.strokes);
   ctx.restore();
 }
 
@@ -310,28 +431,63 @@ async function paintSticker(ctx: CanvasRenderingContext2D, block: Extract<PageBl
 }
 
 function paintStrokes(ctx: CanvasRenderingContext2D, page: BookPage) {
-  page.strokes.forEach((stroke) => {
-    ctx.save();
-    ctx.beginPath();
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.globalAlpha = stroke.alpha ?? 1;
-    ctx.lineWidth = stroke.width * U;
-    ctx.strokeStyle =
-      stroke.color === "rose" ? COLORS.rose : stroke.color === "sage" ? COLORS.sage : stroke.color === "gold" ? "#d9a441" : stroke.color === "white" ? "#ffffff" : COLORS.ink;
-    for (let i = 0; i + 1 < stroke.points.length; i += 2) {
-      const px = (stroke.points[i] / 100) * W;
-      const py = (stroke.points[i + 1] / 100) * H;
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
+  ctx.save();
+  ctx.scale(U, U);
+  paintStrokeList(ctx, page.strokes);
+  ctx.restore();
+}
+
+/** Рисует блок на отдельном слое, чтобы применить прозрачность, режим наложения и ластик (маску). */
+async function paintBlock(ctx: CanvasRenderingContext2D, block: PageBlock, dark: boolean) {
+  const draw = async (target: CanvasRenderingContext2D) => {
+    if (block.type === "text") paintText(target, block, dark);
+    else if (block.type === "photo") await paintPhoto(target, block);
+    else if (block.type === "sticker") await paintSticker(target, block);
+    else if (block.type === "shape") paintShape(target, block);
+    else if (block.type === "ink") paintInk(target, block);
+  };
+  const mask = block.mask && block.mask.strokes.length ? block.mask : null;
+  if (!mask && block.opacity === undefined && !block.blend) {
+    await draw(ctx);
+    return;
+  }
+  const layer = document.createElement("canvas");
+  layer.width = ctx.canvas.width;
+  layer.height = ctx.canvas.height;
+  const lc = layer.getContext("2d");
+  if (!lc) {
+    await draw(ctx);
+    return;
+  }
+  lc.setTransform(ctx.getTransform());
+  await draw(lc);
+  if (mask) {
+    const image = await loadImage(maskImageUrl(mask));
+    if (image) {
+      const bw = (blockW(block as { type: string; w?: number }) / 100) * W;
+      const bh = "h" in block && typeof block.h === "number" ? (block.h / 100) * H : (mask.h / 100) * bw;
+      const bx = (block.x / 100) * W;
+      const by = (block.y / 100) * H;
+      lc.save();
+      lc.globalCompositeOperation = "destination-in";
+      lc.translate(bx + bw / 2, by + bh / 2);
+      lc.rotate(((block.rotate ?? 0) * Math.PI) / 180);
+      lc.drawImage(image, -bw / 2, -bh / 2, bw, bh);
+      lc.restore();
     }
-    ctx.stroke();
-    ctx.restore();
-  });
+  }
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = block.opacity ?? 1;
+  if (block.blend) ctx.globalCompositeOperation = block.blend === "soft-light" ? "soft-light" : block.blend;
+  ctx.drawImage(layer, 0, 0);
+  ctx.restore();
+  layer.width = 0;
+  layer.height = 0;
 }
 
 /** Страница в печатном размере: обрезной формат + вылеты. Без setup — превью 18 см без вылетов. */
-export async function paintPage(page: BookPage, meta: CoverMeta, setup?: PrintSetup): Promise<HTMLCanvasElement> {
+export async function paintPage(page: BookPage, meta: CoverMeta, setup?: PrintSetup, ghosts: PageBlock[] = []): Promise<HTMLCanvasElement> {
   const trim = setup ? Math.round(setup.size * 10 * PX_PER_MM) : 2126;
   const bleed = setup ? Math.round(setup.bleed * PX_PER_MM) : 0;
   W = trim;
@@ -345,13 +501,19 @@ export async function paintPage(page: BookPage, meta: CoverMeta, setup?: PrintSe
   ctx.translate(bleed, bleed);
   paintPaper(ctx, page.paper, bleed, page.bg);
   if (page.kind === "cover" && !page.designed) await paintCover(ctx, meta);
-  for (const block of page.blocks) {
-    if (block.type === "text") paintText(ctx, block, isDark(page.bg));
-    else if (block.type === "photo") await paintPhoto(ctx, block);
-    else if (block.type === "sticker") await paintSticker(ctx, block);
-  }
+  await loadFonts([...ghosts, ...page.blocks]);
+  for (const block of ghosts) await paintBlock(ctx, block, isDark(page.bg));
+  for (const block of page.blocks) await paintBlock(ctx, block, isDark(page.bg));
   paintStrokes(ctx, page);
   return canvas;
+}
+
+/** Свои шрифты (почерк) должны быть готовы до того, как холст начнёт писать буквами. */
+async function loadFonts(blocks: PageBlock[]) {
+  if (typeof document === "undefined" || !document.fonts) return;
+  const specs = new Set<string>();
+  for (const block of blocks) if (block.type === "text") specs.add(`${fontWeight(block.font)} 40px ${fontFamily(block.font)}`);
+  await Promise.all([...specs].map((spec) => document.fonts.load(spec, "Книга рода аА").catch(() => [])));
 }
 
 function canvasJpeg(canvas: HTMLCanvasElement): Promise<PdfSheet> {
@@ -401,7 +563,7 @@ export async function downloadFamilyBook(pages: BookPage[], meta: CoverMeta, onP
   const sheets: PdfSheet[] = [];
   for (const [index, page] of pages.entries()) {
     onProgress?.(index, pages.length);
-    const sheet = await canvasJpeg(await paintPage(page, meta, { size: 20, bleed: 0, spine: 0 }));
+    const sheet = await canvasJpeg(await paintPage(page, meta, { size: 20, bleed: 0, spine: 0 }, spreadGhosts(pages, page.id)));
     sheets.push({ ...sheet, pageW: 200 * MM, pageH: 200 * MM });
   }
   save(buildJpegPdf(sheets), "Книга рода — просмотр.pdf");
@@ -420,61 +582,68 @@ export async function downloadPrintBlock(pages: BookPage[], meta: CoverMeta, set
   const sheets: PdfSheet[] = [];
   for (const [index, page] of list.entries()) {
     onProgress?.(index, list.length);
-    const sheet = await canvasJpeg(await paintPage(page, meta, setup));
+    const sheet = await canvasJpeg(await paintPage(page, meta, setup, spreadGhosts(inner, page.id)));
     sheets.push({ ...sheet, pageW: side, pageH: side, bleed: setup.bleed * MM });
   }
   save(buildJpegPdf(sheets), `Книга рода — блок ${setup.size}x${setup.size} (${list.length} стр).pdf`);
   return list.length;
 }
 
+export const PAPER_BG: Record<PaperKind, string> = { cream: "#fbf8f3", lined: "#fbf8f3", dots: "#fbf8f3", rose: "#f8e4e8", sage: "#e7eee2", kraft: "#ece0cf" };
+
+/** Надпись на корешке по умолчанию. */
+export function spineText(spine: SpineSetup, meta: CoverMeta): string {
+  return spine.text.trim() || (meta.dedicatee.trim() ? `Книга рода · ${meta.dedicatee.trim()}` : "Книга рода");
+}
+
 /** Обложка разворотом: задняя сторона + корешок + лицевая, с вылетами (или загибом) по краям. */
-export async function downloadPrintCover(pages: BookPage[], meta: CoverMeta, setup: PrintSetup) {
+export async function downloadPrintCover(pages: BookPage[], meta: CoverMeta, setup: PrintSetup, extra: { back?: BookPage | null; spine?: SpineSetup } = {}) {
   await fontsReady();
   const cover = pages.find((page) => page.kind === "cover") ?? { id: "cover", title: "Обложка", kind: "cover" as const, paper: "rose" as const, strokes: [], blocks: [] };
-  const front = await paintPage(cover, meta, { ...setup, bleed: 0 });
-  const trim = front.width;
+  const backSource = extra.back ?? backPage(cover.kind === "cover" ? (cover as BookPage) : null);
+  const spineSet = extra.spine ?? { text: "", font: "serif" as const, size: 0 };
+  // Обе стороны с вылетами: фото на всю обложку доходит до края под обрез.
+  const front = await paintPage(cover, meta, setup);
+  const back = await paintPage(backSource, meta, setup);
   const bleed = Math.round(setup.bleed * PX_PER_MM);
+  const trim = front.width - bleed * 2;
   const spine = Math.round(setup.spine * PX_PER_MM);
   const canvas = document.createElement("canvas");
   canvas.width = trim * 2 + spine + bleed * 2;
   canvas.height = trim + bleed * 2;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Не удалось собрать обложку");
-  const bg: Record<PaperKind, string> = { cream: "#fbf8f3", lined: "#fbf8f3", dots: "#fbf8f3", rose: "#f8e4e8", sage: "#e7eee2", kraft: "#ece0cf" };
-  ctx.fillStyle = cover.bg || bg[cover.paper];
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  // Задняя сторона
-  W = trim;
-  H = trim;
-  U = trim / 100;
-  ctx.save();
-  ctx.translate(bleed, bleed);
-  ctx.fillStyle = COLORS.roseDeep;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = `500 ${4.2 * U}px ${FONT_FAMILY.script}`;
-  ctx.fillText("Эту книгу можно продолжать.", trim / 2, trim * 0.46);
-  ctx.fillText("Следующую страницу допишет уже другой.", trim / 2, trim * 0.46 + 5.4 * U);
-  ctx.restore();
+  const frontColor = cover.bg || PAPER_BG[cover.paper];
+  const backColor = backSource.bg || PAPER_BG[backSource.paper];
+  const spineColor = spineSet.bg || frontColor;
+  ctx.fillStyle = backColor;
+  ctx.fillRect(0, 0, bleed + trim, canvas.height);
+  ctx.fillStyle = spineColor;
+  ctx.fillRect(bleed + trim, 0, spine, canvas.height);
+  ctx.fillStyle = frontColor;
+  ctx.fillRect(bleed + trim + spine, 0, trim + bleed, canvas.height);
+  // Задняя: без вылета у корешка (справа).
+  ctx.drawImage(back, 0, 0, trim + bleed, back.height, 0, 0, trim + bleed, back.height);
   // Корешок
   if (spine > 0) {
     ctx.save();
-    ctx.fillStyle = "rgba(142, 61, 82, 0.08)";
-    ctx.fillRect(bleed + trim, 0, spine, canvas.height);
-    const fontPx = Math.min(spine * 0.55, 6 * U);
+    const U2 = trim / 100;
+    const auto = Math.min(spine * 0.55, 6 * U2);
+    const fontPx = spineSet.size > 0 ? Math.min(spine * 0.9, (spineSet.size / 10) * (U2 * 1)) : auto;
     if (fontPx > 14) {
       ctx.translate(bleed + trim + spine / 2, canvas.height / 2);
       ctx.rotate(Math.PI / 2);
-      ctx.fillStyle = COLORS.ink;
+      ctx.fillStyle = spineSet.color || (isDark(spineColor) ? "#fbf8f3" : COLORS.ink);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.font = `600 ${fontPx}px ${FONT_FAMILY.serif}`;
-      ctx.fillText(meta.dedicatee.trim() ? `Книга рода · ${meta.dedicatee.trim()}` : "Книга рода", 0, 0, trim * 0.8);
+      ctx.font = `${fontWeight(spineSet.font)} ${fontPx}px ${fontFamily(spineSet.font)}`;
+      ctx.fillText(spineText(spineSet, meta), 0, 0, trim * 0.8);
     }
     ctx.restore();
   }
   // Лицевая сторона
-  ctx.drawImage(front, bleed + trim + spine, bleed);
+  // Лицевая: без вылета у корешка (слева).
+  ctx.drawImage(front, bleed, 0, trim + bleed, front.height, bleed + trim + spine, 0, trim + bleed, front.height);
   const sheet = await canvasJpeg(canvas);
   const pdf = buildJpegPdf([{ ...sheet, pageW: canvas.width / PX_PER_MM * MM, pageH: canvas.height / PX_PER_MM * MM, bleed: setup.bleed * MM }]);
   save(pdf, `Книга рода — обложка ${setup.size}x${setup.size}, корешок ${setup.spine} мм.pdf`);

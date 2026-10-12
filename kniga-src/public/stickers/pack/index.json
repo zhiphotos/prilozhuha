@@ -1,0 +1,436 @@
+[
+{
+"id": "envelope_moss",
+"label": "Конверт из мха",
+"cat": "Конверты и мох",
+"file": "stickers/pack/envelope_moss.webp",
+"kind": "sticker"
+},
+{
+"id": "moss_archive",
+"label": "Архив из мха",
+"cat": "Конверты и мох",
+"file": "stickers/pack/moss_archive.webp",
+"kind": "sticker"
+},
+{
+"id": "moss_book_closed",
+"label": "Книга рода из мха",
+"cat": "Конверты и мох",
+"file": "stickers/pack/moss_book_closed.webp",
+"kind": "sticker"
+},
+{
+"id": "moss_book_open",
+"label": "Открытая книга из мха",
+"cat": "Конверты и мох",
+"file": "stickers/pack/moss_book_open.webp",
+"kind": "sticker"
+},
+{
+"id": "moss_cursor",
+"label": "Курсор из мха",
+"cat": "Конверты и мох",
+"file": "stickers/pack/moss_cursor.webp",
+"kind": "sticker"
+},
+{
+"id": "moss_folder",
+"label": "Папка из мха",
+"cat": "Конверты и мох",
+"file": "stickers/pack/moss_folder.webp",
+"kind": "sticker"
+},
+{
+"id": "moss_lesson_screen",
+"label": "Окно урока из мха",
+"cat": "Конверты и мох",
+"file": "stickers/pack/moss_lesson_screen.webp",
+"kind": "sticker"
+},
+{
+"id": "moss_phone",
+"label": "Телефон из мха",
+"cat": "Конверты и мох",
+"file": "stickers/pack/moss_phone.webp",
+"kind": "sticker"
+},
+{
+"id": "moss_shelf",
+"label": "Полка из мха",
+"cat": "Конверты и мох",
+"file": "stickers/pack/moss_shelf.webp",
+"kind": "sticker"
+},
+{
+"id": "daffodil",
+"label": "Нарцисс",
+"cat": "Цветы",
+"file": "stickers/pack/daffodil.webp",
+"kind": "sticker"
+},
+{
+"id": "lily_valley",
+"label": "Ландыш",
+"cat": "Цветы",
+"file": "stickers/pack/lily_valley.webp",
+"kind": "sticker"
+},
+{
+"id": "peony",
+"label": "Пион",
+"cat": "Цветы",
+"file": "stickers/pack/peony.webp",
+"kind": "sticker"
+},
+{
+"id": "rose",
+"label": "Роза",
+"cat": "Цветы",
+"file": "stickers/pack/rose.webp",
+"kind": "sticker"
+},
+{
+"id": "rosebuds",
+"label": "Бутоны",
+"cat": "Цветы",
+"file": "stickers/pack/rosebuds.webp",
+"kind": "sticker"
+},
+{
+"id": "bark",
+"label": "Кора",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/bark.webp",
+"kind": "sticker"
+},
+{
+"id": "bark_piece",
+"label": "Кусок коры",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/bark_piece.webp",
+"kind": "sticker"
+},
+{
+"id": "branch",
+"label": "Ветка",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/branch.webp",
+"kind": "sticker"
+},
+{
+"id": "driftwood",
+"label": "Коряга",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/driftwood.webp",
+"kind": "sticker"
+},
+{
+"id": "wood_slice",
+"label": "Спил дерева",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/wood_slice.webp",
+"kind": "sticker"
+},
+{
+"id": "stick_01",
+"label": "Колючая ветка 1",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/stick_01.webp",
+"kind": "sticker"
+},
+{
+"id": "stick_02",
+"label": "Колючая ветка 2",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/stick_02.webp",
+"kind": "sticker"
+},
+{
+"id": "stick_03",
+"label": "Колючая ветка 3",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/stick_03.webp",
+"kind": "sticker"
+},
+{
+"id": "stick_04",
+"label": "Колючая ветка 4",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/stick_04.webp",
+"kind": "sticker"
+},
+{
+"id": "stick_05",
+"label": "Колючая ветка 5",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/stick_05.webp",
+"kind": "sticker"
+},
+{
+"id": "stick_06",
+"label": "Колючая ветка 6",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/stick_06.webp",
+"kind": "sticker"
+},
+{
+"id": "stick_07",
+"label": "Колючая ветка 7",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/stick_07.webp",
+"kind": "sticker"
+},
+{
+"id": "stick_08",
+"label": "Колючая ветка 8",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/stick_08.webp",
+"kind": "sticker"
+},
+{
+"id": "stick_green",
+"label": "Зелёная веточка",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/stick_green.webp",
+"kind": "sticker"
+},
+{
+"id": "stick_rosehip",
+"label": "Веточка шиповника",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/stick_rosehip.webp",
+"kind": "sticker"
+},
+{
+"id": "stick_thorn",
+"label": "Ветка с шипами",
+"cat": "Ветки и дерево",
+"file": "stickers/pack/stick_thorn.webp",
+"kind": "sticker"
+},
+{
+"id": "kraft_torn",
+"label": "Крафт рваный",
+"cat": "Бумага",
+"file": "stickers/pack/kraft_torn.webp",
+"kind": "sticker"
+},
+{
+"id": "notebook_sheet",
+"label": "Лист в линейку",
+"cat": "Бумага",
+"file": "stickers/pack/notebook_sheet.webp",
+"kind": "sticker"
+},
+{
+"id": "old_notebook",
+"label": "Старая тетрадь",
+"cat": "Бумага",
+"file": "stickers/pack/old_notebook.webp",
+"kind": "sticker"
+},
+{
+"id": "paper_burnt_edge",
+"label": "Бумага с обожжённым краем",
+"cat": "Бумага",
+"file": "stickers/pack/paper_burnt_edge.webp",
+"kind": "sticker"
+},
+{
+"id": "paper_stack",
+"label": "Стопка бумаги",
+"cat": "Бумага",
+"file": "stickers/pack/paper_stack.webp",
+"kind": "sticker"
+},
+{
+"id": "paper_two_scraps",
+"label": "Два обрывка",
+"cat": "Бумага",
+"file": "stickers/pack/paper_two_scraps.webp",
+"kind": "sticker"
+},
+{
+"id": "sticky_note",
+"label": "Стикер-заметка",
+"cat": "Бумага",
+"file": "stickers/pack/sticky_note.webp",
+"kind": "sticker"
+},
+{
+"id": "white_torn",
+"label": "Белый рваный лист",
+"cat": "Бумага",
+"file": "stickers/pack/white_torn.webp",
+"kind": "sticker"
+},
+{
+"id": "engraving_circle",
+"label": "Гравюра в круге",
+"cat": "Другое",
+"file": "stickers/pack/engraving_circle.webp",
+"kind": "sticker"
+},
+{
+"id": "lotus_pod",
+"label": "Коробочка лотоса",
+"cat": "Другое",
+"file": "stickers/pack/lotus_pod.webp",
+"kind": "sticker"
+},
+{
+"id": "moth",
+"label": "Мотылёк",
+"cat": "Другое",
+"file": "stickers/pack/moth.webp",
+"kind": "sticker"
+},
+{
+"id": "moth_ring",
+"label": "Венок из мотыльков",
+"cat": "Другое",
+"file": "stickers/pack/moth_ring.webp",
+"kind": "sticker"
+},
+{
+"id": "shell",
+"label": "Ракушка",
+"cat": "Другое",
+"file": "stickers/pack/shell.webp",
+"kind": "sticker"
+},
+{
+"id": "num_0",
+"label": "Цифра 0 из мха",
+"cat": "Цифры",
+"file": "stickers/pack/num_0.webp",
+"kind": "sticker"
+},
+{
+"id": "num_1",
+"label": "Цифра 1 из мха",
+"cat": "Цифры",
+"file": "stickers/pack/num_1.webp",
+"kind": "sticker"
+},
+{
+"id": "num_2",
+"label": "Цифра 2 из мха",
+"cat": "Цифры",
+"file": "stickers/pack/num_2.webp",
+"kind": "sticker"
+},
+{
+"id": "num_3",
+"label": "Цифра 3 из мха",
+"cat": "Цифры",
+"file": "stickers/pack/num_3.webp",
+"kind": "sticker"
+},
+{
+"id": "num_4",
+"label": "Цифра 4 из мха",
+"cat": "Цифры",
+"file": "stickers/pack/num_4.webp",
+"kind": "sticker"
+},
+{
+"id": "num_5",
+"label": "Цифра 5 из мха",
+"cat": "Цифры",
+"file": "stickers/pack/num_5.webp",
+"kind": "sticker"
+},
+{
+"id": "num_6",
+"label": "Цифра 6 из мха",
+"cat": "Цифры",
+"file": "stickers/pack/num_6.webp",
+"kind": "sticker"
+},
+{
+"id": "num_7",
+"label": "Цифра 7 из мха",
+"cat": "Цифры",
+"file": "stickers/pack/num_7.webp",
+"kind": "sticker"
+},
+{
+"id": "num_8",
+"label": "Цифра 8 из мха",
+"cat": "Цифры",
+"file": "stickers/pack/num_8.webp",
+"kind": "sticker"
+},
+{
+"id": "num_9",
+"label": "Цифра 9 из мха",
+"cat": "Цифры",
+"file": "stickers/pack/num_9.webp",
+"kind": "sticker"
+},
+{
+"id": "envelope_brown",
+"label": "Конверт коричневый",
+"cat": "Конверты и мох",
+"file": "stickers/pack/envelope_brown.webp",
+"kind": "sticker"
+},
+{
+"id": "bg_8146",
+"label": "Фон: инжир",
+"cat": "Фоны",
+"file": "stickers/pack/bg_8146.webp",
+"kind": "background"
+},
+{
+"id": "bg_8147",
+"label": "Фон: травы",
+"cat": "Фоны",
+"file": "stickers/pack/bg_8147.webp",
+"kind": "background"
+},
+{
+"id": "bg_8149",
+"label": "Фон: гербарий и кора",
+"cat": "Фоны",
+"file": "stickers/pack/bg_8149.webp",
+"kind": "background"
+},
+{
+"id": "bg_8150",
+"label": "Фон: сухоцветы",
+"cat": "Фоны",
+"file": "stickers/pack/bg_8150.webp",
+"kind": "background"
+},
+{
+"id": "bg_8152",
+"label": "Фон: полевые цветы",
+"cat": "Фоны",
+"file": "stickers/pack/bg_8152.webp",
+"kind": "background"
+},
+{
+"id": "bg_8153",
+"label": "Фон: сирень",
+"cat": "Фоны",
+"file": "stickers/pack/bg_8153.webp",
+"kind": "background"
+},
+{
+"id": "bg_8154",
+"label": "Фон: ночной луг",
+"cat": "Фоны",
+"file": "stickers/pack/bg_8154.webp",
+"kind": "background"
+},
+{
+"id": "bg_8155",
+"label": "Фон: венок из мотыльков",
+"cat": "Фоны",
+"file": "stickers/pack/bg_8155.webp",
+"kind": "background"
+}
+]

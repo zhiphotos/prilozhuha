@@ -1,62 +1,63 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import {
-  AlignCenter,
-  AlignLeft,
-  ArrowDownToLine,
-  ArrowUpToLine,
   BookOpen,
-  Camera,
   ChevronLeft,
   ChevronRight,
-  ClipboardPaste,
   Copy,
   Eraser,
-  Highlighter,
+  FilePlus,
   ImagePlus,
-  Images,
-  Mic,
+  Layers,
+  Lock,
   MoreHorizontal,
   PenLine,
-  Maximize,
+  Pipette,
   Redo2,
   ArrowLeftRight,
   Square,
-  Ruler,
   RotateCcw,
-  Scissors,
-  Search,
   Smile,
   Sparkles,
   Trash2,
   Type,
   Undo2,
+  X,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, Sheet, useNav } from "@/components/rod/chrome";
-import { BlockArt, InkLayer, PageSheet, PlacedBlock, boxOf, inkColor, PAGE_H } from "@/components/rod/page-view";
-import { imageFromTransfer, importFromLink, importImage } from "@/lib/rod/image";
-import { coverDesigns } from "@/lib/rod/layouts";
+import { BlockBar, Inspector, PenBar, TextPanel, type BlockOps, type Tool } from "@/components/rod/editor-bars";
+import { FontsSheet, GENERIC_QUESTIONS, HelpSheet, LayersSheet, PasteSheet, PhotoSheet, PinterestPanel, StickersSheet, type PhotoStyle } from "@/components/rod/editor-sheets";
+import { BarBtn, IconBtn, MenuRow, ToolBtn } from "@/components/rod/editor-ui";
+import { ColorRow, ColorSheet } from "@/components/rod/color-sheet";
 import { MoodBoard } from "@/components/rod/moodboard";
+import { PinnedRefs } from "@/components/rod/pinned-refs";
+import { BlockArt, PageSheet, PlacedBlock, boxOf } from "@/components/rod/page-view";
+import { Scanner } from "@/components/rod/scanner";
+import { cropGeom, innerBox } from "@/lib/rod/crop";
+import { imageFromTransfer, imageInfo, importFromLink, importImage, importSticker } from "@/lib/rod/image";
+import { BRUSH_ALPHA, BRUSH_DEFAULT_PX, PAGE_H, eraseFromStrokes, lineOf, makeInkBlock, mergeInk, px2w, recognizeShape, strokeGeom, tidy } from "@/lib/rod/ink";
+import { coverDesigns, blankPage } from "@/lib/rod/layouts";
 import { liftSubject } from "@/lib/rod/lift";
-import { mediaDataUrl, resolveMedia, saveMedia, useMedia } from "@/lib/rod/media";
-import { FONT_FAMILY, PAGE_RATIO, PAPER, SWATCHES, lookColors, POLAROID, STICKERS, STICKER_ORDER, defaultStickerWidth, pageSide, safeArea, stickerRatio, stickerUrl } from "@/lib/rod/page-style";
-import { FONT_LABEL, findPrompt } from "@/lib/rod/pages";
+import { mediaDataUrl, saveMedia } from "@/lib/rod/media";
+import { PAPER, POLAROID, blockW, defaultStickerWidth, pageSide, safeArea, stickerRatio } from "@/lib/rod/page-style";
+import { findPrompt } from "@/lib/rod/pages";
+import { paintPage } from "@/lib/rod/print-book";
+import { defaultShapeBox } from "@/lib/rod/shapes";
 import { scratch, stickSound, turnPage } from "@/lib/rod/sounds";
-import { recognition } from "@/lib/rod/speech";
-import { flushBook, useRod } from "@/lib/rod/store";
-import type { BookPage, FontKind, InkStroke, PageBlock, PaperKind, PhotoFrame, TextLook } from "@/lib/rod/types";
+import { partnerIndex, spreadGhosts } from "@/lib/rod/spread";
+import { backPage, flushBook, useRod } from "@/lib/rod/store";
+import { BACK_ID, type BookPage, type BrushKind, type InkStroke, type PageBlock, type PaperKind, type PhotoFrame, type ShapeKind, type StickerKind } from "@/lib/rod/types";
+import type { Recognized } from "@/lib/rod/ink";
 import { cn } from "@/lib/cn";
 
-type Tool = "hand" | "pen" | "marker" | "erase";
-type Panel = "photo" | "pinterest" | "stickers" | "help" | "menu" | "covers" | null;
-type PhotoStyle = "cutout" | "polaroid" | "none" | "tape" | "sticker" | "full";
+type Panel = "photo" | "pinterest" | "paste" | "stickers" | "help" | "menu" | "covers" | "layers" | "fonts" | "inspector" | "scan" | null;
 type Box = { x: number; y: number; w: number; h: number | null; rotate: number };
 type Gesture = {
   id: string;
-  mode: "move" | "size" | "turn";
+  mode: "move" | "size" | "turn" | "crop";
   pointerId: number;
   startX: number;
   startY: number;
@@ -67,64 +68,86 @@ type Gesture = {
   angle0?: number;
   ratio?: number | null;
   last?: Box;
+  crop0?: { cx: number; cy: number; z: number };
+};
+type Draw = {
+  pointerId: number;
+  pointerType: string;
+  points: number[];
+  pressure: number[];
+  hasPressure: boolean;
+  erase: boolean;
+  target: string | null;
+  group: string;
+  maskAt: number | null;
+  still?: number;
+  lx: number;
+  ly: number;
+  snapped: Recognized;
+  startedAt: number;
 };
 
 const STYLE_KEY = "kniga-photo-style-v2";
-const STYLES: { id: PhotoStyle; label: string }[] = [
-  { id: "cutout", label: "Стикер без фона" },
-  { id: "polaroid", label: "Полароид" },
-  { id: "sticker", label: "С белой каймой" },
-  { id: "tape", label: "На скотче" },
-  { id: "none", label: "Просто фото" },
-  { id: "full", label: "На всю страницу" },
-];
-
-const INK: InkStroke["color"][] = ["ink", "rose", "sage", "gold", "white"];
+const SHADOW_KEY = "kniga-photo-shadow";
+const PEN_KEY = "kniga-pen-v2";
 
 const id = () => crypto.randomUUID();
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
-
-function loadRatio(src: string): Promise<number> {
-  return resolveMedia(src).then(
-    (url) =>
-      new Promise((resolve) => {
-        const image = new Image();
-        image.onload = () => resolve(image.height / Math.max(1, image.width));
-        image.onerror = () => resolve(0.75);
-        image.src = url;
-      }),
-  );
-}
+const round = (v: number) => Math.round(v * 100) / 100;
 
 function savedStyle(): PhotoStyle {
   try {
     const value = localStorage.getItem(STYLE_KEY) as PhotoStyle | null;
-    return value && STYLES.some((item) => item.id === value) ? value : "polaroid";
+    return value && ["cutout", "polaroid", "none", "tape", "sticker", "full"].includes(value) ? value : "polaroid";
   } catch {
     return "polaroid";
   }
 }
 
+type PenPrefs = { brush: BrushKind; color: string; sizes: Record<BrushKind, number>; eraser: number; auto: boolean };
+
+function savedPen(): PenPrefs {
+  const fallback: PenPrefs = { brush: "pen", color: "#2a2420", sizes: { ...BRUSH_DEFAULT_PX }, eraser: 14, auto: false };
+  try {
+    const raw = JSON.parse(localStorage.getItem(PEN_KEY) ?? "null") as Partial<PenPrefs> | null;
+    return raw ? { ...fallback, ...raw, sizes: { ...fallback.sizes, ...(raw.sizes ?? {}) } } : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/** Новое фото ложится над другими фото, но под текстом. */
+function photoInsertIndex(blocks: PageBlock[]): number {
+  let last = -1;
+  blocks.forEach((b, i) => {
+    if (b.type === "photo" || b.type === "slot") last = i;
+  });
+  if (last >= 0) return last + 1;
+  const firstText = blocks.findIndex((b) => b.type === "text");
+  return firstText >= 0 ? firstText : blocks.length;
+}
+
 export function EditorScreen({ pageId }: { pageId: string }) {
   const nav = useNav();
+  const isBack = pageId === BACK_ID;
   const pages = useRod((state) => state.pages);
+  const backStored = useRod((state) => state.back);
   const updatePage = useRod((state) => state.updatePage);
   const removePage = useRod((state) => state.removePage);
   const restorePage = useRod((state) => state.restorePage);
   const duplicatePage = useRod((state) => state.duplicatePage);
   const movePage = useRod((state) => state.movePage);
+  const insertPage = useRod((state) => state.insertPage);
+  const addUserSticker = useRod((state) => state.addUserSticker);
   const dedicatee = useRod((state) => state.dedicatee);
   const collector = useRod((state) => state.collector);
   const archive = useRod((state) => state.photos);
   const print = useRod((state) => state.print);
-  const page = pages.find((item) => item.id === pageId) ?? null;
-  const index = pages.findIndex((item) => item.id === pageId);
+  const page: BookPage | null = isBack ? (backStored ?? backPage(pages[0]?.kind === "cover" ? pages[0] : null)) : (pages.find((item) => item.id === pageId) ?? null);
+  const index = isBack ? -1 : pages.findIndex((item) => item.id === pageId);
   const hasCover = pages[0]?.kind === "cover";
-  // Соседняя страница разворота: левые — чётные, правые — нечётные (обложка не считается, страница 1 смотрит на форзац).
-  const pageNo = hasCover ? index : index + 1;
-  const partnerNo = pageNo % 2 === 1 ? pageNo - 1 : pageNo + 1;
-  const partnerIndex = index < 0 || (hasCover && index === 0) || partnerNo < 2 ? -1 : hasCover ? partnerNo : partnerNo - 1;
-  const partner = partnerIndex >= 0 ? (pages[partnerIndex] ?? null) : null;
+  const partnerAt = isBack ? -1 : partnerIndex(pages, index);
+  const partner = partnerAt >= 0 ? (pages[partnerAt] ?? null) : null;
   const [spread, setSpreadState] = useState(() => {
     try {
       const saved = localStorage.getItem("kniga-spread");
@@ -147,31 +170,67 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [tool, setTool] = useState<Tool>("hand");
-  const [ink, setInk] = useState<InkStroke["color"]>("ink");
-  const [thin, setThin] = useState(false);
+  const [pen, setPen] = useState<PenPrefs>(savedPen);
   const [straight, setStraight] = useState(false);
-  const penSeen = useRef(false);
+  const [penColors, setPenColors] = useState(false);
+  const [pipette, setPipette] = useState<((color: string) => void) | null>(null);
+  const [cropping, setCropping] = useState(false);
+  const penSeen = useRef(0);
   const [panel, setPanel] = useState<Panel>(null);
   const [slotTarget, setSlotTarget] = useState<string | null>(null);
+  const [replaceTarget, setReplaceTarget] = useState<string | null>(null);
   const [style, setStyleState] = useState<PhotoStyle>(() => savedStyle());
+  const [shadowPref, setShadowPref] = useState(() => {
+    try {
+      return localStorage.getItem(SHADOW_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
   const [ghost, setGhost] = useState<{ id: string; box: Box } | null>(null);
-  const [live, setLive] = useState<InkStroke | null>(null);
   const [busy, setBusy] = useState<Record<string, string>>({});
   const [dropping, setDropping] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [mood, setMood] = useState(false);
+  const [pinned, setPinned] = useState<string[]>(() => {
+    try {
+      const list = JSON.parse(localStorage.getItem("kniga-pinned") ?? "[]") as string[];
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [];
+    }
+  });
+  const togglePin = (ref: string) =>
+    setPinned((list) => {
+      const next = list.includes(ref) ? list.filter((item) => item !== ref) : [...list, ref].slice(-6);
+      try {
+        localStorage.setItem("kniga-pinned", JSON.stringify(next));
+      } catch {
+        /* без запоминания */
+      }
+      return next;
+    });
   const [, setTick] = useState(0);
 
   const sheetRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const cursorRef = useRef<HTMLDivElement>(null);
+  const livePath = useRef<SVGPathElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const diskRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
+  const stickerFileRef = useRef<HTMLInputElement>(null);
   const gesture = useRef<Gesture | null>(null);
-  const drawing = useRef<{ pointerId: number; points: number[]; erase: boolean; straight: boolean; still?: number; lx: number; ly: number } | null>(null);
+  const drawing = useRef<Draw | null>(null);
+  const lastInk = useRef<{ id: string; at: number; key: string } | null>(null);
+  const eraseCount = useRef(0);
+  const cropAr = useRef(0.75);
   const undo = useRef<BookPage[]>([]);
   const redo = useRef<BookPage[]>([]);
   const lastGroup = useRef<{ key: string; at: number } | null>(null);
-  const [size, setSize] = useState({ w: 320, h: 427 });
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  const twoTap = useRef<{ t0: number; moved: boolean; fired: boolean } | null>(null);
+  const [size, setSize] = useState({ w: 320, h: 320 });
 
   const setStyle = (next: PhotoStyle) => {
     setStyleState(next);
@@ -182,20 +241,67 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     }
   };
 
+  const setShadow = (next: boolean) => {
+    setShadowPref(next);
+    try {
+      localStorage.setItem(SHADOW_KEY, next ? "1" : "0");
+    } catch {
+      /* без запоминания */
+    }
+  };
+
+  const updatePen = (patch: Partial<PenPrefs>) =>
+    setPen((prev) => {
+      const next = { ...prev, ...patch };
+      try {
+        localStorage.setItem(PEN_KEY, JSON.stringify(next));
+      } catch {
+        /* без запоминания */
+      }
+      return next;
+    });
+
+  const sizePx = pen.sizes[pen.brush];
+
   // Страница вписывается в экран целиком: лист всегда виден, без прокрутки.
   useLayoutEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
     const fit = () => {
       const rect = stage.getBoundingClientRect();
-      const w = Math.max(140, Math.min(twoUp ? (rect.width - 24) / 2 : rect.width - 8, (rect.height - 8) / PAGE_RATIO, 720));
-      setSize({ w, h: w * PAGE_RATIO });
+      const w = Math.max(140, Math.min(twoUp ? (rect.width - 24) / 2 : rect.width - 8, (rect.height - 8) / (PAGE_H / 100), 720));
+      setSize({ w, h: w * (PAGE_H / 100) });
     };
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(stage);
     return () => observer.disconnect();
   }, [page?.id, twoUp]);
+
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem("kniga-hint-2f")) {
+        localStorage.setItem("kniga-hint-2f", "1");
+        toast("Подсказка: коснитесь экрана двумя пальцами, чтобы сделать шаг назад. Ещё раз: ещё шаг назад.", { duration: 7000 });
+      }
+    } catch {
+      /* без подсказки */
+    }
+  }, []);
+
+  // Если касание потерялось (свернули приложение), жесты не должны залипнуть.
+  useEffect(() => {
+    const reset = () => {
+      touches.current.clear();
+      twoTap.current = null;
+    };
+    window.addEventListener("blur", reset);
+    document.addEventListener("visibilitychange", reset);
+    return () => {
+      window.removeEventListener("blur", reset);
+      document.removeEventListener("visibilitychange", reset);
+    };
+  }, []);
 
   useEffect(() => {
     undo.current = [];
@@ -205,9 +311,13 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     setTick((value) => value + 1);
   }, [pageId]);
 
-  const current = useCallback(() => useRod.getState().pages.find((item) => item.id === pageId) ?? null, [pageId]);
+  const current = useCallback((): BookPage | null => {
+    const state = useRod.getState();
+    if (pageId === BACK_ID) return state.back ?? backPage(state.pages[0]?.kind === "cover" ? state.pages[0] : null);
+    return state.pages.find((item) => item.id === pageId) ?? null;
+  }, [pageId]);
 
-  /** Любое изменение страницы идёт через commit — так работает «Отменить». */
+  /** Любое изменение страницы идёт через commit: так работает «Отменить». */
   const commit = useCallback(
     (updater: (page: BookPage) => BookPage, group?: string) => {
       const before = current();
@@ -247,14 +357,18 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     setTick((value) => value + 1);
   };
 
+  // Двумя пальцами тап по экрану — шаг назад; два тапа подряд — шаг вперёд.
+  const actions = useRef({ undo: doUndo, redo: doRedo });
+  actions.current = { undo: doUndo, redo: doRedo };
+
   const patchBlock = (blockId: string, partial: Partial<PageBlock>, group?: string) =>
     commit((p) => ({ ...p, blocks: p.blocks.map((b) => (b.id === blockId ? ({ ...b, ...partial } as PageBlock) : b)) }), group);
 
-  const removeBlock = (blockId: string) => {
+  const removeBlock = (blockId: string, quiet = false) => {
     commit((p) => ({ ...p, blocks: p.blocks.filter((b) => b.id !== blockId) }));
-    setSelected(null);
-    setEditing(null);
-    toast("Удалено", { action: { label: "Вернуть", onClick: doUndo } });
+    setSelected((value) => (value === blockId ? null : value));
+    setEditing((value) => (value === blockId ? null : value));
+    if (!quiet) toast("Удалено", { action: { label: "Вернуть", onClick: doUndo } });
   };
 
   const addBlock = (block: PageBlock) => {
@@ -262,7 +376,30 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     setSelected(block.id);
   };
 
-  // ——— Клавиатура: ⌘Z, Delete ———
+  const moveLayer = (blockId: string, where: "up" | "down" | "top" | "bottom") =>
+    commit((p) => {
+      const i = p.blocks.findIndex((b) => b.id === blockId);
+      if (i < 0) return p;
+      const blocks = p.blocks.slice();
+      const [b] = blocks.splice(i, 1);
+      const to = where === "up" ? Math.min(blocks.length, i + 1) : where === "down" ? Math.max(0, i - 1) : where === "top" ? blocks.length : 0;
+      blocks.splice(to, 0, b);
+      return { ...p, blocks };
+    });
+
+  // Пустой текст, который сама добавила, при выходе из набора убираем: «плашки» не копятся.
+  const wasEditing = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = wasEditing.current;
+    wasEditing.current = editing;
+    if (prev && prev !== editing) {
+      const block = current()?.blocks.find((b) => b.id === prev);
+      if (block && block.type === "text" && !block.text.trim() && !block.placeholder) removeBlock(prev, true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing]);
+
+  // ——— Клавиатура ———
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const typing = (event.target as HTMLElement)?.closest?.("input, textarea");
@@ -271,7 +408,10 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         if (event.shiftKey) doRedo();
         else doUndo();
       }
+      if (event.key === "Escape" && pipette) setPipette(null);
       if ((event.key === "Delete" || event.key === "Backspace") && selected && !typing) {
+        const block = current()?.blocks.find((b) => b.id === selected);
+        if (block?.locked) return;
         event.preventDefault();
         removeBlock(selected);
       }
@@ -324,31 +464,38 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   };
 
   // ——— Охранное поле ———
-  const side = pageSide(index, pages[0]?.kind === "cover");
+  const side = isBack ? "single" : pageSide(index, hasCover);
   const safe = safeArea(print.size, side);
   const bleedPct = (print.bleed / (print.size * 10)) * 100;
 
-  /** Фото на весь лист вместе с вылетами — под обрез. */
+  const heightOf = (b: PageBlock): number => {
+    if ("h" in b && typeof b.h === "number") return b.h;
+    if (b.type === "sticker") return (b.w ?? 15) * stickerRatio(b.kind);
+    const el = document.querySelector(`[data-block="${b.id}"]`) as HTMLElement | null;
+    const sheetH = sheetRef.current?.offsetHeight || 1;
+    return el ? (el.offsetHeight / sheetH) * 100 : 6;
+  };
+
+  /** Фото на весь лист вместе с вылетами, под обрез. */
   const fullPage = () => ({ x: round(-bleedPct), y: round(-bleedPct), w: round(100 + bleedPct * 2), h: round(100 + bleedPct * 2), rotate: 0, frame: "none" as PhotoFrame });
 
   const warnFull = (ratio: number) => {
-    const crop = Math.abs(ratio - 1) > 0.05 ? (ratio > 1 ? " Фото вытянуто вверх — сверху и снизу его подрежет до квадрата." : " Фото широкое — по бокам его подрежет до квадрата.") : "";
-    toast(`Фото на всю страницу. При печати по краям срежется ~${print.bleed} мм.${crop} Лица и надписи держите внутри пунктира.`, { duration: 9000 });
+    const crop = Math.abs(ratio - 1) > 0.05 ? (ratio > 1 ? " Фото вытянуто вверх, сверху и снизу его подрежет до квадрата." : " Фото широкое, по бокам его подрежет до квадрата.") : "";
+    toast(`Фото на всю страницу. При печати по краям срежется ~${print.bleed} мм.${crop} Какую часть оставить, выберите кнопкой «Кадр». Лица и надписи держите внутри пунктира.`, { duration: 9000 });
   };
 
-  /** Текст и стикеры остаются внутри охранного поля. Фото — либо внутри, либо «на вылет» за край листа. */
+  /** Текст и стикеры остаются внутри охранного поля. Фото: либо внутри, либо «на вылет» за край листа. Рисунки, фигуры и фото «через разворот» не двигаем. */
   const fitSafe = (b: PageBlock): PageBlock => {
-    const el = document.querySelector(`[data-block="${b.id}"]`) as HTMLElement | null;
-    const sheetH = sheetRef.current?.offsetHeight || 1;
+    if (b.type === "ink" || b.type === "shape" || (b.type === "photo" && b.spread)) return b;
     const L = safe.left;
     const R = 100 - safe.right;
     const T = safe.top;
     const B = 100 - safe.bottom;
     const bleedable = (b.type === "photo" && !(b.frame === "sticker" && b.cut)) || b.type === "slot";
     if (!bleedable) {
-      let w = "w" in b && typeof b.w === "number" ? b.w : 10;
+      let w = blockW(b as { type: string; w?: number });
       if (b.type === "text") w = Math.min(w, R - L);
-      const h = b.type === "photo" ? b.h : b.type === "sticker" ? (b.w ?? 10) * stickerRatio(b.kind) : el ? (el.offsetHeight / sheetH) * 100 : 6;
+      const h = heightOf(b);
       const x = clamp(b.x, L, Math.max(L, R - w));
       const y = clamp(b.y, T, Math.max(T, B - h));
       return { ...b, x: round(x), y: round(y), ...("w" in b ? { w: round(w) } : {}) } as PageBlock;
@@ -360,59 +507,85 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   // ——— Фото ———
   async function placePhoto(ref: string, at?: { x: number; y: number }, forced?: PhotoStyle, intoSlot = true) {
-    const target = intoSlot && slotTarget ? current()?.blocks.find((b) => b.id === slotTarget && b.type === "slot") : null;
-    const chosen = forced ?? style;
-    const ratio = await loadRatio(ref);
+    const live = current();
+    const target = intoSlot && slotTarget ? live?.blocks.find((b) => b.id === slotTarget && b.type === "slot") : null;
+    const swap = intoSlot && replaceTarget ? live?.blocks.find((b) => b.id === replaceTarget && b.type === "photo") : null;
+    const info = await imageInfo(ref);
+    const ratio = info.ratio;
+    if (swap && swap.type === "photo") {
+      // Замена: тот же размер, место, рамка, поворот, подпись.
+      const keepsCut = info.alpha;
+      commit((p) => ({
+        ...p,
+        blocks: p.blocks.map((b) =>
+          b.id === swap.id && b.type === "photo" ? { ...b, src: ref, cut: keepsCut ? ref : undefined, frame: keepsCut ? ("sticker" as PhotoFrame) : b.frame, crop: undefined } : b,
+        ),
+      }));
+      stickSound();
+      setReplaceTarget(null);
+      setPanel(null);
+      setSelected(swap.id);
+      flushBook();
+      return;
+    }
+    // Вырезанный PNG уже без фона: кладём его стикером, белой подложки нет.
+    const chosen: PhotoStyle = forced ?? (info.alpha && !target ? "cutout" : style);
     const frame: PhotoFrame = target && target.type === "slot" ? target.frame : chosen === "cutout" ? "sticker" : chosen === "full" ? "none" : chosen;
     let block: Extract<PageBlock, { type: "photo" }>;
     if (target && target.type === "slot") {
-      block = { id: id(), type: "photo", x: target.x, y: target.y, w: target.w, h: target.h, rotate: target.rotate ?? 0, src: ref, caption: "", frame };
+      block = { id: id(), type: "photo", x: target.x, y: target.y, w: target.w, h: target.h, rotate: target.rotate ?? 0, src: ref, caption: "", frame, shadow: shadowPref };
     } else {
       const w = chosen === "cutout" ? 52 : 56;
       const inner = frame === "polaroid" ? w * (1 - (2 * POLAROID.side) / 100) : frame === "sticker" ? w - 2.8 : w;
       const extra = frame === "polaroid" ? (w * (POLAROID.top + POLAROID.bottom)) / 100 : frame === "sticker" ? 2.8 : 0;
-      const h = clamp((inner * ratio + extra) / PAGE_RATIO, 8, 80);
+      const h = clamp((inner * ratio + extra) / (PAGE_H / 100), 8, 80);
       const cx = at?.x ?? 50;
       const cy = at?.y ?? 42;
-      const tilt = frame === "none" ? 0 : Math.round((Math.random() * 6 - 3) * 10) / 10;
-      block = { id: id(), type: "photo", x: clamp(cx - w / 2, -10, 90), y: clamp(cy - h / 2, -5, 92), w, h, rotate: tilt, src: ref, caption: "", frame };
+      const tilt = frame === "none" || info.alpha ? 0 : Math.round((Math.random() * 6 - 3) * 10) / 10;
+      block = { id: id(), type: "photo", x: clamp(cx - w / 2, -10, 90), y: clamp(cy - h / 2, -5, 92), w, h, rotate: tilt, src: ref, caption: "", frame, shadow: shadowPref };
+      if (info.alpha) block = { ...block, cut: ref, frame: "sticker" };
     }
     const full = chosen === "full" && !target;
     if (full) block = { ...block, ...fullPage() };
     else if (!target) block = fitSafe(block) as typeof block;
     stickSound();
-    commit((p) => ({
-      ...p,
-      blocks: target ? p.blocks.map((b) => (b.id === target.id ? block : b)) : full ? [block, ...p.blocks] : [...p.blocks, block],
-    }));
+    commit((p) => {
+      if (target) return { ...p, blocks: p.blocks.map((b) => (b.id === target.id ? block : b)) };
+      if (full) return { ...p, blocks: [block, ...p.blocks] };
+      const at2 = photoInsertIndex(p.blocks);
+      const blocks = p.blocks.slice();
+      blocks.splice(at2, 0, block);
+      return { ...p, blocks };
+    });
     if (full) warnFull(ratio);
     setSelected(block.id);
     setSlotTarget(null);
     setPanel(null);
     flushBook();
-    if (chosen === "cutout" && !target) void cutOut(block.id, ref);
+    if (chosen === "cutout" && !target && !info.alpha) void cutOut(block.id, ref, "auto");
   }
 
-  async function cutOut(blockId: string, src: string) {
+  async function cutOut(blockId: string, src: string, mode: "auto" | "precise") {
     setBusy((value) => ({ ...value, [blockId]: "Отделяю фон…" }));
     try {
       const data = await mediaDataUrl(src);
-      const cut = data ? await liftSubject(data, (label) => setBusy((value) => ({ ...value, [blockId]: label }))) : null;
+      const cut = data ? await liftSubject(data, (label) => setBusy((value) => ({ ...value, [blockId]: label })), mode) : null;
       if (!cut) {
-        toast("Фон не отделился — фото легло с белой каймой. Лучше всего вырезаются люди и предметы на спокойном фоне.");
+        toast("Фон не отделился: фото легло с белой каймой. Лучше всего вырезаются люди и предметы на спокойном фоне. Остатки фона убирает ластик.");
         patchBlock(blockId, { frame: "sticker" } as Partial<PageBlock>);
         return;
       }
       const ref = await saveMedia(cut);
-      const ratio = await loadRatio(ref);
+      const info = await imageInfo(ref);
       const block = current()?.blocks.find((b) => b.id === blockId);
       if (!block || block.type !== "photo") return;
-      const h = clamp((block.w * ratio) / PAGE_RATIO, 5, 90);
+      const h = clamp((block.w * info.ratio) / (PAGE_H / 100), 5, 90);
       stickSound();
       if (typeof navigator.vibrate === "function") navigator.vibrate(12);
-      patchBlock(blockId, { cut: ref, frame: "sticker", h, y: block.y + (block.h - h) / 2 } as Partial<PageBlock>);
+      patchBlock(blockId, { cut: ref, frame: "sticker", h, y: block.y + (block.h - h) / 2, crop: undefined } as Partial<PageBlock>);
+      if (mode === "auto") toast("Фон убран. Остался хвостик? Выберите фото, нажмите «Ещё» → «Убрать фон точнее» или сотрите ластиком.", { duration: 7000 });
     } catch {
-      toast("Вырезка не получилась. Проверьте интернет: в первый раз она скачивается (~40 МБ).");
+      toast("Вырезка не получилась. Проверьте интернет: в первый раз она скачивается.");
     } finally {
       setBusy((value) => {
         const next = { ...value };
@@ -423,7 +596,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   }
 
   const onFiles = (files: FileList | null) => {
-    const list = [...(files ?? [])].filter((file) => file.type.startsWith("image/") || /\.(heic|jpe?g|png|webp)$/i.test(file.name));
+    const list = [...(files ?? [])].filter((file) => file.type.startsWith("image/") || /\.(heic|heif|jpe?g|png|webp|gif)$/i.test(file.name));
     if (!list.length) return;
     setPanel(null);
     const wait = toast.loading(list.length > 1 ? `Загружаю ${list.length} фото…` : "Загружаю фото…");
@@ -447,7 +620,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const wait = toast.loading("Скачиваю картинку…");
     void importFromLink(link)
       .then((ref) => placePhoto(ref))
-      .catch((error: unknown) => toast(`Картинка по ссылке не скачалась (${error instanceof Error ? error.message : "ошибка"}). Попробуйте «Копировать изображение» → «Вставить».`, { duration: 9000 }))
+      .catch((error: unknown) => toast(`Картинка по ссылке не скачалась (${error instanceof Error ? error.message : "ошибка"}). Сохраните фото в Pinterest и добавьте через «Из галереи», либо скопируйте картинку и нажмите «Вставить».`, { duration: 9000 }))
       .finally(() => toast.dismiss(wait));
   };
 
@@ -474,6 +647,14 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             await placePhoto(ref);
             return;
           }
+          if (item.types.includes("text/html")) {
+            const html = await (await item.getType("text/html")).text();
+            const src = html.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1];
+            if (src && /^https?:/.test(src)) {
+              fromLink(src);
+              return;
+            }
+          }
         }
       }
       const text = await navigator.clipboard.readText();
@@ -482,94 +663,280 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         fromLink(link);
         return;
       }
-      toast("В буфере нет картинки. В Pinterest нажмите на фото → «Копировать» (или сохраните его) и попробуйте ещё раз.");
+      toast("В буфере нет картинки. Скопируйте фото в «Фото» (нажать → «Скопировать») и попробуйте ещё раз.");
+      setPanel("paste");
     } catch {
-      toast("Браузер не дал прочитать буфер. Удерживайте пальцем пунктирное поле в окне Pinterest → «Вставить».", { duration: 9000 });
-      setPanel("pinterest");
+      // Телефон не дал прочитать буфер напрямую: открываем поле, в которое картинку вставляют долгим нажатием.
+      setPanel("paste");
     }
   };
 
-  // ——— Жесты на листе ———
+  // ——— Пипетка ———
+  const sampleColor = async (clientX: number, clientY: number): Promise<string | null> => {
+    const rect = sheetRef.current?.getBoundingClientRect();
+    const live = current();
+    if (!rect || !live) return null;
+    const fx = (clientX - rect.left) / rect.width;
+    const fy = (clientY - rect.top) / rect.height;
+    if (fx < 0 || fx > 1 || fy < 0 || fy > 1) return null;
+    const ghosts = isBack ? [] : spreadGhosts(useRod.getState().pages, live.id);
+    const canvas = await paintPage({ ...live, blocks: live.blocks.filter((b) => !b.mask?.strokes.length || true) }, meta, undefined, ghosts);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    const data = ctx.getImageData(Math.min(canvas.width - 1, Math.floor(fx * canvas.width)), Math.min(canvas.height - 1, Math.floor(fy * canvas.height)), 1, 1).data;
+    return `#${[data[0], data[1], data[2]].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+  };
+
+  const startPipette = (done: (color: string) => void) => {
+    setEditing(null);
+    setPanel(null);
+    setPenColors(false);
+    setPipette(() => done);
+    toast("Коснитесь любого места страницы, и цвет возьмётся оттуда", { duration: 4000 });
+  };
+
+  // ——— Рисование и ластик ———
+  const blockAt = (clientX: number, clientY: number): string | null => {
+    for (const el of document.elementsFromPoint(clientX, clientY)) {
+      const wrapper = (el as HTMLElement).closest?.("[data-block]") as HTMLElement | null;
+      const key = wrapper?.dataset.block;
+      if (key && !key.startsWith("ghost:")) return key;
+    }
+    return null;
+  };
+
+  const updateCursor = (event: { clientX: number; clientY: number }, show: boolean) => {
+    const el = cursorRef.current;
+    const rect = sheetRef.current?.getBoundingClientRect();
+    if (!el || !rect) return;
+    if (!show || tool === "hand") {
+      el.style.display = "none";
+      return;
+    }
+    const px = tool === "erase" ? pen.eraser : sizePx;
+    const d = Math.max(6, (px / 1000) * rect.width);
+    el.style.display = "block";
+    el.style.width = `${d}px`;
+    el.style.height = `${d}px`;
+    el.style.transform = `translate(${event.clientX - d / 2}px, ${event.clientY - d / 2}px)`;
+  };
+
+  const liveUpdate = (points: number[], pressure: number[], hasPressure: boolean) => {
+    // Живой штрих рисуется поверх листа отдельным SVG и не перерисовывает всю страницу.
+    const target = livePath.current;
+    if (!target) return;
+    const g = strokeGeom(makeStroke(points, hasPressure ? pressure : undefined));
+    target.setAttribute("d", g.d);
+    target.setAttribute("fill", g.fill ? g.color : "none");
+    target.setAttribute("fill-opacity", String(g.alpha));
+    target.setAttribute("stroke", g.fill ? "none" : g.color);
+    target.setAttribute("stroke-opacity", String(g.alpha));
+    target.setAttribute("stroke-width", String(g.width));
+    target.setAttribute("stroke-linecap", g.cap);
+    if (g.dash) target.setAttribute("stroke-dasharray", g.dash);
+    else target.removeAttribute("stroke-dasharray");
+  };
+
+  const clearLive = () => {
+    livePath.current?.setAttribute("d", "");
+  };
+
+  const makeStroke = (points: number[], pressure?: number[]): InkStroke => ({
+    id: "live",
+    color: pen.color,
+    width: px2w(sizePx),
+    alpha: BRUSH_ALPHA[pen.brush],
+    brush: pen.brush,
+    points,
+    pressure,
+  });
+
+  const cancelDraw = () => {
+    const draw = drawing.current;
+    if (!draw) return;
+    window.clearTimeout(draw.still);
+    drawing.current = null;
+    clearLive();
+    updateCursor({ clientX: 0, clientY: 0 }, false);
+  };
+
   const startDraw = (event: React.PointerEvent) => {
-    // Рисуем только в режиме пера. В обычном режиме и пальцем, и стилусом двигаем фото и текст.
+    // Рисуем только в режиме рисунка или ластика. В обычном режиме палец и стилус двигают фото и текст.
     if (tool === "hand") return false;
-    if (event.pointerType === "pen") penSeen.current = true;
+    if (event.pointerType === "pen") penSeen.current = performance.now();
     event.stopPropagation();
     event.preventDefault();
-    // Ладонь на экране, пока рисуют стилусом, не оставляет следов.
-    if (event.pointerType === "touch" && penSeen.current) return true;
+    // Ладонь на экране, пока рисуют стилусом, не оставляет следов: касания пальцем и большое пятно игнорируются.
+    const blob = Math.max(event.width || 0, event.height || 0);
+    if (event.pointerType === "touch" && (performance.now() - penSeen.current < 1500 || blob > 56)) return true;
+    // Второй палец — это жест (шаг назад), а не рисование.
+    if (touches.current.size >= 2) return true;
     setEditing(null);
-    setSelected(null);
-    sheetRef.current?.setPointerCapture(event.pointerId);
+    try {
+      sheetRef.current?.setPointerCapture(event.pointerId);
+    } catch {
+      /* указатель уже отпущен */
+    }
     const p = toPct(event.clientX, event.clientY);
     const erase = tool === "erase";
-    drawing.current = { pointerId: event.pointerId, points: [round(p.x), round(p.y)], erase, straight: false, lx: p.x, ly: p.y };
-    armStraighten();
+    eraseCount.current += 1;
+    drawing.current = {
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      points: [round(p.x), round(p.y)],
+      pressure: [event.pointerType === "pen" && event.pressure > 0 ? event.pressure : 0.5],
+      hasPressure: event.pointerType === "pen" && event.pressure > 0,
+      erase,
+      target: erase ? (selected ?? blockAt(event.clientX, event.clientY)) : null,
+      group: `erase:${eraseCount.current}`,
+      maskAt: null,
+      lx: p.x,
+      ly: p.y,
+      snapped: null,
+      startedAt: performance.now(),
+    };
+    updateCursor(event, true);
     if (erase) {
       scratch("erase");
-      eraseAt(p, true);
+      eraseAt(p, drawing.current, { x: event.clientX, y: event.clientY });
     } else {
-      scratch(tool === "marker" ? "brush" : "pen");
-      setLive(makeStroke([round(p.x), round(p.y)]));
+      scratch(pen.brush === "pen" ? "pen" : "brush");
+      armStraighten();
+      liveUpdate(drawing.current.points, drawing.current.pressure, drawing.current.hasPressure);
     }
     return true;
   };
 
-  /** Задержали перо на месте ~0,6 с — линия выпрямляется (как в GoodNotes). */
+  /** Задержали перо на месте ~0,55 с: линия или фигура выравниваются. */
   const armStraighten = () => {
     const draw = drawing.current;
     if (!draw || draw.erase) return;
     window.clearTimeout(draw.still);
     draw.still = window.setTimeout(() => {
       const d = drawing.current;
-      if (!d || d.erase || d.points.length < 6) return;
-      d.straight = true;
-      d.points = lineOf(d.points[0], d.points[1], d.lx, d.ly);
-      setLive(makeStroke(d.points.slice()));
+      if (!d || d.erase || d.snapped || d.points.length < 6) return;
+      const rec = recognizeShape(d.points);
+      if (!rec) return;
+      d.snapped = rec;
+      d.points = rec.points;
+      liveUpdate(d.points, [], false);
       if (typeof navigator.vibrate === "function") navigator.vibrate(8);
-    }, 600);
+    }, 550);
   };
 
-  const makeStroke = (points: number[]): InkStroke => {
-    const marker = tool === "marker";
-    return { id: "live", color: ink, width: marker ? 2.6 : thin ? 0.32 : 0.6, alpha: marker ? 0.38 : 1, points };
-  };
-
-  const eraseAt = (p: { x: number; y: number }, first: boolean) => {
-    const near = (stroke: InkStroke) => {
-      const r = Math.max(2.2, stroke.width);
-      for (let i = 0; i + 1 < stroke.points.length; i += 2) {
-        const dx = stroke.points[i] - p.x;
-        const dy = ((stroke.points[i + 1] - p.y) * PAGE_H) / 100;
-        if (dx * dx + dy * dy < r * r) return true;
+  /** Стирает круг: у рисунка вырезает кусочки линий, у текста, фото и стикеров прячет участок маской. */
+  const eraseAt = (p: { x: number; y: number }, draw: Draw, at?: { x: number; y: number }) => {
+    if (!selected && at) {
+      const found = blockAt(at.x, at.y);
+      if (found !== draw.target) {
+        draw.target = found;
+        draw.maskAt = null;
       }
-      return false;
-    };
-    const hit = current()?.strokes.some(near);
-    if (!hit) return;
-    commit((page) => ({ ...page, strokes: page.strokes.filter((s) => !near(s)) }), first ? undefined : "erase");
-    lastGroup.current = { key: "erase", at: Date.now() };
+    }
+    const live = current();
+    if (!live || !draw.target) return;
+    const block = live.blocks.find((b) => b.id === draw.target);
+    if (!block || block.locked) return;
+    const r = px2w(pen.eraser) / 2;
+    const w = blockW(block as { type: string; w?: number });
+    const h = heightOf(block);
+    // Точка в системе координат блока с учётом поворота.
+    const cx = block.x + w / 2;
+    const cy = block.y + h / 2;
+    const a = (-(block.rotate ?? 0) * Math.PI) / 180;
+    const dx = p.x - cx;
+    const dy = p.y - cy;
+    const u = dx * Math.cos(a) - dy * Math.sin(a) + w / 2;
+    const v = dx * Math.sin(a) + dy * Math.cos(a) + h / 2;
+    if (block.type === "ink") {
+      const k = block.ow / Math.max(0.01, block.w);
+      const strokes = eraseFromStrokes(block.strokes, u * k, v * k, r * k, id);
+      if (!strokes) return;
+      if (!strokes.length) draw.target = null;
+      commit((pg) => ({ ...pg, blocks: pg.blocks.flatMap((b) => (b.id !== block.id ? [b] : strokes.length ? [{ ...b, strokes } as PageBlock] : [])) }), draw.group);
+      return;
+    }
+    if (u < -r || v < -r || u > w + r || v > h + r) return;
+    const lx = round((u / w) * 100);
+    const ly = round((v / w) * 100);
+    const rr = round((r / w) * 100);
+    const mask = block.mask ?? { h: round((h / w) * 100), strokes: [] };
+    const strokes = mask.strokes.slice();
+    if (draw.maskAt === null || !strokes[draw.maskAt]) {
+      strokes.push({ r: rr, pts: [lx, ly] });
+      draw.maskAt = strokes.length - 1;
+    } else {
+      const s = strokes[draw.maskAt];
+      const n = s.pts.length;
+      if (Math.hypot(s.pts[n - 2] - lx, s.pts[n - 1] - ly) < 0.05) return;
+      strokes[draw.maskAt] = { ...s, pts: [...s.pts, lx, ly] };
+    }
+    commit((pg) => ({ ...pg, blocks: pg.blocks.map((b) => (b.id === block.id ? ({ ...b, mask: { ...mask, strokes } } as PageBlock) : b)) }), draw.group);
   };
 
   const onSheetMove = (event: React.PointerEvent) => {
+    if (tool !== "hand") updateCursor(event, event.pointerType !== "touch" || Boolean(drawing.current));
     const draw = drawing.current;
     if (draw && draw.pointerId === event.pointerId) {
       const events = typeof event.nativeEvent.getCoalescedEvents === "function" ? event.nativeEvent.getCoalescedEvents() : [event.nativeEvent];
       for (const e of events.length ? events : [event.nativeEvent]) {
         const p = toPct(e.clientX, e.clientY);
-        if (draw.erase) eraseAt(p, false);
-        else if (draw.straight) draw.points = lineOf(draw.points[0], draw.points[1], p.x, p.y);
-        else draw.points.push(round(p.x), round(p.y));
-        if (!draw.straight && Math.hypot(p.x - draw.lx, p.y - draw.ly) > 0.6) {
-          draw.lx = p.x;
-          draw.ly = p.y;
-          armStraighten();
+        if (draw.erase) {
+          eraseAt(p, draw, { x: e.clientX, y: e.clientY });
+          continue;
+        }
+        if (draw.snapped?.kind === "line") {
+          draw.points = lineOf(draw.points[0], draw.points[1], p.x, p.y);
+        } else if (!draw.snapped) {
+          if (Math.hypot(p.x - draw.lx, p.y - draw.ly) >= 0.08) {
+            draw.points.push(round(p.x), round(p.y));
+            if (draw.hasPressure) draw.pressure.push(e.pressure > 0 ? e.pressure : 0.5);
+            else draw.pressure.push(0.5);
+          }
+          if (Math.hypot(p.x - draw.lx, p.y - draw.ly) > 0.5) {
+            draw.lx = p.x;
+            draw.ly = p.y;
+            armStraighten();
+          }
         }
       }
-      if (!draw.erase) setLive(makeStroke(draw.points.slice()));
+      if (!draw.erase) liveUpdate(draw.points, draw.pressure, draw.hasPressure && !draw.snapped);
       return;
     }
     moveGesture(event);
+  };
+
+  const finishStroke = (draw: Draw) => {
+    let points = draw.points;
+    let pressure = draw.hasPressure && !draw.snapped ? draw.pressure : undefined;
+    if (!draw.snapped) {
+      if (straight && points.length >= 4) {
+        points = lineOf(points[0], points[1], points[points.length - 2], points[points.length - 1]);
+        pressure = undefined;
+      } else if (pen.auto) {
+        const rec = recognizeShape(points);
+        if (rec) {
+          points = rec.points;
+          pressure = undefined;
+        } else points = tidy(points);
+      } else points = tidy(points);
+    }
+    if (points.length === 2) points = [...points, points[0] + 0.01, points[1] + 0.01];
+    const stroke: InkStroke = { ...makeStroke(points, pressure), id: id() };
+    const live = current();
+    if (!live) return;
+    const top = live.blocks[live.blocks.length - 1];
+    const key = `${pen.brush}|${pen.color}|${sizePx}`;
+    const last = lastInk.current;
+    const next = top && top.type === "ink" && last && last.id === top.id && last.key === key && Date.now() - last.at < 1400 && !top.locked ? mergeInk(top, stroke) : null;
+    if (next && top && next.id === top.id) {
+      lastInk.current = { id: next.id, at: Date.now(), key };
+      commit((p) => ({ ...p, blocks: [...p.blocks.slice(0, -1), next] }));
+    } else {
+      const block = makeInkBlock([stroke], id);
+      lastInk.current = { id: block.id, at: Date.now(), key };
+      commit((p) => ({ ...p, blocks: [...p.blocks, block] }));
+    }
   };
 
   const onSheetUp = (event: React.PointerEvent) => {
@@ -577,14 +944,9 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     if (draw && draw.pointerId === event.pointerId) {
       window.clearTimeout(draw.still);
       drawing.current = null;
-      setLive(null);
-      if (!draw.erase && draw.points.length >= 2) {
-        let points = draw.points.length === 2 ? [...draw.points, draw.points[0] + 0.01, draw.points[1] + 0.01] : draw.points;
-        if (straight && !draw.straight && points.length >= 4) points = lineOf(points[0], points[1], points[points.length - 2], points[points.length - 1]);
-        else if (!draw.straight) points = smooth(points);
-        const stroke = { ...makeStroke(points), id: id() };
-        commit((p) => ({ ...p, strokes: [...p.strokes, stroke] }));
-      }
+      clearLive();
+      if (event.pointerType !== "mouse") updateCursor(event, false);
+      if (!draw.erase && draw.points.length >= 2) finishStroke(draw);
       lastGroup.current = null;
       return;
     }
@@ -592,27 +954,44 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   };
 
   const onSheetDown = (event: React.PointerEvent) => {
+    if (pipette) {
+      event.preventDefault();
+      event.stopPropagation();
+      const done = pipette;
+      void sampleColor(event.clientX, event.clientY).then((color) => {
+        setPipette(null);
+        if (color) {
+          done(color);
+          toast(`Цвет ${color}`, { duration: 1800 });
+        }
+      });
+      return;
+    }
     if (startDraw(event)) return;
     if (event.target === event.currentTarget || (event.target as HTMLElement).dataset.bg) {
       setSelected(null);
       setEditing(null);
+      setCropping(false);
     }
   };
 
   const beginGesture = (event: React.PointerEvent, block: PageBlock, mode: Gesture["mode"]) => {
-    if (tool !== "hand") return;
+    if (tool !== "hand" || pipette) return;
+    if (block.locked) return;
     if (editing === block.id && mode === "move") return;
     event.stopPropagation();
     event.preventDefault();
+    if (touches.current.size >= 2) return;
     if (editing && editing !== block.id) setEditing(null);
     const wrapper = (event.currentTarget as HTMLElement).closest("[data-block]") as HTMLElement | null;
     const rect = wrapper?.getBoundingClientRect();
     const center = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined;
     const box = boxOf(block);
-    const ratio = block.type === "photo" && block.cut && block.frame === "sticker" ? block.h / block.w : null;
+    const ratio = (block.type === "photo" && block.cut && block.frame === "sticker") || block.type === "ink" ? block.h / block.w : null;
+    const cropGesture = cropping && block.type === "photo" && selected === block.id && mode === "move";
     gesture.current = {
       id: block.id,
-      mode,
+      mode: cropGesture ? "crop" : mode,
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
@@ -622,8 +1001,13 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       center,
       angle0: center ? Math.atan2(event.clientY - center.y, event.clientX - center.x) : 0,
       ratio,
+      crop0: block.type === "photo" ? (block.crop ?? { cx: 0.5, cy: 0.5, z: 1 }) : undefined,
     };
-    sheetRef.current?.setPointerCapture(event.pointerId);
+    try {
+      sheetRef.current?.setPointerCapture(event.pointerId);
+    } catch {
+      /* указатель уже отпущен */
+    }
     setSelected(block.id);
   };
 
@@ -638,11 +1022,19 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     g.moved = true;
     const dx = (dxPx / rect.width) * 100;
     const dy = (dyPx / rect.height) * 100;
+    if (g.mode === "crop") {
+      const block = current()?.blocks.find((b) => b.id === g.id);
+      if (!block || block.type !== "photo" || !g.crop0) return;
+      const inner = innerBox(block.frame, false, block.w, block.h);
+      const geom = cropGeom(inner, cropAr.current, g.crop0);
+      patchBlock(g.id, { crop: { cx: round(g.crop0.cx - dx / geom.dw), cy: round(g.crop0.cy - (dy * (PAGE_H / 100)) / geom.dh), z: g.crop0.z } } as Partial<PageBlock>, `crop:${g.id}`);
+      return;
+    }
     let box = g.box;
     if (g.mode === "move") box = { ...g.box, x: clamp(g.box.x + dx, -g.box.w + 6, 94), y: clamp(g.box.y + dy, -6, 96) };
     if (g.mode === "size") {
-      const w = clamp(g.box.w + dx, 6, 120);
-      const h = g.box.h === null ? null : g.ratio ? clamp(g.ratio * w, 4, 120) : clamp(g.box.h + dy, 4, 120);
+      const w = clamp(g.box.w + dx, 3, 160);
+      const h = g.box.h === null ? null : g.ratio ? clamp(g.ratio * w, 2, 160) : clamp(g.box.h + dy, 2, 160);
       box = { ...g.box, w, h };
     }
     if (g.mode === "turn" && g.center) {
@@ -664,6 +1056,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     setGhost(null);
     const block = current()?.blocks.find((b) => b.id === g.id);
     if (!block) return;
+    if (g.mode === "crop") return;
     if (g.moved && final) {
       commit((p) => ({
         ...p,
@@ -671,7 +1064,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           if (b.id !== g.id) return b;
           const next = { ...b, x: round(final.x), y: round(final.y), rotate: final.rotate } as PageBlock;
           if ("w" in next) (next as { w?: number }).w = round(final.w);
-          if ((next.type === "photo" || next.type === "slot") && final.h !== null) next.h = round(final.h);
+          if ((next.type === "photo" || next.type === "slot" || next.type === "shape" || next.type === "ink") && final.h !== null) next.h = round(final.h);
           return fitSafe(next);
         }),
       }));
@@ -705,6 +1098,22 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     startEditing(block.id);
   };
 
+  /** Кнопка «Текст»: если выбран текст, пишем в него; если есть пустой, берём его; новую плашку добавляем, только когда иначе нельзя. */
+  const onTextTool = () => {
+    setTool("hand");
+    setCropping(false);
+    if (selectedBlock && selectedBlock.type === "text" && !selectedBlock.locked) {
+      startEditing(selectedBlock.id);
+      return;
+    }
+    const empty = page.blocks.find((b) => b.type === "text" && !b.text.trim() && !b.placeholder && !b.locked);
+    if (empty) {
+      startEditing(empty.id);
+      return;
+    }
+    addText();
+  };
+
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
     setDropping(false);
@@ -720,11 +1129,52 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       .catch(() => toast("Картинка не скачалась. Сохраните её на устройство и перетащите файл."));
   };
 
+  // ——— Два пальца: тап — шаг назад, двойной тап — шаг вперёд ———
+  const inStage = (target: EventTarget | null) => Boolean(target instanceof Node && stageRef.current?.contains(target));
+
+  const onRootDown = (event: React.PointerEvent) => {
+    if (event.pointerType !== "touch" || !inStage(event.target)) return;
+    touches.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (touches.current.size === 2) {
+      twoTap.current = { t0: performance.now(), moved: false, fired: false };
+      // Если один из пальцев уже начал рисовать, штрих отменяется: это не рисунок, а жест.
+      if (drawing.current && drawing.current.pointerType === "touch") cancelDraw();
+      if (gesture.current && !gesture.current.moved) gesture.current = null;
+    } else if (touches.current.size > 2) twoTap.current = null;
+  };
+
+  const onRootMove = (event: React.PointerEvent) => {
+    if (event.pointerType !== "touch") return;
+    const start = touches.current.get(event.pointerId);
+    if (start && twoTap.current && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 16) twoTap.current.moved = true;
+  };
+
+  const onRootUp = (event: React.PointerEvent) => {
+    if (event.pointerType !== "touch") return;
+    const tap = twoTap.current;
+    if (tap && !tap.fired && !tap.moved && touches.current.size === 2 && performance.now() - tap.t0 < 380) {
+      tap.fired = true;
+      // Каждый тап двумя пальцами (и двойной тоже) сразу делает шаг назад.
+      actions.current.undo();
+      if (typeof navigator.vibrate === "function") navigator.vibrate(10);
+    }
+    touches.current.delete(event.pointerId);
+    if (touches.current.size === 0) twoTap.current = null;
+  };
+
   const go = (dir: -1 | 1) => {
     const next = pages[index + dir];
     if (!next) return;
     turnPage();
     nav.replace({ id: "editor", pageId: next.id });
+  };
+
+  const addNextPage = () => {
+    const at = isBack ? pages.length : index + 1;
+    const created = insertPage({ ...blankPage(), paper: page.paper }, at);
+    turnPage();
+    nav.replace({ id: "editor", pageId: created });
+    toast("Новая страница добавлена следом");
   };
 
   const toBin = () => {
@@ -736,12 +1186,129 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     else nav.replace({ id: "book" });
   };
 
+  const centerOnPage = (axis: "x" | "y") => {
+    if (!selectedBlock) return;
+    if (axis === "x") {
+      const w = blockW(selectedBlock as { type: string; w?: number });
+      patchBlock(selectedBlock.id, { x: round((100 - w) / 2) } as Partial<PageBlock>);
+    } else {
+      patchBlock(selectedBlock.id, { y: round((100 - heightOf(selectedBlock)) / 2) } as Partial<PageBlock>);
+    }
+  };
+
+  const ops: BlockOps | null = selectedBlock
+    ? {
+        patch: (partial, group) => patchBlock(selectedBlock.id, partial, group),
+        remove: () => removeBlock(selectedBlock.id),
+        duplicate: () => {
+          const copy = { ...selectedBlock, id: id(), x: selectedBlock.x + 4, y: selectedBlock.y + 3, locked: false } as PageBlock;
+          commit((p) => {
+            const at = p.blocks.findIndex((b) => b.id === selectedBlock.id);
+            const blocks = p.blocks.slice();
+            blocks.splice(at + 1, 0, copy);
+            return { ...p, blocks };
+          });
+          setSelected(copy.id);
+        },
+        layer: (where) => moveLayer(selectedBlock.id, where),
+        toggleLock: () => {
+          patchBlock(selectedBlock.id, { locked: !selectedBlock.locked } as Partial<PageBlock>);
+          if (!selectedBlock.locked) toast("Заблокировано: не двигается и не мешает соседям. Снять замок можно в «Слоях».", { duration: 5000 });
+        },
+        edit: () => startEditing(selectedBlock.id),
+        cut: (mode) => selectedBlock.type === "photo" && void cutOut(selectedBlock.id, selectedBlock.src, mode),
+        cropMode: () => {
+          if (selectedBlock.type !== "photo") return;
+          void imageInfo(selectedBlock.src).then((info) => {
+            cropAr.current = info.ratio;
+          });
+          setCropping((value) => !value);
+          setPanel(null);
+        },
+        cropping,
+        replace: () => {
+          setReplaceTarget(selectedBlock.id);
+          setSlotTarget(null);
+          setPanel("photo");
+        },
+        fill: () => {
+          setSlotTarget(selectedBlock.id);
+          setPanel("photo");
+        },
+        write: () => {
+          if (selectedBlock.type !== "photo") return;
+          const b = selectedBlock;
+          const polaroid = b.frame === "polaroid";
+          const text: PageBlock = {
+            id: id(),
+            type: "text",
+            x: round(b.x + b.w * 0.07),
+            y: round(polaroid ? b.y + b.h - (b.w * POLAROID.bottom) / 100 + 0.6 : b.y + b.h * 0.72),
+            w: round(b.w * 0.86),
+            text: "",
+            font: "script",
+            size: "md",
+            align: "center",
+            rotate: b.rotate ?? 0,
+            color: polaroid ? undefined : "#ffffff",
+            placeholder: "Надпись на фото",
+          };
+          stickSound();
+          flushSync(() => addBlock(text));
+          startEditing(text.id);
+        },
+        full: () => {
+          if (selectedBlock.type !== "photo") return;
+          const full = { ...selectedBlock, ...fullPage(), cut: selectedBlock.cut, spread: false } as PageBlock;
+          commit((p) => ({ ...p, blocks: [full, ...p.blocks.filter((b) => b.id !== selectedBlock.id)] }));
+          void imageInfo(selectedBlock.src).then((info) => {
+            cropAr.current = info.ratio;
+            setCropping(true);
+            toast("Двигайте фото пальцем: выберите, что останется. Лица держите внутри пунктира.", { duration: 6000 });
+          });
+        },
+        toggleSpread: () => {
+          if (selectedBlock.type !== "photo") return;
+          if (selectedBlock.spread) {
+            commit((p) => ({ ...p, blocks: p.blocks.map((b) => (b.id === selectedBlock.id ? fitSafe({ ...b, spread: false } as PageBlock) : b)) }));
+          } else {
+            const x = side === "right" ? -selectedBlock.w / 2 : 100 - selectedBlock.w / 2;
+            patchBlock(selectedBlock.id, { spread: true, x: round(x) } as Partial<PageBlock>);
+            toast("Фото лежит на двух страницах. Двигайте его так, чтобы нужная часть оказалась по обе стороны корешка.", { duration: 6000 });
+          }
+        },
+        canSpread: Boolean(partner) && !isBack,
+        pickPipette: startPipette,
+        centerH: () => centerOnPage("x"),
+        centerV: () => centerOnPage("y"),
+        resetMask: () => patchBlock(selectedBlock.id, { mask: undefined } as Partial<PageBlock>),
+        inkColor: (color) => {
+          if (selectedBlock.type !== "ink") return;
+          commit((p) => ({ ...p, blocks: p.blocks.map((b) => (b.id === selectedBlock.id && b.type === "ink" ? { ...b, strokes: b.strokes.map((s) => ({ ...s, color })) } : b)) }), `color:${selectedBlock.id}`);
+        },
+        inkScale: (factor) => {
+          if (selectedBlock.type !== "ink") return;
+          commit((p) => ({ ...p, blocks: p.blocks.map((b) => (b.id === selectedBlock.id && b.type === "ink" ? { ...b, strokes: b.strokes.map((s) => ({ ...s, width: round(Math.max(0.1, s.width * factor)) })) } : b)) }));
+        },
+        openFonts: () => setPanel("fonts"),
+        erase: () => {
+          setCropping(false);
+          setTool("erase");
+        },
+      }
+    : null;
+
   const prompt = findPrompt(page.promptId);
-  const cursor = tool === "hand" ? "default" : tool === "erase" ? "cell" : "crosshair";
+  const cursor = tool === "hand" ? "default" : "none";
+  const drawingTool = tool !== "hand";
 
   return (
     <div
       className="editor-root fixed inset-0 z-40 flex flex-col"
+      onPointerDownCapture={onRootDown}
+      onPointerMoveCapture={onRootMove}
+      onPointerUpCapture={onRootUp}
+      onPointerCancelCapture={onRootUp}
       onDragOver={(event) => {
         event.preventDefault();
         setDropping(true);
@@ -752,31 +1319,42 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       onDrop={onDrop}
     >
       {/* Верх */}
-      <header className="flex items-center gap-2 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <header className="relative z-[46] flex items-center gap-2 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <button type="button" className="glass-strong grid size-11 shrink-0 place-items-center rounded-full" aria-label="К книге" onClick={() => nav.back()}>
           <ChevronLeft className="size-5" />
         </button>
         <div className="min-w-0 flex-1 text-center">
-          <p className="truncate text-sm font-semibold text-ink">{page.kind === "cover" ? "Обложка" : page.title}</p>
-          <div className="flex items-center justify-center gap-1 text-xs text-muted">
-            <button type="button" className="grid size-7 place-items-center rounded-full disabled:opacity-30" disabled={index <= 0} onClick={() => go(-1)} aria-label="Предыдущая">
-              <ChevronLeft className="size-4" />
+          <p className="truncate text-sm font-semibold text-ink">{isBack ? "Задняя сторона обложки" : page.kind === "cover" ? "Обложка" : page.title}</p>
+          {isBack ? (
+            <button type="button" className="text-xs text-rose-deep underline" onClick={() => nav.replace({ id: "editor", pageId: pages[0]?.id ?? "" })} disabled={!pages[0]}>
+              К лицевой стороне
             </button>
-            <span className="tabular-nums">
-              {index + 1} / {pages.length}
-            </span>
-            <button type="button" className="grid size-7 place-items-center rounded-full disabled:opacity-30" disabled={index >= pages.length - 1} onClick={() => go(1)} aria-label="Следующая">
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
+          ) : (
+            <div className="flex items-center justify-center gap-1 text-xs text-muted">
+              <button type="button" className="grid size-7 place-items-center rounded-full disabled:opacity-30" disabled={index <= 0} onClick={() => go(-1)} aria-label="Предыдущая">
+                <ChevronLeft className="size-4" />
+              </button>
+              <span className="tabular-nums">
+                {index + 1} / {pages.length}
+              </span>
+              <button type="button" className="grid size-7 place-items-center rounded-full disabled:opacity-30" disabled={index >= pages.length - 1} onClick={() => go(1)} aria-label="Следующая">
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
+          )}
         </div>
         <div className="glass-strong flex shrink-0 items-center rounded-full p-1">
-          <IconBtn label="Отменить" disabled={!undo.current.length} onClick={doUndo}>
+          <IconBtn label="Отменить (или тап двумя пальцами)" disabled={!undo.current.length} onClick={doUndo}>
             <Undo2 className="size-[18px]" />
           </IconBtn>
-          <IconBtn label="Повторить" disabled={!redo.current.length} onClick={doRedo}>
+          <IconBtn label="Вернуть отменённое" disabled={!redo.current.length} onClick={doRedo}>
             <Redo2 className="size-[18px]" />
           </IconBtn>
+          {!isBack ? (
+            <IconBtn label="Добавить страницу следом" onClick={addNextPage}>
+              <FilePlus className="size-[18px]" />
+            </IconBtn>
+          ) : null}
           {partner ? (
             <IconBtn label={spread ? "Одна страница" : "Разворот"} onClick={() => setSpread(!spread)}>
               {spread ? <Square className="size-[18px]" /> : <BookOpen className="size-[18px]" />}
@@ -788,82 +1366,110 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         </div>
       </header>
 
+      {pipette ? (
+        <div className="pointer-events-none absolute inset-x-0 top-[calc(max(0.75rem,env(safe-area-inset-top))+3.8rem)] z-[48] flex justify-center">
+          <span className="pointer-events-auto flex items-center gap-2 rounded-full bg-night px-4 py-2 text-sm text-paper shadow-lg">
+            <Pipette className="size-4" /> Коснитесь цвета на странице
+            <button type="button" aria-label="Отмена" onClick={() => setPipette(null)} className="grid size-6 place-items-center rounded-full bg-white/20">
+              <X className="size-3" />
+            </button>
+          </span>
+        </div>
+      ) : null}
+
       {/* Лист */}
       <div className="relative min-h-0 flex-1">
-      <div ref={stageRef} className="no-scrollbar absolute inset-0 overflow-auto">
-      <div className="flex min-h-full items-center justify-center p-3" style={{ width: zoom > 1 ? size.w * zoom * (twoUp ? 2 : 1) + 24 : "100%" }}>
-        {twoUp && partner && side === "right" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="left" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
-        <div
-          ref={sheetRef}
-          className={cn("book-page-shadow relative select-none rounded-[2px]", dropping && "ring-4 ring-rose/60")}
-          style={{ width: size.w * zoom, cursor, touchAction: tool === "hand" && zoom > 1 ? "pan-x pan-y" : "none" }}
-          onPointerDown={onSheetDown}
-          onPointerMove={onSheetMove}
-          onPointerUp={onSheetUp}
-          onPointerCancel={onSheetUp}
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          {/* Вылет под обрез: сюда можно тянуть фото, всё остальное отрежется */}
-          <div className="pointer-events-none absolute rounded-[2px] border border-dashed border-rose/40" style={{ inset: `-${bleedPct}%` }} />
-          <PageSheet page={page} meta={meta} hideStrokes clip={false} className="rounded-[2px]">
-            <div data-bg="1" className="absolute inset-0" />
-            {page.blocks.map((block) => {
-              const box = ghost?.id === block.id ? ghost.box : null;
-              const shown = box ? ({ ...block, x: box.x, y: box.y, rotate: box.rotate, ...("w" in block ? { w: box.w } : {}), ...((block.type === "photo" || block.type === "slot") && box.h !== null ? { h: box.h } : {}) } as PageBlock) : block;
-              const isSel = selected === block.id;
-              return (
-                <PlacedBlock
-                  key={block.id}
-                  block={shown}
-                  data-block={block.id}
-                  className={cn("touch-none", isSel && "z-20")}
-                  onPointerDown={(event) => beginGesture(event, block, "move")}
-                >
-                  <BlockArt block={shown} editing />
-                  {editing === block.id ? <span className="pointer-events-none absolute -inset-[4px] rounded-[4px] border-2 border-rose" /> : null}
-                  {busy[block.id] ? (
-                    <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                      <span className="cut-shimmer absolute inset-0 rounded-[1.4cqw]" />
-                      <span className="relative rounded-full bg-night/85 px-3 py-1 text-xs text-paper">{busy[block.id]}</span>
-                    </div>
-                  ) : null}
-                  {isSel && editing !== block.id && tool === "hand" ? (
-                    <Handles
-                      onTurn={(event) => beginGesture(event, block, "turn")}
-                      onSize={(event) => beginGesture(event, block, "size")}
-                    />
-                  ) : null}
-                </PlacedBlock>
-              );
-            })}
-          </PageSheet>
-          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[2px]" style={{ containerType: "inline-size" }}>
-            <InkLayer strokes={page.strokes} live={live} />
-          </div>
-          {/* Охранное поле и зона корешка */}
-          <div
-            className={cn("pointer-events-none absolute z-30 border border-dashed transition-colors", ghost ? "border-rose" : "border-rose/35")}
-            style={{ left: `${safe.left}%`, right: `${safe.right}%`, top: `${safe.top}%`, bottom: `${safe.bottom}%` }}
-          />
-          {side !== "single" ? (
+        <div ref={stageRef} className="no-scrollbar absolute inset-0 overflow-auto">
+          <div className="flex min-h-full items-center justify-center p-3" style={{ width: zoom > 1 ? size.w * zoom * (twoUp ? 2 : 1) + 24 : "100%" }}>
+            {twoUp && partner && side === "right" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="left" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
             <div
-              className="pointer-events-none absolute inset-y-0 z-30"
-              style={{
-                [side === "right" ? "left" : "right"]: 0,
-                width: `${safe[side === "right" ? "left" : "right"]}%`,
-                background: `linear-gradient(${side === "right" ? "90deg" : "270deg"}, rgba(142,61,82,.10), rgba(142,61,82,0))`,
+              ref={sheetRef}
+              className={cn("book-page-shadow relative z-[5] select-none rounded-[2px]", dropping && "ring-4 ring-rose/60")}
+              style={{ width: size.w * zoom, cursor: pipette ? "crosshair" : cursor, touchAction: tool === "hand" && zoom > 1 ? "pan-x pan-y" : "none" }}
+              onPointerDown={onSheetDown}
+              onPointerMove={onSheetMove}
+              onPointerUp={onSheetUp}
+              onPointerCancel={onSheetUp}
+              onPointerLeave={(event) => {
+                if (event.pointerType === "mouse") updateCursor(event, false);
               }}
-            />
-          ) : null}
-          {page.blocks.length === 0 && page.strokes.length === 0 && page.kind !== "cover" ? (
-            <div className="pointer-events-none absolute inset-x-6 top-1/2 -translate-y-1/2 text-center text-sm text-muted">
-              Пустой лист. Добавьте текст, фото или стикер снизу — или перетащите картинку прямо сюда.
+              onContextMenu={(event) => event.preventDefault()}
+            >
+              {/* Вылет под обрез: сюда можно тянуть фото, всё остальное отрежется */}
+              <div className="pointer-events-none absolute rounded-[2px] border border-dashed border-rose/40" style={{ inset: `-${bleedPct}%` }} />
+              <PageSheet page={page} meta={meta} hideStrokes clip={false} className="rounded-[2px]">
+                <div data-bg="1" className="absolute inset-0" />
+                {page.blocks.map((block) => {
+                  const box = ghost?.id === block.id ? ghost.box : null;
+                  const shown = box
+                    ? ({
+                        ...block,
+                        x: box.x,
+                        y: box.y,
+                        rotate: box.rotate,
+                        ...("w" in block ? { w: box.w } : {}),
+                        ...((block.type === "photo" || block.type === "slot" || block.type === "shape" || block.type === "ink") && box.h !== null ? { h: box.h } : {}),
+                      } as PageBlock)
+                    : block;
+                  const isSel = selected === block.id;
+                  return (
+                    <PlacedBlock
+                      key={block.id}
+                      block={shown}
+                      data-block={block.id}
+                      className={cn("touch-none", block.locked && "pointer-events-none", block.type === "ink" && "pointer-events-none")}
+                      onPointerDown={(event) => beginGesture(event, block, "move")}
+                    >
+                      <BlockArt block={shown} editing />
+                      {editing === block.id ? <span className="pointer-events-none absolute -inset-[4px] rounded-[4px] border-2 border-rose" /> : null}
+                      {block.locked ? <span className="pointer-events-none absolute -right-1 -top-1 z-20 grid size-[4.2cqw] min-h-4 min-w-4 place-items-center rounded-full bg-night/80 text-paper"><Lock className="size-[60%]" /></span> : null}
+                      {cropping && isSel && block.type === "photo" ? <span className="pointer-events-none absolute inset-0 grid place-items-center bg-night/10 text-[2.6cqw] font-semibold text-white [text-shadow:0_1px_3px_rgba(0,0,0,.6)]">Двигайте фото пальцем</span> : null}
+                      {busy[block.id] ? (
+                        <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                          <span className="cut-shimmer absolute inset-0 rounded-[1.4cqw]" />
+                          <span className="relative rounded-full bg-night/85 px-3 py-1 text-xs text-paper">{busy[block.id]}</span>
+                        </div>
+                      ) : null}
+                      {isSel && editing !== block.id && tool === "hand" && !block.locked && !cropping ? (
+                        <Handles
+                          onTurn={(event) => beginGesture(event, block, "turn")}
+                          onSize={(event) => beginGesture(event, block, "size")}
+                          onDelete={() => removeBlock(block.id)}
+                          onLock={() => patchBlock(block.id, { locked: true } as Partial<PageBlock>)}
+                        />
+                      ) : null}
+                    </PlacedBlock>
+                  );
+                })}
+              </PageSheet>
+              {/* Рисуемый сейчас штрих (после отпускания он станет объектом на странице) */}
+              <svg viewBox={`0 0 100 ${PAGE_H}`} className="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible">
+                <path ref={livePath} d="" />
+              </svg>
+              {/* Охранное поле и зона корешка */}
+              <div
+                className={cn("pointer-events-none absolute z-30 border border-dashed transition-colors", ghost ? "border-rose" : "border-rose/35")}
+                style={{ left: `${safe.left}%`, right: `${safe.right}%`, top: `${safe.top}%`, bottom: `${safe.bottom}%` }}
+              />
+              {side !== "single" ? (
+                <div
+                  className="pointer-events-none absolute inset-y-0 z-30"
+                  style={{
+                    [side === "right" ? "left" : "right"]: 0,
+                    width: `${safe[side === "right" ? "left" : "right"]}%`,
+                    background: `linear-gradient(${side === "right" ? "90deg" : "270deg"}, rgba(142,61,82,.10), rgba(142,61,82,0))`,
+                  }}
+                />
+              ) : null}
+              {page.blocks.length === 0 && page.kind !== "cover" ? (
+                <div className="pointer-events-none absolute inset-x-6 top-1/2 -translate-y-1/2 text-center text-sm text-muted">
+                  Пустой лист. Добавьте текст, фото или стикер снизу или перетащите картинку прямо сюда.
+                </div>
+              ) : null}
             </div>
-          ) : null}
+            {twoUp && partner && side === "left" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="right" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
+          </div>
         </div>
-        {twoUp && partner && side === "left" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="right" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
-      </div>
-      </div>
         <div className="glass-strong absolute bottom-2 right-3 z-10 flex items-center rounded-full p-1">
           <IconBtn label="Мельче" disabled={zoom <= 1} onClick={() => setZoom((z) => Math.max(1, z - 0.5))}>
             <ZoomOut className="size-4" />
@@ -873,190 +1479,282 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             <ZoomIn className="size-4" />
           </IconBtn>
         </div>
+        {/* Кружок кисти или ластика: показывает настоящий размер */}
+        <div ref={cursorRef} className="pointer-events-none fixed left-0 top-0 z-[55] hidden rounded-full border border-ink/70 bg-white/25 shadow-[0_0_0_1px_rgba(255,255,255,.8)]" />
       </div>
 
-      {editingBlock ? (
+      {editingBlock && ops ? (
         <TextPanel
           key={editingBlock.id}
           block={editingBlock}
+          ops={{ ...ops, patch: (partial, group) => patchBlock(editingBlock.id, partial, group), centerH: () => patchBlock(editingBlock.id, { x: round((100 - editingBlock.w) / 2) } as Partial<PageBlock>), centerV: () => patchBlock(editingBlock.id, { y: round((100 - heightOf(editingBlock)) / 2) } as Partial<PageBlock>) }}
           onChange={(text) => patchBlock(editingBlock.id, { text } as Partial<PageBlock>, `text:${editingBlock.id}`)}
-          onPatch={(partial) => patchBlock(editingBlock.id, partial)}
           onDone={() => setEditing(null)}
         />
       ) : null}
 
-      {/* Контекстная панель выделенного */}
-      <div className="px-3 pt-2">
-        {tool !== "hand" ? (
-          <PenBar tool={tool} setTool={setTool} ink={ink} setInk={setInk} thin={thin} setThin={setThin} straight={straight} setStraight={setStraight} />
-        ) : selectedBlock && !editing ? (
-          <BlockBar
-            block={selectedBlock}
-            busy={Boolean(busy[selectedBlock.id])}
-            onPatch={(partial) => patchBlock(selectedBlock.id, partial)}
-            onDelete={() => removeBlock(selectedBlock.id)}
-            onEdit={() => startEditing(selectedBlock.id)}
-            onDuplicate={() => {
-              const copy = { ...selectedBlock, id: id(), x: selectedBlock.x + 4, y: selectedBlock.y + 3 } as PageBlock;
-              addBlock(copy);
-            }}
-            onLayer={(dir) =>
-              commit((p) => {
-                const rest = p.blocks.filter((b) => b.id !== selectedBlock.id);
-                return { ...p, blocks: dir > 0 ? [...rest, selectedBlock] : [selectedBlock, ...rest] };
-              })
-            }
-            onCut={() => selectedBlock.type === "photo" && void cutOut(selectedBlock.id, selectedBlock.src)}
-            onFill={() => {
-              setSlotTarget(selectedBlock.id);
-              setPanel("photo");
-            }}
-            onWrite={() => {
-              if (selectedBlock.type !== "photo") return;
-              const b = selectedBlock;
-              const polaroid = b.frame === "polaroid";
-              const text: PageBlock = {
-                id: id(),
-                type: "text",
-                x: round(b.x + b.w * 0.07),
-                y: round(polaroid ? b.y + b.h - (b.w * POLAROID.bottom) / 100 + 0.6 : b.y + b.h * 0.72),
-                w: round(b.w * 0.86),
-                text: "",
-                font: "script",
-                size: "md",
-                align: "center",
-                rotate: b.rotate ?? 0,
-                color: polaroid ? undefined : "#ffffff",
-                placeholder: "Надпись на фото",
-              };
-              stickSound();
-              flushSync(() => addBlock(text));
-              startEditing(text.id);
-            }}
-            onFull={() => {
-              if (selectedBlock.type !== "photo") return;
-              const full = { ...selectedBlock, ...fullPage(), cut: selectedBlock.cut } as PageBlock;
-              commit((p) => ({ ...p, blocks: [full, ...p.blocks.filter((b) => b.id !== selectedBlock.id)] }));
-              void loadRatio(selectedBlock.src).then(warnFull);
-            }}
+      {/* Контекстная панель */}
+      <div className="relative z-[46] px-3 pt-2">
+        {drawingTool ? (
+          <PenBar
+            tool={tool}
+            setTool={setTool}
+            brush={pen.brush}
+            setBrush={(brush) => updatePen({ brush })}
+            color={pen.color}
+            onColor={() => setPenColors(true)}
+            sizePx={sizePx}
+            setSizePx={(v) => updatePen({ sizes: { ...pen.sizes, [pen.brush]: v } })}
+            eraserPx={pen.eraser}
+            setEraserPx={(v) => updatePen({ eraser: v })}
+            autoShapes={pen.auto}
+            setAutoShapes={(v) => updatePen({ auto: v })}
+            straight={straight}
+            setStraight={setStraight}
+            eraseHint={selectedBlock ? "Стирает только выбранный элемент" : "Стирает то, что под пером"}
+            onPipette={() => startPipette((color) => updatePen({ color }))}
+            onDone={() => setTool("hand")}
           />
-        ) : (
-          page.kind === "cover" ? (
-            <div className="flex h-11 items-center justify-center gap-2">
+        ) : cropping && selectedBlock && selectedBlock.type === "photo" ? (
+          <div className="glass-strong mx-auto flex max-w-xl items-center gap-2 rounded-full p-1.5">
+            <span className="shrink-0 pl-3 text-xs text-ink">Приближение</span>
+            <input
+              type="range"
+              min={1}
+              max={6}
+              step={0.05}
+              value={selectedBlock.crop?.z ?? 1}
+              onChange={(event) => patchBlock(selectedBlock.id, { crop: { cx: selectedBlock.crop?.cx ?? 0.5, cy: selectedBlock.crop?.cy ?? 0.5, z: Number(event.target.value) } } as Partial<PageBlock>, `crop:${selectedBlock.id}`)}
+              className="rgb-range h-2 min-w-0 flex-1 appearance-none rounded-full bg-ink/15"
+            />
+            <BarBtn onClick={() => patchBlock(selectedBlock.id, { crop: undefined } as Partial<PageBlock>)}>Целиком</BarBtn>
+            <BarBtn active onClick={() => setCropping(false)}>
+              Готово
+            </BarBtn>
+          </div>
+        ) : selectedBlock && ops && !editing ? (
+          <BlockBar block={selectedBlock} busy={Boolean(busy[selectedBlock.id])} ops={ops} onInspector={() => setPanel("inspector")} />
+        ) : page.kind === "cover" || isBack ? (
+          <div className="flex h-11 items-center justify-center gap-2">
+            {isBack ? null : (
               <Button variant="soft" className="min-h-10 shrink-0 whitespace-nowrap" onClick={() => setPanel("covers")}>
                 <Sparkles className="size-4" /> Дизайн обложки
               </Button>
-              <span className="truncate text-xs text-muted">Всё двигается и удаляется</span>
-            </div>
-          ) : (
-            <p className="h-11 truncate pt-3 text-center text-xs text-muted">
-              Пунктир — охранное поле: текст внутри. Фото можно тянуть за край листа — «на вылет».
-            </p>
-          )
+            )}
+            <span className="truncate text-xs text-muted">Всё двигается и удаляется</span>
+          </div>
+        ) : (
+          <p className="h-11 truncate pt-3 text-center text-xs text-muted">Пунктир: безопасная зона, текст держите внутри. Фото можно тянуть до самого края.</p>
         )}
       </div>
 
       {/* Инструменты */}
-      <nav className="px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
-        <div className="toolbar-dark mx-auto flex max-w-xl items-stretch justify-between gap-1 rounded-[1.6rem] p-1.5">
-          <ToolBtn label="Текст" onClick={() => { setTool("hand"); addText(); }}>
+      <nav className={cn("relative z-[46] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2", drawingTool && "hidden")}>
+        <div className="toolbar-dark mx-auto flex max-w-xl items-stretch justify-between gap-0.5 rounded-[1.6rem] p-1.5">
+          <ToolBtn label="Текст" onClick={onTextTool}>
             <Type className="size-5" />
           </ToolBtn>
-          <ToolBtn label="Фото" onClick={() => { setTool("hand"); setSlotTarget(null); setPanel("photo"); }}>
+          <ToolBtn
+            label="Фото"
+            onClick={() => {
+              setTool("hand");
+              setSlotTarget(null);
+              setReplaceTarget(null);
+              setPanel("photo");
+            }}
+          >
             <ImagePlus className="size-5" />
           </ToolBtn>
-          <ToolBtn label="Pinterest" onClick={() => { setTool("hand"); setPanel("pinterest"); }}>
-            <PinIcon />
-          </ToolBtn>
-          <ToolBtn label="Стикеры" onClick={() => { setTool("hand"); setPanel("stickers"); }}>
-            <Smile className="size-5" />
-          </ToolBtn>
-          <ToolBtn label="Перо" active={tool !== "hand"} onClick={() => { setSelected(null); setTool(tool === "hand" ? "pen" : "hand"); }}>
+          <ToolBtn
+            label="Рисунок"
+            active={drawingTool}
+            onClick={() => {
+              setSelected(null);
+              setEditing(null);
+              setCropping(false);
+              setTool(drawingTool ? "hand" : "draw");
+            }}
+          >
             <PenLine className="size-5" />
           </ToolBtn>
-          <ToolBtn label="Помочь" onClick={() => setPanel("help")}>
+          <ToolBtn
+            label="Стикеры"
+            onClick={() => {
+              setTool("hand");
+              setPanel("stickers");
+            }}
+          >
+            <Smile className="size-5" />
+          </ToolBtn>
+          <ToolBtn label="Слои" onClick={() => { setTool("hand"); setPanel("layers"); }}>
+            <Layers className="size-5" />
+          </ToolBtn>
+          <ToolBtn label="Подсказки" onClick={() => setPanel("help")}>
             <Sparkles className="size-5" />
           </ToolBtn>
         </div>
       </nav>
 
-      <MoodBoard open={mood} onToggle={() => setMood((v) => !v)} onPlace={(ref) => void placePhoto(ref, undefined, undefined, false)} />
+      <PinnedRefs refs={pinned} onUnpin={togglePin} />
+      <MoodBoard pinned={pinned} onPin={togglePin} open={mood} onToggle={() => setMood((v) => !v)} onPlace={(ref) => void placePhoto(ref, undefined, undefined, false)} />
 
       <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" onChange={(event) => { onFiles(event.target.files); event.target.value = ""; }} />
+      <input ref={diskRef} type="file" accept=".jpg,.jpeg,.png,.webp,.gif,.heic,.heif,.tif,.tiff,.bmp,.avif" multiple className="sr-only" onChange={(event) => { onFiles(event.target.files); event.target.value = ""; }} />
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(event) => { onFiles(event.target.files); event.target.value = ""; }} />
+      <input
+        ref={stickerFileRef}
+        type="file"
+        accept="image/png,image/webp,image/gif,image/svg+xml,image/*"
+        multiple
+        className="sr-only"
+        onChange={(event) => {
+          const list = [...(event.target.files ?? [])];
+          event.target.value = "";
+          if (!list.length) return;
+          const wait = toast.loading("Добавляю стикеры…");
+          void (async () => {
+            for (const file of list.slice(0, 10)) {
+              try {
+                const ref = await importSticker(file);
+                addUserSticker(ref);
+              } catch (error) {
+                toast(`«${file.name}»: ${error instanceof Error ? error.message : "не открылся"}`, { duration: 7000 });
+              }
+            }
+            toast.dismiss(wait);
+            toast("Добавлено в «Мои». Нажмите на стикер, чтобы положить на страницу.");
+          })();
+        }}
+      />
 
       {panel === "photo" ? (
-        <Sheet title={slotTarget ? "Фото в рамку" : "Добавить фото"} onClose={() => { setPanel(null); setSlotTarget(null); }}>
-          {!slotTarget ? (
-            <>
-              <p className="mb-2 text-sm text-muted">Как положить</p>
-              <div className="no-scrollbar -mx-1 mb-4 flex gap-2 overflow-x-auto px-1 pb-1">
-                {STYLES.map((item) => (
-                  <button key={item.id} type="button" onClick={() => setStyle(item.id)} className={cn("shrink-0 rounded-full px-4 py-2 text-sm font-medium", style === item.id ? "bg-night text-paper" : "bg-white/70 text-ink")}>
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : null}
-          <div className="grid grid-cols-2 gap-2">
-            <BigChoice icon={<Images className="size-5" />} title="Из галереи" text="Можно несколько" onClick={() => fileRef.current?.click()} />
-            <BigChoice icon={<Camera className="size-5" />} title="Камера" text="Снять старое фото" onClick={() => cameraRef.current?.click()} />
-            <BigChoice icon={<ClipboardPaste className="size-5" />} title="Вставить" text="Скопированную картинку" onClick={() => void pasteFromClipboard()} />
-            <BigChoice icon={<PinIcon />} title="Pinterest" text="Найти и перетащить" onClick={() => setPanel("pinterest")} />
-          </div>
-          {archive.length > 0 ? (
-            <>
-              <p className="mb-2 mt-4 text-sm text-muted">Из архива семьи</p>
-              <ul className="grid grid-cols-4 gap-2">
-                {archive.map((photo) => (
-                  <li key={photo.id}>
-                    <ArchiveThumb src={photo.dataUrl} alt={photo.who} onClick={() => void placePhoto(photo.dataUrl)} />
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : null}
-          {style === "full" && !slotTarget ? <p className="mt-4 rounded-2xl bg-blush/70 p-3 text-xs text-ink">⚠️ Фото ляжет на весь лист под обрез. В типографии края срежутся на {print.bleed} мм с каждой стороны, а не квадратное фото обрежется до квадрата. Важное держите внутри пунктира.</p> : null}
-          {style === "cutout" && !slotTarget ? <p className="mt-4 text-xs text-muted">Фон уберётся сам, фото ляжет стикером с белой обводкой. В первый раз вырезка скачивается около минуты.</p> : null}
-        </Sheet>
+        <PhotoSheet
+          title={replaceTarget ? "Заменить фото" : slotTarget ? "Фото в рамку" : "Добавить фото"}
+          style={style}
+          setStyle={setStyle}
+          shadow={shadowPref}
+          setShadow={setShadow}
+          lockStyle={Boolean(slotTarget || replaceTarget)}
+          archive={archive}
+          bleed={print.bleed}
+          onGallery={() => fileRef.current?.click()}
+          onFiles={() => diskRef.current?.click()}
+          onCamera={() => cameraRef.current?.click()}
+          onPaste={() => void pasteFromClipboard()}
+          onPinterest={() => setPanel("pinterest")}
+          onScan={() => setPanel("scan")}
+          onArchive={(src) => void placePhoto(src)}
+          onClose={() => {
+            setPanel(null);
+            setSlotTarget(null);
+            setReplaceTarget(null);
+          }}
+        />
+      ) : null}
+
+      {panel === "scan" ? (
+        <Scanner
+          onClose={() => setPanel("photo")}
+          onDone={(ref, mode) => {
+            if (mode === "ink") void placePhoto(ref, undefined, "cutout");
+            else void placePhoto(ref);
+          }}
+        />
       ) : null}
 
       {panel === "pinterest" ? <PinterestPanel onClose={() => setPanel(null)} onPaste={() => void pasteFromClipboard()} onLink={(link) => { setPanel(null); fromLink(link); }} onPasteData={(data) => { setPanel(null); fromTransfer(data); }} /> : null}
+      {panel === "paste" ? <PasteSheet onClose={() => setPanel(null)} onPaste={() => void pasteFromClipboard()} onLink={(link) => { setPanel(null); fromLink(link); }} onPasteData={(data) => { setPanel(null); fromTransfer(data); }} /> : null}
 
       {panel === "stickers" ? (
-        <Sheet title="Стикеры" onClose={() => setPanel(null)}>
-          <ul className="grid grid-cols-4 gap-3">
-            {STICKER_ORDER.map((kind) => (
-              <li key={kind}>
-                <button
-                  type="button"
-                  className="grid aspect-square w-full place-items-center rounded-2xl bg-white/70 p-3"
-                  onClick={() => {
-                    stickSound();
-                    const w = defaultStickerWidth(kind);
-                    addBlock({ id: id(), type: "sticker", kind, x: 50 - w / 2, y: 40, w, rotate: Math.round(Math.random() * 16 - 8) });
-                    setPanel(null);
-                  }}
-                >
-                  <img src={stickerUrl(kind)} alt={STICKERS[kind].label} className="max-h-full w-full object-contain" />
-                </button>
-              </li>
-            ))}
-          </ul>
-          <p className="mb-2 mt-5 text-sm text-muted">Надписи</p>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="soft" onClick={() => { setPanel(null); addText({ look: "card", font: "sans", size: "sm", w: 56, x: 22 }); }}>
-              Чёрная карточка
-            </Button>
-            <Button variant="soft" onClick={() => { setPanel(null); addText({ look: "pill", font: "sans", size: "sm", w: 40, x: 30 }); }}>
-              Плашка
-            </Button>
-            <Button variant="soft" onClick={() => { setPanel(null); addText({ font: "serif", size: "lg", w: 84, x: 8, y: 8 }); }}>
-              Заголовок
-            </Button>
-          </div>
-        </Sheet>
+        <StickersSheet
+          onClose={() => setPanel(null)}
+          onSticker={(kind: StickerKind) => {
+            stickSound();
+            const w = defaultStickerWidth(kind);
+            addBlock({ id: id(), type: "sticker", kind, x: 50 - w / 2, y: 40, w, rotate: Math.round(Math.random() * 16 - 8) });
+            setPanel(null);
+          }}
+          onShape={(shape: ShapeKind) => {
+            stickSound();
+            const box = defaultShapeBox(shape);
+            addBlock({ id: id(), type: "shape", shape, x: 50 - box.w / 2, y: 40 - box.h / 2, w: box.w, h: box.h });
+            setPanel(null);
+          }}
+          onUser={(ref) => {
+            setPanel(null);
+            void (async () => {
+              const info = await imageInfo(ref);
+              const w = 30;
+              const h = clamp((w * info.ratio) / (PAGE_H / 100), 3, 90);
+              stickSound();
+              addBlock({ id: id(), type: "photo", x: 50 - w / 2, y: 40 - h / 2, w, h, src: ref, cut: info.alpha ? ref : undefined, caption: "", frame: info.alpha ? "sticker" : "none", shadow: false });
+            })();
+          }}
+          onPack={(item) => {
+            setPanel(null);
+            if (item.kind === "background") {
+              void placePhoto(item.file, undefined, "full", false);
+              return;
+            }
+            void (async () => {
+              const info = await imageInfo(item.file);
+              const w = 36;
+              const h = clamp((w * info.ratio) / (PAGE_H / 100), 3, 90);
+              stickSound();
+              addBlock({ id: id(), type: "photo", x: 50 - w / 2, y: 40 - h / 2, w, h, src: item.file, cut: item.file, caption: "", frame: "sticker", shadow: false });
+            })();
+          }}
+          onUpload={() => stickerFileRef.current?.click()}
+          onText={(look) => {
+            setPanel(null);
+            if (look === "card") addText({ look: "card", font: "sans", size: "sm", w: 56, x: 22 });
+            else if (look === "pill") addText({ look: "pill", font: "sans", size: "sm", w: 40, x: 30 });
+            else addText({ font: "serif", size: "lg", w: 84, x: 8, y: 8 });
+          }}
+        />
+      ) : null}
+
+      {panel === "layers" ? (
+        <LayersSheet
+          blocks={page.blocks}
+          selected={selected}
+          onSelect={(blockId) => {
+            setTool("hand");
+            setSelected(blockId);
+            setEditing(null);
+          }}
+          onMove={(blockId, where) => moveLayer(blockId, where)}
+          onLock={(blockId) => {
+            const b = page.blocks.find((item) => item.id === blockId);
+            if (b) patchBlock(blockId, { locked: !b.locked } as Partial<PageBlock>);
+          }}
+          onRemove={(blockId) => removeBlock(blockId)}
+          onClose={() => setPanel(null)}
+        />
+      ) : null}
+
+      {panel === "inspector" && selectedBlock && ops ? <Inspector block={selectedBlock} ops={ops} onClose={() => setPanel(null)} /> : null}
+
+      {panel === "fonts" ? (
+        <FontsSheet
+          onClose={() => setPanel(null)}
+          onUse={(font) => {
+            const target = editingBlock ?? (selectedBlock?.type === "text" ? selectedBlock : null);
+            if (target) patchBlock(target.id, { font } as Partial<PageBlock>);
+            else addText({ font });
+            setPanel(null);
+          }}
+        />
+      ) : null}
+
+      {penColors ? (
+        <ColorSheet
+          title="Цвет кисти"
+          value={pen.color}
+          onPick={(color) => updatePen({ color })}
+          onClose={() => setPenColors(false)}
+          onPipette={() => startPipette((color) => updatePen({ color }))}
+        />
       ) : null}
 
       {panel === "help" ? (
@@ -1075,7 +1773,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
       {panel === "covers" ? (
         <Sheet title="Дизайн обложки" onClose={() => setPanel(null)} className="max-w-2xl">
-          <p className="mb-3 text-sm text-muted">Выберите основу — потом всё на ней можно двигать, менять шрифт, цвет бумаги, добавлять фото и стикеры. Отменить — стрелкой ↶.</p>
+          <p className="mb-3 text-sm text-muted">Выберите основу, потом всё на ней можно двигать, менять шрифт, цвет бумаги, добавлять фото и стикеры. Отменить: стрелка ↶.</p>
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {coverDesigns(meta).map((design) => (
               <li key={design.id}>
@@ -1090,7 +1788,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                   }}
                 >
                   <div className="thumb-shadow overflow-hidden rounded-[4px]">
-                    <PageSheet page={{ id: design.id, ...design.page }} meta={meta} editing />
+                    <PageSheet page={{ id: design.id, ...design.page }} meta={meta} editing ghosts={false} />
                   </div>
                   <span className="mt-1 block text-xs font-medium text-ink">{design.label}</span>
                 </button>
@@ -1101,21 +1799,26 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       ) : null}
 
       {panel === "menu" ? (
-        <Sheet title="Страница" onClose={() => setPanel(null)}>
+        <Sheet title={isBack ? "Задняя сторона" : "Страница"} onClose={() => setPanel(null)}>
           {page.kind === "cover" ? (
-            <Button className="mb-4 w-full" onClick={() => setPanel("covers")}>
-              <Sparkles className="size-4" /> Другой дизайн обложки
-            </Button>
+            <div className="mb-4 grid gap-2">
+              <Button className="w-full" onClick={() => setPanel("covers")}>
+                <Sparkles className="size-4" /> Другой дизайн обложки
+              </Button>
+              <Button variant="soft" className="w-full" onClick={() => nav.replace({ id: "editor", pageId: BACK_ID })}>
+                Задняя сторона и цвет корешка
+              </Button>
+            </div>
           ) : null}
-          {page.kind !== "cover" ? (
+          {!isBack && page.kind !== "cover" ? (
             <label className="mb-4 block">
               <span className="mb-1 block text-sm text-muted">Название в оглавлении</span>
               <input className="field" value={page.title} onChange={(event) => commit((p) => ({ ...p, title: event.target.value }), "title")} />
             </label>
           ) : null}
-          <p className="mb-2 text-sm text-muted">Цвет страницы</p>
+          <p className="mb-2 text-sm text-muted">Цвет страницы (любой, можно взять пипеткой)</p>
           <div className="mb-4">
-            <ColorRow value={page.bg} onPick={(bg) => commit((p) => ({ ...p, bg }), "page-bg")} onReset={page.bg ? () => commit((p) => ({ ...p, bg: undefined })) : undefined} />
+            <ColorRow value={page.bg} onPick={(bg) => commit((p) => ({ ...p, bg }), "page-bg")} onReset={page.bg ? () => commit((p) => ({ ...p, bg: undefined })) : undefined} onPipette={() => startPipette((bg) => commit((p) => ({ ...p, bg })))} title="Цвет страницы" />
           </div>
           <p className="mb-2 text-sm text-muted">Бумага</p>
           <div className="mb-5 flex flex-wrap gap-2">
@@ -1132,25 +1835,28 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             ))}
           </div>
           <div className="grid gap-2">
-            <MenuRow icon={<BookOpen className="size-4" />} label="Листать книгу" onClick={() => { setPanel(null); nav.go({ id: "flip", pageId: page.id }); }} />
+            {!isBack ? <MenuRow icon={<BookOpen className="size-4" />} label="Листать книгу" onClick={() => { setPanel(null); nav.go({ id: "flip", pageId: page.id }); }} /> : null}
+            {!isBack ? <MenuRow icon={<FilePlus className="size-4" />} label="Добавить страницу следом" onClick={() => { setPanel(null); addNextPage(); }} /> : null}
             {partner ? (
               <MenuRow
                 icon={<ArrowLeftRight className="size-4" />}
                 label={`Поменять местами с соседней «${partner.title}»`}
                 onClick={() => {
-                  useRod.getState().placePage(page.id, partnerIndex);
+                  useRod.getState().placePage(page.id, partnerAt);
                   setPanel(null);
                   toast("Страницы разворота поменялись местами");
                 }}
               />
             ) : null}
-            <MenuRow icon={<Copy className="size-4" />} label="Сделать копию страницы" onClick={() => { const copy = duplicatePage(page.id); setPanel(null); if (copy) nav.replace({ id: "editor", pageId: copy }); }} />
-            <div className="grid grid-cols-2 gap-2">
-              <MenuRow icon={<ChevronLeft className="size-4" />} label="Раньше в книге" disabled={index <= 0} onClick={() => movePage(page.id, -1)} />
-              <MenuRow icon={<ChevronRight className="size-4" />} label="Позже в книге" disabled={index >= pages.length - 1} onClick={() => movePage(page.id, 1)} />
-            </div>
-            <MenuRow icon={<Eraser className="size-4" />} label="Стереть все чернила" disabled={page.strokes.length === 0} onClick={() => { commit((p) => ({ ...p, strokes: [] })); setPanel(null); }} />
-            <MenuRow icon={<Trash2 className="size-4" />} label="Убрать страницу в корзину" danger onClick={toBin} />
+            {!isBack ? <MenuRow icon={<Copy className="size-4" />} label="Сделать копию страницы" onClick={() => { const copy = duplicatePage(page.id); setPanel(null); if (copy) nav.replace({ id: "editor", pageId: copy }); }} /> : null}
+            {!isBack ? (
+              <div className="grid grid-cols-2 gap-2">
+                <MenuRow icon={<ChevronLeft className="size-4" />} label="Раньше в книге" disabled={index <= 0} onClick={() => movePage(page.id, -1)} />
+                <MenuRow icon={<ChevronRight className="size-4" />} label="Позже в книге" disabled={index >= pages.length - 1} onClick={() => movePage(page.id, 1)} />
+              </div>
+            ) : null}
+            <MenuRow icon={<Eraser className="size-4" />} label="Убрать все рисунки со страницы" disabled={!page.blocks.some((b) => b.type === "ink") && page.strokes.length === 0} onClick={() => { commit((p) => ({ ...p, strokes: [], blocks: p.blocks.filter((b) => b.type !== "ink") })); setPanel(null); }} />
+            {!isBack ? <MenuRow icon={<Trash2 className="size-4" />} label="Убрать страницу в корзину" danger onClick={toBin} /> : null}
           </div>
         </Sheet>
       ) : null}
@@ -1198,525 +1904,29 @@ function snapAxis(start: number, len: number, lo: number, hi: number, bleed: num
   return [s, n];
 }
 
-/** Прямая от начала до конца; почти горизонтальная/вертикальная/диагональная — встаёт ровно. */
-function lineOf(x0: number, y0: number, x1: number, y1: number): number[] {
-  const dx = x1 - x0;
-  const dy = y1 - y0;
-  const len = Math.hypot(dx, dy);
-  const angle = Math.atan2(dy, dx);
-  const step = Math.PI / 4;
-  const snapped = Math.round(angle / step) * step;
-  const a = Math.abs(angle - snapped) < (5 * Math.PI) / 180 ? snapped : angle;
-  return [round(x0), round(y0), round(x0 + Math.cos(a) * len), round(y0 + Math.sin(a) * len)];
-}
-
-/** Сглаживание дрожащей руки (Чайкин, один проход). */
-function smooth(points: number[]): number[] {
-  if (points.length < 8) return points;
-  const out = [points[0], points[1]];
-  for (let i = 0; i + 3 < points.length; i += 2) {
-    const [x0, y0, x1, y1] = [points[i], points[i + 1], points[i + 2], points[i + 3]];
-    out.push(round(0.75 * x0 + 0.25 * x1), round(0.75 * y0 + 0.25 * y1), round(0.25 * x0 + 0.75 * x1), round(0.25 * y0 + 0.75 * y1));
-  }
-  out.push(points[points.length - 2], points[points.length - 1]);
-  return out;
-}
-
-function round(v: number) {
-  return Math.round(v * 100) / 100;
-}
-
-function IconBtn({ label, children, onClick, disabled }: { label: string; children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
-  return (
-    <button type="button" aria-label={label} title={label} disabled={disabled} onClick={onClick} className="grid size-9 place-items-center rounded-full text-ink transition disabled:opacity-30 enabled:active:bg-white/70">
-      {children}
-    </button>
-  );
-}
-
-function ToolBtn({ label, children, onClick, active }: { label: string; children: React.ReactNode; onClick: () => void; active?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn("flex min-h-[3.4rem] flex-1 flex-col items-center justify-center gap-1 rounded-[1.2rem] text-[11px] font-medium transition", active ? "bg-white text-ink" : "text-paper/90 active:bg-white/15")}
-    >
-      {children}
-      {label}
-    </button>
-  );
-}
-
-function PinIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden>
-      <path d="M12 2a10 10 0 0 0-3.64 19.31c-.09-.79-.17-2 .03-2.86l1.2-5.08s-.3-.61-.3-1.5c0-1.41.82-2.46 1.84-2.46.87 0 1.29.65 1.29 1.43 0 .87-.56 2.18-.84 3.39-.24 1.01.51 1.84 1.51 1.84 1.81 0 3.2-1.91 3.2-4.66 0-2.44-1.75-4.14-4.25-4.14-2.9 0-4.6 2.17-4.6 4.42 0 .87.34 1.81.76 2.32.08.1.09.19.07.29l-.28 1.15c-.05.19-.15.23-.34.14-1.27-.59-2.06-2.45-2.06-3.95 0-3.21 2.33-6.17 6.73-6.17 3.53 0 6.28 2.52 6.28 5.89 0 3.51-2.21 6.34-5.29 6.34-1.03 0-2-.54-2.33-1.17l-.64 2.42c-.23.89-.85 2-1.27 2.68A10 10 0 1 0 12 2z" />
-    </svg>
-  );
-}
-
-function Handles({ onTurn, onSize }: { onTurn: (event: React.PointerEvent) => void; onSize: (event: React.PointerEvent) => void }) {
+function Handles({ onTurn, onSize, onDelete, onLock }: { onTurn: (event: React.PointerEvent) => void; onSize: (event: React.PointerEvent) => void; onDelete: () => void; onLock: () => void }) {
   return (
     <>
       <span className="pointer-events-none absolute -inset-[5px] rounded-[6px] border-2 border-dashed border-rose" />
-      <button type="button" aria-label="Повернуть" className="handle absolute -top-11 left-1/2 grid size-8 -translate-x-1/2 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={onTurn}>
+      <button type="button" aria-label="Повернуть" className="handle pointer-events-auto absolute -top-12 left-1/2 grid size-9 -translate-x-1/2 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={onTurn}>
         <RotateCcw className="size-4" />
       </button>
       <span className="pointer-events-none absolute -top-3 left-1/2 h-3 w-px -translate-x-1/2 bg-rose" />
-      <button type="button" aria-label="Размер" className="handle absolute -bottom-4 -right-4 size-8 rounded-full border-[3px] border-rose bg-white shadow-md" onPointerDown={onSize} />
+      <button type="button" aria-label="Удалить" className="pointer-events-auto absolute -right-5 -top-5 grid size-10 place-items-center rounded-full bg-rose-deep text-paper shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onDelete}>
+        <Trash2 className="size-4" />
+      </button>
+      <button type="button" aria-label="Заблокировать" className="pointer-events-auto absolute -left-5 -top-5 grid size-10 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onLock}>
+        <Lock className="size-4" />
+      </button>
+      <button type="button" aria-label="Размер" className="handle pointer-events-auto absolute -bottom-5 -right-5 size-10 rounded-full border-[3px] border-rose bg-white shadow-md" onPointerDown={onSize} />
     </>
   );
 }
 
-function TextPanel({
-  block,
-  onChange,
-  onPatch,
-  onDone,
-}: {
-  block: Extract<PageBlock, { type: "text" }>;
-  onChange: (text: string) => void;
-  onPatch: (partial: Partial<PageBlock>) => void;
-  onDone: () => void;
-}) {
-  const [value, setValue] = useState(block.text);
-  const [palette, setPalette] = useState(false);
-  return (
-    <div className="glass-strong sheet-in absolute inset-x-3 top-[calc(max(0.75rem,env(safe-area-inset-top))+3.6rem)] z-50 mx-auto max-w-xl rounded-[1.6rem] p-3">
-      <textarea
-        id={`edit-${block.id}`}
-        value={value}
-        rows={4}
-        placeholder={block.placeholder || "Пишите здесь — текст сразу появится на странице"}
-        onChange={(event) => {
-          setValue(event.target.value);
-          onChange(event.target.value);
-        }}
-        className="block w-full resize-none rounded-2xl bg-white/80 p-3 text-[17px] leading-snug text-ink outline-none"
-        style={{ fontFamily: FONT_FAMILY[block.font] }}
-      />
-      {palette ? <TextColors block={block} onPatch={onPatch} onClose={() => setPalette(false)} /> : null}
-      <div className="no-scrollbar mt-2 flex items-center gap-1.5 overflow-x-auto">
-        {(["script", "serif", "sans"] as FontKind[]).map((font) => (
-          <BarBtn key={font} active={block.font === font} onClick={() => onPatch({ font } as Partial<PageBlock>)}>
-            <span style={{ fontFamily: FONT_FAMILY[font] }}>{FONT_LABEL[font]}</span>
-          </BarBtn>
-        ))}
-        {(["sm", "md", "lg", "xl"] as const).map((s) => (
-          <BarBtn key={s} active={block.size === s} onClick={() => onPatch({ size: s } as Partial<PageBlock>)}>
-            {s === "sm" ? "S" : s === "md" ? "M" : s === "lg" ? "L" : "XL"}
-          </BarBtn>
-        ))}
-        <BarBtn onClick={() => setPalette(true)}>
-          <span className="size-4 rounded-full border border-ink/20" style={{ background: lookColors(block.look, block.color, block.bg).fg }} /> Цвет
-        </BarBtn>
-        <span className="flex-1" />
-        <Button className="min-h-10 shrink-0 px-4" onClick={onDone}>
-          Готово
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function BarBtn({ children, onClick, active, label, danger, disabled }: { children: React.ReactNode; onClick: () => void; active?: boolean; label?: string; danger?: boolean; disabled?: boolean }) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium transition disabled:opacity-40",
-        active ? "bg-night text-paper" : danger ? "bg-white/80 text-rose-deep" : "bg-white/80 text-ink",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function BlockBar({
-  block,
-  busy,
-  onPatch,
-  onDelete,
-  onEdit,
-  onDuplicate,
-  onLayer,
-  onCut,
-  onFill,
-  onFull,
-  onWrite,
-}: {
-  onFull: () => void;
-  onWrite: () => void;
-  block: PageBlock;
-  busy: boolean;
-  onPatch: (partial: Partial<PageBlock>) => void;
-  onDelete: () => void;
-  onEdit: () => void;
-  onDuplicate: () => void;
-  onLayer: (dir: -1 | 1) => void;
-  onCut: () => void;
-  onFill: () => void;
-}) {
-  const [caption, setCaption] = useState(false);
-  const [palette, setPalette] = useState(false);
-  return (
-    <div className="glass-strong no-scrollbar mx-auto flex max-w-xl gap-1.5 overflow-x-auto rounded-full p-1.5">
-      {block.type === "text" ? (
-        <>
-          <BarBtn onClick={onEdit} active>
-            <PenLine className="size-4" /> Писать
-          </BarBtn>
-          {(["script", "serif", "sans"] as FontKind[]).map((font) => (
-            <BarBtn key={font} active={block.font === font} onClick={() => onPatch({ font } as Partial<PageBlock>)}>
-              <span style={{ fontFamily: FONT_FAMILY[font] }}>{FONT_LABEL[font]}</span>
-            </BarBtn>
-          ))}
-          {(["sm", "md", "lg", "xl"] as const).map((s) => (
-            <BarBtn key={s} active={block.size === s} onClick={() => onPatch({ size: s } as Partial<PageBlock>)}>
-              {s === "sm" ? "S" : s === "md" ? "M" : s === "lg" ? "L" : "XL"}
-            </BarBtn>
-          ))}
-          {(["plain", "card", "pill"] as TextLook[]).map((look) => (
-            <BarBtn key={look} active={(block.look ?? "plain") === look} onClick={() => onPatch({ look } as Partial<PageBlock>)}>
-              {look === "plain" ? "Без фона" : look === "card" ? "Карточка" : "Плашка"}
-            </BarBtn>
-          ))}
-          <BarBtn onClick={() => setPalette(true)}>
-            <span className="size-4 rounded-full border border-ink/20" style={{ background: lookColors(block.look, block.color, block.bg)[block.look === "card" || block.look === "pill" ? "bg" : "fg"] }} /> Цвет
-          </BarBtn>
-          <BarBtn label="Выравнивание" onClick={() => onPatch({ align: block.align === "center" ? "left" : "center" } as Partial<PageBlock>)}>
-            {block.align === "center" ? <AlignCenter className="size-4" /> : <AlignLeft className="size-4" />}
-          </BarBtn>
-        </>
-      ) : null}
-      {block.type === "photo" ? (
-        <>
-          {!(block.frame === "sticker" && block.cut) ? (
-            <BarBtn onClick={onCut} disabled={busy} active>
-              <Scissors className="size-4" /> Убрать фон
-            </BarBtn>
-          ) : (
-            <BarBtn onClick={() => onPatch({ frame: "polaroid" } as Partial<PageBlock>)}>Вернуть фон</BarBtn>
-          )}
-          {(["polaroid", "sticker", "tape", "none"] as PhotoFrame[]).map((frame) => (
-            <BarBtn key={frame} active={block.frame === frame && !(frame === "sticker" && block.cut)} onClick={() => onPatch({ frame, ...(block.cut && frame !== "sticker" ? {} : {}) } as Partial<PageBlock>)}>
-              {frame === "polaroid" ? "Полароид" : frame === "sticker" ? "Кайма" : frame === "tape" ? "Скотч" : "Фото"}
-            </BarBtn>
-          ))}
-          <BarBtn onClick={onWrite} active>
-            <Type className="size-4" /> Надпись
-          </BarBtn>
-          <BarBtn onClick={onFull}>
-            <Maximize className="size-4" /> На всю страницу
-          </BarBtn>
-          <BarBtn onClick={() => setCaption((v) => !v)} active={caption}>
-            Подпись
-          </BarBtn>
-        </>
-      ) : null}
-      {block.type === "slot" ? (
-        <BarBtn onClick={onFill} active>
-          <ImagePlus className="size-4" /> Вставить фото
-        </BarBtn>
-      ) : null}
-      <BarBtn label="Копия" onClick={onDuplicate}>
-        <Copy className="size-4" />
-      </BarBtn>
-      <BarBtn label="На передний план" onClick={() => onLayer(1)}>
-        <ArrowUpToLine className="size-4" />
-      </BarBtn>
-      <BarBtn label="Назад" onClick={() => onLayer(-1)}>
-        <ArrowDownToLine className="size-4" />
-      </BarBtn>
-      {block.rotate ? (
-        <BarBtn label="Ровно" onClick={() => onPatch({ rotate: 0 } as Partial<PageBlock>)}>
-          Ровно
-        </BarBtn>
-      ) : null}
-      <BarBtn label="Удалить" danger onClick={onDelete}>
-        <Trash2 className="size-4" /> Удалить
-      </BarBtn>
-      {palette && block.type === "text" ? <TextColors block={block} onPatch={onPatch} onClose={() => setPalette(false)} /> : null}
-      {caption && block.type === "photo" ? (
-        <Sheet title="Подпись под фото" onClose={() => setCaption(false)}>
-          <input autoFocus className="field" defaultValue={block.caption} placeholder="Кто, где, какой год" onChange={(event) => onPatch({ caption: event.target.value } as Partial<PageBlock>)} />
-          <p className="mt-2 text-xs text-muted">Видна на полароиде, а ещё помогает потом найти фото.</p>
-          <Button className="mt-3" onClick={() => setCaption(false)}>
-            Готово
-          </Button>
-        </Sheet>
-      ) : null}
-    </div>
-  );
-}
-
-function ColorRow({ value, onPick, onReset, compact = false }: { value?: string; onPick: (color: string) => void; onReset?: () => void; compact?: boolean }) {
-  return (
-    <div className={cn("flex items-center gap-2", compact ? "no-scrollbar -mx-1 overflow-x-auto px-1 py-1 [&>*]:shrink-0" : "flex-wrap")}>
-      {SWATCHES.map((color) => (
-        <button
-          key={color}
-          type="button"
-          aria-label={color}
-          onClick={() => onPick(color)}
-          className={cn("size-9 rounded-full border border-ink/15 shadow-sm", value?.toLowerCase() === color && "ring-2 ring-night ring-offset-2")}
-          style={{ background: color }}
-        />
-      ))}
-      <label className="relative grid size-9 cursor-pointer place-items-center overflow-hidden rounded-full border border-ink/15 text-xs font-bold text-ink" style={{ background: "conic-gradient(#f66, #fd6, #6d6, #6df, #66f, #f6f, #f66)" }} title="Свой цвет">
-        <span className="rounded-full bg-white/85 px-1">+</span>
-        <input type="color" className="absolute inset-0 cursor-pointer opacity-0" value={value || "#c45d72"} onChange={(event) => onPick(event.target.value)} />
-      </label>
-      {onReset ? (
-        <button type="button" onClick={onReset} className="h-9 rounded-full bg-white/70 px-3 text-xs text-ink">
-          Как было
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
-function TextColors({ block, onPatch, onClose }: { block: Extract<PageBlock, { type: "text" }>; onPatch: (partial: Partial<PageBlock>) => void; onClose: () => void }) {
-  const boxed = block.look === "card" || block.look === "pill";
-  return (
-    <Sheet title="Цвет надписи" onClose={onClose} dim={false}>
-      <p className="mb-2 text-sm text-muted">Буквы</p>
-      <ColorRow compact value={block.color} onPick={(color) => onPatch({ color } as Partial<PageBlock>)} onReset={block.color ? () => onPatch({ color: undefined } as Partial<PageBlock>) : undefined} />
-      {boxed ? (
-        <>
-          <p className="mb-2 mt-4 text-sm text-muted">{block.look === "card" ? "Карточка" : "Плашка"}</p>
-          <ColorRow compact value={block.bg} onPick={(bg) => onPatch({ bg } as Partial<PageBlock>)} onReset={block.bg ? () => onPatch({ bg: undefined } as Partial<PageBlock>) : undefined} />
-        </>
-      ) : (
-        <p className="mt-3 text-xs text-muted">Цветной фон — у вида «Карточка» или «Плашка».</p>
-      )}
-      <Button className="mt-3 w-full" onClick={onClose}>
-        Готово
-      </Button>
-    </Sheet>
-  );
-}
-
-function PenBar({
-  tool,
-  setTool,
-  ink,
-  setInk,
-  thin,
-  setThin,
-  straight,
-  setStraight,
-}: {
-  straight: boolean;
-  setStraight: (v: boolean) => void;
-  tool: Tool;
-  setTool: (tool: Tool) => void;
-  ink: InkStroke["color"];
-  setInk: (ink: InkStroke["color"]) => void;
-  thin: boolean;
-  setThin: (v: boolean) => void;
-}) {
-  return (
-    <div className="glass-strong no-scrollbar mx-auto flex max-w-xl items-center gap-1.5 overflow-x-auto rounded-full p-1.5">
-      <BarBtn active={tool === "pen"} onClick={() => setTool("pen")}>
-        <PenLine className="size-4" /> Перо
-      </BarBtn>
-      <BarBtn active={tool === "marker"} onClick={() => setTool("marker")}>
-        <Highlighter className="size-4" /> Маркер
-      </BarBtn>
-      <BarBtn active={tool === "erase"} onClick={() => setTool("erase")}>
-        <Eraser className="size-4" /> Ластик
-      </BarBtn>
-      <span className="mx-1 h-6 w-px shrink-0 bg-ink/15" />
-      {INK.map((color) => (
-        <button
-          key={color}
-          type="button"
-          aria-label={color}
-          onClick={() => {
-            setInk(color);
-            if (tool === "erase") setTool("pen");
-          }}
-          className={cn("size-8 shrink-0 rounded-full border-2 border-white shadow", ink === color && tool !== "erase" && "ring-2 ring-night ring-offset-1")}
-          style={{ background: inkColor(color) }}
-        />
-      ))}
-      <BarBtn active={thin} onClick={() => setThin(!thin)}>
-        Тонко
-      </BarBtn>
-      <BarBtn active={straight} onClick={() => setStraight(!straight)}>
-        <Ruler className="size-4" /> Ровные линии
-      </BarBtn>
-      <BarBtn onClick={() => setTool("hand")}>Готово</BarBtn>
-    </div>
-  );
-}
-
-function BigChoice({ icon, title, text, onClick }: { icon: React.ReactNode; title: string; text: string; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="flex flex-col items-start gap-2 rounded-3xl bg-white/75 p-4 text-left active:scale-[0.98]">
-      <span className="grid size-10 place-items-center rounded-full bg-night text-paper">{icon}</span>
-      <span>
-        <span className="block font-semibold text-ink">{title}</span>
-        <span className="block text-xs text-muted">{text}</span>
-      </span>
-    </button>
-  );
-}
-
-function MenuRow({ icon, label, onClick, disabled, danger }: { icon: React.ReactNode; label: string; onClick: () => void; disabled?: boolean; danger?: boolean }) {
-  return (
-    <button type="button" disabled={disabled} onClick={onClick} className={cn("flex min-h-12 items-center gap-3 rounded-2xl bg-white/70 px-4 text-left text-sm font-medium disabled:opacity-40", danger ? "text-rose-deep" : "text-ink")}>
-      {icon}
-      {label}
-    </button>
-  );
-}
-
-function ArchiveThumb({ src, alt, onClick }: { src: string; alt: string; onClick: () => void }) {
-  const url = useMedia(src);
-  return (
-    <button type="button" onClick={onClick} className="block aspect-square w-full overflow-hidden rounded-xl bg-line">
-      {url ? <img src={url} alt={alt || "Фото"} className="h-full w-full object-cover" /> : null}
-    </button>
-  );
-}
-
-function PinterestPanel({ onClose, onPaste, onLink, onPasteData }: { onClose: () => void; onPaste: () => void; onLink: (link: string) => void; onPasteData: (data: DataTransfer) => void }) {
-  const [query, setQuery] = useState("");
-  const [link, setLink] = useState("");
-  const open = () => {
-    const url = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query.trim() || "винтажные семейные фото")}`;
-    const width = 460;
-    const left = Math.max(0, window.screenX + window.outerWidth - width - 20);
-    const win = window.open(url, "pinterest", `popup=yes,width=${width},height=${Math.min(900, window.outerHeight - 40)},left=${left},top=${window.screenY + 20}`);
-    if (!win) window.location.assign(url);
-  };
-  return (
-    <Sheet title="Pinterest" onClose={onClose}>
-      <form
-        className="flex gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          open();
-        }}
-      >
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-          <input className="field !pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Что ищете? винтаж, рамки, цветы…" />
-        </div>
-        <Button type="submit">Найти</Button>
-      </form>
-      <div className="mt-4 grid gap-3 text-sm text-ink">
-        <p>
-          <b>Компьютер.</b> Pinterest откроется маленьким окном рядом. Тащите картинку мышкой прямо на лист.
-        </p>
-        <p>
-          <b>iPad.</b> Откройте Pinterest рядом (Split View) и перетащите фото пальцем на страницу.
-        </p>
-        <p>
-          <b>Телефон.</b> В Pinterest нажмите на фото → «Копировать изображение» или сохраните его. Вернитесь сюда и нажмите «Вставить».
-        </p>
-      </div>
-      <div
-        contentEditable
-        suppressContentEditableWarning
-        role="textbox"
-        aria-label="Поле для вставки"
-        onPaste={(event) => {
-          event.preventDefault();
-          onPasteData(event.clipboardData);
-        }}
-        onInput={(event) => {
-          (event.currentTarget as HTMLDivElement).textContent = "";
-        }}
-        className="mt-4 grid min-h-20 place-items-center rounded-3xl border-2 border-dashed border-rose/50 bg-white/60 px-4 text-center text-sm text-ink outline-none focus:border-rose"
-        data-placeholder="Нажмите и удерживайте здесь → «Вставить»"
-      />
-      <p className="mt-1 text-center text-xs text-muted">На iPhone — самый надёжный способ: удерживайте пальцем поле выше и выберите «Вставить».</p>
-      <Button variant="soft" className="mt-3 w-full" onClick={onPaste}>
-        <ClipboardPaste className="size-4" /> Вставить скопированную картинку
-      </Button>
-      <form
-        className="mt-3 flex gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (link.trim()) onLink(link.trim());
-        }}
-      >
-        <input className="field" value={link} onChange={(event) => setLink(event.target.value)} placeholder="или вставьте ссылку на пин" />
-        <Button type="submit" variant="soft" disabled={!link.trim()}>
-          Взять
-        </Button>
-      </form>
-      <p className="mt-3 text-xs text-muted">Pinterest не разрешает открывать себя внутри других приложений, поэтому он открывается рядом.</p>
-    </Sheet>
-  );
-}
-
-const GENERIC_QUESTIONS = [
-  "О ком или о чём эта страница?",
-  "Где и когда это было?",
-  "Какая деталь до сих пор перед глазами?",
-  "Какую фразу стоит сохранить дословно?",
-  "Что должен узнать тот, кто откроет книгу позже?",
-];
-
-function HelpSheet({ title, questions, onClose, onInsert }: { title: string; questions: string[]; onClose: () => void; onInsert: (text: string) => void }) {
-  const [answers, setAnswers] = useState<string[]>(() => questions.map(() => ""));
-  const [heard, setHeard] = useState<number | null>(null);
-  const dictate = (index: number) => {
-    const rec = recognition();
-    if (!rec) {
-      toast("Диктовка здесь не открылась. Можно нажать микрофон на клавиатуре телефона.");
-      return;
-    }
-    rec.lang = "ru-RU";
-    rec.continuous = false;
-    rec.interimResults = false;
-    rec.onresult = (event) => {
-      const said = event.results[0]?.[0]?.transcript ?? "";
-      setAnswers((list) => list.map((item, i) => (i === index ? `${item} ${said}`.trim() : item)));
-    };
-    rec.onerror = () => setHeard(null);
-    rec.onend = () => setHeard(null);
-    setHeard(index);
-    rec.start();
-  };
-  const filled = answers.filter((item) => item.trim());
-  return (
-    <Sheet title="Помочь заполнить" onClose={onClose}>
-      <p className="text-sm text-muted">Ответьте коротко, как помните. Ответы лягут на страницу «{title}» — потом можно поправить.</p>
-      <div className="mt-3 grid gap-3">
-        {questions.map((question, index) => (
-          <label key={question} className="block">
-            <span className="mb-1 flex items-start justify-between gap-2 text-sm font-medium text-ink">
-              {question}
-              <button type="button" className="flex shrink-0 items-center gap-1 text-rose-deep" onClick={() => dictate(index)}>
-                <Mic className="size-4" />
-                {heard === index ? "Слушаю…" : "Голосом"}
-              </button>
-            </span>
-            <textarea className="field min-h-14" value={answers[index] ?? ""} onChange={(event) => setAnswers((list) => list.map((item, i) => (i === index ? event.target.value : item)))} />
-          </label>
-        ))}
-      </div>
-      <Button className="mt-4 w-full" disabled={!filled.length} onClick={() => onInsert(filled.map((item) => item.trim().replace(/^./, (c) => c.toUpperCase())).join("\n\n"))}>
-        Поставить на страницу
-      </Button>
-    </Sheet>
-  );
-}
-
-/** Соседняя страница разворота: видна рядом, нажали — редактируете её. */
+/** Соседняя страница разворота: видна рядом, нажали, и редактируете её. */
 function PartnerPage({ page, meta, width, side, onOpen }: { page: BookPage; meta: { dedicatee: string; collector: string }; width: number; side: "left" | "right"; onOpen: () => void }) {
   return (
-    <button type="button" onClick={onOpen} className="group relative shrink-0 text-left" style={{ width }} aria-label={`Перейти к странице «${page.title}»`}>
+    <button type="button" onClick={onOpen} className="group relative z-0 shrink-0 text-left" style={{ width }} aria-label={`Перейти к странице «${page.title}»`}>
       <div className="book-page-shadow overflow-hidden rounded-[2px] opacity-90 transition group-hover:opacity-100">
         <PageSheet page={page} meta={meta} editing />
       </div>

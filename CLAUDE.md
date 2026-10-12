@@ -135,3 +135,10 @@
 - Полный шаблон на 100 страниц (7 глав, структура Дарины) — `lib/rod/full-book.ts`, открывается только при `programOpen`.
 - Оплата и видео уроков — `lib/rod/config.ts`: `PAY_URL`, `ACCESS_CODES` (сейчас тестовый код «КНИГА»), `LESSON_VIDEO`.
 - Серверного ИИ (xAI) на Pages нет: `spa/studio-ai.static.ts` — заглушка.
+
+**Редактор (обновление 2026-10-12).** Подробно: BRAIN `ACCOUNTS/КНИГА РОДА/APP_KNIGA_RODA.md`. Коротко:
+- Рисунки это блоки `ink` (`lib/rod/ink.ts`, perfect-freehand), фигуры блоки `shape` (`shapes.ts`); старые `page.strokes` переводятся в блоки в `migratePage`. Печать (`print-book.ts`) рисует те же пути через `Path2D`: менять экран и печать парой.
+- Выделенный блок не поднимается по z-index (иначе слой «прыгает»). Замок `locked` = `pointer-events: none`; снять в «Слоях».
+- Ластик: у `ink` режет линии, у остальных пишет `mask` (маска блока). Кадрирование фото `crop`, тень `shadow` (по умолчанию выкл.), фото через разворот `spread` (`spread.ts`).
+- Несколько книг: `projects.ts` + `boot.ts#switchBook`; «main» держит старый ключ `kniga-roda`. Задняя сторона обложки `store.back` (id `__back__`), корешок `store.spine`.
+- Диктовка в PWA на iPhone идёт через Whisper (`dictate.ts`), встроенное распознавание Safari там не работает.

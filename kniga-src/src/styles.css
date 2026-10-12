@@ -178,6 +178,36 @@
     box-shadow: 0 1.2cqw 2.4cqw -0.8cqw rgb(42 36 32 / 0.38);
   }
 
+  .no-shadow {
+    filter: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Картинки на странице не принимают нажатия сами и не вызывают меню «Сохранить фото» при долгом нажатии. */
+  .page-sheet img,
+  .editor-root img {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .editor-root .page-sheet img {
+    pointer-events: none;
+  }
+
+  .editor-root {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .editor-root textarea,
+  .editor-root input {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
   .sticker-art {
     filter: drop-shadow(0 0.6cqw 0.8cqw rgb(42 36 32 / 0.25));
     -webkit-user-drag: none;
@@ -458,5 +488,34 @@
   }
   to {
     transform: rotate(0.8deg);
+  }
+}
+
+@layer components {
+  .rgb-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: #fff;
+    border: 3px solid var(--color-night);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
+  }
+  .rgb-range::-moz-range-thumb {
+    width: 1.3rem;
+    height: 1.3rem;
+    border-radius: 999px;
+    background: #fff;
+    border: 3px solid var(--color-night);
+  }
+}
+
+@layer components {
+  .checker {
+    background-color: #fff;
+    background-image: linear-gradient(45deg, #ece6dc 25%, transparent 25%), linear-gradient(-45deg, #ece6dc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ece6dc 75%), linear-gradient(-45deg, transparent 75%, #ece6dc 75%);
+    background-size: 14px 14px;
+    background-position: 0 0, 0 7px, 7px -7px, -7px 0;
   }
 }

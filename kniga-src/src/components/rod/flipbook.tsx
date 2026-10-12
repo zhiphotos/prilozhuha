@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Download, PenLine, X } from "lucide-react";
 import { toast } from "sonner";
 import { useNav } from "@/components/rod/chrome";
 import { CoverArt, PageSheet } from "@/components/rod/page-view";
+import { backPage } from "@/lib/rod/store";
 import { PAGE_RATIO } from "@/lib/rod/page-style";
 import { downloadFamilyBook } from "@/lib/rod/print-book";
 import { turnPage } from "@/lib/rod/sounds";
@@ -25,6 +26,7 @@ export function FlipBookScreen({ pageId }: { pageId?: string }) {
   const pages = useRod((state) => state.pages);
   const dedicatee = useRod((state) => state.dedicatee);
   const collector = useRod((state) => state.collector);
+  const back = useRod((state) => state.back);
   const meta = useMemo(() => ({ dedicatee, collector }), [dedicatee, collector]);
 
   const faces = useMemo<Face[]>(() => {
@@ -38,6 +40,7 @@ export function FlipBookScreen({ pageId }: { pageId?: string }) {
     list.push({ kind: "endpaper" }, { kind: "back" });
     return list;
   }, [pages]);
+  const backFace = useMemo(() => back ?? backPage(pages[0]?.kind === "cover" ? pages[0] : null), [back, pages]);
 
   const leaves = faces.length / 2;
   const startTurned = useMemo(() => {
@@ -194,8 +197,8 @@ export function FlipBookScreen({ pageId }: { pageId?: string }) {
                   transition: isDrag ? "none" : "transform 650ms cubic-bezier(.25,.8,.25,1)",
                 }}
               >
-                <FaceView face={faces[i * 2]} side="right" meta={meta} show={near(i)} shade={shade} />
-                <FaceView face={faces[i * 2 + 1]} side="left" meta={meta} show={near(i)} shade={shade} back />
+                <FaceView face={faces[i * 2]} side="right" meta={meta} show={near(i)} shade={shade} backPage={backFace} visible={angle > -90} animate={!isDrag} />
+                <FaceView face={faces[i * 2 + 1]} side="left" meta={meta} show={near(i)} shade={shade} backPage={backFace} visible={angle <= -90} animate={!isDrag} back />
               </div>
             );
           })}
@@ -233,18 +236,26 @@ function label(turned: number, leaves: number, faces: Face[]) {
   return nums.length === 2 ? `Страницы ${nums.join("–")}` : nums.length === 1 ? `Страница ${nums[0]}` : "Форзац";
 }
 
-function FaceView({ face, side, meta, show, shade, back = false }: { face: Face | undefined; side: "left" | "right"; meta: { dedicatee: string; collector: string }; show: boolean; shade: number; back?: boolean }) {
+function FaceView({ face, side, meta, show, shade, back = false, backPage: backFace, visible, animate }: { face: Face | undefined; side: "left" | "right"; meta: { dedicatee: string; collector: string }; show: boolean; shade: number; back?: boolean; backPage: BookPage; visible: boolean; animate: boolean }) {
   let content: ReactNode = null;
   if (face?.kind === "page" && show) content = <PageSheet page={face.page} meta={meta} />;
   else if (face?.kind === "cover") content = <div className="h-full w-full" style={{ background: "#f8e4e8", containerType: "inline-size" }}><CoverArt meta={meta} /></div>;
-  else if (face?.kind === "back") content = <BackCover />;
+  else if (face?.kind === "back") content = <PageSheet page={backFace} meta={meta} ghosts={false} />;
   else if (face?.kind === "endpaper") content = <div className="endpaper h-full w-full" />;
   else content = <div className="h-full w-full bg-[#fbf8f3]" />;
   const hard = face?.kind === "cover" || face?.kind === "back" || (face?.kind === "page" && face.page.kind === "cover");
   return (
     <div
       className={cn("absolute inset-0 overflow-hidden", side === "right" ? "rounded-r-[6px]" : "rounded-l-[6px]", hard && "ring-1 ring-[#8e3d52]/20")}
-      style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: back ? "rotateY(180deg)" : undefined, boxShadow: "0 18px 40px -22px rgba(42,36,32,.55)" }}
+      style={{
+        backfaceVisibility: "hidden",
+        WebkitBackfaceVisibility: "hidden",
+        transform: back ? "rotateY(180deg)" : undefined,
+        boxShadow: "0 18px 40px -22px rgba(42,36,32,.55)",
+        // Safari не всегда прячет обратную сторону листа сам: показываем сторону, только пока лист повёрнут к нам ею (смена ровно в тот миг, когда лист проходит 90°).
+        visibility: visible ? "visible" : "hidden",
+        transition: animate ? "visibility 0s linear 0.103s" : "none",
+      }}
     >
       {content}
       {/* Изгиб у корешка */}
@@ -256,18 +267,6 @@ function FaceView({ face, side, meta, show, shade, back = false }: { face: Face 
         }}
       />
       <div className="pointer-events-none absolute inset-0 bg-ink" style={{ opacity: shade * 0.18 }} />
-    </div>
-  );
-}
-
-function BackCover() {
-  return (
-    <div className="grid h-full w-full place-items-center" style={{ background: "#f8e4e8", containerType: "inline-size" }}>
-      <p className="px-[10cqw] text-center text-[#8e3d52]" style={{ fontFamily: '"Caveat", cursive', fontSize: "6cqw", lineHeight: 1.1 }}>
-        Эту книгу можно продолжать.
-        <br />
-        Следующую страницу допишет уже другой.
-      </p>
     </div>
   );
 }

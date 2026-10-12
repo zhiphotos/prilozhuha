@@ -3,6 +3,7 @@ import { STORY_TEMPLATES, findTemplate } from "@/lib/rod/content";
 import { composeStory } from "@/lib/rod/narrative";
 import { useRod } from "@/lib/rod/store";
 import { pageFromStory } from "@/lib/rod/layouts";
+import { DictateButton } from "@/components/rod/dictate-button";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
 
 export function StoriesScreen() {
@@ -99,6 +100,7 @@ export function WizardScreen({ templateId }: { templateId: string }) {
             placeholder={question.placeholder}
             onChange={(event) => setAnswers((current) => ({ ...current, [question.id]: event.target.value }))}
           />
+          <DictateButton className="mt-2" value={answers[question.id] ?? ""} onChange={(text) => setAnswers((current) => ({ ...current, [question.id]: text }))} />
           <div className="mt-4 flex flex-wrap gap-2">
             {step < template.questions.length - 1 ? (
               <Button onClick={() => setStep((value) => value + 1)}>Дальше</Button>
@@ -122,6 +124,7 @@ export function WizardScreen({ templateId }: { templateId: string }) {
           </Field>
           <Field label="Готовая история" hint="Это черновик из ваших слов. Поправьте тон, ничего не выдумывая за семью.">
             <textarea className="field min-h-64" value={draft || narrative} onChange={(event) => setDraft(event.target.value)} />
+            <DictateButton className="mt-2" value={draft || narrative} onChange={setDraft} />
           </Field>
           <div className="flex flex-wrap gap-2">
             <Button
