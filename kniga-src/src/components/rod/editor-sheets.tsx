@@ -106,12 +106,31 @@ export function PhotoSheet({
 
 // ——— Стикеры, фигуры, свои ———
 
-type Tab = "stickers" | "shapes" | "mine" | "text";
+type Tab = "stickers" | "pack" | "shapes" | "mine" | "text";
+
+export type PackItem = { id: string; label: string; cat: string; file: string; kind: "sticker" | "background" };
+
+/** Готовый набор футажей приложения (конверты, цветы, ветки, бумага, фоны). */
+function usePack(): PackItem[] | null {
+  const [items, setItems] = useState<PackItem[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void fetch("stickers/pack/index.json")
+      .then((res) => (res.ok ? (res.json() as Promise<PackItem[]>) : []))
+      .catch(() => [] as PackItem[])
+      .then((list) => alive && setItems(list));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return items;
+}
 
 export function StickersSheet({
   onSticker,
   onShape,
   onUser,
+  onPack,
   onUpload,
   onText,
   onClose,
@@ -119,11 +138,13 @@ export function StickersSheet({
   onSticker: (kind: StickerKind) => void;
   onShape: (shape: ShapeKind) => void;
   onUser: (ref: string) => void;
+  onPack: (item: PackItem) => void;
   onUpload: () => void;
   onText: (look: "card" | "pill" | "title") => void;
   onClose: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("stickers");
+  const pack = usePack();
   const mine = useRod((state) => state.userStickers);
   const remove = useRod((state) => state.removeUserSticker);
   return (
@@ -132,6 +153,7 @@ export function StickersSheet({
         {(
           [
             ["stickers", "Стикеры"],
+            ["pack", "Футажи"],
             ["shapes", "Фигуры и стрелки"],
             ["mine", `Мои${mine.length ? ` · ${mine.length}` : ""}`],
             ["text", "Надписи"],
@@ -152,6 +174,33 @@ export function StickersSheet({
             </li>
           ))}
         </ul>
+      ) : null}
+      {tab === "pack" ? (
+        pack === null ? (
+          <p className="text-sm text-muted">Загружаю…</p>
+        ) : pack.length === 0 ? (
+          <p className="text-sm text-muted">Набор не загрузился. Проверьте интернет и откройте снова.</p>
+        ) : (
+          <div className="grid gap-4">
+            {[...new Set(pack.map((item) => item.cat))].map((cat) => (
+              <section key={cat}>
+                <p className="mb-1.5 text-sm font-medium text-ink">{cat}</p>
+                <ul className="grid grid-cols-4 gap-2">
+                  {pack
+                    .filter((item) => item.cat === cat)
+                    .map((item) => (
+                      <li key={item.id}>
+                        <button type="button" title={item.label} onClick={() => onPack(item)} className="checker grid aspect-square w-full place-items-center overflow-hidden rounded-2xl p-1">
+                          <img src={item.file} alt={item.label} loading="lazy" className={item.kind === "background" ? "h-full w-full rounded-xl object-cover" : "max-h-full max-w-full object-contain"} />
+                        </button>
+                      </li>
+                    ))}
+                </ul>
+              </section>
+            ))}
+            <p className="text-xs text-muted">Фоны ложатся на весь лист (дальше «Кадр» выберет часть). Остальное это вырезки: двигаются, тянутся, любой слой. Режим «Умножение» в «Ещё» убирает белое у бумаги.</p>
+          </div>
+        )
       ) : null}
       {tab === "shapes" ? (
         <>

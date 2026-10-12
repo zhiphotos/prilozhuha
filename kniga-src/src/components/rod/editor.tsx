@@ -33,6 +33,7 @@ import { FontsSheet, GENERIC_QUESTIONS, HelpSheet, LayersSheet, PasteSheet, Phot
 import { BarBtn, IconBtn, MenuRow, ToolBtn } from "@/components/rod/editor-ui";
 import { ColorRow, ColorSheet } from "@/components/rod/color-sheet";
 import { MoodBoard } from "@/components/rod/moodboard";
+import { PinnedRefs } from "@/components/rod/pinned-refs";
 import { BlockArt, PageSheet, PlacedBlock, boxOf } from "@/components/rod/page-view";
 import { Scanner } from "@/components/rod/scanner";
 import { cropGeom, innerBox } from "@/lib/rod/crop";
@@ -191,6 +192,24 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const [dropping, setDropping] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [mood, setMood] = useState(false);
+  const [pinned, setPinned] = useState<string[]>(() => {
+    try {
+      const list = JSON.parse(localStorage.getItem("kniga-pinned") ?? "[]") as string[];
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [];
+    }
+  });
+  const togglePin = (ref: string) =>
+    setPinned((list) => {
+      const next = list.includes(ref) ? list.filter((item) => item !== ref) : [...list, ref].slice(-6);
+      try {
+        localStorage.setItem("kniga-pinned", JSON.stringify(next));
+      } catch {
+        /* без запоминания */
+      }
+      return next;
+    });
   const [, setTick] = useState(0);
 
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -1576,7 +1595,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         </div>
       </nav>
 
-      <MoodBoard open={mood} onToggle={() => setMood((v) => !v)} onPlace={(ref) => void placePhoto(ref, undefined, undefined, false)} />
+      <PinnedRefs refs={pinned} onUnpin={togglePin} />
+      <MoodBoard pinned={pinned} onPin={togglePin} open={mood} onToggle={() => setMood((v) => !v)} onPlace={(ref) => void placePhoto(ref, undefined, undefined, false)} />
 
       <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" onChange={(event) => { onFiles(event.target.files); event.target.value = ""; }} />
       <input ref={diskRef} type="file" accept=".jpg,.jpeg,.png,.webp,.gif,.heic,.heif,.tif,.tiff,.bmp,.avif" multiple className="sr-only" onChange={(event) => { onFiles(event.target.files); event.target.value = ""; }} />
@@ -1668,6 +1688,20 @@ export function EditorScreen({ pageId }: { pageId: string }) {
               const h = clamp((w * info.ratio) / (PAGE_H / 100), 3, 90);
               stickSound();
               addBlock({ id: id(), type: "photo", x: 50 - w / 2, y: 40 - h / 2, w, h, src: ref, cut: info.alpha ? ref : undefined, caption: "", frame: info.alpha ? "sticker" : "none", shadow: false });
+            })();
+          }}
+          onPack={(item) => {
+            setPanel(null);
+            if (item.kind === "background") {
+              void placePhoto(item.file, undefined, "full", false);
+              return;
+            }
+            void (async () => {
+              const info = await imageInfo(item.file);
+              const w = 36;
+              const h = clamp((w * info.ratio) / (PAGE_H / 100), 3, 90);
+              stickSound();
+              addBlock({ id: id(), type: "photo", x: 50 - w / 2, y: 40 - h / 2, w, h, src: item.file, cut: item.file, caption: "", frame: "sticker", shadow: false });
             })();
           }}
           onUpload={() => stickerFileRef.current?.click()}

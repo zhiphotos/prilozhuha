@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, ClipboardPaste, ImagePlus, Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardPaste, ImagePlus, Pin, PinOff, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/rod/chrome";
 import { imageFromTransfer, importFromLink, importImage } from "@/lib/rod/image";
@@ -8,7 +8,7 @@ import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
 
 /** «Вайб» — выезжающая справа доска с картинками-ориентирами: цвета, настроение, вёрстка. В книгу не печатается. */
-export function MoodBoard({ open, onToggle, onPlace }: { open: boolean; onToggle: () => void; onPlace: (ref: string) => void }) {
+export function MoodBoard({ open, onToggle, onPlace, pinned, onPin }: { open: boolean; onToggle: () => void; onPlace: (ref: string) => void; pinned: string[]; onPin: (ref: string) => void }) {
   const items = useRod((state) => state.moodboard);
   const addMood = useRod((state) => state.addMood);
   const removeMood = useRod((state) => state.removeMood);
@@ -124,7 +124,7 @@ export function MoodBoard({ open, onToggle, onPlace }: { open: boolean; onToggle
             <ul className="columns-2 gap-1.5">
               {items.map((ref) => (
                 <li key={ref} className="mb-1.5 break-inside-avoid">
-                  <MoodItem refId={ref} onZoom={() => setZoom(ref)} onRemove={() => removeMood(ref)} />
+                  <MoodItem refId={ref} pinned={pinned.includes(ref)} onPin={() => onPin(ref)} onZoom={() => setZoom(ref)} onRemove={() => removeMood(ref)} />
                 </li>
               ))}
             </ul>
@@ -144,17 +144,20 @@ export function MoodBoard({ open, onToggle, onPlace }: { open: boolean; onToggle
         />
       </aside>
 
-      {zoom ? <MoodZoom items={items} refId={zoom} onChange={setZoom} onClose={() => setZoom(null)} onPlace={(ref) => { onPlace(ref); setZoom(null); }} /> : null}
+      {zoom ? <MoodZoom pinned={pinned.includes(zoom)} onPin={() => onPin(zoom)} items={items} refId={zoom} onChange={setZoom} onClose={() => setZoom(null)} onPlace={(ref) => { onPlace(ref); setZoom(null); }} /> : null}
     </>
   );
 }
 
-function MoodItem({ refId, onZoom, onRemove }: { refId: string; onZoom: () => void; onRemove: () => void }) {
+function MoodItem({ refId, pinned, onPin, onZoom, onRemove }: { refId: string; pinned: boolean; onPin: () => void; onZoom: () => void; onRemove: () => void }) {
   const url = useMedia(refId);
   return (
     <div className="group relative overflow-hidden rounded-xl bg-white/50">
       <button type="button" onClick={onZoom} className="block w-full">
         {url ? <img src={url} alt="Ориентир" className="block w-full" /> : <div className="aspect-square animate-pulse" />}
+      </button>
+      <button type="button" onClick={onPin} aria-label={pinned ? "Снять с экрана" : "Закрепить перед глазами"} className={cn("absolute bottom-1 right-1 grid size-8 place-items-center rounded-full", pinned ? "bg-rose-deep text-paper" : "bg-white/85 text-ink")}>
+        {pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
       </button>
       <button type="button" onClick={onRemove} aria-label="Убрать из вайба" className="absolute right-1 top-1 grid size-6 place-items-center rounded-full bg-night/70 text-paper">
         <X className="size-3" />
@@ -164,7 +167,7 @@ function MoodItem({ refId, onZoom, onRemove }: { refId: string; onZoom: () => vo
 }
 
 /** Картинка на весь экран: листается свайпом влево и вправо, стрелками на экране и клавишами. */
-function MoodZoom({ items, refId, onChange, onClose, onPlace }: { items: string[]; refId: string; onChange: (ref: string) => void; onClose: () => void; onPlace: (ref: string) => void }) {
+function MoodZoom({ pinned, onPin, items, refId, onChange, onClose, onPlace }: { pinned: boolean; onPin: () => void; items: string[]; refId: string; onChange: (ref: string) => void; onClose: () => void; onPlace: (ref: string) => void }) {
   const url = useMedia(refId);
   const at = Math.max(0, items.indexOf(refId));
   const start = useRef<{ x: number; y: number; id: number } | null>(null);
@@ -226,7 +229,10 @@ function MoodZoom({ items, refId, onChange, onClose, onPlace }: { items: string[
         </>
       ) : null}
       <div className="flex gap-2" onClick={(event) => event.stopPropagation()}>
-        <Button variant="white" onClick={() => onPlace(refId)}>
+        <Button variant="white" onClick={() => { onPin(); onClose(); }}>
+          {pinned ? "Снять с экрана" : "Закрепить перед глазами"}
+        </Button>
+        <Button variant="soft" onClick={() => onPlace(refId)}>
           Положить на страницу
         </Button>
         <Button variant="soft" onClick={onClose}>
