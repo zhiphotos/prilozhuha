@@ -182,7 +182,7 @@ export function Sheet({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className={cn("glass-strong sheet-in pointer-events-auto max-h-[86svh] w-full max-w-lg overflow-auto rounded-[2rem] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]", className)}>
+      <div className={cn("glass-strong sheet-in pointer-events-auto max-h-[86svh] w-full max-w-lg overflow-auto rounded-[2rem] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]", !dim && "!bg-paper shadow-2xl ring-1 ring-ink/10", className)}>
         <div className="mb-3 flex items-start justify-between gap-3">
           {title ? <h2 className="display-title text-[1.7rem] leading-tight text-ink">{title}</h2> : <span />}
           <button type="button" className="grid size-9 shrink-0 place-items-center rounded-full bg-white/70 text-ink" onClick={onClose} aria-label="Закрыть">

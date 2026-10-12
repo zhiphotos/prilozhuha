@@ -72,7 +72,7 @@ export function ContentsSheet({ onOpen, onClose, current }: { onOpen: (pageId: s
   };
 
   return (
-    <Sheet title="Содержание" onClose={onClose} dim={false}>
+    <Sheet title="Содержание" onClose={onClose} className="!bg-paper">
       <div className="mb-3 rounded-2xl bg-white/70 p-3">
         <div className="flex items-baseline justify-between">
           <p className="text-sm font-medium text-ink">
