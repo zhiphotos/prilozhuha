@@ -25,7 +25,7 @@ export function spreadGhosts(pages: BookPage[], pageId: string): PageBlock[] {
   // Если я справа, партнёр слева: его блок виден у меня со сдвигом на −100 % (после корешка). Если я слева, сдвиг +100 %.
   const shift = mine === "right" ? 100 : -100;
   return partner.blocks
-    .filter((block) => block.type === "photo" && block.spread)
+    .filter((block) => "spread" in block && block.spread)
     .map((block) => ({ ...block, id: `ghost:${block.id}`, x: block.x - shift, locked: true }) as PageBlock);
 }
 

@@ -148,6 +148,21 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
   const dictation = useRef<Dictation | null>(null);
   const drag = useRef<{ x: number; y: number; dx: number; dy: number; id: number } | null>(null);
   const kb = useKeyboardHeight();
+  // При повороте экрана окно возвращается в видимую область.
+  const [, setSizeTick] = useState(0);
+  useEffect(() => {
+    const on = () => setSizeTick((v) => v + 1);
+    window.addEventListener("resize", on);
+    window.addEventListener("orientationchange", on);
+    return () => {
+      window.removeEventListener("resize", on);
+      window.removeEventListener("orientationchange", on);
+    };
+  }, []);
+  const shownPos = {
+    dx: Math.max(-window.innerWidth / 2 + 60, Math.min(window.innerWidth / 2 - 60, pos.dx)),
+    dy: Math.max(-window.innerHeight * 0.15, Math.min(window.innerHeight * 0.55, pos.dy)),
+  };
   const px = block.px ?? Math.round(textMetrics(block.font, block.size).size * 10);
 
   const setBoth = (text: string) => {
@@ -191,7 +206,7 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
       ) : null}
       <div
         className="glass-strong sheet-in fixed inset-x-3 z-50 mx-auto max-w-xl rounded-[1.6rem] p-3"
-        style={{ bottom: `calc(${kb}px + 6.4rem - ${pos.dy}px)`, transform: `translateX(${pos.dx}px)` }}
+        style={{ bottom: `calc(${kb}px + 6.4rem - ${shownPos.dy}px)`, transform: `translateX(${shownPos.dx}px)`, maxHeight: "70svh", overflowY: "auto" }}
       >
         <div
           className="-mt-1 mb-1 flex h-9 cursor-grab touch-none items-center justify-center text-ink/40 active:cursor-grabbing"
@@ -326,7 +341,11 @@ export function PenBar({
   onPipette,
   onDone,
   eraseHint,
+  holdShapes,
+  setHoldShapes,
 }: {
+  holdShapes: boolean;
+  setHoldShapes: (v: boolean) => void;
   eraseHint: string;
   tool: Tool;
   setTool: (tool: Tool) => void;
@@ -380,6 +399,9 @@ export function PenBar({
       </div>
       {erasing ? <p className="mt-1.5 px-1 text-xs text-muted">{eraseHint}. Размер от 1 пикселя: стирайте тонкие детали букв и краёв.</p> : null}
       <div className="no-scrollbar mt-2 flex items-center gap-1.5 overflow-x-auto">
+        <BarBtn active={holdShapes} onClick={() => setHoldShapes(!holdShapes)} label="Задержите перо на секунду: крупная линия или фигура выровняется. Мелкие буквы не меняются">
+          Фигура по задержке
+        </BarBtn>
         <BarBtn active={autoShapes} onClick={() => setAutoShapes(!autoShapes)} label="Круг, квадрат, звезда, сердце сами выровняются сразу после рисования">
           Фигуры сразу
         </BarBtn>
@@ -458,10 +480,12 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
           <BarBtn onClick={ops.full}>
             <Maximize className="size-4" /> На весь лист
           </BarBtn>
-          <BarBtn onClick={ops.toggleSpread} disabled={!ops.canSpread && !block.spread} active={Boolean(block.spread)} label="Фото лежит на двух страницах разворота">
-            <BookOpen className="size-4" /> Через разворот
-          </BarBtn>
         </>
+      ) : null}
+      {block.type === "photo" || block.type === "ink" || block.type === "sticker" || block.type === "shape" ? (
+        <BarBtn onClick={ops.toggleSpread} disabled={!ops.canSpread && !block.spread} active={Boolean(block.spread)} label="Лежит на двух страницах разворота">
+          <BookOpen className="size-4" /> Через разворот
+        </BarBtn>
       ) : null}
       {block.type === "slot" ? (
         <BarBtn onClick={ops.fill} active>

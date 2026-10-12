@@ -132,7 +132,7 @@ export function FlipBookScreen({ pageId }: { pageId?: string }) {
   };
 
   const shift = turned === 0 ? -pw / 2 : turned === leaves ? pw / 2 : 0;
-  const near = (i: number) => Math.abs(i - turned) <= 2;
+  const near = (i: number) => Math.abs(i - turned) <= 1;
 
   const printFile = () => {
     setSaving("Готовлю файл…");
@@ -193,6 +193,7 @@ export function FlipBookScreen({ pageId }: { pageId?: string }) {
                   zIndex: z,
                   transformOrigin: "left center",
                   transformStyle: "preserve-3d",
+                  willChange: moving ? "transform" : undefined,
                   transform: `rotateY(${angle}deg)`,
                   transition: isDrag ? "none" : "transform 650ms cubic-bezier(.25,.8,.25,1)",
                 }}

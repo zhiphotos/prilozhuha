@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Maximize2, Minimize2, X } from "lucide-react";
 import { useMedia } from "@/lib/rod/media";
 
@@ -7,6 +7,12 @@ const POS_KEY = "kniga-pinned-pos";
 /** Картинка-подсказка из «Вайба»: плавает рядом с работой, её можно двигать, увеличивать и листать. На страницу и в печать не попадает. */
 export function PinnedRefs({ refs, onUnpin }: { refs: string[]; onUnpin: (ref: string) => void }) {
   const [at, setAt] = useState(0);
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const on = () => setTick((v) => v + 1);
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
   const [big, setBig] = useState(false);
   const [pos, setPos] = useState<{ x: number; y: number }>(() => {
     try {

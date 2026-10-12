@@ -143,7 +143,7 @@ export function StickersSheet({
   onText: (look: "card" | "pill" | "title") => void;
   onClose: () => void;
 }) {
-  const [tab, setTab] = useState<Tab>("stickers");
+  const [tab, setTab] = useState<Tab>("mine");
   const pack = usePack();
   const mine = useRod((state) => state.userStickers);
   const remove = useRod((state) => state.removeUserSticker);
@@ -152,10 +152,10 @@ export function StickersSheet({
       <div className="no-scrollbar -mx-1 mb-3 flex gap-2 overflow-x-auto px-1">
         {(
           [
+            ["mine", `Мои${mine.length ? ` · ${mine.length}` : ""}`],
             ["stickers", "Стикеры"],
             ["pack", "Футажи"],
             ["shapes", "Фигуры и стрелки"],
-            ["mine", `Мои${mine.length ? ` · ${mine.length}` : ""}`],
             ["text", "Надписи"],
           ] as [Tab, string][]
         ).map(([id, label]) => (

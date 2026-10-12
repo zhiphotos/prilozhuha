@@ -95,6 +95,17 @@ export function HomeScreen() {
         </button>
       ) : null}
 
+      <button type="button" onClick={() => setProjects(true)} className="glass mt-3 flex w-full items-center gap-4 rounded-[2rem] p-4 text-left active:scale-[0.99]">
+        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-ink">
+          <BookCopy className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-semibold text-ink">Мои книги · добавить ещё одну</span>
+          <span className="block text-xs text-ink/60">Другая книга как отдельный проект: свои страницы, обложка и архив</span>
+        </span>
+        <ArrowRight className="size-5 shrink-0 text-ink/50" />
+      </button>
+
       <div className="mt-3 grid grid-cols-2 gap-3">
         <Tile icon={Search} title="Откуда моя фамилия?" text="Значение, написание, регионы" tone="rose" onClick={() => nav.go({ id: "surname" })} />
         <Tile icon={MessageCircle} title="Карточки вопросов" text="С мамой, с папой, за столом" tone="sage" onClick={() => nav.tab({ id: "cards" })} />

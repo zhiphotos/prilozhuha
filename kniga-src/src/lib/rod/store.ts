@@ -51,6 +51,8 @@ type RodState = {
   removeUserSticker: (ref: string) => void;
   setSpine: (patch: Partial<SpineSetup>) => void;
   insertPage: (input: Omit<BookPage, "id">, index: number) => string;
+  /** Переносит выбранные страницы так, чтобы они встали перед страницей с номером `to` (по списку без них). */
+  movePages: (ids: string[], to: number) => void;
   addMood: (ref: string) => void;
   removeMood: (ref: string) => void;
   setPrint: (patch: Partial<PrintSetup>) => void;
@@ -275,6 +277,16 @@ export const useRod = create<RodState>()(
         set((state) => {
           if (id === BACK_ID) return { back: updater(state.back ?? backPage(state.pages[0]?.kind === "cover" ? state.pages[0] : null)) };
           return { pages: state.pages.map((page) => (page.id === id ? updater(page) : page)) };
+        }),
+      movePages: (ids, to) =>
+        set((state) => {
+          const chosen = new Set(ids);
+          const moving = state.pages.filter((page) => chosen.has(page.id) && page.kind !== "cover");
+          if (!moving.length) return state;
+          const rest = state.pages.filter((page) => !moving.includes(page));
+          const floor = rest[0]?.kind === "cover" ? 1 : 0;
+          rest.splice(Math.max(floor, Math.min(to, rest.length)), 0, ...moving);
+          return { pages: rest };
         }),
       insertPage: (input, index) => {
         const id = uid();

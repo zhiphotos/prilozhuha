@@ -8,6 +8,7 @@ import { blankPage, coverPage, pageFromPhoto, pageFromPrompt, pageFromStory } fr
 import { PAGE_PROMPTS } from "@/lib/rod/pages";
 import { isBookReady, overallOf, partsOf, plural } from "@/lib/rod/progress";
 import { CoverSetup } from "@/components/rod/cover-setup";
+import { PlanSheet } from "@/components/rod/plan-sheet";
 import { downloadFamilyBook, downloadPrintBlock, downloadPrintCover } from "@/lib/rod/print-book";
 import { useRod } from "@/lib/rod/store";
 import type { BookPage, PaperKind } from "@/lib/rod/types";
@@ -23,6 +24,7 @@ export function BookScreen() {
   const [printing, setPrinting] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
   const [coverSetup, setCoverSetup] = useState(false);
+  const [planning, setPlanning] = useState(false);
   const snapshot = { ...data, pages };
   const overall = overallOf(partsOf(snapshot));
   const ready = isBookReady(snapshot, overall) || pages.length >= 6;
@@ -54,6 +56,9 @@ export function BookScreen() {
         </Button>
         <Button variant="soft" className="min-h-12" disabled={pages.length === 0} onClick={() => setPrinting(true)}>
           <Printer className="size-4" /> Печать
+        </Button>
+        <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setPlanning(true)}>
+          <Sparkles className="size-4" /> Спланировать страницы списком
         </Button>
         <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setCoverSetup(true)}>
           <Palette className="size-4" /> Обложка: корешок и задняя сторона
@@ -164,6 +169,7 @@ export function BookScreen() {
         </section>
       ) : null}
 
+      {planning ? <PlanSheet onClose={() => setPlanning(false)} /> : null}
       {coverSetup ? <CoverSetup onClose={() => setCoverSetup(false)} /> : null}
       {printing ? <PrintSheet pages={pages} meta={meta} onClose={() => setPrinting(false)} /> : null}
       {library ? <Library meta={meta} onClose={() => setLibrary(false)} onPick={(page) => { setLibrary(false); open(page); }} /> : null}
@@ -310,6 +316,9 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
   const [arrange, setArrange] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const [confirmAll, setConfirmAll] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const [moveTo, setMoveTo] = useState("");
+  const movePages = useRod((state) => state.movePages);
 
   const drop = (ids: string[]) => {
     if (!ids.length) return;
@@ -362,9 +371,14 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="text-sm text-muted">{arrange ? "Тащите — поменять место. Коснитесь — выбрать." : `${plural(pages.length, "страница", "страницы", "страниц")}`}</p>
         {pages.length > 0 ? (
-          <Button variant={arrange ? "primary" : "soft"} className="min-h-10 shrink-0 px-4" onClick={() => { setArrange((v) => !v); setPicked([]); setConfirmAll(false); }}>
-            {arrange ? "Готово" : <><ArrowLeftRight className="size-4" /> Порядок и удаление</>}
-          </Button>
+          <span className="flex shrink-0 gap-2">
+            <Button variant="soft" className="min-h-10 px-3" onClick={onAdd}>
+              <Plus className="size-4" /> Страница
+            </Button>
+            <Button variant={arrange ? "primary" : "soft"} className="min-h-10 px-4" onClick={() => { setArrange((v) => !v); setPicked([]); setConfirmAll(false); setMoving(false); }}>
+              {arrange ? "Готово" : <><ArrowLeftRight className="size-4" /> Порядок и удаление</>}
+            </Button>
+          </span>
         ) : null}
       </div>
       {arrange ? (
@@ -372,6 +386,35 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
           <Button variant="white" className="min-h-10 px-3" onClick={() => setPicked(picked.length === pages.length ? [] : pages.map((page) => page.id))}>
             {picked.length === pages.length ? "Снять выбор" : "Выбрать все"}
           </Button>
+          <Button variant="white" className="min-h-10 px-3" disabled={!picked.length} onClick={() => setMoving((v) => !v)}>
+            <ArrowLeftRight className="size-4" /> Перенести выбранные{picked.length ? ` · ${picked.length}` : ""}
+          </Button>
+          {moving && picked.length ? (
+            <span className="flex w-full flex-wrap items-center gap-2 rounded-2xl bg-white/70 p-2">
+              <Button className="min-h-10 px-3" variant="soft" onClick={() => { movePages(picked, 0); setMoving(false); toast("Перенесены в начало"); }}>
+                В начало
+              </Button>
+              <Button className="min-h-10 px-3" variant="soft" onClick={() => { movePages(picked, pages.length); setMoving(false); toast("Перенесены в конец"); }}>
+                В конец
+              </Button>
+              <span className="text-sm text-ink">или после страницы №</span>
+              <input className="field !min-h-10 !w-20 !py-1" inputMode="numeric" value={moveTo} onChange={(event) => setMoveTo(event.target.value.replace(/\D/g, ""))} />
+              <Button
+                className="min-h-10 px-3"
+                disabled={!moveTo}
+                onClick={() => {
+                  // Номер страницы без обложки: после неё выбранные встают по списку без самих выбранных.
+                  const rest = pages.filter((page) => !picked.includes(page.id));
+                  const cover = rest[0]?.kind === "cover" ? 1 : 0;
+                  movePages(picked, Math.min(rest.length, cover + Number(moveTo)));
+                  setMoving(false);
+                  toast(`Перенесены после страницы ${moveTo}`);
+                }}
+              >
+                Перенести
+              </Button>
+            </span>
+          ) : null}
           <Button className="min-h-10 px-3" variant="night" disabled={!picked.length} onClick={() => drop(picked)}>
             <Trash2 className="size-4" /> Удалить выбранные{picked.length ? ` · ${picked.length}` : ""}
           </Button>
