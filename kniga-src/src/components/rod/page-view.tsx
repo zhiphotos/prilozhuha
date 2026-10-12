@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { ImagePlus } from "lucide-react";
 import { PAGE_H as INK_PAGE_H, inkColor as inkColorOf, strokeGeom } from "@/lib/rod/ink";
-import { maskStyle } from "@/lib/rod/mask";
+import { maskDataUrl, maskStyleFromUrl } from "@/lib/rod/mask";
 import { useMedia } from "@/lib/rod/media";
 import {
   FONT_FAMILY,
@@ -195,11 +195,37 @@ export function PlacedBlock({
 
 /** Как блок выглядит. Без рамок выбора — их рисует редактор. Ластик (маска) и прозрачность действуют только на сам рисунок, не на рамки и кнопки выбора. */
 export function BlockArt({ block, editing = false }: { block: PageBlock; editing?: boolean }) {
-  const mask = maskStyle(block.mask);
-  if (!mask && block.opacity === undefined) return <BlockArtInner block={block} editing={editing} />;
+  const hasMask = Boolean(block.mask && block.mask.strokes.length);
+  if (!hasMask && block.opacity === undefined) return <BlockArtInner block={block} editing={editing} />;
   return (
-    <div className="h-full w-full" style={{ opacity: block.opacity, ...mask }}>
+    <Masked mask={hasMask ? block.mask : undefined} opacity={block.opacity}>
       <BlockArtInner block={block} editing={editing} />
+    </Masked>
+  );
+}
+
+/** Маска ластика. Новая маска сначала декодируется и только потом подменяет старую: так при стирании ничего не мигает. */
+function Masked({ mask, opacity, children }: { mask: import("@/lib/rod/types").EraseMask | undefined; opacity: number | undefined; children: ReactNode }) {
+  const url = useMemo(() => (mask ? maskDataUrl(mask) : ""), [mask]);
+  const [shown, setShown] = useState(url);
+  useEffect(() => {
+    if (!url) {
+      setShown("");
+      return;
+    }
+    let alive = true;
+    const img = new Image();
+    img.src = url;
+    const done = () => alive && setShown(url);
+    if (typeof img.decode === "function") void img.decode().then(done, done);
+    else img.onload = done;
+    return () => {
+      alive = false;
+    };
+  }, [url]);
+  return (
+    <div className="h-full w-full" style={{ opacity, ...(shown ? maskStyleFromUrl(shown) : undefined) }}>
+      {children}
     </div>
   );
 }

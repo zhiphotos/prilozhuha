@@ -38,7 +38,7 @@ import { BlockArt, PageSheet, PlacedBlock, boxOf } from "@/components/rod/page-v
 import { Scanner } from "@/components/rod/scanner";
 import { cropGeom, innerBox } from "@/lib/rod/crop";
 import { imageFromTransfer, imageInfo, importFromLink, importImage, importSticker } from "@/lib/rod/image";
-import { BRUSH_ALPHA, BRUSH_DEFAULT_PX, PAGE_H, eraseFromStrokes, lineOf, makeInkBlock, mergeInk, px2w, recognizeShape, strokeGeom, tidy } from "@/lib/rod/ink";
+import { BRUSH_ALPHA, BRUSH_DEFAULT_PX, PAGE_H, eraseFromStrokes, lineOf, makeInkBlock, mergeInk, px2w, recognizeShape, strokeGeom } from "@/lib/rod/ink";
 import { coverDesigns, blankPage } from "@/lib/rod/layouts";
 import { liftSubject } from "@/lib/rod/lift";
 import { mediaDataUrl, saveMedia } from "@/lib/rod/media";
@@ -173,6 +173,22 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const [pen, setPen] = useState<PenPrefs>(savedPen);
   const [straight, setStraight] = useState(false);
   const [penColors, setPenColors] = useState(false);
+  const [bins, setBins] = useState(() => {
+    try {
+      return localStorage.getItem("kniga-bins") !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const toggleBins = () =>
+    setBins((v) => {
+      try {
+        localStorage.setItem("kniga-bins", v ? "0" : "1");
+      } catch {
+        /* без запоминания */
+      }
+      return !v;
+    });
   const [pipette, setPipette] = useState<((color: string) => void) | null>(null);
   const [cropping, setCropping] = useState(false);
   const penSeen = useRef(0);
@@ -187,6 +203,10 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       return false;
     }
   });
+  /** Стирание идёт на черновике блока и записывается в книгу один раз, когда перо отпустили: так не тормозит и не мигает. */
+  const [eraseDraft, setEraseDraft] = useState<PageBlock | null>(null);
+  const draftRef = useRef<PageBlock | null>(null);
+  const draftFrame = useRef<number | undefined>(undefined);
   const [ghost, setGhost] = useState<{ id: string; box: Box } | null>(null);
   const [busy, setBusy] = useState<Record<string, string>>({});
   const [dropping, setDropping] = useState(false);
@@ -757,6 +777,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     window.clearTimeout(draw.still);
     drawing.current = null;
     clearLive();
+    if (draw.erase) flushDraft();
     updateCursor({ clientX: 0, clientY: 0 }, false);
   };
 
@@ -824,19 +845,39 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     }, 550);
   };
 
+  const flushDraft = () => {
+    const d = draftRef.current;
+    if (!d) return;
+    window.cancelAnimationFrame(draftFrame.current ?? 0);
+    draftRef.current = null;
+    setEraseDraft(null);
+    commit((pg) => ({ ...pg, blocks: pg.blocks.flatMap((b) => (b.id !== d.id ? [b] : d.type === "ink" && !d.strokes.length ? [] : [d])) }), `erase-end:${Date.now()}`);
+    lastGroup.current = null;
+  };
+
+  const showDraft = (next: PageBlock) => {
+    draftRef.current = next;
+    if (draftFrame.current) return;
+    draftFrame.current = window.requestAnimationFrame(() => {
+      draftFrame.current = undefined;
+      setEraseDraft(draftRef.current);
+    });
+  };
+
   /** Стирает круг: у рисунка вырезает кусочки линий, у текста, фото и стикеров прячет участок маской. */
   const eraseAt = (p: { x: number; y: number }, draw: Draw, at?: { x: number; y: number }) => {
     if (!selected && at) {
       const found = blockAt(at.x, at.y);
       if (found !== draw.target) {
+        flushDraft();
         draw.target = found;
         draw.maskAt = null;
       }
     }
-    const live = current();
-    if (!live || !draw.target) return;
-    const block = live.blocks.find((b) => b.id === draw.target);
-    if (!block || block.locked) return;
+    if (!draw.target) return;
+    const base = draftRef.current && draftRef.current.id === draw.target ? draftRef.current : current()?.blocks.find((b) => b.id === draw.target);
+    if (!base || base.locked) return;
+    const block = base;
     const r = px2w(pen.eraser) / 2;
     const w = blockW(block as { type: string; w?: number });
     const h = heightOf(block);
@@ -849,11 +890,11 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const u = dx * Math.cos(a) - dy * Math.sin(a) + w / 2;
     const v = dx * Math.sin(a) + dy * Math.cos(a) + h / 2;
     if (block.type === "ink") {
-      const k = block.ow / Math.max(0.01, block.w);
-      const strokes = eraseFromStrokes(block.strokes, u * k, v * k, r * k, id);
+      const kx = block.ow / Math.max(0.01, block.w);
+      const ky = block.oh / Math.max(0.01, block.h);
+      const strokes = eraseFromStrokes(block.strokes, u * kx, v * ky, r * kx, id);
       if (!strokes) return;
-      if (!strokes.length) draw.target = null;
-      commit((pg) => ({ ...pg, blocks: pg.blocks.flatMap((b) => (b.id !== block.id ? [b] : strokes.length ? [{ ...b, strokes } as PageBlock] : [])) }), draw.group);
+      showDraft({ ...block, strokes });
       return;
     }
     if (u < -r || v < -r || u > w + r || v > h + r) return;
@@ -866,12 +907,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       strokes.push({ r: rr, pts: [lx, ly] });
       draw.maskAt = strokes.length - 1;
     } else {
-      const s = strokes[draw.maskAt];
-      const n = s.pts.length;
-      if (Math.hypot(s.pts[n - 2] - lx, s.pts[n - 1] - ly) < 0.05) return;
-      strokes[draw.maskAt] = { ...s, pts: [...s.pts, lx, ly] };
+      const s2 = strokes[draw.maskAt];
+      const n = s2.pts.length;
+      if (Math.hypot(s2.pts[n - 2] - lx, s2.pts[n - 1] - ly) < 0.05) return;
+      strokes[draw.maskAt] = { ...s2, pts: [...s2.pts, lx, ly] };
     }
-    commit((pg) => ({ ...pg, blocks: pg.blocks.map((b) => (b.id === block.id ? ({ ...b, mask: { ...mask, strokes } } as PageBlock) : b)) }), draw.group);
+    showDraft({ ...block, mask: { ...mask, strokes } } as PageBlock);
   };
 
   const onSheetMove = (event: React.PointerEvent) => {
@@ -918,8 +959,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         if (rec) {
           points = rec.points;
           pressure = undefined;
-        } else points = tidy(points);
-      } else points = tidy(points);
+        }
+      }
     }
     if (points.length === 2) points = [...points, points[0] + 0.01, points[1] + 0.01];
     const stroke: InkStroke = { ...makeStroke(points, pressure), id: id() };
@@ -946,7 +987,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       drawing.current = null;
       clearLive();
       if (event.pointerType !== "mouse") updateCursor(event, false);
-      if (!draw.erase && draw.points.length >= 2) finishStroke(draw);
+      if (draw.erase) flushDraft();
+      else if (draw.points.length >= 2) finishStroke(draw);
       lastGroup.current = null;
       return;
     }
@@ -1350,6 +1392,9 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           <IconBtn label="Вернуть отменённое" disabled={!redo.current.length} onClick={doRedo}>
             <Redo2 className="size-[18px]" />
           </IconBtn>
+          <IconBtn label="Слои страницы" onClick={() => { setTool("hand"); setPanel("layers"); }}>
+            <Layers className="size-[18px]" />
+          </IconBtn>
           {!isBack ? (
             <IconBtn label="Добавить страницу следом" onClick={addNextPage}>
               <FilePlus className="size-[18px]" />
@@ -1399,7 +1444,9 @@ export function EditorScreen({ pageId }: { pageId: string }) {
               <div className="pointer-events-none absolute rounded-[2px] border border-dashed border-rose/40" style={{ inset: `-${bleedPct}%` }} />
               <PageSheet page={page} meta={meta} hideStrokes clip={false} className="rounded-[2px]">
                 <div data-bg="1" className="absolute inset-0" />
-                {page.blocks.map((block) => {
+                {page.blocks.map((blockBase) => {
+                  const block = eraseDraft && eraseDraft.id === blockBase.id ? eraseDraft : blockBase;
+                  if (block.type === "ink" && !block.strokes.length) return null;
                   const box = ghost?.id === block.id ? ghost.box : null;
                   const shown = box
                     ? ({
@@ -1429,6 +1476,17 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                           <span className="cut-shimmer absolute inset-0 rounded-[1.4cqw]" />
                           <span className="relative rounded-full bg-night/85 px-3 py-1 text-xs text-paper">{busy[block.id]}</span>
                         </div>
+                      ) : null}
+                      {bins && !isSel && editing !== block.id && tool === "hand" && !block.locked && !cropping && !pipette && !(block.type === "text" && !block.text.trim() && !block.placeholder) ? (
+                        <button
+                          type="button"
+                          aria-label="Удалить"
+                          className="pointer-events-auto absolute -right-3 -top-3 z-20 grid size-11 place-items-center before:absolute before:inset-1.5 before:rounded-full before:bg-rose-deep/90 before:shadow"
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onClick={() => removeBlock(block.id)}
+                        >
+                          <Trash2 className="relative size-3.5 text-paper" />
+                        </button>
                       ) : null}
                       {isSel && editing !== block.id && tool === "hand" && !block.locked && !cropping ? (
                         <Handles
@@ -1835,6 +1893,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             ))}
           </div>
           <div className="grid gap-2">
+            <MenuRow icon={<Trash2 className="size-4" />} label={bins ? "Скрыть корзинки на элементах" : "Показать корзинки на каждом элементе"} onClick={() => { toggleBins(); setPanel(null); }} />
             {!isBack ? <MenuRow icon={<BookOpen className="size-4" />} label="Листать книгу" onClick={() => { setPanel(null); nav.go({ id: "flip", pageId: page.id }); }} /> : null}
             {!isBack ? <MenuRow icon={<FilePlus className="size-4" />} label="Добавить страницу следом" onClick={() => { setPanel(null); addNextPage(); }} /> : null}
             {partner ? (

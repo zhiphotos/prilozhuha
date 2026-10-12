@@ -15,10 +15,13 @@ function maskSvg(mask: EraseMask): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="${f(h)}" viewBox="0 0 100 ${f(h)}" preserveAspectRatio="none"><defs><mask id="m"><rect width="100" height="${f(h)}" fill="#fff"/>${lines}</mask></defs><rect width="100" height="${f(h)}" fill="#000" mask="url(#m)"/></svg>`;
 }
 
-/** CSS-маска блока (или ничего, если ластиком ещё не касались). */
-export function maskStyle(mask: EraseMask | undefined): CSSProperties | undefined {
-  if (!mask || !mask.strokes.length) return undefined;
-  const url = `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(maskSvg(mask))}")`;
+export function maskDataUrl(mask: EraseMask): string {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(maskSvg(mask))}`;
+}
+
+/** CSS-маска по готовому адресу картинки. */
+export function maskStyleFromUrl(href: string): CSSProperties {
+  const url = `url("${href}")`;
   return {
     WebkitMaskImage: url,
     maskImage: url,
@@ -27,6 +30,12 @@ export function maskStyle(mask: EraseMask | undefined): CSSProperties | undefine
     WebkitMaskRepeat: "no-repeat",
     maskRepeat: "no-repeat",
   };
+}
+
+/** CSS-маска блока (или ничего, если ластиком ещё не касались). */
+export function maskStyle(mask: EraseMask | undefined): CSSProperties | undefined {
+  if (!mask || !mask.strokes.length) return undefined;
+  return maskStyleFromUrl(maskDataUrl(mask));
 }
 
 /** Для печати: превращает маску в картинку с прозрачными дырами, которой вырезаем блок с холста. */
