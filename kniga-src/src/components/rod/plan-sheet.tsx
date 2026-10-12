@@ -29,7 +29,7 @@ export function parsePlan(text: string): Row[] {
 
 const id = () => crypto.randomUUID();
 
-function pagesFor(row: Row, sectionNo: number): Omit<BookPage, "id">[] {
+function pagesFor(row: Row, sectionNo: number, chapterId: string): Omit<BookPage, "id">[] {
   return Array.from({ length: row.count }, (_, i) => {
     const first = i === 0;
     const blocks: PageBlock[] = [
@@ -38,7 +38,7 @@ function pagesFor(row: Row, sectionNo: number): Omit<BookPage, "id">[] {
         : { id: id(), type: "text", x: 8, y: 6, w: 84, text: `${row.title}, продолжение`, font: "serif", size: "md" },
       { id: id(), type: "text", x: 8, y: 16, w: 60, text: "", font: "script", size: "sm", placeholder: first ? `Раздел ${sectionNo}: что здесь будет` : "Что ещё добавить" },
     ];
-    return { title: first ? row.title : `${row.title} · ${i + 1}`, kind: "page" as const, paper: "cream" as const, strokes: [], blocks };
+    return { chapterId, title: first ? row.title : `${row.title} · ${i + 1}`, kind: "page" as const, paper: "cream" as const, strokes: [], blocks };
   });
 }
 
@@ -46,19 +46,23 @@ function pagesFor(row: Row, sectionNo: number): Omit<BookPage, "id">[] {
 export function PlanSheet({ onClose }: { onClose: () => void }) {
   const pages = useRod((state) => state.pages);
   const insertPage = useRod((state) => state.insertPage);
+  const plan = useRod((state) => state.plan);
+  const setPlan = useRod((state) => state.setPlan);
   const [text, setText] = useState("");
   const rows = parsePlan(text);
   const total = rows.reduce((a, r) => a + r.count, 0);
 
   const build = () => {
     let at = pages.length;
+    const chapters = rows.map((row) => ({ id: id(), title: row.title, planned: row.count, done: false }));
+    setPlan([...plan, ...chapters]);
     rows.forEach((row, n) => {
-      for (const page of pagesFor(row, n + 1)) {
+      for (const page of pagesFor(row, plan.length + n + 1, chapters[n].id)) {
         insertPage(page, at);
         at += 1;
       }
     });
-    toast(`Добавлено страниц: ${total}. Дальше открывайте любую и оформляйте.`);
+    toast(`Оглавление и страницы готовы: ${total}. Откройте «Содержание», чтобы переходить по главам.`);
     onClose();
   };
 

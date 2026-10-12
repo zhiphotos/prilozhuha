@@ -7,6 +7,7 @@ import {
   Copy,
   Eraser,
   FilePlus,
+  ListChecks,
   ImagePlus,
   Layers,
   Lock,
@@ -36,6 +37,7 @@ import { MoodBoard } from "@/components/rod/moodboard";
 import { PinnedRefs } from "@/components/rod/pinned-refs";
 import { BlockArt, PageSheet, PlacedBlock, boxOf } from "@/components/rod/page-view";
 import { Scanner } from "@/components/rod/scanner";
+import { ContentsSheet } from "@/components/rod/contents-sheet";
 import { cropGeom, innerBox } from "@/lib/rod/crop";
 import { imageFromTransfer, imageInfo, importFromLink, importImage, importSticker } from "@/lib/rod/image";
 import { BRUSH_ALPHA, BRUSH_DEFAULT_PX, PAGE_H, eraseFromStrokes, lineOf, makeInkBlock, mergeInk, px2w, geomToSvg, recognizeShape, strokeGeom } from "@/lib/rod/ink";
@@ -53,7 +55,7 @@ import { BACK_ID, type BookPage, type BrushKind, type InkStroke, type PageBlock,
 import type { Recognized } from "@/lib/rod/ink";
 import { cn } from "@/lib/cn";
 
-type Panel = "photo" | "pinterest" | "paste" | "stickers" | "help" | "menu" | "covers" | "layers" | "fonts" | "inspector" | "scan" | null;
+type Panel = "contents" | "photo" | "pinterest" | "paste" | "stickers" | "help" | "menu" | "covers" | "layers" | "fonts" | "inspector" | "scan" | null;
 type Box = { x: number; y: number; w: number; h: number | null; rotate: number };
 type Gesture = {
   id: string;
@@ -1231,7 +1233,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   const addNextPage = () => {
     const at = isBack ? pages.length : index + 1;
-    const created = insertPage({ ...blankPage(), paper: page.paper }, at);
+    const created = insertPage({ ...blankPage(), paper: page.paper, chapterId: page.chapterId }, at);
     turnPage();
     nav.replace({ id: "editor", pageId: created });
     toast("Новая страница добавлена следом");
@@ -1410,6 +1412,9 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           </IconBtn>
           <IconBtn label="Вернуть отменённое" disabled={!redo.current.length} onClick={doRedo}>
             <Redo2 className="size-[18px]" />
+          </IconBtn>
+          <IconBtn label="Содержание: перейти к главе" onClick={() => setPanel("contents")}>
+            <ListChecks className="size-[18px]" />
           </IconBtn>
           <IconBtn label="Слои страницы" onClick={() => { setTool("hand"); setPanel("layers"); }}>
             <Layers className="size-[18px]" />
@@ -1802,6 +1807,17 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             if (look === "card") addText({ look: "card", font: "sans", size: "sm", w: 56, x: 22 });
             else if (look === "pill") addText({ look: "pill", font: "sans", size: "sm", w: 40, x: 30 });
             else addText({ font: "serif", size: "lg", w: 84, x: 8, y: 8 });
+          }}
+        />
+      ) : null}
+
+      {panel === "contents" ? (
+        <ContentsSheet
+          current={page.id}
+          onClose={() => setPanel(null)}
+          onOpen={(pid) => {
+            setPanel(null);
+            if (pid !== page.id) nav.replace({ id: "editor", pageId: pid });
           }}
         />
       ) : null}

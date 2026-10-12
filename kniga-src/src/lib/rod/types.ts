@@ -187,8 +187,13 @@ export type PageBlock =
       strokes: InkStroke[];
     } & Placed);
 
+/** Глава из оглавления: её страницы помечены `chapterId`. */
+export type Chapter = { id: string; title: string; planned: number; done: boolean };
+
 export type BookPage = {
   id: string;
+  /** Глава оглавления, к которой относится страница. */
+  chapterId?: string;
   title: string;
   kind: "cover" | "page";
   /** Обложка собрана из блоков, которые можно двигать (новые обложки). */
