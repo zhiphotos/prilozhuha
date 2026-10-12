@@ -37,15 +37,15 @@ export function CoverSetup({ onClose }: { onClose: () => void }) {
     <Sheet title="Обложка целиком" onClose={onClose} className="max-w-xl">
       <p className="mb-2 text-sm text-muted">Так обложка ляжет на разворот: задняя сторона, корешок, лицевая.</p>
       <div className="flex items-stretch overflow-hidden rounded-2xl border border-ink/10 shadow-sm" style={{ height: 110 }}>
-        <div className="grid flex-1 place-items-center text-[11px] text-ink/60" style={{ background: backColor }}>
+        <div className="grid flex-1 place-items-center text-xs text-ink/75" style={{ background: backColor }}>
           задняя
         </div>
         <div className="grid w-9 place-items-center overflow-hidden" style={{ background: spineColor }}>
-          <span className="whitespace-nowrap text-[11px]" style={{ writingMode: "vertical-rl", color: spine.color ?? (isDark(spineColor) ? "#fbf8f3" : "#2a2420"), fontFamily: fontFamily(spine.font) }}>
+          <span className="whitespace-nowrap text-xs" style={{ writingMode: "vertical-rl", color: spine.color ?? (isDark(spineColor) ? "#fbf8f3" : "#2a2420"), fontFamily: fontFamily(spine.font) }}>
             {label}
           </span>
         </div>
-        <div className="grid flex-1 place-items-center text-[11px] text-ink/60" style={{ background: frontColor }}>
+        <div className="grid flex-1 place-items-center text-xs text-ink/75" style={{ background: frontColor }}>
           лицевая
         </div>
       </div>

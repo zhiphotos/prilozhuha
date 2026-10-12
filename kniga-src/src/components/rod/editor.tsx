@@ -291,7 +291,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     if (!stage) return;
     const fit = () => {
       const rect = stage.getBoundingClientRect();
-      const w = Math.max(140, Math.min(twoUp ? (rect.width - 24) / 2 : rect.width - 8, (rect.height - 8) / (PAGE_H / 100), 720));
+      const w = Math.max(140, Math.min(twoUp ? (rect.width - 48) / 2 : rect.width - 48, (rect.height - 88) / (PAGE_H / 100), 720));
       setSize({ w, h: w * (PAGE_H / 100) });
     };
     fit();
@@ -421,17 +421,36 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
 
+  // Колесо мыши листает горизонтальные полосы инструментов.
+  useEffect(() => {
+    const onWheel = (event: WheelEvent) => {
+      const bar = (event.target as HTMLElement)?.closest?.<HTMLElement>(".no-scrollbar");
+      if (!bar || bar.scrollWidth <= bar.clientWidth || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      if (bar.scrollHeight > bar.clientHeight + 1) return;
+      bar.scrollLeft += event.deltaY;
+      event.preventDefault();
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, []);
+
   // ——— Клавиатура ———
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      const typing = (event.target as HTMLElement)?.closest?.("input, textarea");
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && !typing) {
+      const typing = (event.target as HTMLElement)?.closest?.("input, textarea, select, [contenteditable]");
+      if ((event.metaKey || event.ctrlKey) && (event.code === "KeyZ" || event.code === "KeyY") && !typing) {
         event.preventDefault();
-        if (event.shiftKey) doRedo();
+        if (event.shiftKey || event.code === "KeyY") doRedo();
         else doUndo();
       }
-      if (event.key === "Escape" && pipette) setPipette(null);
-      if ((event.key === "Delete" || event.key === "Backspace") && selected && !typing) {
+      if (event.key === "Escape" && !typing) {
+        if (pipette) setPipette(null);
+        else if (editing) setEditing(null);
+        else if (cropping) setCropping(false);
+        else if (selected) setSelected(null);
+        else if (tool !== "hand") setTool("hand");
+      }
+      if ((event.key === "Delete" || event.key === "Backspace") && selected && !typing && !panel) {
         const block = current()?.blocks.find((b) => b.id === selected);
         if (block?.locked) return;
         event.preventDefault();
@@ -798,6 +817,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const startDraw = (event: React.PointerEvent) => {
     // Рисуем только в режиме рисунка или ластика. В обычном режиме палец и стилус двигают фото и текст.
     if (tool === "hand") return false;
+    if (event.pointerType === "mouse" && event.button !== 0) return false;
     if (event.pointerType === "pen") penSeen.current = performance.now();
     event.stopPropagation();
     event.preventDefault();
@@ -1039,6 +1059,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   const beginGesture = (event: React.PointerEvent, block: PageBlock, mode: Gesture["mode"]) => {
     if (tool !== "hand" || pipette) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
     if (block.locked) return;
     if (editing === block.id && mode === "move") return;
     event.stopPropagation();
@@ -1394,13 +1415,13 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             </button>
           ) : (
             <div className="flex items-center justify-center gap-1 text-xs text-muted">
-              <button type="button" className="grid size-7 place-items-center rounded-full disabled:opacity-30" disabled={index <= 0} onClick={() => go(-1)} aria-label="Предыдущая">
+              <button type="button" className="grid size-11 place-items-center rounded-full disabled:opacity-30" disabled={index <= 0} onClick={() => go(-1)} aria-label="Предыдущая">
                 <ChevronLeft className="size-4" />
               </button>
-              <span className="tabular-nums">
+              <span className="whitespace-nowrap tabular-nums">
                 {index + 1} / {pages.length}
               </span>
-              <button type="button" className="grid size-7 place-items-center rounded-full disabled:opacity-30" disabled={index >= pages.length - 1} onClick={() => go(1)} aria-label="Следующая">
+              <button type="button" className="grid size-11 place-items-center rounded-full disabled:opacity-30" disabled={index >= pages.length - 1} onClick={() => go(1)} aria-label="Следующая">
                 <ChevronRight className="size-4" />
               </button>
             </div>
@@ -1413,19 +1434,19 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           <IconBtn label="Вернуть отменённое" disabled={!redo.current.length} onClick={doRedo}>
             <Redo2 className="size-[18px]" />
           </IconBtn>
-          <IconBtn label="Содержание: перейти к главе" onClick={() => setPanel("contents")}>
+          <IconBtn className="max-sm:hidden" label="Содержание: перейти к главе" onClick={() => setPanel("contents")}>
             <ListChecks className="size-[18px]" />
           </IconBtn>
           <IconBtn label="Слои страницы" onClick={() => { setTool("hand"); setPanel("layers"); }}>
             <Layers className="size-[18px]" />
           </IconBtn>
           {!isBack ? (
-            <IconBtn label="Добавить страницу следом" onClick={addNextPage}>
+            <IconBtn className="max-sm:hidden" label="Добавить страницу следом" onClick={addNextPage}>
               <FilePlus className="size-[18px]" />
             </IconBtn>
           ) : null}
           {partner ? (
-            <IconBtn label={spread ? "Одна страница" : "Разворот"} onClick={() => setSpread(!spread)}>
+            <IconBtn className="max-sm:hidden" label={spread ? "Одна страница" : "Разворот"} onClick={() => setSpread(!spread)}>
               {spread ? <Square className="size-[18px]" /> : <BookOpen className="size-[18px]" />}
             </IconBtn>
           ) : null}
@@ -1462,7 +1483,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             }
           }}
         >
-          <div data-stage="1" className="flex min-h-full items-center justify-center p-3" style={{ width: zoom > 1 ? size.w * zoom * (twoUp ? 2 : 1) + 24 : "100%" }}>
+          <div data-stage="1" className="flex min-h-full items-center justify-center px-6 pb-8 pt-14" style={{ width: zoom > 1 ? size.w * zoom * (twoUp ? 2 : 1) + 48 : "100%" }}>
             {twoUp && partner && side === "right" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="left" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
             <div
               ref={sheetRef}
@@ -1530,7 +1551,10 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                           onTurn={(event) => beginGesture(event, block, "turn")}
                           onSize={(event) => beginGesture(event, block, "size")}
                           onDelete={() => removeBlock(block.id)}
-                          onLock={() => patchBlock(block.id, { locked: true } as Partial<PageBlock>)}
+                          onLock={() => {
+                            patchBlock(block.id, { locked: true } as Partial<PageBlock>);
+                            toast("Элемент закреплён", { action: { label: "Снять", onClick: () => patchBlock(block.id, { locked: false } as Partial<PageBlock>) }, duration: 4000 });
+                          }}
                         />
                       ) : null}
                     </PlacedBlock>
@@ -1944,6 +1968,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           </div>
           <div className="grid gap-2">
             <MenuRow icon={<Trash2 className="size-4" />} label={bins ? "Убрать красные корзинки с элементов" : "Показывать корзинку на каждом элементе"} onClick={() => { toggleBins(); setPanel(null); }} />
+            <MenuRow icon={<ListChecks className="size-4" />} label="Содержание: перейти к главе" onClick={() => setPanel("contents")} />
             {!isBack ? <MenuRow icon={<BookOpen className="size-4" />} label="Листать книгу" onClick={() => { setPanel(null); nav.go({ id: "flip", pageId: page.id }); }} /> : null}
             {!isBack ? <MenuRow icon={<FilePlus className="size-4" />} label="Добавить страницу следом" onClick={() => { setPanel(null); addNextPage(); }} /> : null}
             {partner ? (
@@ -1977,17 +2002,17 @@ function Handles({ onTurn, onSize, onDelete, onLock }: { onTurn: (event: React.P
   return (
     <>
       <span className="pointer-events-none absolute -inset-[5px] rounded-[6px] border-2 border-dashed border-rose" />
-      <button type="button" aria-label="Повернуть" className="handle pointer-events-auto absolute -top-12 left-1/2 grid size-9 -translate-x-1/2 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={onTurn}>
+      <button type="button" aria-label="Повернуть" className="handle pointer-events-auto absolute -top-14 left-1/2 grid size-11 -translate-x-1/2 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={onTurn}>
         <RotateCcw className="size-4" />
       </button>
       <span className="pointer-events-none absolute -top-3 left-1/2 h-3 w-px -translate-x-1/2 bg-rose" />
-      <button type="button" aria-label="Удалить" className="pointer-events-auto absolute -right-5 -top-5 grid size-10 place-items-center rounded-full bg-rose-deep text-paper shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onDelete}>
+      <button type="button" aria-label="Удалить" className="pointer-events-auto absolute -right-5 -top-5 grid size-11 place-items-center rounded-full bg-rose-deep text-paper shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onDelete}>
         <Trash2 className="size-4" />
       </button>
-      <button type="button" aria-label="Заблокировать" className="pointer-events-auto absolute -left-5 -top-5 grid size-10 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onLock}>
+      <button type="button" aria-label="Заблокировать" className="pointer-events-auto absolute -left-5 -top-5 grid size-11 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onLock}>
         <Lock className="size-4" />
       </button>
-      <button type="button" aria-label="Размер" className="handle pointer-events-auto absolute -bottom-5 -right-5 size-10 rounded-full border-[3px] border-rose bg-white shadow-md" onPointerDown={onSize} />
+      <button type="button" aria-label="Размер" className="handle pointer-events-auto absolute -bottom-5 -right-5 size-11 rounded-full border-[3px] border-rose bg-white shadow-md" onPointerDown={onSize} />
     </>
   );
 }
@@ -2003,7 +2028,7 @@ function PartnerPage({ page, meta, width, side, onOpen }: { page: BookPage; meta
         className="pointer-events-none absolute inset-y-0 w-[8%]"
         style={{ [side === "left" ? "right" : "left"]: 0, background: `linear-gradient(${side === "left" ? "270deg" : "90deg"}, rgba(42,36,32,.18), rgba(42,36,32,0))` }}
       />
-      <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-night/75 px-3 py-1 text-[11px] text-paper opacity-0 transition group-hover:opacity-100">
+      <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-night/75 px-3 py-1 text-xs text-paper transition [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
         Нажмите, чтобы оформлять
       </span>
     </button>

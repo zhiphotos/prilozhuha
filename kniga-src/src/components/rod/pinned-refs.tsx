@@ -52,7 +52,7 @@ export function PinnedRefs({ refs, onUnpin }: { refs: string[]; onUnpin: (ref: s
           }
         }}
       >
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-ink/50">Подсказка</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-ink/75">Подсказка</span>
         <span className="flex items-center">
           <button type="button" aria-label={big ? "Меньше" : "Крупнее"} className="grid size-8 place-items-center" onPointerDown={(e) => e.stopPropagation()} onClick={() => setBig(!big)}>
             {big ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}

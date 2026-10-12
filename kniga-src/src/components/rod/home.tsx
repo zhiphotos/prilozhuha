@@ -35,7 +35,7 @@ export function HomeScreen() {
         <div className="flex items-center gap-3">
           <span className="sun-mark grid size-12 place-items-center rounded-full" aria-hidden />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/50">{bookName ? `Книга · ${bookName}` : "Книга рода"}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">{bookName ? `Книга · ${bookName}` : "Книга рода"}</p>
             <p className="display-title text-2xl leading-tight text-ink">{who}</p>
           </div>
         </div>
@@ -101,9 +101,9 @@ export function HomeScreen() {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-semibold text-ink">Мои книги · добавить ещё одну</span>
-          <span className="block text-xs text-ink/60">Другая книга как отдельный проект: свои страницы, обложка и архив</span>
+          <span className="block text-xs text-ink/75">Другая книга как отдельный проект: свои страницы, обложка и архив</span>
         </span>
-        <ArrowRight className="size-5 shrink-0 text-ink/50" />
+        <ArrowRight className="size-5 shrink-0 text-ink/75" />
       </button>
 
       <div className="mt-3 grid grid-cols-2 gap-3">
@@ -157,7 +157,7 @@ function Tile({ icon: Icon, title, text, onClick, tone }: { icon: typeof Search;
       </span>
       <span>
         <span className="block text-[15px] font-semibold leading-tight text-ink">{title}</span>
-        <span className="mt-1 block text-xs text-ink/60">{text}</span>
+        <span className="mt-1 block text-xs text-ink/75">{text}</span>
       </span>
     </button>
   );

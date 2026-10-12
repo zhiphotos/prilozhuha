@@ -209,7 +209,7 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
         style={{ bottom: `calc(${kb}px + 6.4rem - ${shownPos.dy}px)`, transform: `translateX(${shownPos.dx}px)`, maxHeight: "70svh", overflowY: "auto" }}
       >
         <div
-          className="-mt-1 mb-1 flex h-9 cursor-grab touch-none items-center justify-center text-ink/40 active:cursor-grabbing"
+          className="-mt-1 mb-1 flex h-9 cursor-grab touch-none items-center justify-center text-ink/60 active:cursor-grabbing"
           onPointerDown={(event) => {
             (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
             drag.current = { x: event.clientX, y: event.clientY, dx: pos.dx, dy: pos.dy, id: event.pointerId };
@@ -257,7 +257,8 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
         </div>
         </>
         ) : null}
-        <div className="no-scrollbar mt-2 flex items-center gap-1.5 overflow-x-auto">
+        <div className="mt-2 flex items-center gap-1.5">
+        <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
           <BarBtn active={more} onClick={() => setMore(!more)} label="Шрифт и размер">
             Aa
           </BarBtn>
@@ -297,8 +298,8 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
           >
             <PenLine className="size-4" /> Пером где угодно
           </BarBtn>
-          <span className="flex-1" />
-          <Button className="min-h-10 shrink-0 px-4" onClick={onDone}>
+        </div>
+          <Button className="min-h-11 shrink-0 px-4" onClick={onDone}>
             Готово
           </Button>
         </div>
@@ -388,7 +389,7 @@ export function PenBar({
       </div>
       <div className="mt-2 flex items-center gap-2">
         <button type="button" aria-label="Цвет" onClick={onColor} className="size-11 shrink-0 rounded-full border-[3px] border-white shadow ring-1 ring-ink/20" style={{ background: erasing ? "#fff" : color }}>
-          {erasing ? <Eraser className="m-auto size-4 text-ink/60" /> : null}
+          {erasing ? <Eraser className="m-auto size-4 text-ink/75" /> : null}
         </button>
         <button type="button" aria-label="Пипетка: взять цвет со страницы" onClick={onPipette} className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-ink">
           <Pipette className="size-4" />
@@ -398,7 +399,8 @@ export function PenBar({
         </div>
       </div>
       {erasing ? <p className="mt-1.5 px-1 text-xs text-muted">{eraseHint}. Размер от 1 пикселя: стирайте тонкие детали букв и краёв.</p> : null}
-      <div className="no-scrollbar mt-2 flex items-center gap-1.5 overflow-x-auto">
+      <div className="mt-2 flex items-center gap-1.5">
+      <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
         <BarBtn active={holdShapes} onClick={() => setHoldShapes(!holdShapes)} label="Задержите перо на секунду: крупная линия или фигура выровняется. Мелкие буквы не меняются">
           Фигура по задержке
         </BarBtn>
@@ -408,9 +410,9 @@ export function PenBar({
         <BarBtn active={straight} onClick={() => setStraight(!straight)} label="Всё, что рисуете, будет прямой линией">
           Только прямые
         </BarBtn>
-        <span className="hidden px-1 text-[11px] leading-tight text-muted sm:block">Задержите перо на секунду: линия и фигура выровняются</span>
-        <span className="flex-1" />
-        <Button className="min-h-10 shrink-0 px-4" onClick={onDone}>
+        <span className="hidden px-1 text-xs leading-tight text-muted sm:block">Задержите перо на секунду: линия и фигура выровняются</span>
+      </div>
+        <Button className="min-h-11 shrink-0 px-4" onClick={onDone}>
           Готово
         </Button>
       </div>

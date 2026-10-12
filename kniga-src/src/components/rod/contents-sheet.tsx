@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Check, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { blankPage } from "@/lib/rod/layouts";
@@ -119,14 +119,20 @@ export function ContentsSheet({ onOpen, onClose, current }: { onOpen: (pageId: s
               </button>
               {editing === c.id ? (
                 <input
-                  autoFocus
+                  autoFocus={typeof window !== "undefined" && window.matchMedia("(hover:hover)").matches}
                   className="field !min-h-11 min-w-0 flex-1"
                   defaultValue={c.title}
                   onBlur={(event) => {
                     rename(c.id, event.target.value);
                     setEditing(null);
                   }}
-                  onKeyDown={(event) => event.key === "Enter" && (event.target as HTMLInputElement).blur()}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") (event.target as HTMLInputElement).blur();
+                    if (event.key === "Escape") {
+                      event.stopPropagation();
+                      setEditing(null);
+                    }
+                  }}
                 />
               ) : (
                 <button
@@ -138,23 +144,26 @@ export function ContentsSheet({ onOpen, onClose, current }: { onOpen: (pageId: s
                     setEditing(c.id);
                   }}
                 >
-                  <span className={cn("block truncate text-[15px] font-semibold text-ink", c.done && "text-ink/50 line-through decoration-rose/60")}>{c.title}</span>
+                  <span className={cn("block truncate text-[15px] font-semibold text-ink", c.done && "text-ink/75 line-through decoration-rose/60")}>{c.title}</span>
                   <span className="block text-xs text-muted">
                     {count ? `${label}${count < c.planned ? ` · ${count} из ${c.planned}` : ""}${filled ? ` · оформлено ${filled}` : ""}` : `пока нет страниц · нажмите, чтобы начать (${c.planned} запланировано)`}
                   </span>
                 </button>
               )}
               <div className="flex shrink-0">
-                <button type="button" aria-label="Выше" disabled={i === 0} className="grid size-11 place-items-center rounded-full disabled:opacity-25" onClick={() => move(c.id, -1)}>
+                <button type="button" aria-label="Переименовать" className="grid size-10 place-items-center rounded-full" onClick={() => setEditing(c.id)}>
+                  <Pencil className="size-4" />
+                </button>
+                <button type="button" aria-label="Выше" disabled={i === 0} className="grid size-10 place-items-center rounded-full disabled:opacity-25" onClick={() => move(c.id, -1)}>
                   <ArrowUp className="size-4" />
                 </button>
-                <button type="button" aria-label="Ниже" disabled={i === rows.length - 1} className="grid size-11 place-items-center rounded-full disabled:opacity-25" onClick={() => move(c.id, 1)}>
+                <button type="button" aria-label="Ниже" disabled={i === rows.length - 1} className="grid size-10 place-items-center rounded-full disabled:opacity-25" onClick={() => move(c.id, 1)}>
                   <ArrowDown className="size-4" />
                 </button>
                 <button
                   type="button"
                   aria-label="Удалить главу, страницы останутся"
-                  className="grid size-11 place-items-center rounded-full text-rose-deep"
+                  className="grid size-10 place-items-center rounded-full text-rose-deep"
                   onClick={() => {
                     if (window.confirm(`Убрать главу «${c.title}» из оглавления? Страницы останутся в книге.`)) remove(c.id);
                   }}
@@ -185,7 +194,7 @@ export function ContentsSheet({ onOpen, onClose, current }: { onOpen: (pageId: s
           <Plus className="size-4" /> Добавить
         </Button>
       </form>
-      <p className="mt-2 text-xs text-muted">Нажмите на главу, чтобы перейти к её страницам. Долгое нажатие переименует.</p>
+      <p className="mt-2 text-xs text-muted">Нажмите на главу, чтобы перейти к её страницам. Карандаш переименует главу.</p>
     </Sheet>
   );
 }

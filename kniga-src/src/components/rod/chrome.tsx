@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { BookOpen, ChevronLeft, GraduationCap, Home, MessageCircle, PenLine, X } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -94,7 +94,7 @@ export function Dock() {
   const nav = useNav();
   const current = tabKey(nav.screen);
   return (
-    <nav className="dock no-print fixed inset-x-0 bottom-0 z-30 px-3 lg:hidden">
+    <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 px-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] lg:hidden">
       <ul className="glass-strong mx-auto grid max-w-md grid-cols-5 rounded-[1.6rem] p-1.5">
         {TABS.map((item) => {
           const Icon = item.icon;
@@ -105,9 +105,10 @@ export function Dock() {
                 type="button"
                 onClick={() => nav.tab(item.screen)}
                 className={cn(
-                  "flex min-h-12 w-full flex-col items-center justify-center gap-0.5 rounded-[1.2rem] text-[11px] font-medium transition",
+                  "flex min-h-14 w-full flex-col items-center justify-center gap-0.5 rounded-[1.2rem] text-xs font-medium transition [@media(max-height:480px)]:min-h-10",
                   active ? "bg-night text-paper" : "text-ink/70",
                 )}
+                aria-current={active ? "page" : undefined}
               >
                 <Icon className="size-[1.15rem]" strokeWidth={active ? 2.2 : 1.7} />
                 {item.label}
@@ -166,26 +167,51 @@ export function Sheet({
   className?: string;
   dim?: boolean;
 }) {
+  const box = useRef<HTMLDivElement>(null);
+  const downOnBackdrop = useRef(false);
   useEffect(() => {
+    const before = document.activeElement as HTMLElement | null;
+    if (dim) box.current?.focus({ preventScroll: true });
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
+      if (event.key === "Tab" && dim && box.current) {
+        const items = Array.from(box.current.querySelectorAll<HTMLElement>("button,[href],input,textarea,select,[tabindex]:not([tabindex='-1'])")).filter((el) => !el.hasAttribute("disabled"));
+        if (!items.length) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (event.shiftKey && (document.activeElement === first || document.activeElement === box.current)) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      if (dim && before?.isConnected) before.focus({ preventScroll: true });
+    };
+  }, [onClose, dim]);
   return createPortal(
     <div
       className={cn("fixed inset-0 z-[60] flex items-end justify-center p-2 sm:items-center sm:p-4", dim ? "bg-ink/30 backdrop-blur-[2px]" : "pointer-events-none")}
       role="dialog"
       aria-modal={dim}
+      aria-label={title}
       onPointerDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        downOnBackdrop.current = event.target === event.currentTarget;
+      }}
+      onClick={(event) => {
+        if (downOnBackdrop.current && event.target === event.currentTarget) onClose();
+        downOnBackdrop.current = false;
       }}
     >
-      <div className={cn("glass-strong sheet-in pointer-events-auto max-h-[86svh] w-full max-w-lg overflow-auto rounded-[2rem] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]", !dim && "!bg-paper shadow-2xl ring-1 ring-ink/10", className)}>
-        <div className="mb-3 flex items-start justify-between gap-3">
+      <div ref={box} tabIndex={-1} className={cn("glass-strong sheet-in pointer-events-auto max-h-[min(86svh,calc(100dvh-1rem))] w-full max-w-lg overflow-auto overscroll-contain rounded-[2rem] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] outline-none", !dim && "!bg-paper shadow-2xl ring-1 ring-ink/10", className)}>
+        <div className="sticky -top-5 z-10 -mx-1 mb-3 flex items-start justify-between gap-3">
           {title ? <h2 className="display-title text-[1.7rem] leading-tight text-ink">{title}</h2> : <span />}
-          <button type="button" className="grid size-9 shrink-0 place-items-center rounded-full bg-white/70 text-ink" onClick={onClose} aria-label="Закрыть">
+          <button type="button" className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-ink" onClick={onClose} aria-label="Закрыть">
             <X className="size-4" />
           </button>
         </div>

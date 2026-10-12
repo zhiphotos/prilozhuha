@@ -207,7 +207,7 @@ export function StickersSheet({
           <ul className="grid grid-cols-4 gap-3">
             {SHAPES.map((item) => (
               <li key={item.id}>
-                <button type="button" className="grid aspect-square w-full place-items-center rounded-2xl bg-white/70 p-2 text-center text-[11px] font-medium text-ink" onClick={() => onShape(item.id)}>
+                <button type="button" className="grid aspect-square w-full place-items-center rounded-2xl bg-white/70 p-2 text-center text-xs font-medium text-ink" onClick={() => onShape(item.id)}>
                   <ShapeIcon shape={item.id} />
                   <span className="mt-1 leading-tight">{item.label}</span>
                 </button>
@@ -229,7 +229,7 @@ export function StickersSheet({
               {mine.map((ref) => (
                 <li key={ref} className="relative">
                   <MineThumb src={ref} onClick={() => onUser(ref)} />
-                  <button type="button" aria-label="Убрать из моих" className="absolute -right-1 -top-1 grid size-6 place-items-center rounded-full bg-night/80 text-paper" onClick={() => remove(ref)}>
+                  <button type="button" aria-label="Убрать из моих" className="absolute -right-1 -top-1 grid size-8 place-items-center rounded-full bg-night/80 text-paper" onClick={() => remove(ref)}>
                     <Trash2 className="size-3" />
                   </button>
                 </li>
@@ -340,19 +340,19 @@ export function LayersSheet({
               <LayerThumb block={block} />
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium text-ink">{blockLabel(block)}</span>
-                <span className="block text-[11px] text-muted">{block.locked ? "заблокирован · " : ""}слой {blocks.length - index}</span>
+                <span className="block text-xs text-muted">{block.locked ? "заблокирован · " : ""}слой {blocks.length - index}</span>
               </span>
             </button>
-            <button type="button" aria-label="Выше" disabled={index === blocks.length - 1} className="grid size-9 place-items-center rounded-full disabled:opacity-30" onClick={() => onMove(block.id, "up")}>
+            <button type="button" aria-label="Выше" disabled={index === blocks.length - 1} className="grid size-11 place-items-center rounded-full disabled:opacity-30" onClick={() => onMove(block.id, "up")}>
               <ArrowUp className="size-4" />
             </button>
-            <button type="button" aria-label="Ниже" disabled={index === 0} className="grid size-9 place-items-center rounded-full disabled:opacity-30" onClick={() => onMove(block.id, "down")}>
+            <button type="button" aria-label="Ниже" disabled={index === 0} className="grid size-11 place-items-center rounded-full disabled:opacity-30" onClick={() => onMove(block.id, "down")}>
               <ArrowDown className="size-4" />
             </button>
-            <button type="button" aria-label={block.locked ? "Разблокировать" : "Заблокировать"} className={cn("grid size-9 place-items-center rounded-full", block.locked && "bg-night text-paper")} onClick={() => onLock(block.id)}>
+            <button type="button" aria-label={block.locked ? "Разблокировать" : "Заблокировать"} className={cn("grid size-11 place-items-center rounded-full", block.locked && "bg-night text-paper")} onClick={() => onLock(block.id)}>
               {block.locked ? <Lock className="size-4" /> : <Unlock className="size-4" />}
             </button>
-            <button type="button" aria-label="Удалить" className="grid size-9 place-items-center rounded-full text-rose-deep" onClick={() => onRemove(block.id)}>
+            <button type="button" aria-label="Удалить" className="grid size-11 place-items-center rounded-full text-rose-deep" onClick={() => onRemove(block.id)}>
               <Trash2 className="size-4" />
             </button>
           </li>
@@ -405,9 +405,9 @@ export function FontsSheet({ onClose, onUse }: { onClose: () => void; onUse: (fo
               <span className="block truncate text-2xl text-ink" style={{ fontFamily: fontFamily(`custom:${font.id}`) }}>
                 Аа Бб Вв — {font.name}
               </span>
-              <span className="text-[11px] text-muted">Нажмите, чтобы написать этим шрифтом</span>
+              <span className="text-xs text-muted">Нажмите, чтобы написать этим шрифтом</span>
             </button>
-            <button type="button" aria-label="Удалить шрифт" className="grid size-9 place-items-center rounded-full text-rose-deep" onClick={() => removeFont(font.id)}>
+            <button type="button" aria-label="Удалить шрифт" className="grid size-11 place-items-center rounded-full text-rose-deep" onClick={() => removeFont(font.id)}>
               <Trash2 className="size-4" />
             </button>
           </li>

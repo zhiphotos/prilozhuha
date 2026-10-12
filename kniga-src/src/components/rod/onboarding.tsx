@@ -13,7 +13,7 @@ export function Onboarding({ ready = true }: { ready?: boolean }) {
   const named = audience === "children" || audience === "future";
 
   return (
-    <main className="grid min-h-screen place-items-center px-4 py-10">
+    <main className="grid min-h-dvh place-items-center px-4 py-10">
       <div className="glass w-full max-w-xl rounded-4xl p-6 sm:p-8">
         <p className="text-sm text-rose-deep">Книга рода</p>
         <h1 className="mt-2 font-display text-4xl leading-tight text-ink sm:text-5xl">Для кого я это собираю?</h1>

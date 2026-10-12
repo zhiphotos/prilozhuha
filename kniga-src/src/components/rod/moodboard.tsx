@@ -34,7 +34,7 @@ export function MoodBoard({ open, onToggle, onPlace, pinned, onPin }: { open: bo
         type="button"
         onClick={onToggle}
         className={cn(
-          "toolbar-dark fixed right-0 top-1/2 z-[45] flex -translate-y-1/2 flex-col items-center gap-1 rounded-l-2xl px-2 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-paper transition",
+          "toolbar-dark fixed right-0 top-1/2 z-[45] flex -translate-y-1/2 flex-col items-center gap-1 rounded-l-2xl px-2 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-paper transition",
           open && "opacity-0 pointer-events-none",
         )}
         style={{ writingMode: "vertical-rl" }}
@@ -72,7 +72,7 @@ export function MoodBoard({ open, onToggle, onPlace, pinned, onPin }: { open: bo
             <p className="display-title text-xl text-ink">Вайб книги</p>
             <p className="text-xs text-muted">Что нравится по дизайну: цвета, шрифты, развороты. Смотрите сюда, пока оформляете. В печать не идёт.</p>
           </div>
-          <button type="button" onClick={onToggle} className="grid size-8 shrink-0 place-items-center rounded-full bg-white/80" aria-label="Закрыть вайб">
+          <button type="button" onClick={onToggle} className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80" aria-label="Закрыть вайб">
             <X className="size-4" />
           </button>
         </div>
@@ -159,7 +159,7 @@ function MoodItem({ refId, pinned, onPin, onZoom, onRemove }: { refId: string; p
       <button type="button" onClick={onPin} aria-label={pinned ? "Снять с экрана" : "Закрепить перед глазами"} className={cn("absolute bottom-1 right-1 grid size-8 place-items-center rounded-full", pinned ? "bg-rose-deep text-paper" : "bg-white/85 text-ink")}>
         {pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
       </button>
-      <button type="button" onClick={onRemove} aria-label="Убрать из вайба" className="absolute right-1 top-1 grid size-6 place-items-center rounded-full bg-night/70 text-paper">
+      <button type="button" onClick={onRemove} aria-label="Убрать из вайба" className="absolute right-1 top-1 grid size-8 place-items-center rounded-full bg-night/70 text-paper">
         <X className="size-3" />
       </button>
     </div>

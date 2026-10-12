@@ -77,7 +77,7 @@ export function BookScreen() {
             <PageSheet page={{ id: "c", ...coverPage(meta) }} meta={meta} />
           </div>
           <span>
-            <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-ink/60">Начните отсюда</span>
+            <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">Начните отсюда</span>
             <span className="display-title mt-1 block text-3xl text-ink">Открыть обложку</span>
             <span className="mt-1 block text-sm text-ink/70">Для кого книга — уже первая страница.</span>
           </span>
@@ -533,7 +533,7 @@ function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: s
     <section className={cn("mb-6 rounded-[2rem] p-5", open ? "aurora" : "glass")}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/60">Для участников программы</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">Для участников программы</p>
           <h2 className="display-title mt-1 text-[1.7rem] leading-tight text-ink">Полный шаблон Книги рода · 100 страниц</h2>
         </div>
         {!open ? (
@@ -546,7 +546,7 @@ function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: s
       <ol className="mt-3 grid gap-1 text-sm text-ink">
         {chapters.map((chapter) => (
           <li key={chapter.n} className="flex gap-2">
-            <span className="w-14 shrink-0 tabular-nums text-ink/50">{chapter.range}</span>
+            <span className="w-14 shrink-0 tabular-nums text-ink/75">{chapter.range}</span>
             <span>
               {chapter.n}. {chapter.title}
             </span>
