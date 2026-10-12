@@ -41,7 +41,7 @@ import { BRUSH_ALPHA, BRUSH_DEFAULT_PX, PAGE_H, eraseFromStrokes, lineOf, makeIn
 import { coverDesigns, blankPage } from "@/lib/rod/layouts";
 import { liftSubject } from "@/lib/rod/lift";
 import { mediaDataUrl, saveMedia } from "@/lib/rod/media";
-import { PAPER, POLAROID, defaultStickerWidth, pageSide, safeArea, stickerRatio } from "@/lib/rod/page-style";
+import { PAPER, POLAROID, blockW, defaultStickerWidth, pageSide, safeArea, stickerRatio } from "@/lib/rod/page-style";
 import { findPrompt } from "@/lib/rod/pages";
 import { paintPage } from "@/lib/rod/print-book";
 import { defaultShapeBox } from "@/lib/rod/shapes";
@@ -174,7 +174,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const [penColors, setPenColors] = useState(false);
   const [pipette, setPipette] = useState<((color: string) => void) | null>(null);
   const [cropping, setCropping] = useState(false);
-  const penSeen = useRef(false);
+  const penSeen = useRef(0);
   const [panel, setPanel] = useState<Panel>(null);
   const [slotTarget, setSlotTarget] = useState<string | null>(null);
   const [replaceTarget, setReplaceTarget] = useState<string | null>(null);
@@ -211,8 +211,6 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const lastGroup = useRef<{ key: string; at: number } | null>(null);
   const touches = useRef(new Map<number, { x: number; y: number }>());
   const twoTap = useRef<{ t0: number; moved: boolean; fired: boolean } | null>(null);
-  const twoTapTimer = useRef<number | undefined>(undefined);
-  const lastTwoTap = useRef(0);
   const [size, setSize] = useState({ w: 320, h: 320 });
 
   const setStyle = (next: PhotoStyle) => {
@@ -265,11 +263,25 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     try {
       if (!localStorage.getItem("kniga-hint-2f")) {
         localStorage.setItem("kniga-hint-2f", "1");
-        toast("Подсказка: коснитесь экрана двумя пальцами, чтобы сделать шаг назад. Два раза подряд: шаг вперёд.", { duration: 7000 });
+        toast("Подсказка: коснитесь экрана двумя пальцами, чтобы сделать шаг назад. Ещё раз: ещё шаг назад.", { duration: 7000 });
       }
     } catch {
       /* без подсказки */
     }
+  }, []);
+
+  // Если касание потерялось (свернули приложение), жесты не должны залипнуть.
+  useEffect(() => {
+    const reset = () => {
+      touches.current.clear();
+      twoTap.current = null;
+    };
+    window.addEventListener("blur", reset);
+    document.addEventListener("visibilitychange", reset);
+    return () => {
+      window.removeEventListener("blur", reset);
+      document.removeEventListener("visibilitychange", reset);
+    };
   }, []);
 
   useEffect(() => {
@@ -439,7 +451,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   const heightOf = (b: PageBlock): number => {
     if ("h" in b && typeof b.h === "number") return b.h;
-    if (b.type === "sticker") return (b.w ?? 10) * stickerRatio(b.kind);
+    if (b.type === "sticker") return (b.w ?? 15) * stickerRatio(b.kind);
     const el = document.querySelector(`[data-block="${b.id}"]`) as HTMLElement | null;
     const sheetH = sheetRef.current?.offsetHeight || 1;
     return el ? (el.offsetHeight / sheetH) * 100 : 6;
@@ -462,7 +474,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const B = 100 - safe.bottom;
     const bleedable = (b.type === "photo" && !(b.frame === "sticker" && b.cut)) || b.type === "slot";
     if (!bleedable) {
-      let w = "w" in b && typeof b.w === "number" ? b.w : 10;
+      let w = blockW(b as { type: string; w?: number });
       if (b.type === "text") w = Math.min(w, R - L);
       const h = heightOf(b);
       const x = clamp(b.x, L, Math.max(L, R - w));
@@ -732,12 +744,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const startDraw = (event: React.PointerEvent) => {
     // Рисуем только в режиме рисунка или ластика. В обычном режиме палец и стилус двигают фото и текст.
     if (tool === "hand") return false;
-    if (event.pointerType === "pen") penSeen.current = true;
+    if (event.pointerType === "pen") penSeen.current = performance.now();
     event.stopPropagation();
     event.preventDefault();
     // Ладонь на экране, пока рисуют стилусом, не оставляет следов: касания пальцем и большое пятно игнорируются.
     const blob = Math.max(event.width || 0, event.height || 0);
-    if (event.pointerType === "touch" && (penSeen.current || blob > 56)) return true;
+    if (event.pointerType === "touch" && (performance.now() - penSeen.current < 1500 || blob > 56)) return true;
     // Второй палец — это жест (шаг назад), а не рисование.
     if (touches.current.size >= 2) return true;
     setEditing(null);
@@ -807,7 +819,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const block = live.blocks.find((b) => b.id === draw.target);
     if (!block || block.locked) return;
     const r = px2w(pen.eraser) / 2;
-    const w = "w" in block && typeof block.w === "number" ? block.w : 10;
+    const w = blockW(block as { type: string; w?: number });
     const h = heightOf(block);
     // Точка в системе координат блока с учётом поворота.
     const cx = block.x + w / 2;
@@ -1123,19 +1135,9 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const tap = twoTap.current;
     if (tap && !tap.fired && !tap.moved && touches.current.size === 2 && performance.now() - tap.t0 < 380) {
       tap.fired = true;
-      const now = performance.now();
-      if (now - lastTwoTap.current < 420) {
-        window.clearTimeout(twoTapTimer.current);
-        lastTwoTap.current = 0;
-        actions.current.redo();
-        if (typeof navigator.vibrate === "function") navigator.vibrate(10);
-      } else {
-        lastTwoTap.current = now;
-        twoTapTimer.current = window.setTimeout(() => {
-          actions.current.undo();
-          if (typeof navigator.vibrate === "function") navigator.vibrate(10);
-        }, 300);
-      }
+      // Каждый тап двумя пальцами (и двойной тоже) сразу делает шаг назад.
+      actions.current.undo();
+      if (typeof navigator.vibrate === "function") navigator.vibrate(10);
     }
     touches.current.delete(event.pointerId);
     if (touches.current.size === 0) twoTap.current = null;
@@ -1168,7 +1170,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const centerOnPage = (axis: "x" | "y") => {
     if (!selectedBlock) return;
     if (axis === "x") {
-      const w = "w" in selectedBlock && typeof selectedBlock.w === "number" ? selectedBlock.w : 10;
+      const w = blockW(selectedBlock as { type: string; w?: number });
       patchBlock(selectedBlock.id, { x: round((100 - w) / 2) } as Partial<PageBlock>);
     } else {
       patchBlock(selectedBlock.id, { y: round((100 - heightOf(selectedBlock)) / 2) } as Partial<PageBlock>);
@@ -1326,7 +1328,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           <IconBtn label="Отменить (или тап двумя пальцами)" disabled={!undo.current.length} onClick={doUndo}>
             <Undo2 className="size-[18px]" />
           </IconBtn>
-          <IconBtn label="Повторить (или двойной тап двумя пальцами)" disabled={!redo.current.length} onClick={doRedo}>
+          <IconBtn label="Вернуть отменённое" disabled={!redo.current.length} onClick={doRedo}>
             <Redo2 className="size-[18px]" />
           </IconBtn>
           {!isBack ? (

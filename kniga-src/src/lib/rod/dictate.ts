@@ -22,8 +22,10 @@ export function startDictation(handlers: Handlers): Dictation | null {
     rec.continuous = false;
     rec.interimResults = false;
     rec.onresult = (event) => handlers.onText(event.results[0]?.[0]?.transcript ?? "");
-    rec.onerror = () => {
-      fallback = true;
+    rec.onerror = (event?: unknown) => {
+      // К записи голоса переходим, только если распознавание браузера недоступно, а не при «ничего не сказали».
+      const code = (event as { error?: string } | undefined)?.error;
+      if (!code || ["not-allowed", "service-not-allowed", "audio-capture", "network", "language-not-supported"].includes(code)) fallback = true;
     };
     rec.onend = () => {
       if (fallback && canRecord()) {

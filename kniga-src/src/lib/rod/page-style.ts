@@ -83,6 +83,12 @@ export function fontWeight(font: FontRef): number {
 /** Страница на экране «в пикселях»: 1000 px = ширина страницы. */
 export const PX_PAGE = 1000;
 
+/** Ширина блока в % страницы: одна на экран, ластик и печать (у стикера без `w` это 15). */
+export function blockW(b: { type: string; w?: number }): number {
+  if (typeof b.w === "number") return b.w;
+  return b.type === "sticker" ? 15 : 40;
+}
+
 // В книге 25×25 см: sm ≈ 13–14 pt, md ≈ 19 pt, lg ≈ 34 pt. На 30×30 всё пропорционально крупнее.
 const SIZE: Record<FontKind, Record<"sm" | "md" | "lg" | "xl", number>> = {
   serif: { sm: 2.1, md: 2.9, lg: 5.2, xl: 11 },

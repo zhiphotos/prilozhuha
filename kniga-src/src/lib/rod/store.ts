@@ -151,7 +151,17 @@ let lastValue: string | null = null;
 // Состояние пишется в IndexedDB с небольшой задержкой: при наборе текста не надо сохранять каждую букву.
 const bookStorage: StateStorage = {
   getItem: async (name) => {
-    const stored = await idbGet<string>(STATE_STORE, name).catch(() => undefined);
+    let failed = false;
+    const stored = await idbGet<string>(STATE_STORE, name).catch(() => {
+      failed = true;
+      return undefined;
+    });
+    // Не удалось прочитать хранилище (бывает на iPhone после сворачивания): ничего не сохраняем, чтобы пустое состояние не затёрло настоящую книгу.
+    if (failed) {
+      suspendSave = true;
+      throw new Error("Не удалось прочитать книгу. Закройте приложение и откройте снова.");
+    }
+    if (stored === "") return null;
     if (stored) return stored;
     try {
       return localStorage.getItem(name);

@@ -12,7 +12,7 @@ function maskSvg(mask: EraseMask): string {
       return `<path d="${d}" fill="none" stroke="#000" stroke-width="${f(s.r * 2)}" stroke-linecap="round" stroke-linejoin="round"/>`;
     })
     .join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 ${f(h)}" preserveAspectRatio="none"><defs><mask id="m"><rect width="100" height="${f(h)}" fill="#fff"/>${lines}</mask></defs><rect width="100" height="${f(h)}" fill="#000" mask="url(#m)"/></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="${f(h)}" viewBox="0 0 100 ${f(h)}" preserveAspectRatio="none"><defs><mask id="m"><rect width="100" height="${f(h)}" fill="#fff"/>${lines}</mask></defs><rect width="100" height="${f(h)}" fill="#000" mask="url(#m)"/></svg>`;
 }
 
 /** CSS-маска блока (или ничего, если ластиком ещё не касались). */

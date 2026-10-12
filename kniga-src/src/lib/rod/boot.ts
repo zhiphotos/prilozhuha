@@ -8,6 +8,7 @@ export function afterHydrate(): void {
   useRod.setState((state) => ({
     pages: state.pages.map((page) => migrateCover(migratePage(page), { dedicatee: state.dedicatee, collector: state.collector })),
     back: state.back ? migratePage(state.back) : state.back,
+    trash: state.trash.map((item) => ({ ...item, page: migratePage(item.page) })),
   }));
   for (const font of useRod.getState().fonts ?? []) void registerFont(font);
 }

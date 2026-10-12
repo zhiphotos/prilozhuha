@@ -242,6 +242,17 @@ export function eraseFromStrokes(strokes: InkStroke[], cx: number, cy: number, r
     }
     const gap = Math.max(0.12, Math.min(r / 2, 0.8));
     const { pts, pr } = densify(stroke.points, gap, stroke.pressure);
+    let anyInside = false;
+    for (let i = 0; i + 1 < pts.length; i += 2) {
+      if (Math.hypot(pts[i] - cx, pts[i + 1] - cy) <= r) {
+        anyInside = true;
+        break;
+      }
+    }
+    if (!anyInside) {
+      out.push(stroke);
+      continue;
+    }
     let run: number[] = [];
     let runP: number[] = [];
     let first = true;

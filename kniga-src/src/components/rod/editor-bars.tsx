@@ -127,6 +127,7 @@ function useKeyboardHeight(): number {
 
 export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; ops: BlockOps; onChange: (text: string) => void; onDone: () => void }) {
   const [value, setValue] = useState(block.text);
+  const latest = useRef(block.text);
   const [colors, setColors] = useState<null | "fg" | "bg">(null);
   const [pos, setPos] = useState(savedPos);
   const [whole, setWhole] = useState(() => {
@@ -144,6 +145,7 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
   const px = block.px ?? Math.round(textMetrics(block.font, block.size).size * 10);
 
   const setBoth = (text: string) => {
+    latest.current = text;
     setValue(text);
     onChange(text);
   };
@@ -155,7 +157,7 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
     }
     dictation.current = startDictation({
       onStatus: setMic,
-      onText: (said) => setBoth(`${value}${value && !/\s$/.test(value) ? " " : ""}${said}`),
+      onText: (said) => setBoth(`${latest.current}${latest.current && !/\s$/.test(latest.current) ? " " : ""}${said}`),
       onError: (message) => toast(message, { duration: 8000 }),
       onEnd: () => {
         dictation.current = null;

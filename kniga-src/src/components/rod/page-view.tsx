@@ -183,9 +183,7 @@ export function PlacedBlock({
         width: `${box.w}%`,
         height: box.h === null ? undefined : `${box.h}%`,
         transform: box.rotate ? `rotate(${box.rotate}deg)` : undefined,
-        opacity: block.opacity,
         mixBlendMode: block.blend,
-        ...maskStyle(block.mask),
         ...style,
       }}
       {...rest}
@@ -195,8 +193,18 @@ export function PlacedBlock({
   );
 }
 
-/** Как блок выглядит. Без рамок выбора — их рисует редактор. */
+/** Как блок выглядит. Без рамок выбора — их рисует редактор. Ластик (маска) и прозрачность действуют только на сам рисунок, не на рамки и кнопки выбора. */
 export function BlockArt({ block, editing = false }: { block: PageBlock; editing?: boolean }) {
+  const mask = maskStyle(block.mask);
+  if (!mask && block.opacity === undefined) return <BlockArtInner block={block} editing={editing} />;
+  return (
+    <div className="h-full w-full" style={{ opacity: block.opacity, ...mask }}>
+      <BlockArtInner block={block} editing={editing} />
+    </div>
+  );
+}
+
+function BlockArtInner({ block, editing = false }: { block: PageBlock; editing?: boolean }) {
   if (block.type === "text") return <TextArt block={block} editing={editing} />;
   if (block.type === "photo") return <PhotoArt block={block} />;
   if (block.type === "sticker") return <img src={stickerUrl(block.kind)} alt="" draggable={false} className="sticker-art block w-full select-none" style={{ aspectRatio: `1 / ${stickerRatio(block.kind)}` }} />;
