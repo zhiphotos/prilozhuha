@@ -11,15 +11,19 @@ if (wasm) {
 
 type Remover = (image: string) => Promise<RawImage | RawImage[]>;
 
-const MODELS = ["briaai/RMBG-1.4", "Xenova/modnet"] as const;
+/** Точная (универсальная) и лёгкая (люди, ~7 МБ; ей хватает памяти телефона). */
+export const PRECISE_MODELS = ["briaai/RMBG-1.4", "Xenova/modnet"] as const;
+export const LIGHT_MODELS = ["Xenova/modnet", "briaai/RMBG-1.4"] as const;
 
-let ready: Promise<Remover> | null = null;
+const cache = new Map<string, Promise<Remover>>();
 
-function loadRemover(onProgress?: (label: string) => void): Promise<Remover> {
-  if (ready) return ready;
-  ready = (async () => {
+function loadRemover(models: readonly string[], onProgress?: (label: string) => void): Promise<Remover> {
+  const key = models.join("|");
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const ready = (async () => {
     let last: unknown;
-    for (const model of MODELS) {
+    for (const model of models) {
       try {
         onProgress?.("Готовлю вырезку…");
         const session = await pipeline("background-removal", model, {
@@ -33,17 +37,18 @@ function loadRemover(onProgress?: (label: string) => void): Promise<Remover> {
         return session as Remover;
       } catch (error) {
         last = error;
-        ready = null;
       }
     }
     throw last;
   })();
+  cache.set(key, ready);
+  ready.catch(() => cache.delete(key));
   return ready;
 }
 
-export async function liftOnClient(dataUrl: string, onProgress?: (label: string) => void): Promise<string | null> {
+export async function liftOnClient(dataUrl: string, onProgress?: (label: string) => void, models: readonly string[] = PRECISE_MODELS): Promise<string | null> {
   try {
-    const remove = await loadRemover(onProgress);
+    const remove = await loadRemover(models, onProgress);
     onProgress?.("Отделяю объект…");
     const raw = await remove(dataUrl);
     const image = Array.isArray(raw) ? raw[0] : raw;
@@ -53,7 +58,7 @@ export async function liftOnClient(dataUrl: string, onProgress?: (label: string)
       if (sticker) return sticker;
     }
   } catch {
-    ready = null;
+    cache.delete(models.join("|"));
   }
   onProgress?.("Вырезаю объект…");
   return layAsSticker(dataUrl).catch(() => null);

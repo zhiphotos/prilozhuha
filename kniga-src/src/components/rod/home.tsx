@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, BookOpen, Camera, Clock, MessageCircle, Play, Quote, Search, Settings2, Sparkles, Users } from "lucide-react";
+import { ArrowRight, BookCopy, BookOpen, Camera, Clock, MessageCircle, Play, Quote, Search, Settings2, Sparkles, Users } from "lucide-react";
 import { AUDIENCES, LESSONS, audienceTitle, reminder } from "@/lib/rod/content";
 import { countsOf, isBookReady, nextStep, overallOf, partsOf, plural } from "@/lib/rod/progress";
 import { useRod } from "@/lib/rod/store";
@@ -8,6 +8,8 @@ import { cn } from "@/lib/cn";
 import { toast } from "sonner";
 import { Button, Field, ScreenFrame, Sheet, useNav } from "@/components/rod/chrome";
 import { exportBook, importBook } from "@/lib/rod/backup";
+import { ProjectsSheet } from "@/components/rod/projects-sheet";
+import { activeProjectId, listProjects } from "@/lib/rod/projects";
 
 export function HomeScreen() {
   const nav = useNav();
@@ -19,6 +21,8 @@ export function HomeScreen() {
   const step = nextStep(snapshot, overall);
   const ready = isBookReady(snapshot, overall);
   const [profile, setProfile] = useState(false);
+  const [projects, setProjects] = useState(false);
+  const bookName = listProjects().length > 1 ? listProjects().find((item) => item.id === activeProjectId())?.name : null;
   const free = LESSONS.find((lesson) => lesson.free);
   const freeDone = free ? data.doneLessons.includes(free.id) : false;
   const who = data.dedicatee.trim() || audienceTitle(data.audience).replace(/^Для /, "для ");
@@ -31,13 +35,18 @@ export function HomeScreen() {
         <div className="flex items-center gap-3">
           <span className="sun-mark grid size-12 place-items-center rounded-full" aria-hidden />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/50">Книга рода</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/50">{bookName ? `Книга · ${bookName}` : "Книга рода"}</p>
             <p className="display-title text-2xl leading-tight text-ink">{who}</p>
           </div>
         </div>
-        <button type="button" onClick={() => setProfile(true)} className="glass grid size-11 place-items-center rounded-full text-ink" aria-label="Настройки">
-          <Settings2 className="size-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => setProjects(true)} className="glass grid size-11 place-items-center rounded-full text-ink" aria-label="Мои книги">
+            <BookCopy className="size-5" />
+          </button>
+          <button type="button" onClick={() => setProfile(true)} className="glass grid size-11 place-items-center rounded-full text-ink" aria-label="Настройки">
+            <Settings2 className="size-5" />
+          </button>
+        </div>
       </div>
 
       <h1 className="display-title text-[2.6rem] leading-[1.02] text-ink sm:text-6xl">
@@ -124,6 +133,7 @@ export function HomeScreen() {
       </section>
 
       {profile ? <ProfileSheet onClose={() => setProfile(false)} /> : null}
+      {projects ? <ProjectsSheet onClose={() => setProjects(false)} /> : null}
     </ScreenFrame>
   );
 }

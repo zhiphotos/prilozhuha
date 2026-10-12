@@ -62,6 +62,8 @@ export type CardNote = {
 
 export type PaperKind = "cream" | "lined" | "rose" | "sage" | "dots" | "kraft";
 export type FontKind = "serif" | "sans" | "script";
+/** Встроенный шрифт или свой, загруженный из файла (например, почерк бабушки): "custom:<id>". */
+export type FontRef = FontKind | `custom:${string}`;
 export type StickerKind =
   | "heart"
   | "star"
@@ -80,17 +82,54 @@ export type StickerKind =
 export type TextLook = "plain" | "card" | "pill";
 export type PhotoFrame = "none" | "polaroid" | "sticker" | "tape";
 
-type Placed = { rotate?: number };
+type Placed = {
+  rotate?: number;
+  /** Замок: блок не двигается и не выделяется нажатием, пока не открыть в «Слоях». */
+  locked?: boolean;
+  opacity?: number;
+  blend?: BlendKind;
+  mask?: EraseMask;
+};
+
+export type BrushKind = "pen" | "marker" | "brush" | "highlighter" | "thread" | "dashed" | "dots";
 
 export type InkStroke = {
   id: string;
-  color: "ink" | "rose" | "sage" | "gold" | "white";
+  /** Любой цвет "#rrggbb"; старые названия ink/rose/sage/gold/white тоже читаются. */
+  color: string;
   /** Толщина в % ширины страницы. */
   width: number;
   /** Маркер полупрозрачный. */
   alpha?: number;
+  brush?: BrushKind;
   points: number[];
+  /** Нажим пера 0..1 по точке (если был). */
+  pressure?: number[];
 };
+
+export type BlendKind = "multiply" | "screen" | "overlay" | "soft-light" | "darken" | "lighten";
+
+/** Стёртое ластиком у блока (текст, фото, стикер): круги по линии, в единицах 1 % ширины блока. */
+export type EraseMask = { h: number; strokes: { r: number; pts: number[] }[] };
+
+export type ShapeKind =
+  | "rect"
+  | "round"
+  | "ellipse"
+  | "triangle"
+  | "diamond"
+  | "star"
+  | "heart"
+  | "line"
+  | "arrow"
+  | "arrow2"
+  | "curve"
+  | "dot"
+  | "ring"
+  | "cross"
+  | "burst"
+  | "dots"
+  | "stitch";
 
 export type PageBlock =
   | ({
@@ -100,13 +139,15 @@ export type PageBlock =
       y: number;
       w: number;
       text: string;
-      font: FontKind;
+      font: FontRef;
       size: "sm" | "md" | "lg" | "xl";
+      /** Размер букв в пикселях (страница = 1000 px в ширину). Если задан, главнее S/M/L/XL. */
+      px?: number;
       look?: TextLook;
       /** Свой цвет букв и фона карточки/плашки. */
       color?: string;
       bg?: string;
-      align?: "left" | "center";
+      align?: "left" | "center" | "right";
       placeholder?: string;
     } & Placed)
   | ({ id: string; type: "slot"; x: number; y: number; w: number; h: number; label: string; frame: PhotoFrame } & Placed)
@@ -121,11 +162,30 @@ export type PageBlock =
       cut?: string;
       caption: string;
       frame: PhotoFrame;
+      /** Какой кусок фото виден в рамке: центр (0..1) и приближение (1 = вся рамка). */
+      crop?: { cx: number; cy: number; z: number };
+      /** Тень под фото. Старые фото без поля — с тенью. */
+      shadow?: boolean;
+      /** Фото лежит через разворот: часть на соседней странице. */
+      spread?: boolean;
     } & Placed)
   | ({ id: string; type: "sticker"; x: number; y: number; kind: StickerKind; w?: number; text?: string } & Placed)
   | ({ id: string; type: "chip"; x: number; y: number; kind: "place" | "date"; text: string } & Placed)
   | ({ id: string; type: "voice"; x: number; y: number; w: number; title: string; transcript: string } & Placed)
-  | ({ id: string; type: "doc"; x: number; y: number; w: number; title: string; note: string } & Placed);
+  | ({ id: string; type: "doc"; x: number; y: number; w: number; title: string; note: string } & Placed)
+  | ({ id: string; type: "shape"; x: number; y: number; w: number; h: number; shape: ShapeKind; fill?: string; stroke?: string; strokeW?: number } & Placed)
+  | ({
+      id: string;
+      type: "ink";
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      /** Исходный размер рисунка в % страницы: линии лежат в этих координатах и растягиваются вместе с блоком. */
+      ow: number;
+      oh: number;
+      strokes: InkStroke[];
+    } & Placed);
 
 export type BookPage = {
   id: string;
@@ -157,6 +217,7 @@ export type Screen =
   | { id: "surname" }
   | { id: "book" }
   | { id: "editor"; pageId: string }
+  | { id: "projects" }
   | { id: "flip"; pageId?: string };
 
 export type LessonLink =
@@ -170,3 +231,12 @@ export type LessonLink =
   | "places"
   | "time"
   | "docs";
+
+/** Задняя сторона обложки редактируется как обычная страница с этим номером. */
+export const BACK_ID = "__back__";
+
+/** Корешок: надпись и цвета. */
+export type SpineSetup = { text: string; bg?: string; color?: string; font: FontRef; size: number };
+
+/** Свой шрифт, загруженный из файла (например, почерк бабушки). */
+export type CustomFontEntry = { id: string; name: string; ref: string };

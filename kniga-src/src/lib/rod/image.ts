@@ -1,4 +1,4 @@
-import { saveMedia } from "@/lib/rod/media";
+import { resolveMedia, saveMedia } from "@/lib/rod/media";
 
 // Для печати 18×24 см при 300 dpi нужно ~2100 px по длинной стороне.
 const PRINT_MAX = 2100;
@@ -129,12 +129,13 @@ export async function importImageUrl(url: string): Promise<string> {
 /** Достаёт картинку из перетаскивания или вставки: файл, ссылку или кусок HTML с <img>. */
 export async function imageFromTransfer(data: DataTransfer | null): Promise<string | null> {
   if (!data) return null;
-  const file = [...data.files].find((item) => item.type.startsWith("image/"));
+  const isImageFile = (item: File) => item.type.startsWith("image/") || /\.(heic|heif|jpe?g|png|webp|gif)$/i.test(item.name);
+  const file = [...data.files].find(isImageFile);
   if (file) return importImage(file);
   for (const item of [...data.items]) {
-    if (item.kind === "file" && item.type.startsWith("image/")) {
+    if (item.kind === "file") {
       const blob = item.getAsFile();
-      if (blob) return importImage(blob);
+      if (blob && (item.type.startsWith("image/") || isImageFile(blob))) return importImage(blob);
     }
   }
   const html = data.getData("text/html");
@@ -148,4 +149,53 @@ export async function imageFromTransfer(data: DataTransfer | null): Promise<stri
 /** У Pinterest в ленте маленькие превью — просим оригинал. */
 export function upgradePin(url: string): string {
   return url.replace(/i\.pinimg\.com\/\d+x(\d+)?\//, "i.pinimg.com/originals/");
+}
+
+/** Свой стикер или футаж: GIF и SVG сохраняем как есть (анимация остаётся), остальное — как фото с прозрачностью. */
+export async function importSticker(file: Blob): Promise<string> {
+  const name = file instanceof File ? file.name : "";
+  if (/image\/(gif|svg\+xml)/.test(file.type) || /\.(gif|svg)$/i.test(name)) {
+    if (file.size > 8 * 1024 * 1024) throw new Error("Файл больше 8 МБ");
+    return saveMedia(file);
+  }
+  return importImage(file);
+}
+
+const infoCache = new Map<string, { ratio: number; alpha: boolean }>();
+
+/** Пропорции картинки и есть ли в ней прозрачность (вырезанный PNG). */
+export async function imageInfo(src: string): Promise<{ ratio: number; alpha: boolean }> {
+  const known = infoCache.get(src);
+  if (known) return known;
+  const url = await resolveMedia(src);
+  const result = await new Promise<{ ratio: number; alpha: boolean }>((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      const ratio = image.naturalHeight / Math.max(1, image.naturalWidth);
+      let alpha = false;
+      try {
+        const c = document.createElement("canvas");
+        c.width = 48;
+        c.height = 48;
+        const x = c.getContext("2d", { willReadFrequently: true });
+        if (x) {
+          x.drawImage(image, 0, 0, 48, 48);
+          const data = x.getImageData(0, 0, 48, 48).data;
+          for (let i = 3; i < data.length; i += 4) {
+            if (data[i] < 245) {
+              alpha = true;
+              break;
+            }
+          }
+        }
+      } catch {
+        /* не удалось прочитать пиксели — считаем, что прозрачности нет */
+      }
+      resolve({ ratio, alpha });
+    };
+    image.onerror = () => resolve({ ratio: 0.75, alpha: false });
+    image.src = url;
+  });
+  infoCache.set(src, result);
+  return result;
 }

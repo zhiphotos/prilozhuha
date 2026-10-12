@@ -12,7 +12,7 @@ import { Onboarding } from "@/components/rod/onboarding";
 import { PhotoNewScreen } from "@/components/rod/photo";
 import { StoriesScreen, StoryScreen, WizardScreen } from "@/components/rod/stories";
 import { SurnameScreen } from "@/components/rod/surname";
-import { migrateCover, migratePage } from "@/lib/rod/layouts";
+import { afterHydrate } from "@/lib/rod/boot";
 import { useRod } from "@/lib/rod/store";
 import type { Screen } from "@/lib/rod/types";
 
@@ -29,9 +29,7 @@ export function RodApp() {
     let alive = true;
     void Promise.resolve(useRod.persist.rehydrate()).finally(() => {
       if (!alive) return;
-      useRod.setState((state) => ({
-        pages: state.pages.map((page) => migrateCover(migratePage(page), { dedicatee: state.dedicatee, collector: state.collector })),
-      }));
+      afterHydrate();
       setHydrated(true);
     });
     // Просим браузер не чистить базу книги, когда мало места.

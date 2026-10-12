@@ -1,17 +1,21 @@
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
-import { DEFAULT_PRINT, type PrintSetup } from "@/lib/rod/page-style";
+import { DEFAULT_PRINT, isDark, type PrintSetup } from "@/lib/rod/page-style";
 import { MEDIA_STORE, STATE_STORE, idbClear, idbGet, idbSet } from "@/lib/rod/idb";
-import type {
-  Audience,
-  BookPage,
-  CardNote,
-  FamilyDoc,
-  FamilyPhoto,
-  Person,
-  Place,
-  Story,
-  TimelineEvent,
+import { activeProjectId, listProjects, setActiveProject, storageKeyFor } from "@/lib/rod/projects";
+import {
+  BACK_ID,
+  type Audience,
+  type BookPage,
+  type CardNote,
+  type CustomFontEntry,
+  type FamilyDoc,
+  type FamilyPhoto,
+  type Person,
+  type Place,
+  type SpineSetup,
+  type Story,
+  type TimelineEvent,
 } from "@/lib/rod/types";
 
 export type TrashedPage = { page: BookPage; index: number; at: string };
@@ -35,6 +39,18 @@ type RodState = {
   print: PrintSetup;
   /** Картинки-ориентиры для дизайна («вайб»), в книгу не печатаются. */
   moodboard: string[];
+  /** Задняя сторона обложки (null — стандартная надпись). */
+  back: BookPage | null;
+  spine: SpineSetup;
+  /** Свои шрифты и стикеры/футажи из файлов. */
+  fonts: CustomFontEntry[];
+  userStickers: string[];
+  addFont: (font: CustomFontEntry) => void;
+  removeFont: (id: string) => void;
+  addUserSticker: (ref: string) => void;
+  removeUserSticker: (ref: string) => void;
+  setSpine: (patch: Partial<SpineSetup>) => void;
+  insertPage: (input: Omit<BookPage, "id">, index: number) => string;
   addMood: (ref: string) => void;
   removeMood: (ref: string) => void;
   setPrint: (patch: Partial<PrintSetup>) => void;
@@ -69,6 +85,8 @@ type RodState = {
   resetAll: () => void;
 };
 
+const DEFAULT_SPINE: SpineSetup = { text: "", font: "serif", size: 0 };
+
 const empty = {
   onboarded: false,
   audience: null as Audience | null,
@@ -87,13 +105,46 @@ const empty = {
   doneLessons: [] as string[],
   print: DEFAULT_PRINT as PrintSetup,
   moodboard: [] as string[],
+  back: null as BookPage | null,
+  spine: DEFAULT_SPINE as SpineSetup,
+  fonts: [] as CustomFontEntry[],
+  userStickers: [] as string[],
 };
+
+/** Задняя сторона по умолчанию: того же цвета, что и лицевая. */
+export function backPage(cover?: BookPage | null): BookPage {
+  const darkCover = Boolean(cover?.bg && /^#[0-9a-f]{6}$/i.test(cover.bg) && isDark(cover.bg));
+  return {
+    id: BACK_ID,
+    title: "Задняя сторона",
+    kind: "page",
+    designed: true,
+    paper: cover?.paper ?? "rose",
+    bg: cover?.bg,
+    strokes: [],
+    blocks: [
+      {
+        id: "back-text",
+        type: "text",
+        x: 12,
+        y: 42,
+        w: 76,
+        text: "Эту книгу можно продолжать.\nСледующую страницу допишет уже другой.",
+        font: "script",
+        size: "lg",
+        align: "center",
+        color: darkCover ? "#fbf8f3" : "#8e3d52",
+      },
+    ],
+  };
+}
 
 function uid(): string {
   return crypto.randomUUID();
 }
 
-const KEY = "kniga-roda";
+let KEY = typeof window === "undefined" ? "kniga-roda" : storageKeyFor(activeProjectId());
+let suspendSave = false;
 let saveTimer: number | undefined;
 let lastValue: string | null = null;
 
@@ -109,6 +160,7 @@ const bookStorage: StateStorage = {
     }
   },
   setItem: (name, value) => {
+    if (suspendSave) return;
     lastValue = value;
     window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(() => {
@@ -128,6 +180,31 @@ export function flushBook(): void {
   const next = lastValue;
   lastValue = null;
   void idbSet(STATE_STORE, KEY, next).catch(() => undefined);
+}
+
+/** Переключает на другую книгу: сохраняет текущую, читает выбранную. */
+export async function openProject(id: string, seed?: Partial<typeof empty>): Promise<void> {
+  flushBook();
+  suspendSave = true;
+  try {
+    setActiveProject(id);
+    KEY = storageKeyFor(id);
+    useRod.persist.setOptions({ name: KEY });
+    useRod.setState({ ...empty, ...(seed ?? {}) });
+    if (!seed) await Promise.resolve(useRod.persist.rehydrate());
+  } finally {
+    suspendSave = false;
+  }
+  if (seed) {
+    // Новая книга сразу записывается под своим ключом.
+    useRod.setState({});
+    flushBook();
+  }
+}
+
+/** Стирает хранилище книги целиком (не картинки: они общие). */
+export async function dropProjectData(id: string): Promise<void> {
+  await idbSet(STATE_STORE, storageKeyFor(id), "").catch(() => undefined);
 }
 
 if (typeof window !== "undefined") {
@@ -185,9 +262,24 @@ export const useRod = create<RodState>()(
         return id;
       },
       updatePage: (id, updater) =>
-        set((state) => ({
-          pages: state.pages.map((page) => (page.id === id ? updater(page) : page)),
-        })),
+        set((state) => {
+          if (id === BACK_ID) return { back: updater(state.back ?? backPage(state.pages[0]?.kind === "cover" ? state.pages[0] : null)) };
+          return { pages: state.pages.map((page) => (page.id === id ? updater(page) : page)) };
+        }),
+      insertPage: (input, index) => {
+        const id = uid();
+        set((state) => {
+          const pages = state.pages.slice();
+          pages.splice(Math.max(0, Math.min(index, pages.length)), 0, { ...input, id });
+          return { pages };
+        });
+        return id;
+      },
+      addFont: (font) => set((state) => ({ fonts: [...state.fonts, font] })),
+      removeFont: (id) => set((state) => ({ fonts: state.fonts.filter((font) => font.id !== id) })),
+      addUserSticker: (ref) => set((state) => ({ userStickers: [ref, ...state.userStickers].slice(0, 200) })),
+      removeUserSticker: (ref) => set((state) => ({ userStickers: state.userStickers.filter((item) => item !== ref) })),
+      setSpine: (patch) => set((state) => ({ spine: { ...state.spine, ...patch } })),
       movePage: (id, direction) =>
         set((state) => {
           const index = state.pages.findIndex((page) => page.id === id);
@@ -265,7 +357,8 @@ export const useRod = create<RodState>()(
         })),
       resetAll: () => {
         set({ ...empty });
-        void idbClear(MEDIA_STORE).catch(() => undefined);
+        // Картинки общие для всех книг: стираем их только если книга одна.
+        if (listProjects().length <= 1) void idbClear(MEDIA_STORE).catch(() => undefined);
       },
     }),
     {

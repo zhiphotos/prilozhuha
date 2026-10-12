@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { ClipboardPaste, ImagePlus, Search, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, ClipboardPaste, ImagePlus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/rod/chrome";
 import { imageFromTransfer, importFromLink, importImage } from "@/lib/rod/image";
@@ -144,7 +144,7 @@ export function MoodBoard({ open, onToggle, onPlace }: { open: boolean; onToggle
         />
       </aside>
 
-      {zoom ? <MoodZoom refId={zoom} onClose={() => setZoom(null)} onPlace={() => { onPlace(zoom); setZoom(null); }} /> : null}
+      {zoom ? <MoodZoom items={items} refId={zoom} onChange={setZoom} onClose={() => setZoom(null)} onPlace={(ref) => { onPlace(ref); setZoom(null); }} /> : null}
     </>
   );
 }
@@ -163,13 +163,70 @@ function MoodItem({ refId, onZoom, onRemove }: { refId: string; onZoom: () => vo
   );
 }
 
-function MoodZoom({ refId, onClose, onPlace }: { refId: string; onClose: () => void; onPlace: () => void }) {
+/** Картинка на весь экран: листается свайпом влево и вправо, стрелками на экране и клавишами. */
+function MoodZoom({ items, refId, onChange, onClose, onPlace }: { items: string[]; refId: string; onChange: (ref: string) => void; onClose: () => void; onPlace: (ref: string) => void }) {
   const url = useMedia(refId);
+  const at = Math.max(0, items.indexOf(refId));
+  const start = useRef<{ x: number; y: number; id: number } | null>(null);
+  const [shift, setShift] = useState(0);
+  const go = (dir: -1 | 1) => {
+    const next = items[(at + dir + items.length) % items.length];
+    if (next) onChange(next);
+  };
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") go(-1);
+      if (event.key === "ArrowRight") go(1);
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center gap-3 bg-ink/70 p-4" onClick={onClose} role="dialog">
-      {url ? <img src={url} alt="Ориентир" className="max-h-[78svh] max-w-full rounded-2xl shadow-2xl" /> : null}
+    <div
+      className="fixed inset-0 z-[70] flex touch-pan-y flex-col items-center justify-center gap-3 bg-ink/70 p-4"
+      onClick={onClose}
+      role="dialog"
+      onPointerDown={(event) => {
+        start.current = { x: event.clientX, y: event.clientY, id: event.pointerId };
+      }}
+      onPointerMove={(event) => {
+        const s = start.current;
+        if (s && s.id === event.pointerId && Math.abs(event.clientX - s.x) > Math.abs(event.clientY - s.y)) setShift(event.clientX - s.x);
+      }}
+      onPointerUp={(event) => {
+        const s = start.current;
+        start.current = null;
+        setShift(0);
+        if (!s || s.id !== event.pointerId) return;
+        const dx = event.clientX - s.x;
+        const dy = event.clientY - s.y;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+          event.stopPropagation();
+          go(dx < 0 ? 1 : -1);
+        }
+      }}
+      onPointerCancel={() => {
+        start.current = null;
+        setShift(0);
+      }}
+    >
+      {url ? <img src={url} alt="Ориентир" draggable={false} className="max-h-[74svh] max-w-full select-none rounded-2xl shadow-2xl" style={{ transform: `translateX(${shift}px)`, transition: shift ? "none" : "transform 200ms" }} onClick={(event) => event.stopPropagation()} /> : null}
+      {items.length > 1 ? (
+        <>
+          <button type="button" aria-label="Предыдущая" className="absolute left-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/80" onClick={(event) => { event.stopPropagation(); go(-1); }}>
+            <ChevronLeft className="size-5" />
+          </button>
+          <button type="button" aria-label="Следующая" className="absolute right-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/80" onClick={(event) => { event.stopPropagation(); go(1); }}>
+            <ChevronRight className="size-5" />
+          </button>
+          <p className="rounded-full bg-night/70 px-3 py-1 text-xs text-paper">
+            {at + 1} / {items.length} · листайте пальцем влево и вправо
+          </p>
+        </>
+      ) : null}
       <div className="flex gap-2" onClick={(event) => event.stopPropagation()}>
-        <Button variant="white" onClick={onPlace}>
+        <Button variant="white" onClick={() => onPlace(refId)}>
           Положить на страницу
         </Button>
         <Button variant="soft" onClick={onClose}>

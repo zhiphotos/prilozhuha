@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowLeftRight, BookOpen, Lock, ChevronLeft, ChevronRight, Download, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeftRight, BookOpen, Lock, ChevronLeft, ChevronRight, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, ScreenFrame, Sheet, TopBar, useNav } from "@/components/rod/chrome";
 import { PageSheet } from "@/components/rod/page-view";
@@ -7,6 +7,7 @@ import { FULL_BOOK, FULL_BOOK_PAGES, fullBookPages } from "@/lib/rod/full-book";
 import { blankPage, coverPage, pageFromPhoto, pageFromPrompt, pageFromStory } from "@/lib/rod/layouts";
 import { PAGE_PROMPTS } from "@/lib/rod/pages";
 import { isBookReady, overallOf, partsOf, plural } from "@/lib/rod/progress";
+import { CoverSetup } from "@/components/rod/cover-setup";
 import { downloadFamilyBook, downloadPrintBlock, downloadPrintCover } from "@/lib/rod/print-book";
 import { useRod } from "@/lib/rod/store";
 import type { BookPage, PaperKind } from "@/lib/rod/types";
@@ -21,6 +22,7 @@ export function BookScreen() {
   const [library, setLibrary] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
+  const [coverSetup, setCoverSetup] = useState(false);
   const snapshot = { ...data, pages };
   const overall = overallOf(partsOf(snapshot));
   const ready = isBookReady(snapshot, overall) || pages.length >= 6;
@@ -52,6 +54,9 @@ export function BookScreen() {
         </Button>
         <Button variant="soft" className="min-h-12" disabled={pages.length === 0} onClick={() => setPrinting(true)}>
           <Printer className="size-4" /> Печать
+        </Button>
+        <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setCoverSetup(true)}>
+          <Palette className="size-4" /> Обложка: корешок и задняя сторона
         </Button>
       </div>
 
@@ -159,6 +164,7 @@ export function BookScreen() {
         </section>
       ) : null}
 
+      {coverSetup ? <CoverSetup onClose={() => setCoverSetup(false)} /> : null}
       {printing ? <PrintSheet pages={pages} meta={meta} onClose={() => setPrinting(false)} /> : null}
       {library ? <Library meta={meta} onClose={() => setLibrary(false)} onPick={(page) => { setLibrary(false); open(page); }} /> : null}
     </ScreenFrame>
@@ -219,6 +225,8 @@ function Library({ meta, onClose, onPick }: { meta: { dedicatee: string; collect
 function PrintSheet({ pages, meta, onClose }: { pages: BookPage[]; meta: { dedicatee: string; collector: string }; onClose: () => void }) {
   const print = useRod((state) => state.print);
   const setPrint = useRod((state) => state.setPrint);
+  const back = useRod((state) => state.back);
+  const spine = useRod((state) => state.spine);
   const [busy, setBusy] = useState<string | null>(null);
   const inner = pages.filter((page) => page.kind !== "cover").length;
   const total = inner + (inner % 2);
@@ -262,7 +270,7 @@ function PrintSheet({ pages, meta, onClose }: { pages: BookPage[]; meta: { dedic
         <Button className="min-h-12" disabled={Boolean(busy) || inner === 0} onClick={() => run("block", () => downloadPrintBlock(pages, meta, print, (d, t) => setBusy(`Страница ${d + 1} из ${t}…`)))}>
           <Download className="size-4" /> {busy && busy !== "cover" && busy !== "preview" ? busy : `Блок страниц · ${total} стр.`}
         </Button>
-        <Button variant="soft" className="min-h-12" disabled={Boolean(busy)} onClick={() => run("cover", () => downloadPrintCover(pages, meta, print))}>
+        <Button variant="soft" className="min-h-12" disabled={Boolean(busy)} onClick={() => run("cover", () => downloadPrintCover(pages, meta, print, { back, spine }))}>
           <Download className="size-4" /> {busy === "cover" ? "Собираю обложку…" : "Обложка разворотом"}
         </Button>
         <Button variant="ghost" disabled={Boolean(busy)} onClick={() => run("preview", () => downloadFamilyBook(pages, meta))}>
