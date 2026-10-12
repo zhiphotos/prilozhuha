@@ -29,6 +29,7 @@ import { BarBtn, Stepper } from "@/components/rod/editor-ui";
 import { ColorSheet } from "@/components/rod/color-sheet";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { BRUSHES, px2w, w2px } from "@/lib/rod/ink";
+import { BUILTIN_FONTS } from "@/lib/rod/fonts";
 import { startDictation, type Dictation } from "@/lib/rod/dictate";
 import { FONT_FAMILY, fontFamily, lookColors, textMetrics } from "@/lib/rod/page-style";
 import { SHAPES, isStrokedShape, shapeStyle } from "@/lib/rod/shapes";
@@ -77,6 +78,11 @@ export function FontChips({ value, onPick, onMore }: { value: FontRef; onPick: (
       {builtin.map((font) => (
         <BarBtn key={font} active={value === font} onClick={() => onPick(font)}>
           <span style={{ fontFamily: FONT_FAMILY[font] }}>{FONT_LABEL[font]}</span>
+        </BarBtn>
+      ))}
+      {BUILTIN_FONTS.map((font) => (
+        <BarBtn key={font.id} active={value === `custom:${font.id}`} onClick={() => onPick(`custom:${font.id}`)}>
+          <span style={{ fontFamily: fontFamily(`custom:${font.id}`), fontSize: 18 }}>{font.name}</span>
         </BarBtn>
       ))}
       {custom.map((font) => (

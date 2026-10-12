@@ -4,6 +4,24 @@ import type { CustomFontEntry } from "@/lib/rod/types";
 
 const loaded = new Set<string>();
 
+/** Шрифты, которые идут в комплекте с приложением. «Почерк бабушки» её собственный; в нём нет «!», «?», «-» и латиницы, их дорисует обычный шрифт. */
+export const BUILTIN_FONTS = [{ id: "babushka", name: "Почерк бабушки", file: "fonts/pocherk-babushki.ttf" }] as const;
+
+export async function registerBuiltinFonts(): Promise<void> {
+  if (typeof document === "undefined") return;
+  for (const font of BUILTIN_FONTS) {
+    if (loaded.has(font.id)) continue;
+    try {
+      const face = new FontFace(`kr-${font.id}`, `url(${font.file})`);
+      await face.load();
+      document.fonts.add(face);
+      loaded.add(font.id);
+    } catch {
+      /* без этого шрифта текст рисуется обычным */
+    }
+  }
+}
+
 export async function registerFont(entry: CustomFontEntry): Promise<boolean> {
   if (typeof document === "undefined" || loaded.has(entry.id)) return true;
   try {

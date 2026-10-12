@@ -173,6 +173,22 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const [pen, setPen] = useState<PenPrefs>(savedPen);
   const [straight, setStraight] = useState(false);
   const [penColors, setPenColors] = useState(false);
+  const [bins, setBins] = useState(() => {
+    try {
+      return localStorage.getItem("kniga-bins") !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const toggleBins = () =>
+    setBins((v) => {
+      try {
+        localStorage.setItem("kniga-bins", v ? "0" : "1");
+      } catch {
+        /* без запоминания */
+      }
+      return !v;
+    });
   const [pipette, setPipette] = useState<((color: string) => void) | null>(null);
   const [cropping, setCropping] = useState(false);
   const penSeen = useRef(0);
@@ -1430,6 +1446,17 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                           <span className="relative rounded-full bg-night/85 px-3 py-1 text-xs text-paper">{busy[block.id]}</span>
                         </div>
                       ) : null}
+                      {bins && !isSel && editing !== block.id && tool === "hand" && !block.locked && !cropping && !pipette && !(block.type === "text" && !block.text.trim() && !block.placeholder) ? (
+                        <button
+                          type="button"
+                          aria-label="Удалить"
+                          className="pointer-events-auto absolute -right-3 -top-3 z-20 grid size-11 place-items-center before:absolute before:inset-1.5 before:rounded-full before:bg-rose-deep/90 before:shadow"
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onClick={() => removeBlock(block.id)}
+                        >
+                          <Trash2 className="relative size-3.5 text-paper" />
+                        </button>
+                      ) : null}
                       {isSel && editing !== block.id && tool === "hand" && !block.locked && !cropping ? (
                         <Handles
                           onTurn={(event) => beginGesture(event, block, "turn")}
@@ -1835,6 +1862,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             ))}
           </div>
           <div className="grid gap-2">
+            <MenuRow icon={<Trash2 className="size-4" />} label={bins ? "Скрыть корзинки на элементах" : "Показать корзинки на каждом элементе"} onClick={() => { toggleBins(); setPanel(null); }} />
             {!isBack ? <MenuRow icon={<BookOpen className="size-4" />} label="Листать книгу" onClick={() => { setPanel(null); nav.go({ id: "flip", pageId: page.id }); }} /> : null}
             {!isBack ? <MenuRow icon={<FilePlus className="size-4" />} label="Добавить страницу следом" onClick={() => { setPanel(null); addNextPage(); }} /> : null}
             {partner ? (
