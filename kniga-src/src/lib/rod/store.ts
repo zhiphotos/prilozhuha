@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import { DEFAULT_PRINT, isDark, type PrintSetup } from "@/lib/rod/page-style";
@@ -160,6 +161,31 @@ let suspendSave = false;
 let saveTimer: number | undefined;
 let lastValue: string | null = null;
 
+let warnedAt = 0;
+
+/** Пишет книгу в IndexedDB; при ошибке повторяет, потом пишет запасную копию и честно предупреждает. */
+async function persistBook(name: string, value: string): Promise<void> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await idbSet(STATE_STORE, name, value);
+      return;
+    } catch {
+      await new Promise((resolve) => window.setTimeout(resolve, 400));
+    }
+  }
+  let backedUp = false;
+  try {
+    localStorage.setItem(name, value);
+    backedUp = true;
+  } catch {
+    /* места нет и там */
+  }
+  if (Date.now() - warnedAt > 30000) {
+    warnedAt = Date.now();
+    toast(backedUp ? "Книга сохранена в запасном месте. Сделайте копию в «Настройках»." : "Не получилось сохранить последние правки. Сделайте копию книги в «Настройках».", { duration: 9000 });
+  }
+}
+
 // Состояние пишется в IndexedDB с небольшой задержкой: при наборе текста не надо сохранять каждую букву.
 const bookStorage: StateStorage = {
   getItem: async (name) => {
@@ -188,7 +214,7 @@ const bookStorage: StateStorage = {
     saveTimer = window.setTimeout(() => {
       const next = lastValue;
       lastValue = null;
-      if (next !== null) void idbSet(STATE_STORE, name, next).catch(() => undefined);
+      if (next !== null) void persistBook(name, next);
     }, 250);
   },
   removeItem: async (name) => {
@@ -201,7 +227,7 @@ export function flushBook(): void {
   window.clearTimeout(saveTimer);
   const next = lastValue;
   lastValue = null;
-  void idbSet(STATE_STORE, KEY, next).catch(() => undefined);
+  void persistBook(KEY, next);
 }
 
 /** Переключает на другую книгу: сохраняет текущую, читает выбранную. */
