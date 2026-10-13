@@ -133,7 +133,7 @@ function DeckLink({ item, saved, onOpen, featured = false }: { item: Situation; 
         № {numberOf(item.id)} · {item.play ? "Семейная игра" : "Колода"}
       </span>
       <span className={cn("mt-2 block", item.title.length > 11 || item.title.includes(" ") ? "font-sans font-semibold" : "display-title", featured ? "max-w-[12ch] text-[1.8rem] leading-[1] text-paper" : "relative z-10 max-w-[11ch] text-[1.1rem] leading-[1.05] text-ink")}>{item.title}</span>
-      {cat.tag ? <span className={cn("hand relative z-10 mt-1 block whitespace-nowrap text-[1.12rem] leading-none [transform:rotate(-2deg)]", dark ? "text-[#c9ae74]" : "text-gold-ink")}>{cat.tag}</span> : null}
+      {cat.tag ? <span className={cn("hand relative z-10 mt-1 block whitespace-nowrap text-[1.12rem] leading-none", dark ? "text-[#c9ae74]" : "text-gold-ink")}>{cat.tag}</span> : null}
       {featured ? <span className="mt-2 block max-w-[28ch] text-sm text-paper/75">{item.hint}</span> : null}
       <span className={cn("relative z-10 mt-4 block text-xs", featured ? "" : "max-w-[56%]", dark ? "text-paper/80" : "text-ink/75")}>
         {saved > 0 ? `Отвечено ${saved} из ${total}` : `${total} карточек · начните с первой`}
@@ -251,7 +251,7 @@ export function DeckScreen({ situationId }: { situationId: string }) {
       {done ? (
         <section className="forest rounded-2xl p-6 pr-28" style={{ ["--forest-img" as string]: packBg("bg_8146") }}>
           <h2 className="display-title one-line leading-none text-paper [--max:2.2rem]" style={lineStyle("Колода пройдена")}>Колода пройдена</h2>
-          <p className="hand mt-2 text-[1.6rem] leading-none text-[#c9ae74] [transform:rotate(-2deg)]">спасибо за этот разговор</p>
+          <p className="hand mt-2 text-[1.6rem] leading-none text-[#c9ae74]">спасибо за этот разговор</p>
           <p className="mt-3 max-w-[30ch] text-paper/80">Ответы уже в книге. Если разговор зашёл далеко, соберите из них страницы.</p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Button variant="white" onClick={() => nav.tab({ id: "cards" })}>К накопленному</Button>
