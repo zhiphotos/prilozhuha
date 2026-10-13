@@ -1,4 +1,5 @@
 // Печатная версия: каждая страница рисуется на холсте 300 dpi по тем же правилам, что и на экране.
+import { ensureLibraryFont, libraryIdsIn } from "@/lib/rod/fonts";
 import { resolveMedia } from "@/lib/rod/media";
 import { cropGeom } from "@/lib/rod/crop";
 import { strokeGeom } from "@/lib/rod/ink";
@@ -516,6 +517,7 @@ export async function paintPage(page: BookPage, meta: CoverMeta, setup?: PrintSe
 async function loadFonts(blocks: PageBlock[]) {
   if (typeof document === "undefined" || !document.fonts) return;
   const specs = new Set<string>();
+  await Promise.all(libraryIdsIn(blocks.map((block) => (block.type === "text" ? block.font : undefined))).map((id) => ensureLibraryFont(id)));
   for (const block of blocks) if (block.type === "text") specs.add(`${fontWeight(block.font)} 40px ${fontFamily(block.font)}`);
   await Promise.all([...specs].map((spec) => document.fonts.load(spec, "Книга рода аА").catch(() => [])));
 }

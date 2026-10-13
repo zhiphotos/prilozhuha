@@ -29,9 +29,10 @@ import { BarBtn, Stepper } from "@/components/rod/editor-ui";
 import { ColorSheet } from "@/components/rod/color-sheet";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { BRUSHES, px2w, w2px } from "@/lib/rod/ink";
-import { BUILTIN_FONTS } from "@/lib/rod/fonts";
 import { startDictation, type Dictation } from "@/lib/rod/dictate";
 import { FONT_FAMILY, fontFamily, lookColors, textMetrics } from "@/lib/rod/page-style";
+import { FontLibrarySheet } from "@/components/rod/font-library";
+import { libFont } from "@/lib/rod/fonts";
 import { SHAPES, isStrokedShape, shapeStyle } from "@/lib/rod/shapes";
 import { FONT_LABEL } from "@/lib/rod/pages";
 import { useRod } from "@/lib/rod/store";
@@ -72,6 +73,8 @@ type TextBlock = Extract<PageBlock, { type: "text" }>;
 
 export function FontChips({ value, onPick, onMore }: { value: FontRef; onPick: (font: FontRef) => void; onMore?: () => void }) {
   const custom = useRod((state) => state.fonts);
+  const [library, setLibrary] = useState(false);
+  const chosen = typeof value === "string" && value.startsWith("custom:") ? libFont(value.slice(7)) : undefined;
   const builtin: FontKind[] = ["sans", "script"];
   return (
     <>
@@ -85,6 +88,15 @@ export function FontChips({ value, onPick, onMore }: { value: FontRef; onPick: (
           <span style={{ fontFamily: fontFamily(`custom:${font.id}`) }}>{font.name}</span>
         </BarBtn>
       ))}
+      {chosen ? (
+        <BarBtn active onClick={() => setLibrary(true)}>
+          <span style={{ fontFamily: fontFamily(value) }}>{chosen.name}</span>
+        </BarBtn>
+      ) : null}
+      <BarBtn onClick={() => setLibrary(true)} label="Все шрифты">
+        Все шрифты
+      </BarBtn>
+      {library ? <FontLibrarySheet value={value} onPick={onPick} onClose={() => setLibrary(false)} /> : null}
       {onMore ? (
         <BarBtn onClick={onMore} label="Свой шрифт">
           + Свой шрифт
