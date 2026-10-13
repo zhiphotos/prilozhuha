@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowRight, BookCopy, BookOpen, Camera, Clock, Play, Search, Settings2, Users } from "lucide-react";
 import { OpenCopyButton } from "@/components/rod/open-copy";
 import { requestTour } from "@/components/rod/tour";
-import { Botanica, Cut, HandArrow, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/botanica";
+import { Botanica, Cut, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/botanica";
 import { filledCount } from "@/components/rod/contents-sheet";
 import { AUDIENCES, LESSONS, audienceTitle, reminder } from "@/lib/rod/content";
 import { countsOf, isBookReady, nextStep, overallOf, partsOf, plural } from "@/lib/rod/progress";
@@ -76,10 +76,7 @@ export function HomeScreen() {
       <h1 className="display-title one-line leading-[1.1] text-ink [--max:2.8rem]" style={lineStyle(heading)}>{heading}</h1>
       {facts.length && mode !== "new" ? <p className="mt-2 text-[15px] text-muted">{facts.slice(0, 3).join(", ")}</p> : null}
 
-      <p className="hand mt-2 flex items-center gap-2 text-[1.6rem] leading-none text-gold-ink">
-        {note}
-        <HandArrow className="mt-2 h-6 w-10 rotate-90" />
-      </p>
+      <p className="hand mt-2 text-[1.6rem] leading-none text-gold-ink">{note}</p>
 
       <button
         type="button"
