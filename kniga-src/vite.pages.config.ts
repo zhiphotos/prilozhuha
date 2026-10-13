@@ -9,11 +9,6 @@ const src = fileURLToPath(new URL("./src", import.meta.url));
 export default defineConfig({
   base: "./",
   plugins: [tailwindcss(), viteReact()],
-  resolve: {
-    alias: [
-      { find: "@/lib/rod/studio-ai", replacement: fileURLToPath(new URL("./spa/studio-ai.static.ts", import.meta.url)) },
-      { find: /^@\//, replacement: src + "/" },
-    ],
-  },
+  resolve: { alias: [{ find: /^@\//, replacement: src + "/" }] },
   build: { outDir: process.env.OUT_DIR || "dist-pages", emptyOutDir: true },
 });

@@ -9,7 +9,8 @@ import type { Audience, Screen } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
 import { toast } from "sonner";
 import { Button, Field, ScreenFrame, Sheet, useNav } from "@/components/rod/chrome";
-import { exportBook, importBook } from "@/lib/rod/backup";
+import { exportBook, importBook, lastBackupAt } from "@/lib/rod/backup";
+import { InstallCard, InstallSheet } from "@/components/rod/install-hint";
 import { ProjectsSheet } from "@/components/rod/projects-sheet";
 import { activeProjectId, listProjects } from "@/lib/rod/projects";
 
@@ -155,12 +156,44 @@ export function HomeScreen() {
         ) : null}
       </section>
 
+      <BackupCard hasData={total > 0 || data.pages.length > 1} />
+      <InstallCard />
+
       <p className="hand mt-12 text-center text-[1.9rem] text-gold-ink [transform:rotate(-1.5deg)]">с любовью к роду</p>
       <Botanica id="sprout" pal={PAL_LIGHT} className="mx-auto mt-1 h-14 opacity-80" />
 
       {profile ? <ProfileSheet onClose={() => setProfile(false)} /> : null}
       {projects ? <ProjectsSheet onClose={() => setProjects(false)} /> : null}
     </ScreenFrame>
+  );
+}
+
+function BackupCard({ hasData }: { hasData: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [last, setLast] = useState(() => lastBackupAt());
+  const old = last ? Date.now() - last.getTime() > 7 * 86400000 : hasData;
+  const save = () => {
+    setBusy(true);
+    void exportBook()
+      .then((mode) => {
+        if (mode === "cancelled") return;
+        setLast(lastBackupAt());
+        toast(mode === "shared" ? "Копия готова: выберите «Сохранить в Файлы»" : "Копия сохранена в «Загрузки»");
+      })
+      .catch(() => toast("Копия не сохранилась"))
+      .finally(() => setBusy(false));
+  };
+  return (
+    <section className={cn("mt-9 rounded-2xl p-5", old && hasData ? "wash-blush" : "glass")}>
+      <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Копия книги</h2>
+      <p className="display-title mt-1 text-[1.5rem] leading-tight text-ink">
+        {last ? `Последняя копия: ${last.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}` : hasData ? "Копии ещё нет" : "Здесь появится копия"}
+      </p>
+      <p className="mt-1 text-sm text-muted">Весь текст и все фото в одном файле. Его можно открыть на другом телефоне или сохранить в «Файлы», чтобы ничего не потерять.</p>
+      <Button className="mt-4" onClick={save} disabled={busy || !hasData}>
+        {busy ? "Собираю…" : "Скачать копию всей книги"}
+      </Button>
+    </section>
   );
 }
 
@@ -189,6 +222,7 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState(dedicatee);
   const [mine, setMine] = useState(collector);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [install, setInstall] = useState(false);
 
   return (
     <Sheet title="Для кого эта книга" onClose={onClose}>
@@ -232,7 +266,7 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
           <p className="font-semibold text-ink">Копия книги</p>
           <p className="mt-1 text-sm text-muted">Книга хранится только в этом браузере. Сохраняйте копию в файл — с ней книгу можно открыть на другом телефоне или iPad.</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button variant="primary" onClick={() => void exportBook().then(() => toast("Копия сохранена в «Загрузки»")).catch(() => toast("Копия не сохранилась"))}>
+            <Button variant="primary" onClick={() => void exportBook().then((mode) => mode !== "cancelled" && toast(mode === "shared" ? "Копия готова: выберите «Сохранить в Файлы»" : "Копия сохранена в «Загрузки»")).catch(() => toast("Копия не сохранилась"))}>
               Сохранить копию
             </Button>
             <label className="glass inline-flex min-h-11 cursor-pointer items-center rounded-full px-5 text-sm font-semibold text-ink">
@@ -256,6 +290,12 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
             </label>
           </div>
         </div>
+        <div className="mt-4">
+          <Button variant="soft" onClick={() => setInstall(true)}>
+            Значок на экране «Домой»
+          </Button>
+        </div>
+        {install ? <InstallSheet onClose={() => setInstall(false)} /> : null}
         <div className="mt-4 border-t border-white/60 pt-4">
           {confirmReset ? (
             <div className="flex flex-wrap gap-2">

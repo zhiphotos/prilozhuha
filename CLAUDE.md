@@ -116,7 +116,7 @@
 
 # Приложение «Книга рода» (тест)
 
-Исходники — `kniga-src/` (React + Vite, перенесено из Grok). Собранная версия для GitHub Pages лежит
+Исходники — `kniga-src/` (React + Vite, собственный код без шаблона Grok). Собранная версия для GitHub Pages лежит
 в `kr-k3nu7rmszt/` — нарочно неочевидное имя, ссылку знает только Дарина, страница с `noindex`.
 Пересборка: `cd kniga-src && npm ci --ignore-scripts && npm run build:pages` (пишет в `../kr-k3nu7rmszt`), закоммитить обе папки.
 
