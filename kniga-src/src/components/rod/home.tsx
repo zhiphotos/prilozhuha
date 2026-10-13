@@ -274,7 +274,6 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
               Открыть копию
               <input
                 type="file"
-                accept=".kniga,application/json"
                 className="sr-only"
                 onChange={(event) => {
                   const file = event.target.files?.[0];
