@@ -21,7 +21,19 @@ function replaceRefs(value: unknown, map: Map<string, string>): unknown {
   return value;
 }
 
-export async function exportBook(): Promise<void> {
+const LAST_KEY = "kniga-last-backup";
+
+export function lastBackupAt(): Date | null {
+  try {
+    const raw = localStorage.getItem(LAST_KEY);
+    return raw ? new Date(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Собирает копию: вся книга и все фото одним файлом. На телефоне открывает «Поделиться» (там «Сохранить в Файлы»), на компьютере скачивает. */
+export async function exportBook(): Promise<"shared" | "downloaded" | "cancelled"> {
   flushBook();
   const state = useRod.getState();
   const data = Object.fromEntries(DATA_KEYS.map((key) => [key, state[key]]));
@@ -29,15 +41,36 @@ export async function exportBook(): Promise<void> {
   collectRefs(data, refs);
   const media: Record<string, string> = {};
   for (const ref of refs) media[ref] = await mediaDataUrl(ref);
-  const blob = new Blob([JSON.stringify({ app: "kniga-roda", version: 1, savedAt: new Date().toISOString(), data, media })], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
+  const body = JSON.stringify({ app: "kniga-roda", version: 1, savedAt: new Date().toISOString(), data, media });
+  const name = `Книга рода — копия ${new Date().toLocaleDateString("ru-RU")}.kniga`;
+  const mark = () => {
+    try {
+      localStorage.setItem(LAST_KEY, new Date().toISOString());
+    } catch {
+      /* без отметки копия всё равно сохранена */
+    }
+  };
+  const file = new File([body], name, { type: "application/json" });
+  const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
+  if (typeof nav.share === "function" && nav.canShare?.({ files: [file] })) {
+    try {
+      await nav.share({ files: [file], title: "Книга рода" });
+      mark();
+      return "shared";
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return "cancelled";
+    }
+  }
+  const url = URL.createObjectURL(new Blob([body], { type: "application/json" }));
   const link = document.createElement("a");
   link.href = url;
-  link.download = `Книга рода — копия ${new Date().toLocaleDateString("ru-RU")}.kniga`;
+  link.download = name;
   document.body.appendChild(link);
   link.click();
   link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  mark();
+  return "downloaded";
 }
 
 export async function importBook(file: File): Promise<void> {
