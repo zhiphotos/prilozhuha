@@ -71,7 +71,7 @@ type TextBlock = Extract<PageBlock, { type: "text" }>;
 
 // ——— Выбор шрифта ———
 
-export function FontChips({ value, onPick, onMore }: { value: FontRef; onPick: (font: FontRef) => void; onMore?: () => void }) {
+export function FontChips({ value, onPick, onMore, sample }: { value: FontRef; onPick: (font: FontRef) => void; onMore?: () => void; sample?: string }) {
   const custom = useRod((state) => state.fonts);
   const [library, setLibrary] = useState(false);
   const chosen = typeof value === "string" && value.startsWith("custom:") ? libFont(value.slice(7)) : undefined;
@@ -96,7 +96,7 @@ export function FontChips({ value, onPick, onMore }: { value: FontRef; onPick: (
       <BarBtn onClick={() => setLibrary(true)} label="Все шрифты">
         Все шрифты
       </BarBtn>
-      {library ? <FontLibrarySheet value={value} onPick={onPick} onClose={() => setLibrary(false)} /> : null}
+      {library ? <FontLibrarySheet value={value} sample={sample} onPick={onPick} onClose={() => setLibrary(false)} /> : null}
       {onMore ? (
         <BarBtn onClick={onMore} label="Свой шрифт">
           + Свой шрифт
@@ -251,7 +251,7 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
         {more ? (
         <>
         <div className="no-scrollbar mt-2 flex items-center gap-1.5 overflow-x-auto">
-          <FontChips value={block.font} onPick={(font) => ops.patch({ font } as Partial<PageBlock>)} onMore={ops.openFonts} />
+          <FontChips value={block.font} onPick={(font) => ops.patch({ font } as Partial<PageBlock>)} onMore={ops.openFonts} sample={block.text} />
         </div>
         <div className="mt-2">
           <Stepper
@@ -606,7 +606,7 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
         {block.type === "text" ? (
           <Section title="Текст">
             <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1">
-              <FontChips value={block.font} onPick={(font) => ops.patch({ font } as Partial<PageBlock>)} onMore={ops.openFonts} />
+              <FontChips value={block.font} onPick={(font) => ops.patch({ font } as Partial<PageBlock>)} onMore={ops.openFonts} sample={block.text} />
             </div>
             <div className="mt-2">
               <Stepper label="Размер" value={px} min={10} max={300} onChange={(v) => ops.patch({ px: v } as Partial<PageBlock>, `size:${block.id}`)} />
