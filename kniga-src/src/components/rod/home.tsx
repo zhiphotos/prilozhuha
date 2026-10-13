@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { ArrowRight, BookCopy, BookOpen, Camera, Clock, Play, Search, Settings2, Users } from "lucide-react";
-import { Botanica, Cut, HandArrow, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/botanica";
+import { OpenCopyButton } from "@/components/rod/open-copy";
+import { requestTour } from "@/components/rod/tour";
+import { Botanica, Cut, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/botanica";
 import { filledCount } from "@/components/rod/contents-sheet";
 import { AUDIENCES, LESSONS, audienceTitle, reminder } from "@/lib/rod/content";
 import { countsOf, isBookReady, nextStep, overallOf, partsOf, plural } from "@/lib/rod/progress";
@@ -9,7 +11,7 @@ import type { Audience, Screen } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
 import { toast } from "sonner";
 import { Button, Field, ScreenFrame, Sheet, lineStyle, useNav } from "@/components/rod/chrome";
-import { exportBook, importBook, lastBackupAt } from "@/lib/rod/backup";
+import { exportBook, lastBackupAt } from "@/lib/rod/backup";
 import { InstallCard, InstallSheet } from "@/components/rod/install-hint";
 import { ProjectsSheet } from "@/components/rod/projects-sheet";
 import { activeProjectId, listProjects } from "@/lib/rod/projects";
@@ -57,7 +59,7 @@ export function HomeScreen() {
             <Botanica id="sprout" pal={PAL_DARK} className="size-8" />
           </span>
           <div>
-            <p className="hand text-[1.7rem] leading-none text-gold-ink">{bookName ? `Книга ${bookName}` : "Книга рода"}</p>
+            <p className="text-sm font-semibold leading-none text-gold-ink">{bookName ? `Книга ${bookName}` : "Книга рода"}</p>
             <p className="mt-1 text-lg font-semibold leading-tight text-ink">{who}</p>
           </div>
         </div>
@@ -74,15 +76,13 @@ export function HomeScreen() {
       <h1 className="display-title one-line leading-[1.1] text-ink [--max:2.8rem]" style={lineStyle(heading)}>{heading}</h1>
       {facts.length && mode !== "new" ? <p className="mt-2 text-[15px] text-muted">{facts.slice(0, 3).join(", ")}</p> : null}
 
-      <p className="hand mt-3 flex items-center gap-2 text-[1.6rem] leading-none text-gold-ink [transform:rotate(-2deg)]">
-        {note}
-        <HandArrow className="mt-2 h-6 w-10 rotate-90" />
-      </p>
+      <p className="hand mt-1 text-[1.6rem] leading-none text-gold-ink">{note}</p>
 
       <button
         type="button"
         onClick={heroGo}
-        className="forest mt-1 block w-full rounded-2xl p-6 pb-24 text-left sm:pb-6 sm:pr-56"
+        data-tour="hero"
+        className="forest mt-5 block w-full rounded-2xl p-6 pb-24 text-left sm:pb-6 sm:pr-56"
         style={{ ["--forest-img" as string]: packBg("bg_8154") }}
       >
         <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">{heroLabel}</span>
@@ -160,7 +160,7 @@ export function HomeScreen() {
       <BackupCard hasData={total > 0 || data.pages.length > 1} />
       <InstallCard />
 
-      <p className="hand mt-12 text-center text-[1.9rem] text-gold-ink [transform:rotate(-1.5deg)]">с любовью к роду</p>
+      <p className="hand mt-12 text-center text-[1.9rem] text-gold-ink">с любовью к роду</p>
       <Botanica id="sprout" pal={PAL_LIGHT} className="mx-auto mt-1 h-14 opacity-80" />
 
       {profile ? <ProfileSheet onClose={() => setProfile(false)} /> : null}
@@ -185,7 +185,7 @@ function BackupCard({ hasData }: { hasData: boolean }) {
       .finally(() => setBusy(false));
   };
   return (
-    <section className={cn("mt-9 rounded-2xl p-5", old && hasData ? "wash-blush" : "glass")}>
+    <section data-tour="backup" className={cn("mt-9 rounded-2xl p-5", old && hasData ? "wash-blush" : "glass")}>
       <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Копия книги</h2>
       <p className="mt-1 text-[1.35rem] font-semibold leading-tight text-ink">
         {last ? `Последняя копия: ${last.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}` : hasData ? "Копии ещё нет" : "Здесь появится копия"}
@@ -264,30 +264,20 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
           </Button>
         </div>
         <div className="mt-6 rounded-3xl bg-white/60 p-4">
+          <p className="font-semibold text-ink">Знакомство с приложением</p>
+          <p className="mt-1 text-sm text-muted">Короткая экскурсия по разделам: что где лежит.</p>
+          <Button variant="soft" className="mt-3" onClick={() => { onClose(); window.setTimeout(requestTour, 200); }}>
+            Показать экскурсию
+          </Button>
+        </div>
+        <div className="mt-6 rounded-3xl bg-white/60 p-4">
           <p className="font-semibold text-ink">Копия книги</p>
           <p className="mt-1 text-sm text-muted">Книга хранится только в этом браузере. Сохраняйте копию в файл – с ней книгу можно открыть на другом телефоне или iPad.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="primary" onClick={() => void exportBook().then((mode) => mode !== "cancelled" && toast(mode === "shared" ? "Копия готова: выберите «Сохранить в Файлы»" : "Копия сохранена в «Загрузки»")).catch(() => toast("Копия не сохранилась"))}>
               Сохранить копию
             </Button>
-            <label className="glass inline-flex min-h-11 cursor-pointer items-center rounded-full px-5 text-sm font-semibold text-ink">
-              Открыть копию
-              <input
-                type="file"
-                className="sr-only"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (!file) return;
-                  void importBook(file)
-                    .then(() => {
-                      toast("Книга загружена из копии");
-                      onClose();
-                    })
-                    .catch((error: unknown) => toast(error instanceof Error ? error.message : "Копия не открылась"));
-                }}
-              />
-            </label>
+            <OpenCopyButton onDone={onClose} />
           </div>
         </div>
         <div className="mt-4">

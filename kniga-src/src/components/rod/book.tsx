@@ -53,7 +53,7 @@ export function BookScreen() {
     <ScreenFrame>
       <TopBar kicker="Моя книга" title={name ? `Книга рода · ${name}` : "Книга рода"} />
 
-      <div className="mb-5 grid grid-cols-[1fr_auto] gap-2 sm:flex">
+      <div data-tour="book-actions" className="mb-5 grid grid-cols-[1fr_auto] gap-2 sm:flex">
         <Button className="min-h-12" disabled={pages.length === 0} onClick={() => nav.go({ id: "flip" })}>
           <BookOpen className="size-4" /> Листать книгу
         </Button>
