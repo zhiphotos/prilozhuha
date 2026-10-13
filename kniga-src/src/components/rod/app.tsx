@@ -8,6 +8,7 @@ import { EditorScreen } from "@/components/rod/editor";
 import { FlipBookScreen } from "@/components/rod/flipbook";
 import { HomeScreen } from "@/components/rod/home";
 import { LessonScreen, LessonsScreen } from "@/components/rod/lessons";
+import { AppTour } from "@/components/rod/tour";
 import { Onboarding } from "@/components/rod/onboarding";
 import { PhotoNewScreen } from "@/components/rod/photo";
 import { StoriesScreen, StoryScreen, WizardScreen } from "@/components/rod/stories";
@@ -75,7 +76,14 @@ export function RodApp() {
   );
 
   if (!hydrated) return <Onboarding ready={false} />;
-  if (!onboarded) return <Onboarding />;
+  if (!onboarded) {
+    return (
+      <>
+        <Onboarding />
+        <Toaster position="top-center" toastOptions={{ className: "rod-toast" }} />
+      </>
+    );
+  }
 
   const screen = nav.screen;
   const full = screen.id === "editor" || screen.id === "flip";
@@ -95,6 +103,7 @@ export function RodApp() {
           <Dock />
         </>
       )}
+      <AppTour />
       <Toaster position="top-center" offset={{ top: "4.75rem" }} mobileOffset={{ top: "4.75rem" }} toastOptions={{ className: "rod-toast" }} />
     </NavProvider>
   );

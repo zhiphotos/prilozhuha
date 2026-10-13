@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { ArrowRight, BookCopy, BookOpen, Camera, Clock, Play, Search, Settings2, Users } from "lucide-react";
+import { OpenCopyButton } from "@/components/rod/open-copy";
+import { requestTour } from "@/components/rod/tour";
 import { Botanica, Cut, HandArrow, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/botanica";
 import { filledCount } from "@/components/rod/contents-sheet";
 import { AUDIENCES, LESSONS, audienceTitle, reminder } from "@/lib/rod/content";
@@ -9,7 +11,7 @@ import type { Audience, Screen } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
 import { toast } from "sonner";
 import { Button, Field, ScreenFrame, Sheet, lineStyle, useNav } from "@/components/rod/chrome";
-import { exportBook, importBook, lastBackupAt } from "@/lib/rod/backup";
+import { exportBook, lastBackupAt } from "@/lib/rod/backup";
 import { InstallCard, InstallSheet } from "@/components/rod/install-hint";
 import { ProjectsSheet } from "@/components/rod/projects-sheet";
 import { activeProjectId, listProjects } from "@/lib/rod/projects";
@@ -82,6 +84,7 @@ export function HomeScreen() {
       <button
         type="button"
         onClick={heroGo}
+        data-tour="hero"
         className="forest mt-1 block w-full rounded-2xl p-6 pb-24 text-left sm:pb-6 sm:pr-56"
         style={{ ["--forest-img" as string]: packBg("bg_8154") }}
       >
@@ -185,7 +188,7 @@ function BackupCard({ hasData }: { hasData: boolean }) {
       .finally(() => setBusy(false));
   };
   return (
-    <section className={cn("mt-9 rounded-2xl p-5", old && hasData ? "wash-blush" : "glass")}>
+    <section data-tour="backup" className={cn("mt-9 rounded-2xl p-5", old && hasData ? "wash-blush" : "glass")}>
       <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Копия книги</h2>
       <p className="mt-1 text-[1.35rem] font-semibold leading-tight text-ink">
         {last ? `Последняя копия: ${last.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}` : hasData ? "Копии ещё нет" : "Здесь появится копия"}
@@ -264,30 +267,20 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
           </Button>
         </div>
         <div className="mt-6 rounded-3xl bg-white/60 p-4">
+          <p className="font-semibold text-ink">Знакомство с приложением</p>
+          <p className="mt-1 text-sm text-muted">Короткая экскурсия по разделам: что где лежит.</p>
+          <Button variant="soft" className="mt-3" onClick={() => { onClose(); window.setTimeout(requestTour, 200); }}>
+            Показать экскурсию
+          </Button>
+        </div>
+        <div className="mt-6 rounded-3xl bg-white/60 p-4">
           <p className="font-semibold text-ink">Копия книги</p>
           <p className="mt-1 text-sm text-muted">Книга хранится только в этом браузере. Сохраняйте копию в файл – с ней книгу можно открыть на другом телефоне или iPad.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="primary" onClick={() => void exportBook().then((mode) => mode !== "cancelled" && toast(mode === "shared" ? "Копия готова: выберите «Сохранить в Файлы»" : "Копия сохранена в «Загрузки»")).catch(() => toast("Копия не сохранилась"))}>
               Сохранить копию
             </Button>
-            <label className="glass inline-flex min-h-11 cursor-pointer items-center rounded-full px-5 text-sm font-semibold text-ink">
-              Открыть копию
-              <input
-                type="file"
-                className="sr-only"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (!file) return;
-                  void importBook(file)
-                    .then(() => {
-                      toast("Книга загружена из копии");
-                      onClose();
-                    })
-                    .catch((error: unknown) => toast(error instanceof Error ? error.message : "Копия не открылась"));
-                }}
-              />
-            </label>
+            <OpenCopyButton onDone={onClose} />
           </div>
         </div>
         <div className="mt-4">

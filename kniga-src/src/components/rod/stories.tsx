@@ -33,8 +33,8 @@ export function StoriesScreen() {
         </ul>
       ) : null}
       <ul className="mt-5 grid gap-2">
-        {STORY_TEMPLATES.map((template) => (
-          <li key={template.id}>
+        {STORY_TEMPLATES.map((template, index) => (
+          <li key={template.id} data-tour={index === 0 ? "stories-list" : undefined}>
             <button
               type="button"
               onClick={() => nav.go({ id: "wizard", templateId: template.id })}

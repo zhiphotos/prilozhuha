@@ -57,7 +57,7 @@ export function CardsScreen() {
   return (
     <ScreenFrame>
       <TopBar kicker="Вопросы" title="Спросите, пока можно" />
-      <p className="max-w-xl text-muted">
+      <p data-tour="cards-intro" className="max-w-xl text-muted">
         Передайте телефон. На карточке говорят в микрофон: коротко, как помнят. Ответы копятся, и из них можно собрать страницы.
       </p>
 

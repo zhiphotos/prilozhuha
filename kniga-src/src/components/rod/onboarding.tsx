@@ -3,6 +3,7 @@ import { AUDIENCES } from "@/lib/rod/content";
 import type { Audience } from "@/lib/rod/types";
 import { useRod } from "@/lib/rod/store";
 import { Button, Field, lineStyle } from "@/components/rod/chrome";
+import { OpenCopyButton } from "@/components/rod/open-copy";
 import { Cut, packBg } from "@/components/rod/botanica";
 import { cn } from "@/lib/cn";
 
@@ -77,6 +78,12 @@ export function Onboarding({ ready = true }: { ready?: boolean }) {
         <Button className="mt-6 w-full" disabled={!ready || !audience} onClick={() => audience && finish({ audience, dedicatee, collector })}>
           Начать собирать
         </Button>
+        {ready ? (
+          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-ink/10 pt-5">
+            <p className="min-w-0 flex-1 text-sm text-muted">Уже сохраняли копию книги?</p>
+            <OpenCopyButton />
+          </div>
+        ) : null}
       </div>
     </main>
   );

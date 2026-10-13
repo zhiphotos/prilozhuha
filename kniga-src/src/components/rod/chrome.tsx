@@ -100,7 +100,7 @@ export function Dock() {
   const current = tabKey(nav.screen);
   return (
     <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 px-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] lg:hidden">
-      <ul className="glass-strong mx-auto grid max-w-md grid-cols-5 rounded-2xl p-1.5">
+      <ul data-tour="nav" className="glass-strong mx-auto grid max-w-md grid-cols-5 rounded-2xl p-1.5">
         {TABS.map((item) => {
           const Icon = item.icon;
           const active = current === item.id;
@@ -130,7 +130,7 @@ export function SideNav() {
   const nav = useNav();
   const current = tabKey(nav.screen);
   return (
-    <aside className="glass no-print sticky top-6 hidden h-fit flex-col gap-1 rounded-2xl p-3 lg:flex">
+    <aside data-tour="nav" className="glass no-print sticky top-6 hidden h-fit flex-col gap-1 rounded-2xl p-3 lg:flex">
       <p className="display-title px-3 pb-2 pt-2 text-[0.95rem] text-ink">Книга рода</p>
       {TABS.map((item) => {
         const Icon = item.icon;
