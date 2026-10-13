@@ -1,5 +1,5 @@
 // Что делаем после того, как книга прочитана из хранилища: чиним старые страницы, подключаем свои шрифты.
-import { registerBuiltinFonts, registerFont } from "@/lib/rod/fonts";
+import { ensureLibraryFont, libraryIdsIn, registerBuiltinFonts, registerFont } from "@/lib/rod/fonts";
 import { migrateCover, migratePage } from "@/lib/rod/layouts";
 import { openProject } from "@/lib/rod/store";
 import { useRod } from "@/lib/rod/store";
@@ -12,6 +12,10 @@ export function afterHydrate(): void {
   }));
   void registerBuiltinFonts();
   for (const font of useRod.getState().fonts ?? []) void registerFont(font);
+  // Шрифты из библиотеки, которые уже стоят на страницах и на корешке.
+  const now = useRod.getState();
+  const used = [...now.pages, ...(now.back ? [now.back] : [])].flatMap((page) => page.blocks.filter((block) => block.type === "text").map((block) => (block as { font?: string }).font));
+  for (const id of libraryIdsIn([...used, now.spine?.font])) void ensureLibraryFont(id);
 }
 
 /** Открыть другую книгу (или новую) и привести её в порядок. */
