@@ -8,7 +8,7 @@ const id = () => crypto.randomUUID();
 type Text = Extract<PageBlock, { type: "text" }>;
 
 function text(partial: Partial<Text> & Pick<Text, "x" | "y" | "w">): Text {
-  return { id: id(), type: "text", text: "", font: "serif", size: "md", ...partial };
+  return { id: id(), type: "text", text: "", font: "sans", size: "md", ...partial };
 }
 
 function slot(x: number, y: number, w: number, h: number, label: string, frame: "polaroid" | "none" | "tape" | "sticker" = "polaroid", rotate = 0): PageBlock {
@@ -30,16 +30,16 @@ function build(prompt: PagePrompt): Array<PageBlock | null> {
   const [q1 = "", q2 = "", q3 = ""] = prompt.questions;
   // Квадратная страница: координаты в % стороны. Всё важное – внутри охранного поля (≈4–6 %).
   const long = prompt.title.length > 26;
-  const title = text({ x: 8, y: 6, w: 84, text: prompt.title, size: "lg" });
+  const title = text({ x: 8, y: 6, w: 84, text: prompt.title, font: "script", size: "lg" });
   const hint = long ? null : text({ x: 8, y: 13, w: 84, text: prompt.hint, font: "script", size: "sm" });
   const top = long ? 20 : 19;
 
   if (prompt.id === "dedication") {
     return [
       sticker("flower", 45, 10, 10),
-      text({ x: 10, y: 22, w: 80, text: "Посвящение", size: "lg", align: "center" }),
+      text({ x: 10, y: 22, w: 80, text: "Посвящение", font: "script", size: "lg", align: "center" }),
       text({ x: 14, y: 34, w: 72, font: "script", size: "md", align: "center", placeholder: q1 }),
-      text({ x: 14, y: 60, w: 72, font: "serif", size: "md", align: "center", placeholder: q3 || q2 }),
+      text({ x: 14, y: 60, w: 72, font: "sans", size: "md", align: "center", placeholder: q3 || q2 }),
       sticker("branch", 40, 84, 20),
     ];
   }
@@ -54,7 +54,7 @@ function build(prompt: PagePrompt): Array<PageBlock | null> {
       text({ x: 52, y: top + 20, w: 40, font: "script", size: "md", placeholder: "впишите" }),
       text({ x: 52, y: top + 29, w: 40, text: "Откуда", look: "pill", font: "sans", size: "sm" }),
       text({ x: 52, y: top + 34, w: 40, font: "script", size: "md", placeholder: "впишите" }),
-      text({ x: 8, y: 68, w: 84, font: "serif", size: "md", placeholder: q2 || q1 }),
+      text({ x: 8, y: 68, w: 84, font: "sans", size: "md", placeholder: q2 || q1 }),
       text({ x: 8, y: 84, w: 56, font: "sans", size: "sm", look: "card", text: q3 || q1, rotate: -1.5 }),
       sticker("heart", 80, 82, 9, 8),
     ];
@@ -93,7 +93,7 @@ function build(prompt: PagePrompt): Array<PageBlock | null> {
       text({ x: 37, y: 76, w: 26, font: "script", size: "sm", placeholder: "впишите" }),
       text({ x: 66, y: 71, w: 26, text: "Когда", look: "pill", font: "sans", size: "sm" }),
       text({ x: 66, y: 76, w: 26, font: "script", size: "sm", placeholder: "впишите" }),
-      text({ x: 8, y: 86, w: 84, font: "serif", size: "sm", placeholder: q2 || q1 }),
+      text({ x: 8, y: 86, w: 84, font: "sans", size: "sm", placeholder: q2 || q1 }),
     ];
   }
   return [
@@ -101,7 +101,7 @@ function build(prompt: PagePrompt): Array<PageBlock | null> {
     hint,
     slot(8, top, 42, 40, "Фото", "polaroid", -3),
     slot(52, top + 4, 40, 32, "Ещё фото", "tape", 3),
-    text({ x: 8, y: 66, w: 84, font: "serif", size: "md", placeholder: q1 }),
+    text({ x: 8, y: 66, w: 84, font: "sans", size: "md", placeholder: q1 }),
     text({ x: 8, y: 83, w: 56, font: "sans", size: "sm", look: "card", text: q2 || q1, rotate: -1.5 }),
     text({ x: 76, y: 85, w: 16, font: "sans", size: "sm", look: "pill", placeholder: "год" }),
   ];
@@ -137,31 +137,31 @@ export function coverDesigns(meta: CoverMeta): { id: string; label: string; page
   return [
     make("Классика", "rose", [
       text({ x: 10, y: 17, w: 80, text: "СЕМЕЙНАЯ ЛЕТОПИСЬ", font: "sans", size: "sm", align: "center" }),
-      text({ x: 8, y: 23, w: 84, text: "Книга\nрода", size: "xl", align: "center" }),
+      text({ x: 8, y: 23, w: 84, text: "Книга\nрода", font: "script", size: "xl", align: "center" }),
       sticker("branch", 38, 52, 24),
       text({ x: 10, y: 72, w: 80, text: forWhom(meta), font: "script", size: "lg", align: "center" }),
       signed(meta, 82),
     ]),
     make("Фото на всю обложку", "kraft", [
       slot(0, 0, 100, 100, "Фото на обложку", "none"),
-      text({ x: 16, y: 68, w: 68, text: "Книга рода", size: "lg", look: "card", align: "center" }),
+      text({ x: 16, y: 68, w: 68, text: "Книга рода", font: "script", size: "lg", look: "card", align: "center" }),
       text({ x: 25, y: 82, w: 50, text: forWhom(meta), font: "sans", size: "sm", look: "pill", align: "center" }),
     ]),
     make("Крафт и полароид", "kraft", [
       slot(22, 12, 56, 52, "Старое фото", "polaroid", -2),
       sticker("tape", 39, 9, 22, -3),
-      text({ x: 10, y: 70, w: 80, text: "Книга рода", size: "lg", align: "center" }),
+      text({ x: 10, y: 70, w: 80, text: "Книга рода", font: "script", size: "lg", align: "center" }),
       text({ x: 10, y: 79, w: 80, text: forWhom(meta), font: "script", size: "md", align: "center" }),
       signed(meta, 87),
     ]),
     make("Шалфей", "sage", [
       sticker("leaf", 80, 9, 10, 12),
-      text({ x: 9, y: 50, w: 82, text: "Книга\nрода", size: "xl" }),
+      text({ x: 9, y: 50, w: 82, text: "Книга\nрода", font: "script", size: "xl" }),
       text({ x: 9, y: 80, w: 82, text: forWhom(meta), font: "script", size: "md" }),
       signed(meta, 87, 9, 82, "left"),
     ]),
     make("Дневник", "dots", [
-      text({ x: 9, y: 9, w: 56, text: "Книга рода", size: "lg", look: "card", rotate: -2 }),
+      text({ x: 9, y: 9, w: 56, text: "Книга рода", font: "script", size: "lg", look: "card", rotate: -2 }),
       slot(38, 28, 52, 48, "Фото", "sticker", 3),
       sticker("heart", 14, 44, 12, -8),
       sticker("sparkle", 80, 12, 9),
@@ -189,7 +189,7 @@ export function pageFromStory(title: string, narrative: string): Omit<BookPage, 
     paper: "cream",
     strokes: [],
     blocks: [
-      text({ x: 8, y: 6, w: 84, text: title, size: "lg" }),
+      text({ x: 8, y: 6, w: 84, text: title, font: "script", size: "lg" }),
       sticker("branch", 8, 14, 18),
       text({ x: 8, y: 21, w: 84, text: narrative, size: "sm" }),
     ],
@@ -221,7 +221,7 @@ export function migratePage(page: BookPage): BookPage {
     }
     if (block.type === "voice") {
       changed = true;
-      return text({ id: block.id, x: block.x, y: block.y, w: block.w, text: `${block.title}\n${block.transcript}`, font: "serif", size: "sm", look: "card", rotate: block.rotate });
+      return text({ id: block.id, x: block.x, y: block.y, w: block.w, text: `${block.title}\n${block.transcript}`, font: "sans", size: "sm", look: "card", rotate: block.rotate });
     }
     if (block.type === "doc") {
       changed = true;

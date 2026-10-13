@@ -17,7 +17,7 @@ export function Onboarding({ ready = true }: { ready?: boolean }) {
     <main className="min-h-dvh">
       <header className="forest rounded-none px-6 pb-14 pt-[max(2.5rem,env(safe-area-inset-top))]" style={{ ["--forest-img" as string]: packBg("bg_8154") }}>
         <div className="mx-auto max-w-xl">
-          <p className="hand text-[2.4rem] leading-none text-[#c9ae74]">Книга рода</p>
+          <p className="display-title text-[1.3rem] leading-none text-[#c9ae74]">Книга рода</p>
           <h1 className="display-title one-line mt-4 leading-[1.1] text-paper [--max:2.8rem]" style={lineStyle("Для кого эта книга?")}>Для кого эта книга?</h1>
           <p className="mt-3 max-w-[32ch] text-paper/75">Страница нужна тому, кто однажды её откроет.</p>
         </div>

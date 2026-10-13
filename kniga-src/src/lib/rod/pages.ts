@@ -236,9 +236,9 @@ export function findPrompt(id: string | undefined): PagePrompt | undefined {
 }
 
 export const FONT_LABEL: Record<FontKind, string> = {
-  serif: "Книжный",
-  sans: "Спокойный",
-  script: "Рукописный",
+  serif: "Текст",
+  sans: "Текст",
+  script: "Почерк бабушки",
 };
 
 export function todayTask(input: {

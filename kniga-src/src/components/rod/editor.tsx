@@ -1832,7 +1832,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             setPanel(null);
             if (look === "card") addText({ look: "card", font: "sans", size: "sm", w: 56, x: 22 });
             else if (look === "pill") addText({ look: "pill", font: "sans", size: "sm", w: 40, x: 30 });
-            else addText({ font: "serif", size: "lg", w: 84, x: 8, y: 8 });
+            else addText({ font: "script", size: "lg", w: 84, x: 8, y: 8 });
           }}
         />
       ) : null}
@@ -1899,7 +1899,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           onInsert={(text) => {
             const empty = page.blocks.find((b) => b.type === "text" && !b.text.trim() && b.look !== "pill" && b.look !== "card");
             if (empty) patchBlock(empty.id, { text } as Partial<PageBlock>);
-            else addBlock({ id: id(), type: "text", x: 8, y: 55, w: 84, text, font: "serif", size: "sm" });
+            else addBlock({ id: id(), type: "text", x: 8, y: 55, w: 84, text, font: "sans", size: "sm" });
             setPanel(null);
           }}
         />

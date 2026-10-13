@@ -111,10 +111,8 @@ export function CoverArt({ meta }: { meta: CoverMeta }) {
         <p style={{ fontFamily: FONT_FAMILY.sans, fontSize: "2.6cqw", letterSpacing: "0.6cqw" }} className="uppercase text-[#8e3d52]">
           семейная летопись
         </p>
-        <p style={{ fontFamily: FONT_FAMILY.serif, fontWeight: 600, fontSize: "14cqw", lineHeight: 0.95 }} className="mt-[3cqw] text-[#2a2420]">
-          Книга
-          <br />
-          рода
+        <p style={{ fontFamily: FONT_FAMILY.script, fontWeight: 400, fontSize: "15cqw", lineHeight: 1 }} className="mt-[3cqw] text-[#2a2420]">
+          Книга рода
         </p>
         <img src={stickerUrl("branch")} alt="" className="mx-auto mt-[3cqw] w-[30cqw]" />
       </div>

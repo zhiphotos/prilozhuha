@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowRight, BookCopy, BookOpen, Camera, Clock, Play, Search, Settings2, Users } from "lucide-react";
-import { Botanica, Cut, HandArrow, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/botanica";
+import { Botanica, Cut, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/botanica";
 import { filledCount } from "@/components/rod/contents-sheet";
 import { AUDIENCES, LESSONS, audienceTitle, reminder } from "@/lib/rod/content";
 import { countsOf, isBookReady, nextStep, overallOf, partsOf, plural } from "@/lib/rod/progress";
@@ -43,7 +43,7 @@ export function HomeScreen() {
     counts.notes ? plural(counts.notes, "ответ", "ответа", "ответов") : "",
   ].filter(Boolean);
   const heading = mode === "new" ? "Начнём с имени" : mode === "going" ? "Продолжим книгу" : "Книга началась";
-  const note = mode === "new" ? "первый шаг совсем небольшой" : mode === "going" ? "здесь мы остановились" : "шаг за шагом";
+  const note = mode === "new" ? "Первый шаг совсем небольшой." : mode === "going" ? "Здесь мы остановились." : "Шаг за шагом.";
   const heroLabel = mode === "going" ? "Продолжить" : "Следующий шаг";
   const heroTitle = mode === "going" && last ? last.title || "Страница" : step.title;
   const heroDetail = mode === "going" ? "Вернуться туда, где остановились" : step.detail;
@@ -57,8 +57,8 @@ export function HomeScreen() {
             <Botanica id="sprout" pal={PAL_DARK} className="size-8" />
           </span>
           <div>
-            <p className="hand text-[1.7rem] leading-none text-gold-ink">{bookName ? `Книга ${bookName}` : "Книга рода"}</p>
-            <p className="display-title text-[1.05rem] leading-tight text-ink">{who}</p>
+            <p className="display-title text-[1.1rem] leading-none text-gold-ink">{bookName ? `Книга ${bookName}` : "Книга рода"}</p>
+            <p className="mt-1 text-lg font-semibold leading-tight text-ink">{who}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -74,10 +74,7 @@ export function HomeScreen() {
       <h1 className="display-title one-line leading-[1.1] text-ink [--max:2.8rem]" style={lineStyle(heading)}>{heading}</h1>
       {facts.length && mode !== "new" ? <p className="mt-2 text-[15px] text-muted">{facts.slice(0, 3).join(", ")}</p> : null}
 
-      <p className="hand one-line mt-5 flex items-center gap-2 text-gold-ink [--em:13.5] [--max:1.9rem] [transform:rotate(-2deg)]">
-        {note}
-        <HandArrow className="mt-2 h-6 w-10 rotate-90" />
-      </p>
+      <p className="mt-3 text-[15px] text-muted">{note}</p>
 
       <button
         type="button"
@@ -160,7 +157,7 @@ export function HomeScreen() {
       <BackupCard hasData={total > 0 || data.pages.length > 1} />
       <InstallCard />
 
-      <p className="hand mt-12 text-center text-[1.9rem] text-gold-ink [transform:rotate(-1.5deg)]">с любовью к роду</p>
+      <p className="mt-12 text-center text-sm text-muted">с любовью к роду</p>
       <Botanica id="sprout" pal={PAL_LIGHT} className="mx-auto mt-1 h-14 opacity-80" />
 
       {profile ? <ProfileSheet onClose={() => setProfile(false)} /> : null}
@@ -187,7 +184,7 @@ function BackupCard({ hasData }: { hasData: boolean }) {
   return (
     <section className={cn("mt-9 rounded-2xl p-5", old && hasData ? "wash-blush" : "glass")}>
       <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Копия книги</h2>
-      <p className="display-title mt-1 text-[1.15rem] leading-tight text-ink">
+      <p className="mt-1 text-[1.35rem] font-semibold leading-tight text-ink">
         {last ? `Последняя копия: ${last.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}` : hasData ? "Копии ещё нет" : "Здесь появится копия"}
       </p>
       <p className="mt-1 text-sm text-muted">Весь текст и все фото в одном файле. Его можно открыть на другом телефоне или сохранить в «Файлы», чтобы ничего не потерять.</p>

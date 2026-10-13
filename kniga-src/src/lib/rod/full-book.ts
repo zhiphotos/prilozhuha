@@ -152,14 +152,14 @@ export const FULL_BOOK: Chapter[] = [
 
 const id = () => crypto.randomUUID();
 type Text = Extract<PageBlock, { type: "text" }>;
-const text = (p: Partial<Text> & Pick<Text, "x" | "y" | "w">): Text => ({ id: id(), type: "text", text: "", font: "serif", size: "md", ...p });
+const text = (p: Partial<Text> & Pick<Text, "x" | "y" | "w">): Text => ({ id: id(), type: "text", text: "", font: "sans", size: "md", ...p });
 const slot = (x: number, y: number, w: number, h: number, label: string, frame: PhotoFrame = "polaroid", rotate = 0): PageBlock => ({ id: id(), type: "slot", x, y, w, h, label, frame, rotate });
 const pill = (x: number, y: number, w: number, label: string) => text({ x, y, w, text: label, font: "sans", size: "sm", look: "pill" });
 
 function blocksFor(kind: Kind, chapter: Chapter, entry: Entry, part: number): PageBlock[] {
   const head = [
     text({ x: 8, y: 5, w: 70, text: `Глава ${chapter.n} · ${chapter.title}`, font: "sans", size: "sm", color: "#8e3d52" }),
-    text({ x: 8, y: 9, w: 84, text: part > 1 ? "" : entry.title, size: "lg", placeholder: part > 1 ? "Продолжение" : undefined }),
+    text({ x: 8, y: 9, w: 84, text: part > 1 ? "" : entry.title, font: "script", size: "lg", placeholder: part > 1 ? "Продолжение" : undefined }),
   ];
   const body = (y: number, w = 84, x = 8, size: Text["size"] = "md") => text({ x, y, w, size, placeholder: entry.desc });
   switch (kind) {
@@ -226,7 +226,7 @@ function blocksFor(kind: Kind, chapter: Chapter, entry: Entry, part: number): Pa
     case "letter":
       return [
         text({ x: 8, y: 5, w: 70, text: `Глава ${chapter.n} · ${chapter.title}`, font: "sans", size: "sm", color: "#8e3d52" }),
-        text({ x: 10, y: 20, w: 80, text: entry.title, size: "lg", align: "center" }),
+        text({ x: 10, y: 20, w: 80, text: entry.title, font: "script", size: "lg", align: "center" }),
         text({ x: 12, y: 34, w: 76, font: "script", size: "md", align: "center", placeholder: entry.desc }),
         { id: id(), type: "sticker", kind: "branch", x: 40, y: 82, w: 20 },
       ];

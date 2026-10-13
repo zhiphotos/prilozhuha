@@ -1,3 +1,4 @@
+import { downloadProgress } from "@/lib/rod/download-progress";
 import { env, pipeline, type RawImage } from "@huggingface/transformers";
 import { canvasToSticker, layAsSticker } from "@/lib/rod/sticker";
 
@@ -28,11 +29,7 @@ function loadRemover(models: readonly string[], onProgress?: (label: string) => 
         onProgress?.("Готовлю вырезку…");
         const session = await pipeline("background-removal", model, {
           dtype: "q8",
-          progress_callback: (update: { status?: string; progress?: number }) => {
-            if (update.status === "progress") {
-              onProgress?.(`Скачиваю вырезку… ${Math.round(update.progress ?? 0)}%`);
-            }
-          },
+          progress_callback: downloadProgress((percent) => `Скачиваю вырезку… ${percent}%`, (label) => onProgress?.(label)),
         });
         return session as Remover;
       } catch (error) {

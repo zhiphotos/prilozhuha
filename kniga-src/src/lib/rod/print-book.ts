@@ -214,10 +214,9 @@ async function paintCover(ctx: CanvasRenderingContext2D, meta: CoverMeta) {
   y += 2.6 * U * 1.5 + 3 * U;
   ctx.fillStyle = COLORS.ink;
   ctx.textAlign = "center";
-  ctx.font = `600 ${14 * U}px ${FONT_FAMILY.serif}`;
-  ctx.fillText("Книга", W / 2, y);
-  ctx.fillText("рода", W / 2, y + 14 * U * 0.95);
-  y += 14 * U * 0.95 * 2 + 3 * U;
+  ctx.font = `400 ${15 * U}px ${FONT_FAMILY.script}`;
+  ctx.fillText("Книга рода", W / 2, y + 12 * U);
+  y += 15 * U + 3 * U;
   const branch = await loadImage(stickerUrl("branch"));
   if (branch) ctx.drawImage(branch, W / 2 - 15 * U, y, 30 * U, 30 * U * stickerRatio("branch"));
   ctx.textBaseline = "bottom";
@@ -227,7 +226,7 @@ async function paintCover(ctx: CanvasRenderingContext2D, meta: CoverMeta) {
   const collector = meta.collector.trim();
   if (collector) ctx.fillText(`собрал(а) ${collector}`, W / 2, bottom);
   ctx.fillStyle = COLORS.roseDeep;
-  ctx.font = `500 ${7 * U}px ${FONT_FAMILY.script}`;
+  ctx.font = `400 ${7 * U}px ${FONT_FAMILY.script}`;
   ctx.fillText(meta.dedicatee.trim() ? `для тебя, ${meta.dedicatee.trim()}` : "для тех, кто откроет позже", W / 2, collector ? bottom - 5 * U : bottom);
   ctx.restore();
 }
@@ -300,7 +299,7 @@ async function paintPhoto(ctx: CanvasRenderingContext2D, block: Extract<PageBloc
     if (block.caption.trim()) {
       const size = Math.min(5, block.w * 0.075) * U;
       ctx.fillStyle = COLORS.ink;
-      ctx.font = `500 ${size}px ${FONT_FAMILY.script}`;
+      ctx.font = `400 ${size}px ${FONT_FAMILY.script}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(block.caption, w / 2, h - bottom / 2, w - side * 2);
@@ -541,9 +540,9 @@ async function fontsReady() {
   if (typeof document === "undefined" || !document.fonts) return;
   await Promise.all(
     [
-      `600 40px ${FONT_FAMILY.serif}`,
-      `500 40px ${FONT_FAMILY.sans}`,
-      `500 40px ${FONT_FAMILY.script}`,
+      `400 40px ${FONT_FAMILY.serif}`,
+      `600 40px ${FONT_FAMILY.sans}`,
+      `400 40px ${FONT_FAMILY.script}`,
     ].map((spec) => document.fonts.load(spec, "Книга рода").catch(() => [])),
   );
   await document.fonts.ready;
@@ -606,7 +605,7 @@ export async function downloadPrintCover(pages: BookPage[], meta: CoverMeta, set
   await fontsReady();
   const cover = pages.find((page) => page.kind === "cover") ?? { id: "cover", title: "Обложка", kind: "cover" as const, paper: "rose" as const, strokes: [], blocks: [] };
   const backSource = extra.back ?? backPage(cover.kind === "cover" ? (cover as BookPage) : null);
-  const spineSet = extra.spine ?? { text: "", font: "serif" as const, size: 0 };
+  const spineSet = extra.spine ?? { text: "", font: "script" as const, size: 0 };
   // Обе стороны с вылетами: фото на всю обложку доходит до края под обрез.
   const front = await paintPage(cover, meta, setup);
   const back = await paintPage(backSource, meta, setup);

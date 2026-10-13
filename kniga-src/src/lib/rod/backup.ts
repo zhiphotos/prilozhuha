@@ -81,7 +81,7 @@ export async function importBook(file: File): Promise<void> {
     if (dataUrl) map.set(ref, await saveMedia(dataUrl));
   }
   const data = replaceRefs(parsed.data, map) as Record<string, unknown>;
-  const defaults: Record<string, unknown> = { back: null, spine: { text: "", font: "serif", size: 0 }, fonts: [], userStickers: [], plan: [] };
+  const defaults: Record<string, unknown> = { back: null, spine: { text: "", font: "script", size: 0 }, fonts: [], userStickers: [], plan: [] };
   const clean = { ...defaults, ...Object.fromEntries(DATA_KEYS.filter((key) => key in data).map((key) => [key, data[key]])) };
   useRod.setState(clean);
   afterHydrate();

@@ -97,7 +97,7 @@ type RodState = {
   resetAll: () => void;
 };
 
-const DEFAULT_SPINE: SpineSetup = { text: "", font: "serif", size: 0 };
+const DEFAULT_SPINE: SpineSetup = { text: "", font: "script", size: 0 };
 
 const empty = {
   onboarded: false,

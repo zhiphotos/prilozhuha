@@ -33,8 +33,6 @@
   --color-kraft: #a07858;
   --font-sans: "Manrope Variable", "Manrope", "Segoe UI", sans-serif;
   --font-display: "Yauza", "Manrope Variable", "Segoe UI", sans-serif;
-  --font-serif: "Cormorant Garamond", Georgia, serif;
-  --font-script: "Caveat", "Segoe Script", cursive;
   --radius-4xl: 2rem;
   --shadow-soft: 0 18px 40px -28px rgb(20 22 15 / 0.55);
   --shadow-card: 0 1px 0 rgb(255 255 255 / 0.6) inset, 0 14px 30px -22px rgb(20 22 15 / 0.5);
@@ -167,7 +165,7 @@
 
   /* Почерк бабушки: только слова и цифры (в шрифте нет ! ? - : и латиницы, их дорисует Caveat). */
   .hand {
-    font-family: "kr-babushka", var(--font-script);
+    font-family: "kr-babushka", "Manrope Variable", "Segoe UI", sans-serif;
     font-weight: 400;
     line-height: 1.15;
     letter-spacing: 0.01em;
