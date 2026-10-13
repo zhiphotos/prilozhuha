@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeftRight, BookOpen, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeftRight, BookOpen, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, ScreenFrame, Sheet, TopBar, useNav } from "@/components/rod/chrome";
 import { PageSheet } from "@/components/rod/page-view";
@@ -326,6 +326,7 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
   const [moving, setMoving] = useState(false);
   const [moveTo, setMoveTo] = useState("");
   const movePages = useRod((state) => state.movePages);
+  const duplicatePage = useRod((state) => state.duplicatePage);
 
   const drop = (ids: string[]) => {
     if (!ids.length) return;
@@ -355,6 +356,15 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
     const back = undoStack.current.pop();
     setUndoCount(undoStack.current.length);
     if (back) back();
+  };
+  /** Копия встаёт сразу после оригинала; «Отменить» убирает её. */
+  const duplicate = (ids: string[]) => {
+    const made = ids.map((id) => (pages.find((page) => page.id === id)?.kind === "cover" ? null : duplicatePage(id))).filter((id): id is string => !!id);
+    if (!made.length) return;
+    undoStack.current = [...undoStack.current.slice(-39), () => removePages(made)];
+    setUndoCount(undoStack.current.length);
+    setPicked([]);
+    toast(made.length === 1 ? "Копия рядом со страницей" : `Копий: ${made.length}`);
   };
   const reorder = (apply: () => void) => {
     remember();
@@ -491,6 +501,9 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
               </Button>
             </span>
           ) : null}
+          <Button variant="white" className="min-h-10 px-3" disabled={!picked.some((id) => pages.find((page) => page.id === id)?.kind !== "cover")} onClick={() => duplicate(picked)}>
+            <Copy className="size-4" /> Дублировать{picked.length ? ` · ${picked.length}` : ""}
+          </Button>
           <Button className="min-h-10 px-3" variant="night" disabled={!picked.length} onClick={() => drop(picked)}>
             <Trash2 className="size-4" /> Удалить выбранные{picked.length ? ` · ${picked.length}` : ""}
           </Button>
@@ -534,6 +547,11 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
               {arrange ? (
                 <>
                   <span className={cn("pointer-events-none absolute left-2 top-2 grid size-6 place-items-center rounded-full border-2 border-white text-xs font-bold shadow", picked.includes(page.id) ? "bg-night text-paper" : "bg-white/70 text-transparent")}>✓</span>
+                  {page.kind !== "cover" ? (
+                    <button type="button" aria-label="Дублировать страницу" onClick={() => duplicate([page.id])} className="absolute right-12 top-2 grid size-8 place-items-center rounded-full bg-white/90 text-ink shadow">
+                      <Copy className="size-4" />
+                    </button>
+                  ) : null}
                   <button type="button" aria-label="Удалить страницу" onClick={() => drop([page.id])} className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-white/90 text-rose-deep shadow">
                     <Trash2 className="size-4" />
                   </button>
