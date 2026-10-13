@@ -59,7 +59,7 @@ export function HomeScreen() {
             <Botanica id="sprout" pal={PAL_DARK} className="size-8" />
           </span>
           <div>
-            <p className="hand text-[1.7rem] leading-none text-gold-ink">{bookName ? `Книга ${bookName}` : "Книга рода"}</p>
+            <p className="text-sm font-semibold leading-none text-gold-ink">{bookName ? `Книга ${bookName}` : "Книга рода"}</p>
             <p className="mt-1 text-lg font-semibold leading-tight text-ink">{who}</p>
           </div>
         </div>
@@ -76,7 +76,7 @@ export function HomeScreen() {
       <h1 className="display-title one-line leading-[1.1] text-ink [--max:2.8rem]" style={lineStyle(heading)}>{heading}</h1>
       {facts.length && mode !== "new" ? <p className="mt-2 text-[15px] text-muted">{facts.slice(0, 3).join(", ")}</p> : null}
 
-      <p className="hand mt-3 flex items-center gap-2 text-[1.6rem] leading-none text-gold-ink [transform:rotate(-2deg)]">
+      <p className="hand mt-2 flex items-center gap-2 text-[1.6rem] leading-none text-gold-ink [transform:rotate(-2deg)]">
         {note}
         <HandArrow className="mt-2 h-6 w-10 rotate-90" />
       </p>
@@ -85,7 +85,7 @@ export function HomeScreen() {
         type="button"
         onClick={heroGo}
         data-tour="hero"
-        className="forest mt-1 block w-full rounded-2xl p-6 pb-24 text-left sm:pb-6 sm:pr-56"
+        className="forest mt-5 block w-full rounded-2xl p-6 pb-24 text-left sm:pb-6 sm:pr-56"
         style={{ ["--forest-img" as string]: packBg("bg_8154") }}
       >
         <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">{heroLabel}</span>
