@@ -51,6 +51,7 @@ type RodState = {
   setPlan: (plan: Chapter[]) => void;
   toggleChapter: (id: string) => void;
   renameChapter: (id: string, title: string) => void;
+  setChapterPlanned: (id: string, planned: number) => void;
   removeChapter: (id: string) => void;
   moveChapter: (id: string, dir: -1 | 1) => void;
   addFont: (font: CustomFontEntry) => void;
@@ -289,6 +290,7 @@ export const useRod = create<RodState>()(
         }),
       setPlan: (plan) => set({ plan }),
       toggleChapter: (id) => set((state) => ({ plan: state.plan.map((c) => (c.id === id ? { ...c, done: !c.done } : c)) })),
+      setChapterPlanned: (id, planned) => set((state) => ({ plan: state.plan.map((c) => (c.id === id ? { ...c, planned: Math.max(1, Math.min(60, Math.round(planned))) } : c)) })),
       renameChapter: (id, title) => set((state) => ({ plan: state.plan.map((c) => (c.id === id ? { ...c, title: title.trim() || c.title } : c)) })),
       removeChapter: (id) =>
         set((state) => ({

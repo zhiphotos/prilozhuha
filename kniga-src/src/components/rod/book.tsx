@@ -60,7 +60,7 @@ export function BookScreen() {
         <Button variant="soft" className="min-h-12" disabled={pages.length === 0} onClick={() => setPrinting(true)}>
           <Printer className="size-4" /> Печать
         </Button>
-        <Button className="col-span-2 min-h-12 sm:col-span-1" disabled={pages.length === 0 && plan.length === 0} onClick={() => setContents(true)}>
+        <Button className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setContents(true)}>
           <BookOpen className="size-4" /> Содержание{plan.length ? ` · ${plan.filter((c) => c.done).length} из ${plan.length}` : ""}
         </Button>
         <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setPlanning(true)}>

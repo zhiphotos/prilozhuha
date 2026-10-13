@@ -10,6 +10,7 @@ import {
   ListChecks,
   ImagePlus,
   Layers,
+  Lightbulb,
   Lock,
   MoreHorizontal,
   PenLine,
@@ -1711,11 +1712,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             <Layers className="size-5" />
           </ToolBtn>
           <ToolBtn label="Подсказки" onClick={() => setPanel("help")}>
-            <Sparkles className="size-5" />
+            <Lightbulb className="size-5" />
           </ToolBtn>
         </div>
       </nav>
 
+      <RotateHint />
       <PinnedRefs refs={pinned} onUnpin={togglePin} />
       <MoodBoard pinned={pinned} onPin={togglePin} open={mood} onToggle={() => setMood((v) => !v)} onPlace={(ref) => void placePhoto(ref, undefined, undefined, false)} />
 
@@ -2032,5 +2034,30 @@ function PartnerPage({ page, meta, width, side, onOpen }: { page: BookPage; meta
         Нажмите, чтобы оформлять
       </span>
     </button>
+  );
+}
+
+/** Телефон лёжа: на лист остаётся слишком мало места, просим повернуть. */
+function RotateHint() {
+  const query = "(orientation: landscape) and (max-height: 500px)";
+  const [wide, setWide] = useState(() => window.matchMedia(query).matches);
+  const [skip, setSkip] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const on = () => setWide(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  if (!wide || skip) return null;
+  return (
+    <div role="alertdialog" aria-label="Поверните телефон" className="fixed inset-0 z-[70] grid place-items-center bg-night/95 p-6 text-center text-paper">
+      <div className="max-w-xs">
+        <p className="display-title text-2xl">Поверните телефон</p>
+        <p className="mt-2 text-sm text-paper/80">Страницу удобнее редактировать, когда телефон стоит вертикально: лист получается крупнее.</p>
+        <button type="button" className="mt-4 min-h-11 rounded-full bg-paper px-5 text-sm font-medium text-ink" onClick={() => setSkip(true)}>
+          Всё равно продолжить
+        </button>
+      </div>
+    </div>
   );
 }

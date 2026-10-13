@@ -51,6 +51,7 @@ export function ContentsSheet({ onOpen, onClose, current }: { onOpen: (pageId: s
   const plan = useRod((state) => state.plan);
   const toggle = useRod((state) => state.toggleChapter);
   const rename = useRod((state) => state.renameChapter);
+  const setPlanned = useRod((state) => state.setChapterPlanned);
   const remove = useRod((state) => state.removeChapter);
   const move = useRod((state) => state.moveChapter);
   const setPlan = useRod((state) => state.setPlan);
@@ -69,6 +70,17 @@ export function ContentsSheet({ onOpen, onClose, current }: { onOpen: (pageId: s
     const at = pages.length;
     const id = insertPage({ ...blankPage(), chapterId: c.id, title: c.title }, at);
     onOpen(id);
+  };
+
+  const addMissing = (c: Chapter, count: number) => {
+    let last = -1;
+    pages.forEach((page, i) => {
+      if (page.chapterId === c.id) last = i;
+    });
+    const at = last >= 0 ? last + 1 : pages.length;
+    const need = Math.max(0, c.planned - count);
+    for (let k = 0; k < need; k += 1) insertPage({ ...blankPage(), chapterId: c.id, title: c.title }, at + k);
+    toast(`Добавила ${need} стр. в главу «${c.title}»`);
   };
 
   return (
@@ -146,7 +158,7 @@ export function ContentsSheet({ onOpen, onClose, current }: { onOpen: (pageId: s
                 >
                   <span className={cn("block truncate text-[15px] font-semibold text-ink", c.done && "text-ink/75 line-through decoration-rose/60")}>{c.title}</span>
                   <span className="block text-xs text-muted">
-                    {count ? `${label}${count < c.planned ? ` · ${count} из ${c.planned}` : ""}${filled ? ` · оформлено ${filled}` : ""}` : `пока нет страниц · нажмите, чтобы начать (${c.planned} запланировано)`}
+                    {count ? `${label}${count < c.planned ? ` · ${count} из ${c.planned}` : ""}${filled ? ` · оформлено ${filled}` : ""}` : "пока нет страниц"}
                   </span>
                 </button>
               )}
@@ -172,6 +184,21 @@ export function ContentsSheet({ onOpen, onClose, current }: { onOpen: (pageId: s
                 </button>
               </div>
             </div>
+            <div className="flex flex-wrap items-center gap-1.5 px-2 pb-1 pt-0.5">
+              <span className="text-xs text-muted">Страниц в главе:</span>
+              <button type="button" aria-label="Меньше страниц" disabled={c.planned <= 1} className="grid size-9 place-items-center rounded-full bg-white/80 text-lg leading-none disabled:opacity-30" onClick={() => setPlanned(c.id, c.planned - 1)}>
+                −
+              </button>
+              <span className="min-w-6 text-center text-sm font-semibold tabular-nums text-ink">{c.planned}</span>
+              <button type="button" aria-label="Больше страниц" disabled={c.planned >= 60} className="grid size-9 place-items-center rounded-full bg-white/80 text-lg leading-none disabled:opacity-30" onClick={() => setPlanned(c.id, c.planned + 1)}>
+                +
+              </button>
+              {count < c.planned ? (
+                <button type="button" className="min-h-9 rounded-full bg-night px-3 text-xs font-medium text-paper" onClick={() => addMissing(c, count)}>
+                  Создать {c.planned - count} стр.
+                </button>
+              ) : null}
+            </div>
           </li>
         ))}
         {loose ? (
@@ -194,7 +221,7 @@ export function ContentsSheet({ onOpen, onClose, current }: { onOpen: (pageId: s
           <Plus className="size-4" /> Добавить
         </Button>
       </form>
-      <p className="mt-2 text-xs text-muted">Нажмите на главу, чтобы перейти к её страницам. Карандаш переименует главу.</p>
+      <p className="mt-2 text-xs text-muted">Нажмите на главу, чтобы перейти к её страницам. Карандаш переименует главу. «Страниц в главе» задаёт, сколько страниц отвести под неё.</p>
     </Sheet>
   );
 }

@@ -3,8 +3,8 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
-  ArrowDown,
-  ArrowUp,
+  BringToFront,
+  SendToBack,
   BookOpen,
   Copy,
   Crop,
@@ -430,17 +430,17 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
       <BarBtn label="Удалить" danger wide={false} onClick={ops.remove}>
         <Trash2 className="size-4" />
       </BarBtn>
-      <BarBtn label="Копия" wide={false} onClick={ops.duplicate}>
-        <Copy className="size-4" />
+      <BarBtn label="Копия" onClick={ops.duplicate}>
+        <Copy className="size-4" /> Копия
       </BarBtn>
-      <BarBtn label={locked ? "Разблокировать" : "Закрепить: не будет двигаться"} wide={false} active={locked} onClick={ops.toggleLock}>
-        {locked ? <Lock className="size-4" /> : <Unlock className="size-4" />}
+      <BarBtn label={locked ? "Разблокировать" : "Закрепить: не будет двигаться"} active={locked} onClick={ops.toggleLock}>
+        {locked ? <Lock className="size-4" /> : <Unlock className="size-4" />} {locked ? "Снять" : "Закрепить"}
       </BarBtn>
-      <BarBtn label="Слой выше (на шаг)" wide={false} onClick={() => ops.layer("up")}>
-        <ArrowUp className="size-4" />
+      <BarBtn label="Слой выше (на шаг)" onClick={() => ops.layer("up")}>
+        <BringToFront className="size-4" /> Выше
       </BarBtn>
-      <BarBtn label="Слой ниже" wide={false} onClick={() => ops.layer("down")}>
-        <ArrowDown className="size-4" />
+      <BarBtn label="Слой ниже" onClick={() => ops.layer("down")}>
+        <SendToBack className="size-4" /> Ниже
       </BarBtn>
       <span className="mx-0.5 h-6 w-px shrink-0 bg-ink/15" />
       {block.type === "text" ? (
@@ -452,7 +452,7 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
             <span className="size-4 rounded-full border border-ink/20" style={{ background: lookColors(block.look, block.color, block.bg)[block.look === "card" || block.look === "pill" ? "bg" : "fg"] }} /> Цвет
           </BarBtn>
           {(["left", "center", "right"] as const).map((align) => (
-            <BarBtn key={align} wide={false} label="Выравнивание" active={(block.align ?? "left") === align} onClick={() => ops.patch({ align } as Partial<PageBlock>)}>
+            <BarBtn key={align} wide={false} label={align === "left" ? "По левому краю" : align === "center" ? "По центру" : "По правому краю"} active={(block.align ?? "left") === align} onClick={() => ops.patch({ align } as Partial<PageBlock>)}>
               {align === "left" ? <AlignLeft className="size-4" /> : align === "center" ? <AlignCenter className="size-4" /> : <AlignRight className="size-4" />}
             </BarBtn>
           ))}
