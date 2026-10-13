@@ -423,7 +423,7 @@ export function canvasToSticker(canvas: HTMLCanvasElement, soften = false): stri
   return toPng(outline(trimCanvas(canvas)));
 }
 
-/** Белая обводка вокруг вырезанного объекта — как у стикера из iPhone. */
+/** Белая обводка вокруг вырезанного объекта – как у стикера из iPhone. */
 export function outline(source: HTMLCanvasElement): HTMLCanvasElement {
   const pad = Math.max(4, Math.round(Math.max(source.width, source.height) * 0.028));
   const out = document.createElement("canvas");

@@ -78,8 +78,8 @@ export function BookScreen() {
           </div>
           <span>
             <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">Начните отсюда</span>
-            <span className="display-title mt-1 block text-3xl text-ink">Открыть обложку</span>
-            <span className="mt-1 block text-sm text-ink/70">Для кого книга — уже первая страница.</span>
+            <span className="mt-1 block text-xl font-semibold text-ink">Открыть обложку</span>
+            <span className="mt-1 block text-sm text-ink/70">Напишите, для кого эта книга.</span>
           </span>
         </button>
       ) : null}
@@ -91,7 +91,7 @@ export function BookScreen() {
       <section className="glass mt-8 rounded-2xl p-5">
         <div className="flex items-center gap-2">
           <Sparkles className="size-4 text-rose-deep" />
-          <h2 className="display-title text-2xl text-ink">Чего не хватает книге</h2>
+          <h2 className="text-lg font-semibold text-ink">Чего не хватает книге</h2>
         </div>
         <div className="mt-4 grid gap-4">
           {storyOut.length > 0 ? (
@@ -130,18 +130,18 @@ export function BookScreen() {
               ))}
             </Suggest>
           ) : null}
-          {storyOut.length + photoOut.length + missing.length + noMaiden.length === 0 ? <p className="text-sm text-muted">Всё собранное уже стоит на страницах. Самое время листать.</p> : null}
+          {storyOut.length + photoOut.length + missing.length + noMaiden.length === 0 ? <p className="text-sm text-muted">Всё собранное уже есть на страницах. Можно листать книгу.</p> : null}
         </div>
       </section>
 
       <section className={cn("mt-4 rounded-2xl p-5", ready ? "aurora" : "glass")}>
-        <h2 className="display-title text-2xl text-ink">
+        <h2 className="text-lg font-semibold text-ink">
           {ready ? "Ты собрал(а) материал для первой Книги рода" : "Когда страниц станет больше"}
         </h2>
         <p className="mt-2 text-sm text-ink/70">
           {ready
-            ? "Не знаешь, как превратить эти материалы в настоящую историю семьи? В программе — главы, голос и сборка книги."
-            : `${plural(pages.length, "страница", "страницы", "страниц")} в книге. Курс подождёт, пока захочется собрать из этого историю.`}
+            ? "Не знаешь, как превратить эти материалы в настоящую историю семьи? В программе – главы, голос и сборка книги."
+            : `${plural(pages.length, "страница", "страницы", "страниц")} в книге. Программа ждёт вас, когда захотите превратить это в связный рассказ.`}
         </p>
         <Button className="mt-4" variant={ready ? "primary" : "soft"} onClick={() => nav.tab({ id: "lessons" })}>
           Программа «Книга рода»
@@ -216,7 +216,7 @@ function Library({ meta, onClose, onPick }: { meta: { dedicatee: string; collect
           </button>
         ))}
       </div>
-      <p className="mb-2 text-sm text-muted">Готовые страницы — с рамками под фото и вопросами</p>
+      <p className="mb-2 text-sm text-muted">Готовые страницы – с рамками под фото и вопросами</p>
       <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4">
         {templates.map(({ prompt, page }) =>
           page ? (
@@ -296,19 +296,19 @@ function PrintSheet({ pages, meta, onClose }: { pages: BookPage[]; meta: { dedic
           <li>
             Страница {print.size}×{print.size} см + вылеты {print.bleed} мм: файл {print.size * 10 + print.bleed * 2}×{print.size * 10 + print.bleed * 2} мм, 300 dpi, RGB.
           </li>
-          <li>Обрезной формат отмечен в PDF (TrimBox) — типография увидит, где резать.</li>
+          <li>Обрезной формат отмечен в PDF (TrimBox) – типография увидит, где резать.</li>
           <li>
-            Охранное поле {SAFE_MM} мм от края и {GUTTER_MM} мм у корешка — в редакторе это пунктир.
+            Охранное поле {SAFE_MM} мм от края и {GUTTER_MM} мм у корешка – в редакторе это пунктир.
           </li>
-          <li>Блок — без обложки, число страниц чётное: если нужно, в конце добавлена чистая.</li>
-          <li>Обложка — один разворот: задник + корешок + лицо, с вылетами по краям.</li>
+          <li>Блок – без обложки, число страниц чётное: если нужно, в конце добавлена чистая.</li>
+          <li>Обложка – один разворот: задник + корешок + лицо, с вылетами по краям.</li>
         </ul>
         <p className="mt-3 font-semibold">Перед заказом спросите в типографии</p>
         <ul className="mt-2 grid list-disc gap-1 pl-5 text-ink/80">
           <li>сколько мм вылетов и нужен ли «загиб» для твёрдой обложки (обычно 15–20 мм вместо вылета);</li>
-          <li>толщину корешка для {total} страниц — впишите её выше;</li>
+          <li>толщину корешка для {total} страниц – впишите её выше;</li>
           <li>минимальное число страниц и кратность (часто 20+ и кратно 2 или 4);</li>
-          <li>принимают ли RGB или нужен CMYK — большинство фотокниг печатают из RGB.</li>
+          <li>принимают ли RGB или нужен CMYK – большинство фотокниг печатают из RGB.</li>
         </ul>
       </div>
     </Sheet>
@@ -368,7 +368,7 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
     const from = pages.findIndex((page) => page.id === drag.id);
     const moved = Math.hypot(drag.dx, drag.dy) > 8;
     if (moved && from !== drag.over) move(drag.id, drag.over);
-    // Простое касание без перетаскивания — выбрать страницу.
+    // Простое касание без перетаскивания – выбрать страницу.
     if (!moved) setPicked((list) => (list.includes(drag.id) ? list.filter((id) => id !== drag.id) : [...list, drag.id]));
     setDrag(null);
   };
@@ -376,7 +376,7 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
   return (
     <>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-sm text-muted">{arrange ? "Тащите — поменять место. Коснитесь — выбрать." : `${plural(pages.length, "страница", "страницы", "страниц")}`}</p>
+        <p className="text-sm text-muted">{arrange ? "Тащите – поменять место. Коснитесь – выбрать." : `${plural(pages.length, "страница", "страницы", "страниц")}`}</p>
         {pages.length > 0 ? (
           <span className="flex shrink-0 gap-2">
             <Button variant="soft" className="min-h-10 px-3" onClick={onAdd}>
@@ -439,7 +439,7 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
               Удалить все страницы
             </Button>
           )}
-          <span className="w-full px-1 text-xs text-muted">Удалённое лежит в корзине внизу экрана — его можно вернуть.</span>
+          <span className="w-full px-1 text-xs text-muted">Удалённое лежит в корзине внизу экрана – его можно вернуть.</span>
         </div>
       ) : null}
       <ul className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3">
@@ -505,7 +505,7 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
   );
 }
 
-/** Полный шаблон на 100 страниц — только для тех, у кого открыта программа. */
+/** Полный шаблон на 100 страниц – только для тех, у кого открыта программа. */
 function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: string; collector: string } }) {
   const nav = useNav();
   const open = useRod((state) => state.programOpen);
@@ -534,7 +534,7 @@ function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: s
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">Для участников программы</p>
-          <h2 className="display-title mt-1 text-[1.7rem] leading-tight text-ink">Полный шаблон Книги рода · 100 страниц</h2>
+          <h2 className="mt-1 text-[1.3rem] font-semibold leading-tight text-ink">Полный шаблон Книги рода · 100 страниц</h2>
         </div>
         {!open ? (
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/80 text-rose-deep">
@@ -542,7 +542,7 @@ function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: s
           </span>
         ) : null}
       </div>
-      <p className="mt-2 text-sm text-ink/70">Одна ветка рода — как историческое расследование: дома, любовь, судьбы, кухня, тайны и наследие. На каждой странице подсказка, что туда внести.</p>
+      <p className="mt-2 text-sm text-ink/70">Одна ветка рода по главам: дома, любовь, судьбы, кухня, находки и наследие. На каждой странице подсказка, что туда внести.</p>
       <ol className="mt-3 grid gap-1 text-sm text-ink">
         {chapters.map((chapter) => (
           <li key={chapter.n} className="flex gap-2">
@@ -555,7 +555,7 @@ function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: s
       </ol>
       {open ? (
         added ? (
-          <p className="mt-4 text-sm font-medium text-ink">Шаблон уже в книге — листайте и заполняйте страницы.</p>
+          <p className="mt-4 text-sm font-medium text-ink">Шаблон уже в книге – листайте и заполняйте страницы.</p>
         ) : ask ? (
           <div className="mt-4 flex flex-wrap gap-2">
             <Button onClick={add}>Да, добавить {FULL_BOOK_PAGES} страниц</Button>

@@ -380,7 +380,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     setTick((value) => value + 1);
   };
 
-  // Двумя пальцами тап по экрану — шаг назад; два тапа подряд — шаг вперёд.
+  // Двумя пальцами тап по экрану – шаг назад; два тапа подряд – шаг вперёд.
   const actions = useRef({ undo: doUndo, redo: doRedo });
   actions.current = { undo: doUndo, redo: doRedo };
 
@@ -825,7 +825,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     // Ладонь на экране, пока рисуют стилусом, не оставляет следов: касания пальцем и большое пятно игнорируются.
     const blob = Math.max(event.width || 0, event.height || 0);
     if (event.pointerType === "touch" && (performance.now() - penSeen.current < 1500 || blob > 56)) return true;
-    // Второй палец — это жест (шаг назад), а не рисование.
+    // Второй палец – это жест (шаг назад), а не рисование.
     if (touches.current.size >= 2) return true;
     setEditing(null);
     try {
@@ -1213,7 +1213,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       .catch(() => toast("Картинка не скачалась. Сохраните её на устройство и перетащите файл."));
   };
 
-  // ——— Два пальца: тап — шаг назад, двойной тап — шаг вперёд ———
+  // ——— Два пальца: тап – шаг назад, двойной тап – шаг вперёд ———
   const inStage = (target: EventTarget | null) => Boolean(target instanceof Node && stageRef.current?.contains(target));
 
   const onRootDown = (event: React.PointerEvent) => {
@@ -1832,7 +1832,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             setPanel(null);
             if (look === "card") addText({ look: "card", font: "sans", size: "sm", w: 56, x: 22 });
             else if (look === "pill") addText({ look: "pill", font: "sans", size: "sm", w: 40, x: 30 });
-            else addText({ font: "serif", size: "lg", w: 84, x: 8, y: 8 });
+            else addText({ font: "script", size: "lg", w: 84, x: 8, y: 8 });
           }}
         />
       ) : null}
@@ -1899,7 +1899,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           onInsert={(text) => {
             const empty = page.blocks.find((b) => b.type === "text" && !b.text.trim() && b.look !== "pill" && b.look !== "card");
             if (empty) patchBlock(empty.id, { text } as Partial<PageBlock>);
-            else addBlock({ id: id(), type: "text", x: 8, y: 55, w: 84, text, font: "serif", size: "sm" });
+            else addBlock({ id: id(), type: "text", x: 8, y: 55, w: 84, text, font: "sans", size: "sm" });
             setPanel(null);
           }}
         />

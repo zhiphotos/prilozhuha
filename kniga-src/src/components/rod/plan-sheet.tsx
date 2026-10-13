@@ -34,8 +34,8 @@ function pagesFor(row: Row, sectionNo: number, chapterId: string): Omit<BookPage
     const first = i === 0;
     const blocks: PageBlock[] = [
       first
-        ? { id: id(), type: "text", x: 8, y: 6, w: 84, text: row.title, font: "serif", size: "lg" }
-        : { id: id(), type: "text", x: 8, y: 6, w: 84, text: `${row.title}, продолжение`, font: "serif", size: "md" },
+        ? { id: id(), type: "text", x: 8, y: 6, w: 84, text: row.title, font: "script", size: "lg" }
+        : { id: id(), type: "text", x: 8, y: 6, w: 84, text: `${row.title}, продолжение`, font: "sans", size: "md" },
       { id: id(), type: "text", x: 8, y: 16, w: 60, text: "", font: "script", size: "sm", placeholder: first ? `Раздел ${sectionNo}: что здесь будет` : "Что ещё добавить" },
     ];
     return { chapterId, title: first ? row.title : `${row.title} · ${i + 1}`, kind: "page" as const, paper: "cream" as const, strokes: [], blocks };

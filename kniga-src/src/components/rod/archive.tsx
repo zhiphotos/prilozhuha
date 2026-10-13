@@ -96,7 +96,7 @@ function PeoplePane() {
           </select>
         </Field>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Год рождения" hint="Если помните примерно — так и напишите.">
+          <Field label="Год рождения" hint="Если помните примерно – так и напишите.">
             <input className="field" value={birthYear} onChange={(event) => setBirthYear(event.target.value)} placeholder="1948" />
           </Field>
           <Field label="Девичья фамилия">
@@ -112,7 +112,7 @@ function PeoplePane() {
         {people.map((person) => (
           <li key={person.id} className="glass rounded-2xl p-4">
             <button type="button" className="w-full text-left" onClick={() => setOpenId((value) => (value === person.id ? null : person.id))}>
-              <p className="display-title text-2xl text-ink">{person.name}</p>
+              <p className="text-lg font-semibold text-ink">{person.name}</p>
               <p className="text-sm text-muted">
                 {person.relation}
                 {person.birthYear ? ` · ${person.birthYear}` : ""}
@@ -147,7 +147,7 @@ function PeoplePane() {
       {people.length === 0 ? (
         <div className="flex items-center gap-4 border-t border-ink/10 pt-4">
           <Cut id="moss_archive" className="w-24 shrink-0 rotate-[-4deg]" />
-          <p className="hand text-[1.5rem] leading-tight text-gold-ink">пока никого нет первое имя уже меняет книгу</p>
+          <p className="text-sm text-muted">Пока никого нет. Начните с одного имени.</p>
         </div>
       ) : null}
     </div>
@@ -195,16 +195,16 @@ function TimePane() {
       </form>
       </AddFold>
       {showingExample ? (
-        <p className="text-sm text-muted">Так может выглядеть лента. Это пример, не ваши даты — он исчезнет, когда появится первое событие.</p>
+        <p className="text-sm text-muted">Так может выглядеть лента. Это пример, не ваши даты – он исчезнет, когда появится первое событие.</p>
       ) : (
-        <p className="text-sm text-muted">Оказывается, ваша жизнь — один фрагмент более длинной истории.</p>
+        <p className="text-sm text-muted">Ваша жизнь продолжает историю, которая началась задолго до вас.</p>
       )}
       <ol className="relative grid gap-0 border-l border-line pl-5">
         {(showingExample ? EXAMPLE_TIMELINE.map((item, index) => ({ ...item, id: `ex-${index}`, detail: "" })) : sorted).map((event) => (
           <li key={event.id} className="relative pb-5">
             <span className="absolute -left-[1.4rem] top-1.5 size-2.5 rounded-full bg-rose" />
             <p className="text-sm tabular-nums text-rose-deep">{event.year}</p>
-            <p className="display-title text-2xl text-ink">{event.title}</p>
+            <p className="text-lg font-semibold text-ink">{event.title}</p>
             {event.detail ? <p className="text-sm text-muted">{event.detail}</p> : null}
             {!showingExample ? (
               <button type="button" className="mt-1 text-sm text-muted underline" onClick={() => removeEvent(event.id)}>
@@ -225,7 +225,7 @@ function PhotosPane() {
   return (
     <div className="grid gap-3">
       <Button onClick={() => nav.go({ id: "photo-new" })}>Оцифровать фотографию</Button>
-      {photos.length === 0 ? <p className="text-sm text-muted">Подпись важнее фильтра. Один старый снимок уже глава.</p> : null}
+      {photos.length === 0 ? <p className="text-sm text-muted">Достаточно подписать, кто на снимке. Одной старой фотографии уже хватит для главы.</p> : null}
       <ul className="grid gap-3 sm:grid-cols-2">
         {photos.map((photo) => (
           <li key={photo.id} className="glass overflow-hidden rounded-2xl">
@@ -286,7 +286,7 @@ function PlacesPane() {
       <ul className="grid gap-2">
         {places.map((place) => (
           <li key={place.id} className="glass rounded-2xl p-4">
-            <p className="display-title text-2xl text-ink">{place.name}</p>
+            <p className="text-lg font-semibold text-ink">{place.name}</p>
             {place.years ? <p className="text-sm text-rose-deep">{place.years}</p> : null}
             {place.note ? <p className="mt-1 text-sm text-muted">{place.note}</p> : null}
             <button type="button" className="mt-2 text-sm text-muted underline" onClick={() => removePlace(place.id)}>

@@ -1,4 +1,4 @@
-// Резервная копия: вся книга с фотографиями в одном файле .kniga — его можно переложить на другое устройство.
+// Резервная копия: вся книга с фотографиями в одном файле .kniga – его можно переложить на другое устройство.
 import { afterHydrate } from "@/lib/rod/boot";
 import { flushBook, useRod } from "@/lib/rod/store";
 import { isMediaRef, mediaDataUrl, saveMedia } from "@/lib/rod/media";
@@ -42,7 +42,7 @@ export async function exportBook(): Promise<"shared" | "downloaded" | "cancelled
   const media: Record<string, string> = {};
   for (const ref of refs) media[ref] = await mediaDataUrl(ref);
   const body = JSON.stringify({ app: "kniga-roda", version: 1, savedAt: new Date().toISOString(), data, media });
-  const name = `Книга рода — копия ${new Date().toLocaleDateString("ru-RU")}.kniga`;
+  const name = `Книга рода – копия ${new Date().toLocaleDateString("ru-RU")}.kniga`;
   const mark = () => {
     try {
       localStorage.setItem(LAST_KEY, new Date().toISOString());
@@ -81,7 +81,7 @@ export async function importBook(file: File): Promise<void> {
     if (dataUrl) map.set(ref, await saveMedia(dataUrl));
   }
   const data = replaceRefs(parsed.data, map) as Record<string, unknown>;
-  const defaults: Record<string, unknown> = { back: null, spine: { text: "", font: "serif", size: 0 }, fonts: [], userStickers: [], plan: [] };
+  const defaults: Record<string, unknown> = { back: null, spine: { text: "", font: "script", size: 0 }, fonts: [], userStickers: [], plan: [] };
   const clean = { ...defaults, ...Object.fromEntries(DATA_KEYS.filter((key) => key in data).map((key) => [key, data[key]])) };
   useRod.setState(clean);
   afterHydrate();

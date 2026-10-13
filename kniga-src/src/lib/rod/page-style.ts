@@ -1,8 +1,8 @@
 // Общие размеры и рисунки страницы. Экран и PDF берут их отсюда, поэтому печать совпадает с тем, что видно.
-// Все размеры — в процентах ширины страницы (на экране это единицы cqw).
+// Все размеры – в процентах ширины страницы (на экране это единицы cqw).
 import type { FontKind, FontRef, PaperKind, StickerKind, TextLook } from "@/lib/rod/types";
 
-/** Книга квадратная: страница на экране и в печати — квадрат. Размер в см выбирается при печати. */
+/** Книга квадратная: страница на экране и в печати – квадрат. Размер в см выбирается при печати. */
 export const PAGE_RATIO = 1;
 
 export type BookSize = 20 | 25 | 30;
@@ -17,7 +17,7 @@ export const DEFAULT_PRINT: PrintSetup = { size: 30, bleed: 5, spine: 10 };
 
 /**
  * Безопасная зона страницы в % стороны листа.
- * side: "right" — правая страница разворота (корешок слева), "left" — левая, "single" — обложка.
+ * side: "right" – правая страница разворота (корешок слева), "left" – левая, "single" – обложка.
  */
 export function safeArea(size: BookSize, side: "left" | "right" | "single") {
   const safe = (SAFE_MM / (size * 10)) * 100;
@@ -30,7 +30,7 @@ export function safeArea(size: BookSize, side: "left" | "right" | "single") {
   };
 }
 
-/** Чётные страницы книги — левые, нечётные — правые (обложка не считается). */
+/** Чётные страницы книги – левые, нечётные – правые (обложка не считается). */
 export function pageSide(index: number, hasCover: boolean): "left" | "right" | "single" {
   if (hasCover && index === 0) return "single";
   const n = hasCover ? index : index + 1;
@@ -60,19 +60,21 @@ export const PAPER: Record<PaperKind, { bg: string; label: string }> = {
 };
 
 export const FONT_FAMILY: Record<FontKind, string> = {
-  serif: '"Cormorant Garamond", Georgia, serif',
+  // «serif» остался только в старых книгах: теперь это тот же Manrope (в книге два голоса: почерк бабушки и Manrope).
+  serif: '"Manrope Variable", "Manrope", system-ui, sans-serif',
   sans: '"Manrope Variable", "Manrope", system-ui, sans-serif',
-  script: '"Caveat", "Segoe Script", cursive',
+  // «Почерк»: бабушкин почерк (в нём нет ! ? - : и латиницы, их дорисует Manrope).
+  script: '"kr-babushka", "Manrope Variable", "Manrope", system-ui, sans-serif',
 };
 
-export const FONT_WEIGHT: Record<FontKind, number> = { serif: 600, sans: 500, script: 500 };
+export const FONT_WEIGHT: Record<FontKind, number> = { serif: 600, sans: 600, script: 400 };
 
 export const isCustomFont = (font: FontRef): font is `custom:${string}` => font.startsWith("custom:");
 /** Имя семейства для своего шрифта в document.fonts. */
 export const customFamily = (font: `custom:${string}`) => `kr-${font.slice(7)}`;
 
 export function fontFamily(font: FontRef): string {
-  if (isCustomFont(font)) return `"${customFamily(font)}", ${FONT_FAMILY.script}`;
+  if (isCustomFont(font)) return `"${customFamily(font)}", ${FONT_FAMILY.sans}`;
   return FONT_FAMILY[font];
 }
 
@@ -91,20 +93,22 @@ export function blockW(b: { type: string; w?: number }): number {
 
 // В книге 25×25 см: sm ≈ 13–14 pt, md ≈ 19 pt, lg ≈ 34 pt. На 30×30 всё пропорционально крупнее.
 const SIZE: Record<FontKind, Record<"sm" | "md" | "lg" | "xl", number>> = {
-  serif: { sm: 2.1, md: 2.9, lg: 5.2, xl: 11 },
-  sans: { sm: 1.75, md: 2.3, lg: 4, xl: 7 },
+  serif: { sm: 1.85, md: 2.4, lg: 4.2, xl: 7.5 },
+  sans: { sm: 2, md: 2.6, lg: 4, xl: 7 },
   script: { sm: 2.8, md: 3.8, lg: 6.2, xl: 10 },
 };
 
-const LEADING: Record<FontKind, number> = { serif: 1.15, sans: 1.4, script: 1.1 };
+const LEADING: Record<FontKind, number> = { serif: 1.3, sans: 1.4, script: 1.15 };
 
 export function textMetrics(font: FontRef, size: "sm" | "md" | "lg" | "xl", px?: number) {
   const kind: FontKind = isCustomFont(font) ? "script" : font;
   const base = SIZE[kind][size];
-  return { size: px ? (px / PX_PAGE) * 100 : base, leading: LEADING[kind] };
+  // Старые книги с «книжным» шрифтом: Manrope выше Cormorant, поэтому размер в px чуть уменьшаем.
+  const scale = font === "serif" ? 0.82 : 1;
+  return { size: px ? ((px * scale) / PX_PAGE) * 100 : base, leading: LEADING[kind] };
 }
 
-/** Внутренние поля у карточки и плашки — в % ширины страницы. */
+/** Внутренние поля у карточки и плашки – в % ширины страницы. */
 export function lookPad(look: TextLook | undefined): { x: number; y: number; radius: number } {
   if (look === "card") return { x: 2.4, y: 1.8, radius: 2 };
   if (look === "pill") return { x: 2, y: 0.7, radius: 50 };
@@ -117,7 +121,7 @@ export function lookColors(look: TextLook | undefined, color?: string, bg?: stri
   return { bg: "transparent", fg: color || (darkPage ? COLORS.paper : COLORS.ink) };
 }
 
-/** Тёмная ли страница — тогда текст по умолчанию светлый. */
+/** Тёмная ли страница – тогда текст по умолчанию светлый. */
 export function isDark(color?: string): boolean {
   if (!color || !/^#[0-9a-f]{6}$/i.test(color)) return false;
   const n = parseInt(color.slice(1), 16);

@@ -1,4 +1,4 @@
-// Кадрирование: какая часть фото видна в рамке. Центр (cx, cy) в долях картинки, z — приближение.
+// Кадрирование: какая часть фото видна в рамке. Центр (cx, cy) в долях картинки, z – приближение.
 import { POLAROID } from "@/lib/rod/page-style";
 import type { PhotoFrame } from "@/lib/rod/types";
 
@@ -16,7 +16,7 @@ export function innerBox(frame: PhotoFrame, plain: boolean, w: number, h: number
   return { w, h, dx: 0, dy: 0 };
 }
 
-/** ar — высота/ширина самой картинки. Возвращает размер и сдвиг картинки внутри области. */
+/** ar – высота/ширина самой картинки. Возвращает размер и сдвиг картинки внутри области. */
 export function cropGeom(inner: { w: number; h: number }, arIn: number, crop: Crop) {
   const ar = arIn > 0 && Number.isFinite(arIn) ? arIn : 1;
   crop = { cx: Number.isFinite(crop.cx) ? crop.cx : 0.5, cy: Number.isFinite(crop.cy) ? crop.cy : 0.5, z: Number.isFinite(crop.z) ? crop.z : 1 };

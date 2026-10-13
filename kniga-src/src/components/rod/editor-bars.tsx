@@ -72,17 +72,12 @@ type TextBlock = Extract<PageBlock, { type: "text" }>;
 
 export function FontChips({ value, onPick, onMore }: { value: FontRef; onPick: (font: FontRef) => void; onMore?: () => void }) {
   const custom = useRod((state) => state.fonts);
-  const builtin: FontKind[] = ["script", "serif", "sans"];
+  const builtin: FontKind[] = ["sans", "script"];
   return (
     <>
       {builtin.map((font) => (
-        <BarBtn key={font} active={value === font} onClick={() => onPick(font)}>
+        <BarBtn key={font} active={value === font || (font === "sans" && value === "serif")} onClick={() => onPick(font)}>
           <span style={{ fontFamily: FONT_FAMILY[font] }}>{FONT_LABEL[font]}</span>
-        </BarBtn>
-      ))}
-      {BUILTIN_FONTS.map((font) => (
-        <BarBtn key={font.id} active={value === `custom:${font.id}`} onClick={() => onPick(`custom:${font.id}`)}>
-          <span style={{ fontFamily: fontFamily(`custom:${font.id}`), fontSize: 18 }}>{font.name}</span>
         </BarBtn>
       ))}
       {custom.map((font) => (

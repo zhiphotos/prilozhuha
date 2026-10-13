@@ -115,7 +115,7 @@ export function FlipBookScreen({ pageId }: { pageId?: string }) {
     setDrag(null);
     const quick = performance.now() - current.t < 280;
     if (current.leaf < 0) {
-      // Просто тап: правая половина — вперёд, левая — назад.
+      // Просто тап: правая половина – вперёд, левая – назад.
       const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
       const x = event.clientX - rect.left;
       flip(x > rect.width / 2 ? 1 : -1);
@@ -137,7 +137,7 @@ export function FlipBookScreen({ pageId }: { pageId?: string }) {
   const printFile = () => {
     setSaving("Готовлю файл…");
     void downloadFamilyBook(pages, meta, (done, total) => setSaving(`Страница ${done + 1} из ${total}…`))
-      .then(() => toast("Просмотр книги сохранён. Файл для типографии — в «Книга» → «Печать»."))
+      .then(() => toast("Просмотр книги сохранён. Файл для типографии – в «Книга» → «Печать»."))
       .catch(() => toast("Файл не собрался. Попробуйте ещё раз."))
       .finally(() => setSaving(null));
   };
@@ -156,7 +156,7 @@ export function FlipBookScreen({ pageId }: { pageId?: string }) {
         <button type="button" className="glass-strong grid size-11 place-items-center rounded-full" aria-label="Закрыть книгу" onClick={() => nav.back()}>
           <X className="size-5" />
         </button>
-        <p className="display-title flex-1 truncate text-center text-xl text-ink">Книга рода</p>
+        <p className="flex-1 truncate text-center text-base font-semibold text-ink">Книга рода</p>
         <button type="button" disabled={Boolean(saving) || pages.length === 0} onClick={printFile} className="glass-strong flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-ink disabled:opacity-60">
           <Download className="size-4" />
           {saving ?? "PDF"}

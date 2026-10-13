@@ -41,7 +41,7 @@ type RodState = {
   print: PrintSetup;
   /** Картинки-ориентиры для дизайна («вайб»), в книгу не печатаются. */
   moodboard: string[];
-  /** Задняя сторона обложки (null — стандартная надпись). */
+  /** Задняя сторона обложки (null – стандартная надпись). */
   back: BookPage | null;
   spine: SpineSetup;
   /** Свои шрифты и стикеры/футажи из файлов. */
@@ -97,7 +97,7 @@ type RodState = {
   resetAll: () => void;
 };
 
-const DEFAULT_SPINE: SpineSetup = { text: "", font: "serif", size: 0 };
+const DEFAULT_SPINE: SpineSetup = { text: "", font: "script", size: 0 };
 
 const empty = {
   onboarded: false,

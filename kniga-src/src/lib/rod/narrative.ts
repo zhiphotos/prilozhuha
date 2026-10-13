@@ -9,7 +9,7 @@ function prose(parts: Array<string | false | undefined>): string {
     .filter((part): part is string => Boolean(part && part.trim()))
     .map((part) => part.trim())
     .join("\n\n");
-  return body || "В этой истории пока пусто. Вернитесь и запишите хотя бы одну деталь — её достаточно, чтобы глава началась.";
+  return body || "В этой истории пока пусто. Вернитесь и запишите хотя бы одну деталь – её достаточно, чтобы глава началась.";
 }
 
 export function composeStory(templateId: string, title: string, answers: Record<string, string>): string {
@@ -25,7 +25,7 @@ export function composeStory(templateId: string, title: string, answers: Record<
           .join(" "),
         a("detail") && `До сих пор вспоминается вот это. ${sentence(a("detail"))}`,
         a("end") && `Дальше было так. ${sentence(a("end"))}`,
-        a("why") && `В книге рода эта история нужна не как роман, а как часть меня. ${sentence(a("why"))}`,
+        a("why") && `Эту историю я оставляю в книге, потому что она часть меня. ${sentence(a("why"))}`,
       ]);
     case "parents-met":
       return prose([
@@ -61,7 +61,7 @@ export function composeStory(templateId: string, title: string, answers: Record<
       return prose([
         opening,
         [a("day") && sentence(a("day")), a("who") && `Рядом были ${a("who")}.`].filter(Boolean).join(" "),
-        a("detail") && `День держится на детали. ${sentence(a("detail"))}`,
+        a("detail") && `Запомнилось вот что. ${sentence(a("detail"))}`,
         a("said") && `Кто-то сказал: «${a("said").replace(/[«»"]/g, "")}».`,
         a("why") && sentence(a("why")),
         a("keep") && `От того дня осталось вот что. ${sentence(a("keep"))}`,
@@ -71,7 +71,7 @@ export function composeStory(templateId: string, title: string, answers: Record<
         opening,
         [a("name") && sentence(a("name")), a("when") && sentence(a("when"))].filter(Boolean).join(" "),
         a("feel") && `В первую минуту было так. ${sentence(a("feel"))}`,
-        a("near") && `Рядом. ${sentence(a("near"))}`,
+        a("near") && `Рядом были такие люди. ${sentence(a("near"))}`,
         a("detail") && `Мелочь, которую не хочется потерять. ${sentence(a("detail"))}`,
         a("wish") && `Тебе, если ты это читаешь. ${sentence(a("wish"))}`,
       ]);
@@ -100,8 +100,8 @@ export function composeStory(templateId: string, title: string, answers: Record<
           .filter(Boolean)
           .join(" "),
         a("taken") && `С собой взяли в первую очередь вот это. ${sentence(a("taken"))}`,
-        a("left") && `Оставили. ${sentence(a("left"))}`,
-        a("night") && `Первая ночь. ${sentence(a("night"))}`,
+        a("left") && `Пришлось оставить вот что. ${sentence(a("left"))}`,
+        a("night") && `Первая ночь на новом месте прошла так. ${sentence(a("night"))}`,
         a("home") && sentence(a("home")),
       ]);
     case "tradition":
@@ -118,8 +118,8 @@ export function composeStory(templateId: string, title: string, answers: Record<
         opening,
         [a("who") && `На фотографии ${sentence(a("who"))}`, a("where") && sentence(a("where"))].filter(Boolean).join(" "),
         a("before") && `Перед щелчком было так. ${sentence(a("before"))}`,
-        a("camera") && `Камеру держал не кадр, а человек. ${sentence(a("camera"))}`,
-        a("unseen") && `В книге важно и то, чего не видно. ${sentence(a("unseen"))}`,
+        a("camera") && `Снимал такой человек. ${sentence(a("camera"))}`,
+        a("unseen") && `За кадром осталось вот что. ${sentence(a("unseen"))}`,
         a("why") && sentence(a("why")),
       ]);
     default:

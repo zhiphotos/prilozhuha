@@ -111,10 +111,8 @@ export function CoverArt({ meta }: { meta: CoverMeta }) {
         <p style={{ fontFamily: FONT_FAMILY.sans, fontSize: "2.6cqw", letterSpacing: "0.6cqw" }} className="uppercase text-[#8e3d52]">
           семейная летопись
         </p>
-        <p style={{ fontFamily: FONT_FAMILY.serif, fontWeight: 600, fontSize: "14cqw", lineHeight: 0.95 }} className="mt-[3cqw] text-[#2a2420]">
-          Книга
-          <br />
-          рода
+        <p style={{ fontFamily: FONT_FAMILY.script, fontWeight: 400, fontSize: "15cqw", lineHeight: 1 }} className="mt-[3cqw] text-[#2a2420]">
+          Книга рода
         </p>
         <img src={stickerUrl("branch")} alt="" className="mx-auto mt-[3cqw] w-[30cqw]" />
       </div>
@@ -146,7 +144,7 @@ export function StrokeShape({ stroke }: { stroke: InkStroke }) {
   );
 }
 
-/** Старые чернила поверх всей страницы (новые рисунки — блоки «ink») и штрих, который рисуется прямо сейчас. */
+/** Старые чернила поверх всей страницы (новые рисунки – блоки «ink») и штрих, который рисуется прямо сейчас. */
 export function InkLayer({ strokes, live }: { strokes: InkStroke[]; live?: InkStroke | null }) {
   return (
     <svg viewBox={`0 0 100 ${PAGE_H}`} className="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible">
@@ -197,7 +195,7 @@ export function PlacedBlock({
   );
 }
 
-/** Как блок выглядит. Без рамок выбора — их рисует редактор. Ластик (маска) и прозрачность действуют только на сам рисунок, не на рамки и кнопки выбора. */
+/** Как блок выглядит. Без рамок выбора – их рисует редактор. Ластик (маска) и прозрачность действуют только на сам рисунок, не на рамки и кнопки выбора. */
 export function BlockArt({ block, editing = false }: { block: PageBlock; editing?: boolean }) {
   const hasMask = Boolean(block.mask && block.mask.strokes.length);
   if (!hasMask && block.opacity === undefined) return <BlockArtInner block={block} editing={editing} />;

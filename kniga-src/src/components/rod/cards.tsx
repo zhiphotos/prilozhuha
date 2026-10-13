@@ -7,7 +7,7 @@ import { turnPage } from "@/lib/rod/sounds";
 import { useRod } from "@/lib/rod/store";
 import type { PageBlock } from "@/lib/rod/types";
 import { recognition, type SpeechRec } from "@/lib/rod/speech";
-import { Button, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
+import { Button, ScreenFrame, TopBar, lineStyle, useNav } from "@/components/rod/chrome";
 import { cn } from "@/lib/cn";
 
 /** Каждая колода: свой мотив из её фото-библиотеки, номер в каталоге и поверхность. */
@@ -35,12 +35,12 @@ export function CardsScreen() {
   const talks = SITUATIONS.filter((item) => !item.play);
 
   const harvest = () => {
-    // Каждая колода — своя страница: вопрос карточкой, ответ рукописным.
+    // Каждая колода – своя страница: вопрос карточкой, ответ рукописным.
     const groups = new Map<string, typeof notes>();
     notes.slice(0, 40).forEach((note) => groups.set(note.situationTitle, [...(groups.get(note.situationTitle) ?? []), note]));
     let first: string | null = null;
     groups.forEach((list, title) => {
-      const blocks: PageBlock[] = [{ id: crypto.randomUUID(), type: "text", x: 8, y: 5, w: 84, text: title, font: "serif", size: "lg" }];
+      const blocks: PageBlock[] = [{ id: crypto.randomUUID(), type: "text", x: 8, y: 5, w: 84, text: title, font: "script", size: "lg" }];
       let y = 16;
       list.slice(0, 4).forEach((note, i) => {
         blocks.push({ id: crypto.randomUUID(), type: "text", x: 8, y, w: 60, text: note.question, font: "sans", size: "sm", look: "card", rotate: i % 2 ? 1 : -1 });
@@ -65,7 +65,7 @@ export function CardsScreen() {
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Уже сказано</p>
-            <p className="display-title mt-1 text-[2.4rem] leading-none text-ink">{notes.length === 0 ? "Пока пусто" : `${notes.length} ${answersLabel(notes.length)}`}</p>
+            <p className="display-title mt-1 text-[1.75rem] leading-none text-ink">{notes.length === 0 ? "Пока пусто" : `${notes.length} ${answersLabel(notes.length)}`}</p>
           </div>
           <Button disabled={words < 12} onClick={harvest}>
             Собрать страницы
@@ -84,7 +84,7 @@ export function CardsScreen() {
         ))}
       </ul>
 
-      <h2 className="display-title mt-9 text-[1.8rem] text-ink">Разговоры</h2>
+      <h2 className="display-title mt-9 text-[1.1rem] text-ink">Разговоры</h2>
       <ul className="mt-3 grid grid-cols-2 gap-3">
         {talks.map((item) => (
           <li key={item.id}>
@@ -95,7 +95,7 @@ export function CardsScreen() {
 
       {notes.length > 0 ? (
         <section className="mt-9">
-          <h2 className="display-title text-[1.8rem] text-ink">Последние ответы</h2>
+          <h2 className="display-title text-[1.35rem] text-ink">Последние ответы</h2>
           <ul className="mt-3 grid gap-2">
             {notes.slice(0, 5).map((note) => (
               <li key={note.id} className="glass rounded-2xl p-4">
@@ -132,8 +132,8 @@ function DeckLink({ item, saved, onOpen, featured = false }: { item: Situation; 
       <span className={cn("text-[11px] font-semibold uppercase tracking-[0.16em]", dark ? "text-[#c9ae74]" : "text-gold-ink")}>
         № {numberOf(item.id)} · {item.play ? "Семейная игра" : "Колода"}
       </span>
-      <span className={cn("display-title mt-2 block", featured ? "max-w-[12ch] text-[2.4rem] leading-[1.02] text-paper" : "relative z-10 max-w-[11ch] text-[1.45rem] leading-[1.08] text-ink")}>{item.title}</span>
-      {cat.tag ? <span className={cn("hand relative z-10 mt-1 block whitespace-nowrap text-[1.12rem] leading-none [transform:rotate(-2deg)]", dark ? "text-[#c9ae74]" : "text-gold-ink")}>{cat.tag}</span> : null}
+      <span className={cn("mt-2 block", item.title.length > 11 || item.title.includes(" ") ? "font-sans font-semibold" : "display-title", featured ? "max-w-[12ch] text-[1.8rem] leading-[1] text-paper" : "relative z-10 max-w-[11ch] text-[1.1rem] leading-[1.05] text-ink")}>{item.title}</span>
+      {cat.tag ? <span className={cn("relative z-10 mt-1 block whitespace-nowrap text-[13px] font-medium", dark ? "text-[#c9ae74]" : "text-gold-ink")}>{cat.tag}</span> : null}
       {featured ? <span className="mt-2 block max-w-[28ch] text-sm text-paper/75">{item.hint}</span> : null}
       <span className={cn("relative z-10 mt-4 block text-xs", featured ? "" : "max-w-[56%]", dark ? "text-paper/80" : "text-ink/75")}>
         {saved > 0 ? `Отвечено ${saved} из ${total}` : `${total} карточек · начните с первой`}
@@ -250,8 +250,8 @@ export function DeckScreen({ situationId }: { situationId: string }) {
       <TopBar title={situation.title} kicker={`№ ${numberOf(situation.id)} · ${situation.play ? "Семейная игра" : "Колода"}`} onBack={nav.back} />
       {done ? (
         <section className="forest rounded-2xl p-6 pr-28" style={{ ["--forest-img" as string]: packBg("bg_8146") }}>
-          <h2 className="display-title text-[2.4rem] leading-none text-paper">Колода пройдена</h2>
-          <p className="hand mt-2 text-[1.6rem] leading-none text-[#c9ae74] [transform:rotate(-2deg)]">спасибо за этот разговор</p>
+          <h2 className="display-title one-line leading-none text-paper [--max:2.2rem]" style={lineStyle("Колода пройдена")}>Колода пройдена</h2>
+          <p className="mt-2 text-[15px] text-[#c9ae74]">Спасибо за этот разговор.</p>
           <p className="mt-3 max-w-[30ch] text-paper/80">Ответы уже в книге. Если разговор зашёл далеко, соберите из них страницы.</p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Button variant="white" onClick={() => nav.tab({ id: "cards" })}>К накопленному</Button>
@@ -319,10 +319,10 @@ export function DeckScreen({ situationId }: { situationId: string }) {
                     <span className="max-w-[14ch] truncate">{round ?? "Вопрос"}</span>
                   </div>
                   {previous ? <span className="relative mt-2 w-fit rounded-full bg-sage-soft px-3 py-1 text-xs font-semibold text-moss">Уже отвечено</span> : null}
-                  <h2 className="display-title relative mt-3 pr-16 text-[1.85rem] font-medium leading-[1.12] text-ink sm:text-4xl">{question}</h2>
+                  <h2 className="relative mt-3 pr-16 text-[1.7rem] font-semibold leading-[1.15] text-ink sm:text-[2rem]">{question}</h2>
                   {previous ? <p className="relative mt-2 line-clamp-2 text-sm text-muted">Было: {previous.answer}</p> : null}
                   <div className="mt-auto">
-                    <p className="hand mb-1 text-[1.25rem] leading-none text-gold-ink">запиши так, как сказали</p>
+                    <p className="mb-1 text-xs font-medium text-gold-ink">Запишите так, как сказали</p>
                     <textarea
                       value={answer}
                       onChange={(event) => setAnswer(event.target.value)}
@@ -332,9 +332,9 @@ export function DeckScreen({ situationId }: { situationId: string }) {
                   </div>
                 </div>
                 <button type="button" onClick={() => { turnPage(); setFlipped(false); }} className="card-back absolute inset-0 flex flex-col justify-between overflow-hidden rounded-2xl p-5 text-left" style={{ transform: "rotateY(180deg)", backfaceVisibility: "hidden", ["--forest-img" as string]: packBg("bg_8153") }}>
-                  <span className="hand text-[2.2rem] leading-none text-[#c9ae74]">Книга рода</span>
+                  <span className="display-title text-[1.3rem] leading-none text-[#c9ae74]">Книга рода</span>
                   <span>
-                    <span className="display-title block text-[2rem] leading-[1.05]">А откуда мы это знаем?</span>
+                    <span className="block text-[1.6rem] font-semibold leading-[1.15]">Откуда это известно в семье?</span>
                     <span className="mt-3 block text-sm leading-relaxed text-paper/75">{BONUS_PROMPTS.slice(0, 5).join(" · ")}</span>
                   </span>
                   <span className="text-sm text-paper/80">Нажмите, чтобы вернуться к вопросу</span>
@@ -381,7 +381,7 @@ export function DeckScreen({ situationId }: { situationId: string }) {
 function CardBack({ className, label }: { className?: string; label: string }) {
   return (
     <div className={cn("card-back pointer-events-none flex items-end rounded-2xl p-4", className)} style={{ ["--forest-img" as string]: packBg("bg_8153") }}>
-      <p className="hand text-2xl text-[#c9ae74]">{label}</p>
+      <p className="text-sm font-semibold text-[#c9ae74]">{label}</p>
     </div>
   );
 }

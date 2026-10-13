@@ -166,7 +166,7 @@ export type PageBlock =
       frame: PhotoFrame;
       /** Какой кусок фото виден в рамке: центр (0..1) и приближение (1 = вся рамка). */
       crop?: { cx: number; cy: number; z: number };
-      /** Тень под фото. Старые фото без поля — с тенью. */
+      /** Тень под фото. Старые фото без поля – с тенью. */
       shadow?: boolean;
     } & Placed)
   | ({ id: string; type: "sticker"; x: number; y: number; kind: StickerKind; w?: number; text?: string } & Placed)

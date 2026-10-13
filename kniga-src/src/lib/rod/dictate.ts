@@ -1,5 +1,6 @@
 // Диктовка. В приложении, добавленном на экран «Домой» в iPhone/iPad, встроенное распознавание Safari не работает,
 // поэтому запасной путь: записать голос и расшифровать его прямо на устройстве (модель Whisper, скачивается один раз).
+import { downloadProgress } from "@/lib/rod/download-progress";
 import { recognition } from "@/lib/rod/speech";
 
 export type Dictation = { stop: () => void };
@@ -47,7 +48,7 @@ export function startDictation(handlers: Handlers): Dictation | null {
 
 function startRecording(handlers: Handlers): Dictation | null {
   if (!canRecord()) {
-    handlers.onError("Здесь нет доступа к микрофону. Нажмите значок микрофона на клавиатуре телефона — он диктует в любое поле.");
+    handlers.onError("Здесь нет доступа к микрофону. Нажмите значок микрофона на клавиатуре телефона – он диктует в любое поле.");
     handlers.onEnd();
     return null;
   }
@@ -124,9 +125,7 @@ async function transcribe(blob: Blob, handlers: Handlers) {
         }
         return (await pipeline("automatic-speech-recognition", "Xenova/whisper-base", {
           dtype: "q8",
-          progress_callback: (update: { status?: string; progress?: number }) => {
-            if (update.status === "progress") handlers.onStatus(`Скачиваю распознавание голоса… ${Math.round(update.progress ?? 0)}% (один раз)`);
-          },
+          progress_callback: downloadProgress((percent) => `Скачиваю распознавание голоса… ${percent}% (один раз)`, handlers.onStatus),
         })) as unknown as Asr;
       })();
       asr.catch(() => {

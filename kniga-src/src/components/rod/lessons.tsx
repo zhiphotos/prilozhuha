@@ -17,7 +17,7 @@ export function LessonsScreen() {
     <ScreenFrame>
       <TopBar kicker="Программа" title="Книга рода" />
       <p className="max-w-xl text-muted">
-        Сначала бесплатный урок и живой сбор. Платная часть — когда захочется превратить материалы в настоящую историю, а не в папку.
+        Сначала бесплатный урок и живой сбор. Платная часть нужна, когда захочется превратить собранное в связный рассказ.
       </p>
       <ul className="mt-5 grid gap-3">
         {LESSONS.map((lesson, index) => {
@@ -43,7 +43,7 @@ export function LessonsScreen() {
                     {lesson.free ? "Бесплатно" : `Урок ${index}`} · {lesson.minutes} мин
                     {passed ? " · пройден" : ""}
                   </span>
-                  <span className={cn("mt-1 block display-title text-2xl", "text-ink")}>{lesson.title}</span>
+                  <span className={cn("mt-1 block text-[1.15rem] font-semibold leading-snug", "text-ink")}>{lesson.title}</span>
                   <span className={cn("mt-1 block text-sm", lesson.free ? "text-ink/70" : "text-muted")}>{lesson.lead}</span>
                 </span>
               </button>
@@ -54,7 +54,7 @@ export function LessonsScreen() {
       {!programOpen ? (
         <div className="wash-blush mt-3 rounded-2xl p-5">
           <p className="text-sm text-rose-deep">Шесть уроков программы</p>
-          <p className="mt-1 display-title text-4xl text-ink">{PROGRAM_PRICE}</p>
+          <p className="mt-1 text-[1.9rem] font-semibold leading-tight text-ink">{PROGRAM_PRICE}</p>
           <p className="mt-2 text-sm text-muted">Интервью, девичьи фамилии, фотографии, места, главы и сборка книги.</p>
           <Button className="mt-4" onClick={() => setPay(true)}>
             Открыть программу
@@ -120,7 +120,7 @@ export function LessonScreen({ lessonId }: { lessonId: string }) {
         <p className="text-sm text-muted">
           {step + 1} / {lesson.sections.length}
         </p>
-        <h2 className="mt-2 display-title text-3xl text-ink">{section.heading}</h2>
+        <h2 className="mt-2 text-[1.5rem] font-semibold leading-tight text-ink">{section.heading}</h2>
         <div className="mt-4 grid gap-3 text-base leading-relaxed text-ink">
           {section.paragraphs.map((paragraph) => (
             <p key={paragraph}>{paragraph}</p>
@@ -184,7 +184,7 @@ function PaySheet({ onClose }: { onClose: () => void }) {
   const [wrong, setWrong] = useState(false);
   return (
     <Sheet title="Программа «Книга рода»" onClose={onClose}>
-      <p className="display-title text-4xl text-ink">{PROGRAM_PRICE}</p>
+      <p className="text-[1.9rem] font-semibold leading-tight text-ink">{PROGRAM_PRICE}</p>
       <p className="mt-2 text-sm text-muted">Шесть уроков откроются здесь же: интервью, девичья фамилия, фотография, места, глава и сборка книги. И полный шаблон Книги рода на 100 страниц.</p>
       {PAY_URL ? (
         <Button className="mt-4 w-full" onClick={() => window.open(PAY_URL, "_blank", "noopener")}>

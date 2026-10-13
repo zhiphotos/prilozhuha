@@ -7,7 +7,7 @@ import { useMedia } from "@/lib/rod/media";
 import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
 
-/** «Вайб» — выезжающая справа доска с картинками-ориентирами: цвета, настроение, вёрстка. В книгу не печатается. */
+/** «Вайб» – выезжающая справа доска с картинками-ориентирами: цвета, настроение, вёрстка. В книгу не печатается. */
 export function MoodBoard({ open, onToggle, onPlace, pinned, onPin }: { open: boolean; onToggle: () => void; onPlace: (ref: string) => void; pinned: string[]; onPin: (ref: string) => void }) {
   const items = useRod((state) => state.moodboard);
   const addMood = useRod((state) => state.addMood);
@@ -38,7 +38,7 @@ export function MoodBoard({ open, onToggle, onPlace, pinned, onPin }: { open: bo
           open && "opacity-0 pointer-events-none",
         )}
         style={{ writingMode: "vertical-rl" }}
-        aria-label="Вайб — картинки-ориентиры"
+        aria-label="Вайб – картинки-ориентиры"
       >
         ✦ Вайб
       </button>
@@ -69,7 +69,7 @@ export function MoodBoard({ open, onToggle, onPlace, pinned, onPin }: { open: bo
       >
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="display-title text-xl text-ink">Вайб книги</p>
+            <p className="display-title text-[0.85rem] text-ink">Вайб книги</p>
             <p className="text-xs text-muted">Что нравится по дизайну: цвета, шрифты, развороты. Смотрите сюда, пока оформляете. В печать не идёт.</p>
           </div>
           <button type="button" onClick={onToggle} className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80" aria-label="Закрыть вайб">

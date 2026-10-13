@@ -9,7 +9,7 @@ export type SpeechRec = {
   stop: () => void;
 };
 
-/** Диктовка браузера (Safari и Chrome). null — если её нет. */
+/** Диктовка браузера (Safari и Chrome). null – если её нет. */
 export function recognition(): SpeechRec | null {
   if (typeof window === "undefined") return null;
   const host = window as unknown as { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecognition?: new () => SpeechRec };
