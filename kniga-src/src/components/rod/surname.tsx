@@ -59,13 +59,13 @@ function Result({ reading }: { reading: SurnameReading }) {
     <div className="mt-4 grid gap-3">
       <section className="glass rounded-4xl p-5">
         <p className="text-sm text-rose-deep">{reading.surname}</p>
-        <h2 className="mt-1 font-display text-2xl text-ink">Возможное происхождение</h2>
+        <h2 className="mt-1 font-sans text-xl font-semibold text-ink">Возможное происхождение</h2>
         <p className="mt-2 text-ink">{reading.origin}</p>
         <p className="mt-3 text-sm text-muted">{reading.formation}</p>
       </section>
       {reading.variants.length > 0 ? (
         <section className="glass rounded-4xl p-5">
-          <h2 className="font-display text-2xl text-ink">Возможные варианты написания</h2>
+          <h2 className="font-sans text-xl font-semibold text-ink">Возможные варианты написания</h2>
           <ul className="mt-3 flex flex-wrap gap-2">
             {reading.variants.map((item) => (
               <li key={item} className="rounded-full bg-blush px-3 py-1 text-sm text-ink">
@@ -76,7 +76,7 @@ function Result({ reading }: { reading: SurnameReading }) {
         </section>
       ) : null}
       <section className="glass rounded-4xl p-5">
-        <h2 className="font-display text-2xl text-ink">Где такое написание встречается</h2>
+        <h2 className="font-sans text-xl font-semibold text-ink">Где такое написание встречается</h2>
         <ul className="mt-3 grid gap-2 text-sm text-ink">
           {reading.regions.map((item) => (
             <li key={item}>{item}</li>
@@ -84,7 +84,7 @@ function Result({ reading }: { reading: SurnameReading }) {
         </ul>
       </section>
       <section className="wash-sage rounded-4xl p-5">
-        <h2 className="font-display text-2xl text-ink">Что проверить дальше</h2>
+        <h2 className="font-sans text-xl font-semibold text-ink">Что проверить дальше</h2>
         <ol className="mt-3 grid list-decimal gap-2 pl-5 text-sm text-ink">
           {reading.next.map((item) => (
             <li key={item}>{item}</li>

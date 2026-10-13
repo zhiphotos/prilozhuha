@@ -156,7 +156,7 @@ export function FlipBookScreen({ pageId }: { pageId?: string }) {
         <button type="button" className="glass-strong grid size-11 place-items-center rounded-full" aria-label="Закрыть книгу" onClick={() => nav.back()}>
           <X className="size-5" />
         </button>
-        <p className="display-title flex-1 truncate text-center text-xl text-ink">Книга рода</p>
+        <p className="display-title flex-1 truncate text-center text-[0.85rem] text-ink">Книга рода</p>
         <button type="button" disabled={Boolean(saving) || pages.length === 0} onClick={printFile} className="glass-strong flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-ink disabled:opacity-60">
           <Download className="size-4" />
           {saving ?? "PDF"}

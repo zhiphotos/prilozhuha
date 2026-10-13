@@ -8,7 +8,7 @@ import { useRod } from "@/lib/rod/store";
 import type { Audience, Screen } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
 import { toast } from "sonner";
-import { Button, Field, ScreenFrame, Sheet, useNav } from "@/components/rod/chrome";
+import { Button, Field, ScreenFrame, Sheet, lineStyle, useNav } from "@/components/rod/chrome";
 import { exportBook, importBook, lastBackupAt } from "@/lib/rod/backup";
 import { InstallCard, InstallSheet } from "@/components/rod/install-hint";
 import { ProjectsSheet } from "@/components/rod/projects-sheet";
@@ -42,7 +42,7 @@ export function HomeScreen() {
     counts.stories ? plural(counts.stories, "история", "истории", "историй") : "",
     counts.notes ? plural(counts.notes, "ответ", "ответа", "ответов") : "",
   ].filter(Boolean);
-  const heading = mode === "new" ? "Начнём с одного имени" : mode === "going" ? "Продолжим книгу" : facts.length ? `Уже собрано: ${facts.slice(0, 3).join(", ")}` : "Книга началась";
+  const heading = mode === "new" ? "Начнём с имени" : mode === "going" ? "Продолжим книгу" : "Книга началась";
   const note = mode === "new" ? "первый шаг совсем небольшой" : mode === "going" ? "здесь мы остановились" : "шаг за шагом";
   const heroLabel = mode === "going" ? "Продолжить" : "Следующий шаг";
   const heroTitle = mode === "going" && last ? last.title || "Страница" : step.title;
@@ -58,7 +58,7 @@ export function HomeScreen() {
           </span>
           <div>
             <p className="hand text-[1.7rem] leading-none text-gold-ink">{bookName ? `Книга ${bookName}` : "Книга рода"}</p>
-            <p className="display-title text-2xl leading-tight text-ink">{who}</p>
+            <p className="display-title text-[1.05rem] leading-tight text-ink">{who}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -71,9 +71,10 @@ export function HomeScreen() {
         </div>
       </div>
 
-      <h1 className="display-title max-w-[14ch] text-[2.7rem] leading-[1.02] text-ink sm:max-w-none sm:text-6xl">{heading}</h1>
+      <h1 className="display-title one-line leading-[1.1] text-ink [--max:2.8rem]" style={lineStyle(heading)}>{heading}</h1>
+      {facts.length && mode !== "new" ? <p className="mt-2 text-[15px] text-muted">{facts.slice(0, 3).join(", ")}</p> : null}
 
-      <p className="hand mt-5 flex items-center gap-2 text-[1.75rem] text-gold-ink [transform:rotate(-2deg)]">
+      <p className="hand one-line mt-5 flex items-center gap-2 text-gold-ink [--em:13.5] [--max:1.9rem] [transform:rotate(-2deg)]">
         {note}
         <HandArrow className="mt-2 h-6 w-10 rotate-90" />
       </p>
@@ -85,7 +86,7 @@ export function HomeScreen() {
         style={{ ["--forest-img" as string]: packBg("bg_8154") }}
       >
         <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">{heroLabel}</span>
-        <span className="display-title mt-2 block max-w-[16ch] text-[2rem] leading-[1.05] text-paper">{heroTitle}</span>
+        <span className="mt-2 block max-w-[20ch] text-[1.75rem] font-semibold leading-[1.12] text-paper">{heroTitle}</span>
         <span className="mt-2 block max-w-[30ch] text-sm text-paper/75">{heroDetail}</span>
         <span className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-paper px-5 text-sm font-semibold text-ink">
           {mode === "going" ? "Открыть страницу" : "Приступить"} <ArrowRight className="size-4" />
@@ -122,7 +123,7 @@ export function HomeScreen() {
         <button type="button" onClick={() => nav.go({ id: "lesson", lessonId: free.id })} className="aurora mt-9 flex w-full items-center gap-4 rounded-2xl p-5 text-left">
           <span className="min-w-0 flex-1">
             <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-ink">{freeDone ? "Урок пройден" : "Бесплатный урок"}</span>
-            <span className="display-title mt-1 block text-[1.6rem] leading-[1.08] text-ink">{free.title}</span>
+            <span className="mt-1 block text-[1.35rem] font-semibold leading-[1.15] text-ink">{free.title}</span>
             <span className="mt-1 block text-sm text-ink/75">{free.minutes} минут</span>
           </span>
           <span className="grid size-11 shrink-0 place-items-center rounded-full bg-moss text-paper">
@@ -142,7 +143,7 @@ export function HomeScreen() {
       </section>
 
       {counts.people > 0 ? (
-        <p className="display-title mt-9 max-w-[26ch] text-[1.5rem] leading-snug text-ink/80">{reminder(data.audience, data.dedicatee)}</p>
+        <p className="mt-9 max-w-[30ch] text-[1.2rem] leading-snug text-ink/80">{reminder(data.audience, data.dedicatee)}</p>
       ) : null}
 
       <section className="mt-9 flex flex-wrap gap-2">
@@ -186,7 +187,7 @@ function BackupCard({ hasData }: { hasData: boolean }) {
   return (
     <section className={cn("mt-9 rounded-2xl p-5", old && hasData ? "wash-blush" : "glass")}>
       <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Копия книги</h2>
-      <p className="display-title mt-1 text-[1.5rem] leading-tight text-ink">
+      <p className="display-title mt-1 text-[1.15rem] leading-tight text-ink">
         {last ? `Последняя копия: ${last.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}` : hasData ? "Копии ещё нет" : "Здесь появится копия"}
       </p>
       <p className="mt-1 text-sm text-muted">Весь текст и все фото в одном файле. Его можно открыть на другом телефоне или сохранить в «Файлы», чтобы ничего не потерять.</p>

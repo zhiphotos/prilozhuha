@@ -69,7 +69,7 @@ export function MoodBoard({ open, onToggle, onPlace, pinned, onPin }: { open: bo
       >
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="display-title text-xl text-ink">Вайб книги</p>
+            <p className="display-title text-[0.85rem] text-ink">Вайб книги</p>
             <p className="text-xs text-muted">Что нравится по дизайну: цвета, шрифты, развороты. Смотрите сюда, пока оформляете. В печать не идёт.</p>
           </div>
           <button type="button" onClick={onToggle} className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80" aria-label="Закрыть вайб">

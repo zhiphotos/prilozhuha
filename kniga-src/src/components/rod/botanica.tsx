@@ -186,7 +186,7 @@ export function Hero({ name, pal = PAL_DARK, className }: { name: string; pal?: 
 
 /** Вырезка из её фото-библиотеки (public/stickers/pack). Ленивая загрузка, размеры заданы. */
 export function Cut({ id, className, style, alt = "" }: { id: string; className?: string; style?: CSSProperties; alt?: string }) {
-  return <img src={`stickers/pack/${id}.webp`} alt={alt} loading="lazy" decoding="async" draggable={false} className={className} style={style} />;
+  return <img src={`stickers/pack/${id}.webp`} alt={alt} draggable={false} className={className} style={style} />;
 }
 
 export function packUrl(id: string): string {

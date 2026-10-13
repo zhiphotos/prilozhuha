@@ -78,7 +78,7 @@ export function BookScreen() {
           </div>
           <span>
             <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">Начните отсюда</span>
-            <span className="display-title mt-1 block text-3xl text-ink">Открыть обложку</span>
+            <span className="display-title mt-1 block text-[1.2rem] text-ink">Открыть обложку</span>
             <span className="mt-1 block text-sm text-ink/70">Напишите, для кого эта книга.</span>
           </span>
         </button>
@@ -91,7 +91,7 @@ export function BookScreen() {
       <section className="glass mt-8 rounded-2xl p-5">
         <div className="flex items-center gap-2">
           <Sparkles className="size-4 text-rose-deep" />
-          <h2 className="display-title text-2xl text-ink">Чего не хватает книге</h2>
+          <h2 className="display-title text-[0.95rem] text-ink">Чего не хватает книге</h2>
         </div>
         <div className="mt-4 grid gap-4">
           {storyOut.length > 0 ? (
@@ -135,7 +135,7 @@ export function BookScreen() {
       </section>
 
       <section className={cn("mt-4 rounded-2xl p-5", ready ? "aurora" : "glass")}>
-        <h2 className="display-title text-2xl text-ink">
+        <h2 className="display-title text-[0.95rem] text-ink">
           {ready ? "Ты собрал(а) материал для первой Книги рода" : "Когда страниц станет больше"}
         </h2>
         <p className="mt-2 text-sm text-ink/70">
@@ -534,7 +534,7 @@ function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: s
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">Для участников программы</p>
-          <h2 className="display-title mt-1 text-[1.7rem] leading-tight text-ink">Полный шаблон Книги рода · 100 страниц</h2>
+          <h2 className="display-title mt-1 text-[1.05rem] leading-tight text-ink">Полный шаблон Книги рода · 100 страниц</h2>
         </div>
         {!open ? (
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/80 text-rose-deep">

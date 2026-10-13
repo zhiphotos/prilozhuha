@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Yauza";
+  src: url("./assets/fonts/yauza.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   /* Лён и бумага: рабочая поверхность */
   --color-ivory: #e7e1d3;
@@ -24,7 +32,7 @@
   --color-gold-ink: #7e6431;
   --color-kraft: #a07858;
   --font-sans: "Manrope Variable", "Manrope", "Segoe UI", sans-serif;
-  --font-display: "Cormorant Garamond", "Georgia", serif;
+  --font-display: "Yauza", "Manrope Variable", "Segoe UI", sans-serif;
   --font-serif: "Cormorant Garamond", Georgia, serif;
   --font-script: "Caveat", "Segoe Script", cursive;
   --radius-4xl: 2rem;
@@ -93,8 +101,22 @@
 
   .display-title {
     font-family: var(--font-display);
-    font-weight: 600;
-    letter-spacing: -0.012em;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+  }
+
+  /* Фраза всегда в одну строку: размер сам подбирается под ширину экрана.
+     --em: сколько «em» занимает самая длинная фраза (замерено по шрифту), --max: потолок размера. */
+  .one-line {
+    white-space: nowrap;
+    --em: 5;
+    --max: 3.4rem;
+    font-size: min(var(--max), calc((100vw - var(--pad, 2.5rem)) / var(--em)));
+  }
+  @media (min-width: 64rem) {
+    .one-line {
+      font-size: var(--max);
+    }
   }
 
   /* Поверхности: сплошная бумага с тонкой линией. Размытие только у плавающих панелей. */

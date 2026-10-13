@@ -22,7 +22,7 @@ export function StoriesScreen() {
           {stories.map((story) => (
             <li key={story.id} className="glass flex items-start justify-between gap-3 rounded-3xl p-4">
               <button type="button" className="min-w-0 text-left" onClick={() => nav.go({ id: "story", storyId: story.id })}>
-                <p className="font-display text-2xl text-ink">{story.title}</p>
+                <p className="font-sans text-lg font-semibold text-ink">{story.title}</p>
                 <p className="mt-1 line-clamp-2 text-sm text-muted">{story.narrative}</p>
               </button>
               <button type="button" className="shrink-0 text-sm text-muted underline" onClick={() => removeStory(story.id)}>
@@ -93,7 +93,7 @@ export function WizardScreen({ templateId }: { templateId: string }) {
       />
       {!review && question ? (
         <div className="glass rounded-4xl p-5 sm:p-6">
-          <h2 className="font-display text-3xl text-ink">{question.text}</h2>
+          <h2 className="font-sans text-2xl font-semibold leading-snug text-ink">{question.text}</h2>
           <textarea
             className="field mt-4 min-h-32"
             value={answers[question.id] ?? ""}
@@ -166,7 +166,7 @@ export function StoryScreen({ storyId }: { storyId: string }) {
   return (
     <ScreenFrame>
       <TopBar title={story.title} kicker="Глава" onBack={nav.back} />
-      <article className="glass whitespace-pre-wrap rounded-4xl p-6 font-display text-xl leading-relaxed text-ink">{story.narrative}</article>
+      <article className="glass whitespace-pre-wrap rounded-4xl p-6 font-sans text-[17px] leading-relaxed text-ink">{story.narrative}</article>
       <div className="mt-4 flex flex-wrap gap-2">
         {inBook ? (
           <Button variant="soft" onClick={() => nav.go({ id: "editor", pageId: inBook.id })}>

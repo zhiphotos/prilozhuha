@@ -71,7 +71,7 @@ export function Scanner({ onDone, onClose }: { onDone: (ref: string, mode: ScanM
   return (
     <div className="fixed inset-0 z-[70] flex flex-col bg-night/95 p-3 text-paper">
       <div className="flex items-center justify-between pb-2 pt-[max(0.25rem,env(safe-area-inset-top))]">
-        <p className="display-title text-2xl">Сканер</p>
+        <p className="display-title text-[0.95rem]">Сканер</p>
         <button type="button" className="grid size-10 place-items-center rounded-full bg-white/15" onClick={onClose} aria-label="Закрыть">
           <X className="size-5" />
         </button>
