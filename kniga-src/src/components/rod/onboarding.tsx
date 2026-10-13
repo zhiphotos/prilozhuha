@@ -3,6 +3,7 @@ import { AUDIENCES } from "@/lib/rod/content";
 import type { Audience } from "@/lib/rod/types";
 import { useRod } from "@/lib/rod/store";
 import { Button, Field, lineStyle } from "@/components/rod/chrome";
+import { InstallSheet, isStandalone } from "@/components/rod/install-hint";
 import { OpenCopyButton } from "@/components/rod/open-copy";
 import { Cut, packBg } from "@/components/rod/botanica";
 import { cn } from "@/lib/cn";
@@ -12,6 +13,7 @@ export function Onboarding({ ready = true }: { ready?: boolean }) {
   const [audience, setAudience] = useState<Audience | null>(null);
   const [dedicatee, setDedicatee] = useState("");
   const [collector, setCollector] = useState("");
+  const [install, setInstall] = useState(() => !isStandalone());
   const named = audience === "children" || audience === "future";
 
   return (
@@ -85,6 +87,7 @@ export function Onboarding({ ready = true }: { ready?: boolean }) {
           </div>
         ) : null}
       </div>
+    {ready && install ? <InstallSheet first onClose={() => setInstall(false)} /> : null}
     </main>
   );
 }

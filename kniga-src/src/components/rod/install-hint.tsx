@@ -4,6 +4,16 @@ import { Button, Sheet } from "@/components/rod/chrome";
 
 const KEY = "kniga-install-dismissed";
 
+type InstallPrompt = Event & { prompt: () => Promise<void> };
+let deferred: InstallPrompt | null = null;
+// Chrome и Android разрешают установить приложение одной кнопкой: запоминаем момент, когда браузер это предложил.
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferred = event as InstallPrompt;
+  });
+}
+
 /** Открыто как приложение с экрана «Домой»: подсказка не нужна. */
 export function isStandalone(): boolean {
   if (typeof window === "undefined") return false;
@@ -15,10 +25,17 @@ export function isApple(): boolean {
   return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
-export function InstallSheet({ onClose }: { onClose: () => void }) {
+export function InstallSheet({ onClose, first = false }: { onClose: () => void; first?: boolean }) {
   const apple = isApple();
   return (
-    <Sheet title="Значок на экране «Домой»" onClose={onClose}>
+    <Sheet title={first ? "Сначала поставьте книгу на экран" : "Значок на экране «Домой»"} onClose={onClose}>
+      {first ? (
+        <p className="mb-4 rounded-xl bg-gold/15 p-3 text-sm text-ink">
+          {apple
+            ? "Книга хранится на вашем устройстве. Safari и значок на экране «Домой» хранят её по отдельности: то, что вы запишете в браузере, в значке не появится. Поэтому поставьте значок сейчас, до того как начнёте, и работайте уже в нём."
+            : "Книга хранится на вашем устройстве, а не на сервере. Поставьте значок сейчас, до того как начнёте: так приложение открывается как обычное, быстрее запускается, и браузер реже чистит его данные."}
+        </p>
+      ) : null}
       <div className="flex items-center gap-4">
         <img src="icons/icon-180.png" alt="" className="size-20 shrink-0 rounded-[1.1rem] shadow-[var(--shadow-soft)]" />
         <p className="text-sm text-muted">Книга откроется с экрана телефона как обычное приложение, без адресной строки.</p>
@@ -39,10 +56,37 @@ export function InstallSheet({ onClose }: { onClose: () => void }) {
           </li>
         </ol>
       ) : (
-        <p className="mt-5 text-[15px] text-ink">В меню браузера выберите «Установить приложение» или «Добавить на главный экран».</p>
+        <>
+          <ol className="mt-5 grid gap-3 text-[15px] text-ink">
+            <li className="flex items-start gap-3">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-moss text-sm font-semibold text-paper">1</span>
+              <span>Откройте эту страницу в Chrome и нажмите три точки <span aria-hidden>⋮</span> справа вверху.</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-moss text-sm font-semibold text-paper">2</span>
+              <span>Выберите «Установить приложение» или «Добавить на главный экран».</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-moss text-sm font-semibold text-paper">3</span>
+              <span>Подтвердите. Значок с мох-книгой появится среди приложений и на экране.</span>
+            </li>
+          </ol>
+          {deferred ? (
+            <Button
+              className="mt-4 w-full"
+              onClick={() => {
+                void deferred?.prompt();
+                deferred = null;
+                onClose();
+              }}
+            >
+              Установить сейчас
+            </Button>
+          ) : null}
+        </>
       )}
-      <Button className="mt-6 w-full" onClick={onClose}>
-        Понятно
+      <Button variant={first ? "soft" : "primary"} className="mt-6 w-full" onClick={onClose}>
+        {first ? "Продолжить в браузере" : "Понятно"}
       </Button>
     </Sheet>
   );
