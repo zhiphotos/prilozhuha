@@ -8,6 +8,8 @@ import { blankPage, coverPage, pageFromPhoto, pageFromPrompt, pageFromStory } fr
 import { PAGE_PROMPTS } from "@/lib/rod/pages";
 import { isBookReady, overallOf, partsOf, plural } from "@/lib/rod/progress";
 import { CoverSetup } from "@/components/rod/cover-setup";
+import { PlanSheet } from "@/components/rod/plan-sheet";
+import { ContentsSheet } from "@/components/rod/contents-sheet";
 import { downloadFamilyBook, downloadPrintBlock, downloadPrintCover } from "@/lib/rod/print-book";
 import { useRod } from "@/lib/rod/store";
 import type { BookPage, PaperKind } from "@/lib/rod/types";
@@ -23,6 +25,9 @@ export function BookScreen() {
   const [printing, setPrinting] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
   const [coverSetup, setCoverSetup] = useState(false);
+  const [planning, setPlanning] = useState(false);
+  const [contents, setContents] = useState(false);
+  const plan = useRod((state) => state.plan);
   const snapshot = { ...data, pages };
   const overall = overallOf(partsOf(snapshot));
   const ready = isBookReady(snapshot, overall) || pages.length >= 6;
@@ -55,18 +60,24 @@ export function BookScreen() {
         <Button variant="soft" className="min-h-12" disabled={pages.length === 0} onClick={() => setPrinting(true)}>
           <Printer className="size-4" /> Печать
         </Button>
+        <Button className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setContents(true)}>
+          <BookOpen className="size-4" /> Содержание{plan.length ? ` · ${plan.filter((c) => c.done).length} из ${plan.length}` : ""}
+        </Button>
+        <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setPlanning(true)}>
+          <Sparkles className="size-4" /> Спланировать страницы списком
+        </Button>
         <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setCoverSetup(true)}>
           <Palette className="size-4" /> Обложка: корешок и задняя сторона
         </Button>
       </div>
 
       {!hasCover ? (
-        <button type="button" onClick={() => open(coverPage(meta), 0)} className="aurora mb-5 flex w-full items-center gap-4 rounded-[2rem] p-5 text-left">
+        <button type="button" onClick={() => open(coverPage(meta), 0)} className="aurora mb-5 flex w-full items-center gap-4 rounded-2xl p-5 text-left">
           <div className="w-20 shrink-0 overflow-hidden rounded-md shadow-lg">
             <PageSheet page={{ id: "c", ...coverPage(meta) }} meta={meta} />
           </div>
           <span>
-            <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-ink/60">Начните отсюда</span>
+            <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">Начните отсюда</span>
             <span className="display-title mt-1 block text-3xl text-ink">Открыть обложку</span>
             <span className="mt-1 block text-sm text-ink/70">Для кого книга — уже первая страница.</span>
           </span>
@@ -77,7 +88,7 @@ export function BookScreen() {
 
       <PageGrid pages={pages} meta={meta} onOpen={(id) => nav.go({ id: "editor", pageId: id })} onAdd={() => setLibrary(true)} />
 
-      <section className="glass mt-8 rounded-[2rem] p-5">
+      <section className="glass mt-8 rounded-2xl p-5">
         <div className="flex items-center gap-2">
           <Sparkles className="size-4 text-rose-deep" />
           <h2 className="display-title text-2xl text-ink">Чего не хватает книге</h2>
@@ -123,7 +134,7 @@ export function BookScreen() {
         </div>
       </section>
 
-      <section className={cn("mt-4 rounded-[2rem] p-5", ready ? "aurora" : "glass")}>
+      <section className={cn("mt-4 rounded-2xl p-5", ready ? "aurora" : "glass")}>
         <h2 className="display-title text-2xl text-ink">
           {ready ? "Ты собрал(а) материал для первой Книги рода" : "Когда страниц станет больше"}
         </h2>
@@ -164,6 +175,8 @@ export function BookScreen() {
         </section>
       ) : null}
 
+      {contents ? <ContentsSheet onClose={() => setContents(false)} onOpen={(pid) => { setContents(false); nav.go({ id: "editor", pageId: pid }); }} /> : null}
+      {planning ? <PlanSheet onClose={() => setPlanning(false)} /> : null}
       {coverSetup ? <CoverSetup onClose={() => setCoverSetup(false)} /> : null}
       {printing ? <PrintSheet pages={pages} meta={meta} onClose={() => setPrinting(false)} /> : null}
       {library ? <Library meta={meta} onClose={() => setLibrary(false)} onPick={(page) => { setLibrary(false); open(page); }} /> : null}
@@ -310,6 +323,9 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
   const [arrange, setArrange] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const [confirmAll, setConfirmAll] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const [moveTo, setMoveTo] = useState("");
+  const movePages = useRod((state) => state.movePages);
 
   const drop = (ids: string[]) => {
     if (!ids.length) return;
@@ -362,16 +378,50 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="text-sm text-muted">{arrange ? "Тащите — поменять место. Коснитесь — выбрать." : `${plural(pages.length, "страница", "страницы", "страниц")}`}</p>
         {pages.length > 0 ? (
-          <Button variant={arrange ? "primary" : "soft"} className="min-h-10 shrink-0 px-4" onClick={() => { setArrange((v) => !v); setPicked([]); setConfirmAll(false); }}>
-            {arrange ? "Готово" : <><ArrowLeftRight className="size-4" /> Порядок и удаление</>}
-          </Button>
+          <span className="flex shrink-0 gap-2">
+            <Button variant="soft" className="min-h-10 px-3" onClick={onAdd}>
+              <Plus className="size-4" /> Страница
+            </Button>
+            <Button variant={arrange ? "primary" : "soft"} className="min-h-10 px-4" onClick={() => { setArrange((v) => !v); setPicked([]); setConfirmAll(false); setMoving(false); }}>
+              {arrange ? "Готово" : <><ArrowLeftRight className="size-4" /> Порядок и удаление</>}
+            </Button>
+          </span>
         ) : null}
       </div>
       {arrange ? (
-        <div className="glass sticky top-2 z-20 mb-4 flex flex-wrap items-center gap-2 rounded-[1.4rem] p-2">
+        <div className="glass sticky top-2 z-20 mb-4 flex flex-wrap items-center gap-2 rounded-xl p-2">
           <Button variant="white" className="min-h-10 px-3" onClick={() => setPicked(picked.length === pages.length ? [] : pages.map((page) => page.id))}>
             {picked.length === pages.length ? "Снять выбор" : "Выбрать все"}
           </Button>
+          <Button variant="white" className="min-h-10 px-3" disabled={!picked.length} onClick={() => setMoving((v) => !v)}>
+            <ArrowLeftRight className="size-4" /> Перенести выбранные{picked.length ? ` · ${picked.length}` : ""}
+          </Button>
+          {moving && picked.length ? (
+            <span className="flex w-full flex-wrap items-center gap-2 rounded-2xl bg-white/70 p-2">
+              <Button className="min-h-10 px-3" variant="soft" onClick={() => { movePages(picked, 0); setMoving(false); toast("Перенесены в начало"); }}>
+                В начало
+              </Button>
+              <Button className="min-h-10 px-3" variant="soft" onClick={() => { movePages(picked, pages.length); setMoving(false); toast("Перенесены в конец"); }}>
+                В конец
+              </Button>
+              <span className="text-sm text-ink">или после страницы №</span>
+              <input className="field !min-h-10 !w-20 !py-1" inputMode="numeric" value={moveTo} onChange={(event) => setMoveTo(event.target.value.replace(/\D/g, ""))} />
+              <Button
+                className="min-h-10 px-3"
+                disabled={!moveTo}
+                onClick={() => {
+                  // Номер страницы без обложки: после неё выбранные встают по списку без самих выбранных.
+                  const rest = pages.filter((page) => !picked.includes(page.id));
+                  const cover = rest[0]?.kind === "cover" ? 1 : 0;
+                  movePages(picked, Math.min(rest.length, cover + Number(moveTo)));
+                  setMoving(false);
+                  toast(`Перенесены после страницы ${moveTo}`);
+                }}
+              >
+                Перенести
+              </Button>
+            </span>
+          ) : null}
           <Button className="min-h-10 px-3" variant="night" disabled={!picked.length} onClick={() => drop(picked)}>
             <Trash2 className="size-4" /> Удалить выбранные{picked.length ? ` · ${picked.length}` : ""}
           </Button>
@@ -480,10 +530,10 @@ function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: s
   });
 
   return (
-    <section className={cn("mb-6 rounded-[2rem] p-5", open ? "aurora" : "glass")}>
+    <section className={cn("mb-6 rounded-2xl p-5", open ? "aurora" : "glass")}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/60">Для участников программы</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">Для участников программы</p>
           <h2 className="display-title mt-1 text-[1.7rem] leading-tight text-ink">Полный шаблон Книги рода · 100 страниц</h2>
         </div>
         {!open ? (
@@ -496,7 +546,7 @@ function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: s
       <ol className="mt-3 grid gap-1 text-sm text-ink">
         {chapters.map((chapter) => (
           <li key={chapter.n} className="flex gap-2">
-            <span className="w-14 shrink-0 tabular-nums text-ink/50">{chapter.range}</span>
+            <span className="w-14 shrink-0 tabular-nums text-ink/75">{chapter.range}</span>
             <span>
               {chapter.n}. {chapter.title}
             </span>

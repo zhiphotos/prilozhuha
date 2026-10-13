@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useMedia } from "@/lib/rod/media";
 import { cn } from "@/lib/cn";
 
-export function IconBtn({ label, children, onClick, disabled, active }: { label: string; children: React.ReactNode; onClick: () => void; disabled?: boolean; active?: boolean }) {
+export function IconBtn({ label, children, onClick, disabled, active, className }: { label: string; children: React.ReactNode; onClick: () => void; disabled?: boolean; active?: boolean; className?: string }) {
   return (
     <button
       type="button"
@@ -10,7 +10,7 @@ export function IconBtn({ label, children, onClick, disabled, active }: { label:
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className={cn("grid size-11 place-items-center rounded-full text-ink transition disabled:opacity-30 enabled:active:bg-white/70", active && "bg-night text-paper")}
+      className={cn("grid size-11 place-items-center rounded-full text-ink transition disabled:opacity-30 enabled:active:bg-white/70", active && "bg-night text-paper", className)}
     >
       {children}
     </button>
@@ -94,11 +94,11 @@ export function Stepper({ label, value, min, max, step = 1, unit = "px", onChang
   return (
     <div className="flex items-center gap-2">
       <span className="hidden w-14 shrink-0 text-xs text-muted min-[420px]:block">{label}</span>
-      <button type="button" aria-label="Меньше" className="grid size-10 shrink-0 place-items-center rounded-full bg-white/80 text-lg leading-none" onClick={() => onChange(clamp(value - step))}>
+      <button type="button" aria-label="Меньше" className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-lg leading-none" onClick={() => onChange(clamp(value - step))}>
         −
       </button>
       <input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(clamp(Number(event.target.value)))} className="rgb-range h-2 min-w-0 flex-1 appearance-none rounded-full bg-ink/15" />
-      <button type="button" aria-label="Больше" className="grid size-10 shrink-0 place-items-center rounded-full bg-white/80 text-lg leading-none" onClick={() => onChange(clamp(value + step))}>
+      <button type="button" aria-label="Больше" className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-lg leading-none" onClick={() => onChange(clamp(value + step))}>
         +
       </button>
       <span className="w-16 shrink-0 text-right text-xs tabular-nums text-ink">

@@ -45,12 +45,12 @@ export function PhotoNewScreen() {
         onChange={(event) => void onFile(event.target.files?.[0])}
       />
       {dataUrl ? (
-        <MediaImg src={dataUrl} alt="Предпросмотр семейной фотографии" className="mt-4 max-h-[60vh] w-full rounded-[2rem] object-contain shadow-lg" />
+        <MediaImg src={dataUrl} alt="Предпросмотр семейной фотографии" className="mt-4 max-h-[60vh] w-full rounded-2xl object-contain shadow-lg" />
       ) : (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="glass mt-4 flex min-h-48 w-full flex-col items-center justify-center gap-2 rounded-[2rem] p-6 text-ink"
+          className="glass mt-4 flex min-h-48 w-full flex-col items-center justify-center gap-2 rounded-2xl p-6 text-ink"
         >
           <ImagePlus className="size-6 text-rose-deep" />
           <span className="font-medium">{busy ? "Открываем снимок…" : "Сфотографировать или выбрать"}</span>

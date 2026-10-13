@@ -78,7 +78,7 @@ export function ProjectsSheet({ onClose }: { onClose: () => void }) {
                 <BookCopy className="size-5 shrink-0 text-rose-deep" />
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold text-ink">{item.name}</span>
-                  <span className="block text-[11px] text-muted">{item.id === active ? "открыта сейчас" : "нажмите, чтобы открыть"}</span>
+                  <span className="block text-xs text-muted">{item.id === active ? "открыта сейчас" : "нажмите, чтобы открыть"}</span>
                 </span>
                 {item.id === active ? <Check className="ml-auto size-4 shrink-0 text-night" /> : null}
               </button>

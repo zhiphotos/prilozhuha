@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { BookOpen, ChevronLeft, GraduationCap, Home, MessageCircle, PenLine, X } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -35,7 +35,7 @@ export function Button({
       type={type}
       className={cn(
         "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45",
-        variant === "primary" && "bg-night text-paper shadow-[0_10px_24px_-12px_rgba(42,36,32,0.6)] hover:bg-ink",
+        variant === "primary" && "bg-moss text-paper shadow-[0_10px_24px_-14px_rgba(20,22,15,0.7)] hover:bg-night",
         variant === "ghost" && "bg-white/0 text-ink hover:bg-white/50",
         variant === "soft" && "glass text-ink hover:bg-white/70",
         variant === "night" && "bg-rose-deep text-paper hover:bg-rose",
@@ -66,7 +66,7 @@ export function TopBar({ title, kicker, onBack, action }: { title: string; kicke
         </button>
       ) : null}
       <div className="min-w-0 flex-1 pt-0.5">
-        {kicker ? <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-deep/80">{kicker}</p> : null}
+        {kicker ? <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-ink">{kicker}</p> : null}
         <h1 className="display-title mt-1 text-[2.1rem] leading-[1.05] text-ink sm:text-5xl">{title}</h1>
       </div>
       {action}
@@ -94,8 +94,8 @@ export function Dock() {
   const nav = useNav();
   const current = tabKey(nav.screen);
   return (
-    <nav className="dock no-print fixed inset-x-0 bottom-0 z-30 px-3 lg:hidden">
-      <ul className="glass-strong mx-auto grid max-w-md grid-cols-5 rounded-[1.6rem] p-1.5">
+    <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 px-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] lg:hidden">
+      <ul className="glass-strong mx-auto grid max-w-md grid-cols-5 rounded-2xl p-1.5">
         {TABS.map((item) => {
           const Icon = item.icon;
           const active = current === item.id;
@@ -105,9 +105,10 @@ export function Dock() {
                 type="button"
                 onClick={() => nav.tab(item.screen)}
                 className={cn(
-                  "flex min-h-12 w-full flex-col items-center justify-center gap-0.5 rounded-[1.2rem] text-[11px] font-medium transition",
+                  "flex min-h-14 w-full flex-col items-center justify-center gap-0.5 rounded-[1.2rem] text-xs font-medium transition [@media(max-height:480px)]:min-h-10",
                   active ? "bg-night text-paper" : "text-ink/70",
                 )}
+                aria-current={active ? "page" : undefined}
               >
                 <Icon className="size-[1.15rem]" strokeWidth={active ? 2.2 : 1.7} />
                 {item.label}
@@ -124,7 +125,7 @@ export function SideNav() {
   const nav = useNav();
   const current = tabKey(nav.screen);
   return (
-    <aside className="glass no-print sticky top-6 hidden h-fit flex-col gap-1 rounded-[2rem] p-3 lg:flex">
+    <aside className="glass no-print sticky top-6 hidden h-fit flex-col gap-1 rounded-2xl p-3 lg:flex">
       <p className="display-title px-3 pb-2 pt-2 text-2xl text-ink">Книга рода</p>
       {TABS.map((item) => {
         const Icon = item.icon;
@@ -166,26 +167,51 @@ export function Sheet({
   className?: string;
   dim?: boolean;
 }) {
+  const box = useRef<HTMLDivElement>(null);
+  const downOnBackdrop = useRef(false);
   useEffect(() => {
+    const before = document.activeElement as HTMLElement | null;
+    if (dim) box.current?.focus({ preventScroll: true });
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
+      if (event.key === "Tab" && dim && box.current) {
+        const items = Array.from(box.current.querySelectorAll<HTMLElement>("button,[href],input,textarea,select,[tabindex]:not([tabindex='-1'])")).filter((el) => !el.hasAttribute("disabled"));
+        if (!items.length) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (event.shiftKey && (document.activeElement === first || document.activeElement === box.current)) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      if (dim && before?.isConnected) before.focus({ preventScroll: true });
+    };
+  }, [onClose, dim]);
   return createPortal(
     <div
       className={cn("fixed inset-0 z-[60] flex items-end justify-center p-2 sm:items-center sm:p-4", dim ? "bg-ink/30 backdrop-blur-[2px]" : "pointer-events-none")}
       role="dialog"
       aria-modal={dim}
+      aria-label={title}
       onPointerDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        downOnBackdrop.current = event.target === event.currentTarget;
+      }}
+      onClick={(event) => {
+        if (downOnBackdrop.current && event.target === event.currentTarget) onClose();
+        downOnBackdrop.current = false;
       }}
     >
-      <div className={cn("glass-strong sheet-in pointer-events-auto max-h-[86svh] w-full max-w-lg overflow-auto rounded-[2rem] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]", className)}>
-        <div className="mb-3 flex items-start justify-between gap-3">
+      <div ref={box} tabIndex={-1} className={cn("glass-strong sheet-in pointer-events-auto max-h-[min(86svh,calc(100dvh-1rem))] w-full max-w-lg overflow-auto overscroll-contain rounded-2xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] outline-none", !dim && "!bg-paper shadow-2xl ring-1 ring-ink/10", className)}>
+        <div className="sticky -top-5 z-10 -mx-1 mb-3 flex items-start justify-between gap-3">
           {title ? <h2 className="display-title text-[1.7rem] leading-tight text-ink">{title}</h2> : <span />}
-          <button type="button" className="grid size-9 shrink-0 place-items-center rounded-full bg-white/70 text-ink" onClick={onClose} aria-label="Закрыть">
+          <button type="button" className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-ink" onClick={onClose} aria-label="Закрыть">
             <X className="size-4" />
           </button>
         </div>

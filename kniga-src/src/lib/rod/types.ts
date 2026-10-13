@@ -89,6 +89,8 @@ type Placed = {
   opacity?: number;
   blend?: BlendKind;
   mask?: EraseMask;
+  /** Лежит через разворот: часть на соседней странице (фото, рисунок, стикер, фигура). */
+  spread?: boolean;
 };
 
 export type BrushKind = "pen" | "marker" | "brush" | "highlighter" | "thread" | "dashed" | "dots";
@@ -166,8 +168,6 @@ export type PageBlock =
       crop?: { cx: number; cy: number; z: number };
       /** Тень под фото. Старые фото без поля — с тенью. */
       shadow?: boolean;
-      /** Фото лежит через разворот: часть на соседней странице. */
-      spread?: boolean;
     } & Placed)
   | ({ id: string; type: "sticker"; x: number; y: number; kind: StickerKind; w?: number; text?: string } & Placed)
   | ({ id: string; type: "chip"; x: number; y: number; kind: "place" | "date"; text: string } & Placed)
@@ -187,8 +187,13 @@ export type PageBlock =
       strokes: InkStroke[];
     } & Placed);
 
+/** Глава из оглавления: её страницы помечены `chapterId`. */
+export type Chapter = { id: string; title: string; planned: number; done: boolean };
+
 export type BookPage = {
   id: string;
+  /** Глава оглавления, к которой относится страница. */
+  chapterId?: string;
   title: string;
   kind: "cover" | "page";
   /** Обложка собрана из блоков, которые можно двигать (новые обложки). */

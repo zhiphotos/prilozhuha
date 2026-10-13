@@ -28,7 +28,7 @@ export function LessonsScreen() {
               <button
                 type="button"
                 onClick={() => (locked ? setPay(true) : nav.go({ id: "lesson", lessonId: lesson.id }))}
-                className={cn("flex w-full items-start gap-4 rounded-[2rem] p-5 text-left", lesson.free ? "aurora" : "glass")}
+                className={cn("flex w-full items-start gap-4 rounded-2xl p-5 text-left", lesson.free ? "aurora" : "glass")}
               >
                 <span
                   className={cn(
@@ -52,7 +52,7 @@ export function LessonsScreen() {
         })}
       </ul>
       {!programOpen ? (
-        <div className="wash-blush mt-3 rounded-[2rem] p-5">
+        <div className="wash-blush mt-3 rounded-2xl p-5">
           <p className="text-sm text-rose-deep">Шесть уроков программы</p>
           <p className="mt-1 display-title text-4xl text-ink">{PROGRAM_PRICE}</p>
           <p className="mt-2 text-sm text-muted">Интервью, девичьи фамилии, фотографии, места, главы и сборка книги.</p>
@@ -90,7 +90,7 @@ export function LessonScreen({ lessonId }: { lessonId: string }) {
     return (
       <ScreenFrame>
         <TopBar title={lesson.title} kicker="Закрытый урок" onBack={nav.back} />
-        <div className="glass rounded-[2rem] p-5">
+        <div className="glass rounded-2xl p-5">
           <Lock className="size-5 text-rose-deep" />
           <p className="mt-3 text-muted">{lesson.lead}</p>
           <Button className="mt-4" onClick={() => setPay(true)}>
@@ -116,7 +116,7 @@ export function LessonScreen({ lessonId }: { lessonId: string }) {
           <span key={item.heading} className={cn("h-1 flex-1 rounded-full", index <= step ? "bg-rose" : "bg-line")} />
         ))}
       </div>
-      <article className="glass rounded-[2rem] p-5 sm:p-7">
+      <article className="glass rounded-2xl p-5 sm:p-7">
         <p className="text-sm text-muted">
           {step + 1} / {lesson.sections.length}
         </p>
@@ -157,7 +157,7 @@ function LessonVideo({ lessonId }: { lessonId: string }) {
   const video = embedUrl(LESSON_VIDEO[lessonId] ?? "");
   if (!video) {
     return (
-      <div className="aurora mb-4 grid aspect-video w-full place-items-center rounded-[2rem] text-center">
+      <div className="aurora mb-4 grid aspect-video w-full place-items-center rounded-2xl text-center">
         <div>
           <span className="mx-auto grid size-14 place-items-center rounded-full bg-white text-ink shadow">
             <Play className="size-6 translate-x-0.5" />
@@ -168,7 +168,7 @@ function LessonVideo({ lessonId }: { lessonId: string }) {
     );
   }
   return (
-    <div className="mb-4 overflow-hidden rounded-[2rem] bg-night shadow-lg">
+    <div className="mb-4 overflow-hidden rounded-2xl bg-night shadow-lg">
       {video.kind === "iframe" ? (
         <iframe src={video.src} title="Видео урока" className="aspect-video w-full" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen />
       ) : (

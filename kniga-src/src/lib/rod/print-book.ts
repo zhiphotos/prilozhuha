@@ -391,12 +391,17 @@ function paintStrokeList(ctx: CanvasRenderingContext2D, strokes: import("@/lib/r
       ctx.fillStyle = g.color;
       ctx.fill(path);
     } else {
-      ctx.strokeStyle = g.color;
-      ctx.lineWidth = g.width;
-      ctx.lineCap = g.cap;
-      ctx.lineJoin = "round";
-      ctx.setLineDash(g.dash ? g.dash.split(" ").map(Number) : []);
-      ctx.stroke(path);
+      for (const l of [{ width: g.width, color: g.color, alpha: 1, dash: g.dash, cap: g.cap }, ...(g.layers ?? [])]) {
+        ctx.save();
+        ctx.globalAlpha *= l.alpha;
+        ctx.strokeStyle = l.color;
+        ctx.lineWidth = l.width;
+        ctx.lineCap = l.cap;
+        ctx.lineJoin = "round";
+        ctx.setLineDash(l.dash ? l.dash.split(" ").map(Number) : []);
+        ctx.stroke(path);
+        ctx.restore();
+      }
     }
     ctx.restore();
   }

@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { ArrowRight, BookCopy, BookOpen, Camera, Clock, MessageCircle, Play, Quote, Search, Settings2, Sparkles, Users } from "lucide-react";
+import { ArrowRight, BookCopy, BookOpen, Camera, Clock, Play, Search, Settings2, Users } from "lucide-react";
+import { Botanica, Cut, HandArrow, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/botanica";
+import { filledCount } from "@/components/rod/contents-sheet";
 import { AUDIENCES, LESSONS, audienceTitle, reminder } from "@/lib/rod/content";
 import { countsOf, isBookReady, nextStep, overallOf, partsOf, plural } from "@/lib/rod/progress";
 import { useRod } from "@/lib/rod/store";
@@ -29,13 +31,32 @@ export function HomeScreen() {
   const partScreen = (key: string): Screen =>
     key === "family" ? { id: "archive", tab: "people" } : key === "places" ? { id: "archive", tab: "places" } : key === "photos" ? { id: "archive", tab: "photos" } : key === "stories" ? { id: "stories" } : { id: "archive", tab: "docs" };
 
+  const total = counts.people + counts.places + counts.photos + counts.stories + counts.docs + counts.notes;
+  const worked = data.pages.filter((page) => page.kind !== "cover" && filledCount(page) > 0);
+  const last = worked[worked.length - 1];
+  const mode: "new" | "started" | "going" = last && (worked.length >= 3 || ready) ? "going" : total > 0 || data.pages.length > 1 ? "started" : "new";
+  const facts = [
+    counts.people ? plural(counts.people, "человек", "человека", "человек") : "",
+    counts.photos ? plural(counts.photos, "фото", "фото", "фото") : "",
+    counts.stories ? plural(counts.stories, "история", "истории", "историй") : "",
+    counts.notes ? plural(counts.notes, "ответ", "ответа", "ответов") : "",
+  ].filter(Boolean);
+  const heading = mode === "new" ? "Начнём с одного имени" : mode === "going" ? "Продолжим книгу" : facts.length ? `Уже собрано: ${facts.slice(0, 3).join(", ")}` : "Книга началась";
+  const note = mode === "new" ? "первый шаг совсем небольшой" : mode === "going" ? "вот где остановились" : "двигайся по одному шагу";
+  const heroLabel = mode === "going" ? "Продолжить" : "Следующий шаг";
+  const heroTitle = mode === "going" && last ? last.title || "Страница" : step.title;
+  const heroDetail = mode === "going" ? "Вернуться туда, где остановились" : step.detail;
+  const heroGo = () => (mode === "going" && last ? nav.go({ id: "editor", pageId: last.id }) : nav.go(step.screen));
+
   return (
     <ScreenFrame>
       <div className="mb-6 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="sun-mark grid size-12 place-items-center rounded-full" aria-hidden />
+          <span className="sun-mark grid size-12 place-items-center rounded-full" aria-hidden>
+            <Botanica id="sprout" pal={PAL_DARK} className="size-8" />
+          </span>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/50">{bookName ? `Книга · ${bookName}` : "Книга рода"}</p>
+            <p className="hand text-[1.7rem] leading-none text-gold-ink">{bookName ? `Книга ${bookName}` : "Книга рода"}</p>
             <p className="display-title text-2xl leading-tight text-ink">{who}</p>
           </div>
         </div>
@@ -49,88 +70,93 @@ export function HomeScreen() {
         </div>
       </div>
 
-      <h1 className="display-title text-[2.6rem] leading-[1.02] text-ink sm:text-6xl">
-        Твоя история
-        <br />
-        заполнена на <span className="tabular-nums text-rose-deep">{overall}%</span>
-      </h1>
+      <h1 className="display-title max-w-[14ch] text-[2.7rem] leading-[1.02] text-ink sm:max-w-none sm:text-6xl">{heading}</h1>
 
-      <section className="glass mt-5 rounded-[2rem] p-2">
-        <ul className="grid">
-          {parts.map((part) => (
-            <li key={part.key}>
-              <button type="button" onClick={() => nav.go(partScreen(part.key))} className="flex w-full items-center gap-3 rounded-[1.4rem] px-3 py-2.5 text-left active:bg-white/50">
-                <span className="w-32 shrink-0 text-sm font-medium text-ink">{part.label}</span>
-                <span className="h-2 flex-1 overflow-hidden rounded-full bg-ink/10">
-                  <span className="block h-full rounded-full bg-gradient-to-r from-rose to-[#e2a35f]" style={{ width: `${Math.max(part.value, 3)}%` }} />
-                </span>
-                <span className="w-10 shrink-0 text-right text-sm tabular-nums text-muted">{part.value}%</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <p className="hand mt-5 flex items-center gap-2 text-[1.75rem] text-gold-ink [transform:rotate(-2deg)]">
+        {note}
+        <HandArrow className="mt-2 h-6 w-10 rotate-90" />
+      </p>
 
-      <button type="button" onClick={() => nav.go(step.screen)} className="glass-dark mt-3 flex w-full items-center gap-4 rounded-[2rem] p-5 text-left">
-        <span className="min-w-0 flex-1">
-          <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-blush/80">Следующий шаг</span>
-          <span className="display-title mt-1 block text-2xl text-paper">{step.title}</span>
-          <span className="mt-1 block text-sm text-paper/70">{step.detail}</span>
+      <button
+        type="button"
+        onClick={heroGo}
+        className="forest mt-1 block w-full rounded-2xl p-6 pb-24 text-left sm:pb-6 sm:pr-56"
+        style={{ ["--forest-img" as string]: packBg("bg_8154") }}
+      >
+        <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">{heroLabel}</span>
+        <span className="display-title mt-2 block max-w-[16ch] text-[2rem] leading-[1.05] text-paper">{heroTitle}</span>
+        <span className="mt-2 block max-w-[30ch] text-sm text-paper/75">{heroDetail}</span>
+        <span className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-paper px-5 text-sm font-semibold text-ink">
+          {mode === "going" ? "Открыть страницу" : "Приступить"} <ArrowRight className="size-4" />
         </span>
-        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-ink">
-          <ArrowRight className="size-5" />
-        </span>
+        <Cut id={mode === "going" ? "moss_book_open" : "moss_book_closed"} className="pointer-events-none absolute -bottom-3 -right-4 -z-10 w-40 rotate-[7deg] sm:w-52" />
       </button>
 
-      {free ? (
-        <button type="button" onClick={() => nav.go({ id: "lesson", lessonId: free.id })} className="aurora mt-3 block w-full overflow-hidden rounded-[2rem] p-5 text-left">
-          <span className="flex items-center justify-between">
-            <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-ink">{freeDone ? "Урок пройден" : "Бесплатный урок"}</span>
-            <span className="grid size-11 place-items-center rounded-full bg-white text-ink shadow">
-              <Play className="size-4 translate-x-px" />
-            </span>
+      {mode !== "new" ? (
+        <section className="mt-9">
+          <div className="flex items-baseline justify-between border-b border-ink/15 pb-2">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Из чего складывается книга</h2>
+            <span className="text-xs tabular-nums text-muted">{overall}%</span>
+          </div>
+          <ul>
+            {parts.map((part, index) => (
+              <li key={part.key} className="border-b border-ink/10">
+                <button type="button" onClick={() => nav.go(partScreen(part.key))} className="flex min-h-14 w-full items-center gap-3 text-left active:bg-ink/5">
+                  <span className="w-6 shrink-0 text-xs tabular-nums text-gold-ink">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] font-semibold text-ink">{part.label.replace(/^[^\p{L}]+/u, "")}</span>
+                    <span className="mt-1.5 block h-[2px] w-full bg-ink/10">
+                      <span className="block h-full bg-gold" style={{ width: `${Math.max(part.value, 2)}%` }} />
+                    </span>
+                  </span>
+                  <span className="w-10 shrink-0 text-right text-sm tabular-nums text-muted">{part.value}%</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {free && mode !== "going" ? (
+        <button type="button" onClick={() => nav.go({ id: "lesson", lessonId: free.id })} className="aurora mt-9 flex w-full items-center gap-4 rounded-2xl p-5 text-left">
+          <span className="min-w-0 flex-1">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-ink">{freeDone ? "Урок пройден" : "Бесплатный урок"}</span>
+            <span className="display-title mt-1 block text-[1.6rem] leading-[1.08] text-ink">{free.title}</span>
+            <span className="mt-1 block text-sm text-ink/75">{free.minutes} минут</span>
           </span>
-          <span className="display-title mt-6 block text-[2rem] leading-[1.05] text-ink">{free.title}</span>
-          <span className="mt-2 block text-sm text-ink/70">{free.minutes} минут · {free.lead}</span>
+          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-moss text-paper">
+            <Play className="size-4 translate-x-px" />
+          </span>
         </button>
       ) : null}
 
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <Tile icon={Search} title="Откуда моя фамилия?" text="Значение, написание, регионы" tone="rose" onClick={() => nav.go({ id: "surname" })} />
-        <Tile icon={MessageCircle} title="Карточки вопросов" text="С мамой, с папой, за столом" tone="sage" onClick={() => nav.tab({ id: "cards" })} />
-        <Tile icon={Sparkles} title="Расскажи историю" text="11 шаблонов, 5–7 вопросов" onClick={() => nav.tab({ id: "stories" })} />
-        <Tile icon={Camera} title="Оцифруй фото" text="Кто, где, какой год" onClick={() => nav.go({ id: "photo-new" })} />
-        <Tile
-          icon={Clock}
-          title="Лента времени"
-          text={counts.events ? plural(counts.events, "событие", "события", "событий") : "Годы рядом друг с другом"}
-          onClick={() => nav.go({ id: "archive", tab: "time" })}
-        />
-        <Tile icon={Users} title="Семья" text={counts.people ? plural(counts.people, "человек", "человека", "человек") : "Начните с одного имени"} onClick={() => nav.go({ id: "archive", tab: "people" })} />
-      </div>
-
-      <section className="glass mt-3 rounded-[2rem] p-5">
-        <Quote className="size-5 text-rose" />
-        <p className="display-title mt-2 text-2xl leading-snug text-ink">{reminder(data.audience, data.dedicatee)}</p>
+      <section className="mt-9">
+        <h2 className="border-b border-ink/15 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Ещё в мастерской</h2>
+        <ul>
+          <Row icon={Search} title="Откуда моя фамилия?" text="Значение, написание, регионы" onClick={() => nav.go({ id: "surname" })} />
+          <Row icon={Camera} title="Оцифровать фотографию" text="Кто, где, какой год" onClick={() => nav.go({ id: "photo-new" })} />
+          <Row icon={Clock} title="Лента времени" text={counts.events ? plural(counts.events, "событие", "события", "событий") : "Годы рядом друг с другом"} onClick={() => nav.go({ id: "archive", tab: "time" })} />
+          <Row icon={Users} title="Семейный архив" text={counts.people ? plural(counts.people, "человек", "человека", "человек") : "Люди, места, бумаги"} onClick={() => nav.go({ id: "archive", tab: "people" })} />
+        </ul>
       </section>
 
-      <section className={cn("mt-3 rounded-[2rem] p-5", ready ? "aurora" : "glass")}>
-        <BookOpen className="size-5 text-rose-deep" />
-        <h2 className="display-title mt-2 text-[1.7rem] leading-tight text-ink">
-          {ready ? "Ты собрал(а) достаточно материала для своей первой книги рода" : "Книга собирается из того, что уже лежит здесь"}
-        </h2>
-        <p className="mt-2 text-sm text-ink/70">
-          📸 {counts.photos} · 👨‍👩‍👧 {counts.people} · 📖 {counts.stories} · 📍 {counts.places} · 🎙️ {counts.notes}
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button onClick={() => nav.tab({ id: "book" })}>📖 Создать книгу</Button>
-          {ready ? (
-            <Button variant="white" onClick={() => nav.tab({ id: "lessons" })}>
-              Программа «Книга рода»
-            </Button>
-          ) : null}
-        </div>
+      {counts.people > 0 ? (
+        <p className="display-title mt-9 max-w-[26ch] text-[1.5rem] leading-snug text-ink/80">{reminder(data.audience, data.dedicatee)}</p>
+      ) : null}
+
+      <section className="mt-9 flex flex-wrap gap-2">
+        <Button onClick={() => nav.tab({ id: "book" })}>
+          <BookOpen className="size-4" /> {data.pages.length > 1 ? "Открыть книгу" : "Создать книгу"}
+        </Button>
+        {ready ? (
+          <Button variant="soft" onClick={() => nav.tab({ id: "lessons" })}>
+            Программа «Книга рода»
+          </Button>
+        ) : null}
       </section>
+
+      <p className="hand mt-12 text-center text-[1.9rem] text-gold-ink [transform:rotate(-1.5deg)]">с любовью к роду</p>
+      <Botanica id="sprout" pal={PAL_LIGHT} className="mx-auto mt-1 h-14 opacity-80" />
 
       {profile ? <ProfileSheet onClose={() => setProfile(false)} /> : null}
       {projects ? <ProjectsSheet onClose={() => setProjects(false)} /> : null}
@@ -138,17 +164,18 @@ export function HomeScreen() {
   );
 }
 
-function Tile({ icon: Icon, title, text, onClick, tone }: { icon: typeof Search; title: string; text: string; onClick: () => void; tone?: "rose" | "sage" }) {
+function Row({ icon: Icon, title, text, onClick }: { icon: typeof Search; title: string; text: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className={cn("flex min-h-36 flex-col justify-between rounded-[1.8rem] p-4 text-left active:scale-[0.98]", tone === "rose" ? "wash-blush" : tone === "sage" ? "wash-sage" : "glass")}>
-      <span className="grid size-10 place-items-center rounded-full bg-white/80 text-ink">
-        <Icon className="size-[18px]" />
-      </span>
-      <span>
-        <span className="block text-[15px] font-semibold leading-tight text-ink">{title}</span>
-        <span className="mt-1 block text-xs text-ink/60">{text}</span>
-      </span>
-    </button>
+    <li className="border-b border-ink/10">
+      <button type="button" onClick={onClick} className="flex min-h-16 w-full items-center gap-4 text-left active:bg-ink/5">
+        <Icon className="size-5 shrink-0 text-moss" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-semibold text-ink">{title}</span>
+          <span className="block text-sm text-muted">{text}</span>
+        </span>
+        <ArrowRight className="size-4 shrink-0 text-muted" />
+      </button>
+    </li>
   );
 }
 

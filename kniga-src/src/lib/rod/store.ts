@@ -8,6 +8,7 @@ import {
   type Audience,
   type BookPage,
   type CardNote,
+  type Chapter,
   type CustomFontEntry,
   type FamilyDoc,
   type FamilyPhoto,
@@ -45,12 +46,22 @@ type RodState = {
   /** Свои шрифты и стикеры/футажи из файлов. */
   fonts: CustomFontEntry[];
   userStickers: string[];
+  /** Оглавление: главы по порядку. */
+  plan: Chapter[];
+  setPlan: (plan: Chapter[]) => void;
+  toggleChapter: (id: string) => void;
+  renameChapter: (id: string, title: string) => void;
+  setChapterPlanned: (id: string, planned: number) => void;
+  removeChapter: (id: string) => void;
+  moveChapter: (id: string, dir: -1 | 1) => void;
   addFont: (font: CustomFontEntry) => void;
   removeFont: (id: string) => void;
   addUserSticker: (ref: string) => void;
   removeUserSticker: (ref: string) => void;
   setSpine: (patch: Partial<SpineSetup>) => void;
   insertPage: (input: Omit<BookPage, "id">, index: number) => string;
+  /** Переносит выбранные страницы так, чтобы они встали перед страницей с номером `to` (по списку без них). */
+  movePages: (ids: string[], to: number) => void;
   addMood: (ref: string) => void;
   removeMood: (ref: string) => void;
   setPrint: (patch: Partial<PrintSetup>) => void;
@@ -109,6 +120,7 @@ const empty = {
   spine: DEFAULT_SPINE as SpineSetup,
   fonts: [] as CustomFontEntry[],
   userStickers: [] as string[],
+  plan: [] as Chapter[],
 };
 
 /** Задняя сторона по умолчанию: того же цвета, что и лицевая. */
@@ -275,6 +287,34 @@ export const useRod = create<RodState>()(
         set((state) => {
           if (id === BACK_ID) return { back: updater(state.back ?? backPage(state.pages[0]?.kind === "cover" ? state.pages[0] : null)) };
           return { pages: state.pages.map((page) => (page.id === id ? updater(page) : page)) };
+        }),
+      setPlan: (plan) => set({ plan }),
+      toggleChapter: (id) => set((state) => ({ plan: state.plan.map((c) => (c.id === id ? { ...c, done: !c.done } : c)) })),
+      setChapterPlanned: (id, planned) => set((state) => ({ plan: state.plan.map((c) => (c.id === id ? { ...c, planned: Math.max(1, Math.min(60, Math.round(planned))) } : c)) })),
+      renameChapter: (id, title) => set((state) => ({ plan: state.plan.map((c) => (c.id === id ? { ...c, title: title.trim() || c.title } : c)) })),
+      removeChapter: (id) =>
+        set((state) => ({
+          plan: state.plan.filter((c) => c.id !== id),
+          pages: state.pages.map((page) => (page.chapterId === id ? { ...page, chapterId: undefined } : page)),
+        })),
+      moveChapter: (id, dir) =>
+        set((state) => {
+          const i = state.plan.findIndex((c) => c.id === id);
+          const j = i + dir;
+          if (i < 0 || j < 0 || j >= state.plan.length) return state;
+          const plan = state.plan.slice();
+          [plan[i], plan[j]] = [plan[j], plan[i]];
+          return { plan };
+        }),
+      movePages: (ids, to) =>
+        set((state) => {
+          const chosen = new Set(ids);
+          const moving = state.pages.filter((page) => chosen.has(page.id) && page.kind !== "cover");
+          if (!moving.length) return state;
+          const rest = state.pages.filter((page) => !moving.includes(page));
+          const floor = rest[0]?.kind === "cover" ? 1 : 0;
+          rest.splice(Math.max(floor, Math.min(to, rest.length)), 0, ...moving);
+          return { pages: rest };
         }),
       insertPage: (input, index) => {
         const id = uid();

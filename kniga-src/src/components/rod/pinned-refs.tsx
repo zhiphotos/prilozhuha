@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Maximize2, Minimize2, X } from "lucide-react";
 import { useMedia } from "@/lib/rod/media";
 
@@ -7,6 +7,12 @@ const POS_KEY = "kniga-pinned-pos";
 /** Картинка-подсказка из «Вайба»: плавает рядом с работой, её можно двигать, увеличивать и листать. На страницу и в печать не попадает. */
 export function PinnedRefs({ refs, onUnpin }: { refs: string[]; onUnpin: (ref: string) => void }) {
   const [at, setAt] = useState(0);
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const on = () => setTick((v) => v + 1);
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
   const [big, setBig] = useState(false);
   const [pos, setPos] = useState<{ x: number; y: number }>(() => {
     try {
@@ -46,7 +52,7 @@ export function PinnedRefs({ refs, onUnpin }: { refs: string[]; onUnpin: (ref: s
           }
         }}
       >
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-ink/50">Подсказка</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-ink/75">Подсказка</span>
         <span className="flex items-center">
           <button type="button" aria-label={big ? "Меньше" : "Крупнее"} className="grid size-8 place-items-center" onPointerDown={(e) => e.stopPropagation()} onClick={() => setBig(!big)}>
             {big ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}

@@ -135,10 +135,14 @@ export function CoverArt({ meta }: { meta: CoverMeta }) {
 export function StrokeShape({ stroke }: { stroke: InkStroke }) {
   const g = strokeGeom(stroke);
   if (!g.d) return null;
-  return g.fill ? (
-    <path d={g.d} fill={g.color} fillOpacity={g.alpha} />
-  ) : (
-    <path d={g.d} fill="none" stroke={g.color} strokeOpacity={g.alpha} strokeWidth={g.width} strokeDasharray={g.dash} strokeLinecap={g.cap} strokeLinejoin="round" />
+  if (g.fill) return <path d={g.d} fill={g.color} fillOpacity={g.alpha} />;
+  return (
+    <>
+      <path d={g.d} fill="none" stroke={g.color} strokeOpacity={g.alpha} strokeWidth={g.width} strokeDasharray={g.dash} strokeLinecap={g.cap} strokeLinejoin="round" />
+      {(g.layers ?? []).map((l, i) => (
+        <path key={i} d={g.d} fill="none" stroke={l.color} strokeOpacity={l.alpha * g.alpha} strokeWidth={l.width} strokeDasharray={l.dash} strokeLinecap={l.cap} strokeLinejoin="round" />
+      ))}
+    </>
   );
 }
 

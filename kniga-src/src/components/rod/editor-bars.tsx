@@ -3,8 +3,8 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
-  ArrowDown,
-  ArrowUp,
+  BringToFront,
+  SendToBack,
   BookOpen,
   Copy,
   Crop,
@@ -148,6 +148,21 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
   const dictation = useRef<Dictation | null>(null);
   const drag = useRef<{ x: number; y: number; dx: number; dy: number; id: number } | null>(null);
   const kb = useKeyboardHeight();
+  // При повороте экрана окно возвращается в видимую область.
+  const [, setSizeTick] = useState(0);
+  useEffect(() => {
+    const on = () => setSizeTick((v) => v + 1);
+    window.addEventListener("resize", on);
+    window.addEventListener("orientationchange", on);
+    return () => {
+      window.removeEventListener("resize", on);
+      window.removeEventListener("orientationchange", on);
+    };
+  }, []);
+  const shownPos = {
+    dx: Math.max(-window.innerWidth / 2 + 60, Math.min(window.innerWidth / 2 - 60, pos.dx)),
+    dy: Math.max(-window.innerHeight * 0.15, Math.min(window.innerHeight * 0.55, pos.dy)),
+  };
   const px = block.px ?? Math.round(textMetrics(block.font, block.size).size * 10);
 
   const setBoth = (text: string) => {
@@ -190,11 +205,11 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
         />
       ) : null}
       <div
-        className="glass-strong sheet-in fixed inset-x-3 z-50 mx-auto max-w-xl rounded-[1.6rem] p-3"
-        style={{ bottom: `calc(${kb}px + 6.4rem - ${pos.dy}px)`, transform: `translateX(${pos.dx}px)` }}
+        className="glass-strong sheet-in fixed inset-x-3 z-50 mx-auto max-w-xl rounded-2xl p-3"
+        style={{ bottom: `calc(${kb}px + 6.4rem - ${shownPos.dy}px)`, transform: `translateX(${shownPos.dx}px)`, maxHeight: "70svh", overflowY: "auto" }}
       >
         <div
-          className="-mt-1 mb-1 flex h-9 cursor-grab touch-none items-center justify-center text-ink/40 active:cursor-grabbing"
+          className="-mt-1 mb-1 flex h-9 cursor-grab touch-none items-center justify-center text-ink/60 active:cursor-grabbing"
           onPointerDown={(event) => {
             (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
             drag.current = { x: event.clientX, y: event.clientY, dx: pos.dx, dy: pos.dy, id: event.pointerId };
@@ -242,7 +257,8 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
         </div>
         </>
         ) : null}
-        <div className="no-scrollbar mt-2 flex items-center gap-1.5 overflow-x-auto">
+        <div className="mt-2 flex items-center gap-1.5">
+        <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
           <BarBtn active={more} onClick={() => setMore(!more)} label="Шрифт и размер">
             Aa
           </BarBtn>
@@ -282,8 +298,8 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
           >
             <PenLine className="size-4" /> Пером где угодно
           </BarBtn>
-          <span className="flex-1" />
-          <Button className="min-h-10 shrink-0 px-4" onClick={onDone}>
+        </div>
+          <Button className="min-h-11 shrink-0 px-4" onClick={onDone}>
             Готово
           </Button>
         </div>
@@ -326,7 +342,11 @@ export function PenBar({
   onPipette,
   onDone,
   eraseHint,
+  holdShapes,
+  setHoldShapes,
 }: {
+  holdShapes: boolean;
+  setHoldShapes: (v: boolean) => void;
   eraseHint: string;
   tool: Tool;
   setTool: (tool: Tool) => void;
@@ -347,7 +367,7 @@ export function PenBar({
 }) {
   const erasing = tool === "erase";
   return (
-    <div className="glass-strong mx-auto max-w-xl rounded-[1.6rem] p-2">
+    <div className="glass-strong mx-auto max-w-xl rounded-2xl p-2">
       <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
         {BRUSHES.map((item) => (
           <BarBtn
@@ -369,7 +389,7 @@ export function PenBar({
       </div>
       <div className="mt-2 flex items-center gap-2">
         <button type="button" aria-label="Цвет" onClick={onColor} className="size-11 shrink-0 rounded-full border-[3px] border-white shadow ring-1 ring-ink/20" style={{ background: erasing ? "#fff" : color }}>
-          {erasing ? <Eraser className="m-auto size-4 text-ink/60" /> : null}
+          {erasing ? <Eraser className="m-auto size-4 text-ink/75" /> : null}
         </button>
         <button type="button" aria-label="Пипетка: взять цвет со страницы" onClick={onPipette} className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-ink">
           <Pipette className="size-4" />
@@ -379,16 +399,20 @@ export function PenBar({
         </div>
       </div>
       {erasing ? <p className="mt-1.5 px-1 text-xs text-muted">{eraseHint}. Размер от 1 пикселя: стирайте тонкие детали букв и краёв.</p> : null}
-      <div className="no-scrollbar mt-2 flex items-center gap-1.5 overflow-x-auto">
+      <div className="mt-2 flex items-center gap-1.5">
+      <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
+        <BarBtn active={holdShapes} onClick={() => setHoldShapes(!holdShapes)} label="Задержите перо на секунду: крупная линия или фигура выровняется. Мелкие буквы не меняются">
+          Фигура по задержке
+        </BarBtn>
         <BarBtn active={autoShapes} onClick={() => setAutoShapes(!autoShapes)} label="Круг, квадрат, звезда, сердце сами выровняются сразу после рисования">
           Фигуры сразу
         </BarBtn>
         <BarBtn active={straight} onClick={() => setStraight(!straight)} label="Всё, что рисуете, будет прямой линией">
           Только прямые
         </BarBtn>
-        <span className="hidden px-1 text-[11px] leading-tight text-muted sm:block">Задержите перо на секунду: линия и фигура выровняются</span>
-        <span className="flex-1" />
-        <Button className="min-h-10 shrink-0 px-4" onClick={onDone}>
+        <span className="hidden px-1 text-xs leading-tight text-muted sm:block">Задержите перо на секунду: линия и фигура выровняются</span>
+      </div>
+        <Button className="min-h-11 shrink-0 px-4" onClick={onDone}>
           Готово
         </Button>
       </div>
@@ -406,17 +430,17 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
       <BarBtn label="Удалить" danger wide={false} onClick={ops.remove}>
         <Trash2 className="size-4" />
       </BarBtn>
-      <BarBtn label="Копия" wide={false} onClick={ops.duplicate}>
-        <Copy className="size-4" />
+      <BarBtn label="Копия" onClick={ops.duplicate}>
+        <Copy className="size-4" /> Копия
       </BarBtn>
-      <BarBtn label={locked ? "Разблокировать" : "Закрепить: не будет двигаться"} wide={false} active={locked} onClick={ops.toggleLock}>
-        {locked ? <Lock className="size-4" /> : <Unlock className="size-4" />}
+      <BarBtn label={locked ? "Разблокировать" : "Закрепить: не будет двигаться"} active={locked} onClick={ops.toggleLock}>
+        {locked ? <Lock className="size-4" /> : <Unlock className="size-4" />} {locked ? "Снять" : "Закрепить"}
       </BarBtn>
-      <BarBtn label="Слой выше (на шаг)" wide={false} onClick={() => ops.layer("up")}>
-        <ArrowUp className="size-4" />
+      <BarBtn label="Слой выше (на шаг)" onClick={() => ops.layer("up")}>
+        <BringToFront className="size-4" /> Выше
       </BarBtn>
-      <BarBtn label="Слой ниже" wide={false} onClick={() => ops.layer("down")}>
-        <ArrowDown className="size-4" />
+      <BarBtn label="Слой ниже" onClick={() => ops.layer("down")}>
+        <SendToBack className="size-4" /> Ниже
       </BarBtn>
       <span className="mx-0.5 h-6 w-px shrink-0 bg-ink/15" />
       {block.type === "text" ? (
@@ -428,7 +452,7 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
             <span className="size-4 rounded-full border border-ink/20" style={{ background: lookColors(block.look, block.color, block.bg)[block.look === "card" || block.look === "pill" ? "bg" : "fg"] }} /> Цвет
           </BarBtn>
           {(["left", "center", "right"] as const).map((align) => (
-            <BarBtn key={align} wide={false} label="Выравнивание" active={(block.align ?? "left") === align} onClick={() => ops.patch({ align } as Partial<PageBlock>)}>
+            <BarBtn key={align} wide={false} label={align === "left" ? "По левому краю" : align === "center" ? "По центру" : "По правому краю"} active={(block.align ?? "left") === align} onClick={() => ops.patch({ align } as Partial<PageBlock>)}>
               {align === "left" ? <AlignLeft className="size-4" /> : align === "center" ? <AlignCenter className="size-4" /> : <AlignRight className="size-4" />}
             </BarBtn>
           ))}
@@ -458,10 +482,12 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
           <BarBtn onClick={ops.full}>
             <Maximize className="size-4" /> На весь лист
           </BarBtn>
-          <BarBtn onClick={ops.toggleSpread} disabled={!ops.canSpread && !block.spread} active={Boolean(block.spread)} label="Фото лежит на двух страницах разворота">
-            <BookOpen className="size-4" /> Через разворот
-          </BarBtn>
         </>
+      ) : null}
+      {block.type === "photo" || block.type === "ink" || block.type === "sticker" || block.type === "shape" ? (
+        <BarBtn onClick={ops.toggleSpread} disabled={!ops.canSpread && !block.spread} active={Boolean(block.spread)} label="Лежит на двух страницах разворота">
+          <BookOpen className="size-4" /> Через разворот
+        </BarBtn>
       ) : null}
       {block.type === "slot" ? (
         <BarBtn onClick={ops.fill} active>

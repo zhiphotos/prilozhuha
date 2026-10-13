@@ -30,7 +30,7 @@ export const BRUSHES: { id: BrushKind; label: string; hint: string }[] = [
 export const px2w = (px: number) => (px / PX_PAGE) * 100;
 export const w2px = (w: number) => Math.round((w / 100) * PX_PAGE * 10) / 10;
 
-export const BRUSH_DEFAULT_PX: Record<BrushKind, number> = { pen: 5, marker: 22, brush: 14, highlighter: 34, thread: 5, dashed: 6, dots: 9 };
+export const BRUSH_DEFAULT_PX: Record<BrushKind, number> = { pen: 5, marker: 22, brush: 14, highlighter: 34, thread: 9, dashed: 6, dots: 9 };
 export const BRUSH_ALPHA: Partial<Record<BrushKind, number>> = { marker: 0.45, highlighter: 0.35 };
 
 type Pt = [number, number];
@@ -118,7 +118,11 @@ function outlinePath(outline: number[][]): string {
   return `${d}Z`;
 }
 
+export type StrokeLayer = { width: number; color: string; alpha: number; dash?: string; cap: "round" | "butt" };
+
 export type StrokeGeom = {
+  /** Дополнительные слои поверх основного (у ниток: витки, блик). */
+  layers?: StrokeLayer[];
   d: string;
   /** true — заливка контура, false — линия по центру. */
   fill: boolean;
@@ -130,6 +134,24 @@ export type StrokeGeom = {
 };
 
 /** Как рисовать штрих. Одна функция для экрана и печати. */
+/** Светлее (amt > 0) или темнее (amt < 0) цвета "#rrggbb". */
+export function shade(hex: string, amt: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.max(0, Math.min(255, Math.round(amt >= 0 ? v + (255 - v) * amt : v * (1 + amt)))));
+  return `#${ch.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Готовая разметка SVG для штриха (живой штрих при рисовании). */
+export function geomToSvg(g: StrokeGeom): string {
+  if (!g.d) return "";
+  if (g.fill) return `<path d="${g.d}" fill="${g.color}" fill-opacity="${g.alpha}"/>`;
+  const one = (width: number, color: string, alpha: number, cap: string, dash?: string) =>
+    `<path d="${g.d}" fill="none" stroke="${color}" stroke-opacity="${alpha}" stroke-width="${width}" stroke-linecap="${cap}" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`;
+  return one(g.width, g.color, g.alpha, g.cap, g.dash) + (g.layers ?? []).map((l) => one(l.width, l.color, l.alpha * g.alpha, l.cap, l.dash)).join("");
+}
+
 export function strokeGeom(stroke: InkStroke): StrokeGeom {
   const brush: BrushKind = stroke.brush ?? (stroke.alpha && stroke.alpha < 0.9 ? "marker" : "pen");
   const w = stroke.width;
@@ -139,10 +161,29 @@ export function strokeGeom(stroke: InkStroke): StrokeGeom {
   if (pts.length === 1) pts = [pts[0], [pts[0][0] + 0.01, pts[0][1]]];
   const pressure = stroke.pressure && stroke.pressure.length === pts.length ? stroke.pressure : undefined;
 
-  if (brush === "thread" || brush === "dashed" || brush === "dots") {
+  if (brush === "thread") {
+    // Настоящая нитка: толстый жгут с тенью, косые витки и блик по центру.
+    const line = pts.length > 3 ? chaikin(thin(stabilize(pts, 2), w * 0.3), 2) : pts;
+    const turn = r2(w * 0.55);
+    return {
+      d: pathOf(line),
+      fill: false,
+      width: w * 1.18,
+      cap: "round",
+      alpha,
+      color: shade(color, -0.42),
+      layers: [
+        { width: w, color, alpha: 1, cap: "round" },
+        { width: w * 0.92, color: shade(color, -0.3), alpha: 0.85, dash: `${r2(w * 0.16)} ${turn}`, cap: "butt" },
+        { width: w * 0.74, color: shade(color, 0.32), alpha: 0.75, dash: `${r2(w * 0.2)} ${r2(w * 0.5)}`, cap: "butt" },
+        { width: w * 0.16, color: "#ffffff", alpha: 0.4, cap: "round" },
+      ],
+    };
+  }
+  if (brush === "dashed" || brush === "dots") {
     const line = pts.length > 3 ? chaikin(thin(stabilize(pts, 2), w * 0.4), 2) : pts;
     // Нитки — стежки с просветами, у каждого стежка круглые концы; пунктир — длиннее; точки — как бусины.
-    const dash = brush === "thread" ? `${r2(w * 2.4)} ${r2(w * 1.5)}` : brush === "dashed" ? `${r2(w * 3.2)} ${r2(w * 2.2)}` : `0 ${r2(w * 2.2)}`;
+    const dash = brush === "dashed" ? `${r2(w * 3.2)} ${r2(w * 2.2)}` : `0 ${r2(w * 2.2)}`;
     return { d: pathOf(line), fill: false, width: brush === "dots" ? w * 1.3 : w, dash, cap: "round", alpha, color };
   }
 

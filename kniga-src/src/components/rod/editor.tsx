@@ -7,8 +7,10 @@ import {
   Copy,
   Eraser,
   FilePlus,
+  ListChecks,
   ImagePlus,
   Layers,
+  Lightbulb,
   Lock,
   MoreHorizontal,
   PenLine,
@@ -36,9 +38,10 @@ import { MoodBoard } from "@/components/rod/moodboard";
 import { PinnedRefs } from "@/components/rod/pinned-refs";
 import { BlockArt, PageSheet, PlacedBlock, boxOf } from "@/components/rod/page-view";
 import { Scanner } from "@/components/rod/scanner";
+import { ContentsSheet } from "@/components/rod/contents-sheet";
 import { cropGeom, innerBox } from "@/lib/rod/crop";
 import { imageFromTransfer, imageInfo, importFromLink, importImage, importSticker } from "@/lib/rod/image";
-import { BRUSH_ALPHA, BRUSH_DEFAULT_PX, PAGE_H, eraseFromStrokes, lineOf, makeInkBlock, mergeInk, px2w, recognizeShape, strokeGeom } from "@/lib/rod/ink";
+import { BRUSH_ALPHA, BRUSH_DEFAULT_PX, PAGE_H, eraseFromStrokes, lineOf, makeInkBlock, mergeInk, px2w, geomToSvg, recognizeShape, strokeGeom } from "@/lib/rod/ink";
 import { coverDesigns, blankPage } from "@/lib/rod/layouts";
 import { liftSubject } from "@/lib/rod/lift";
 import { mediaDataUrl, saveMedia } from "@/lib/rod/media";
@@ -53,7 +56,7 @@ import { BACK_ID, type BookPage, type BrushKind, type InkStroke, type PageBlock,
 import type { Recognized } from "@/lib/rod/ink";
 import { cn } from "@/lib/cn";
 
-type Panel = "photo" | "pinterest" | "paste" | "stickers" | "help" | "menu" | "covers" | "layers" | "fonts" | "inspector" | "scan" | null;
+type Panel = "contents" | "photo" | "pinterest" | "paste" | "stickers" | "help" | "menu" | "covers" | "layers" | "fonts" | "inspector" | "scan" | null;
 type Box = { x: number; y: number; w: number; h: number | null; rotate: number };
 type Gesture = {
   id: string;
@@ -104,10 +107,10 @@ function savedStyle(): PhotoStyle {
   }
 }
 
-type PenPrefs = { brush: BrushKind; color: string; sizes: Record<BrushKind, number>; eraser: number; auto: boolean };
+type PenPrefs = { brush: BrushKind; color: string; sizes: Record<BrushKind, number>; eraser: number; auto: boolean; hold: boolean };
 
 function savedPen(): PenPrefs {
-  const fallback: PenPrefs = { brush: "pen", color: "#2a2420", sizes: { ...BRUSH_DEFAULT_PX }, eraser: 14, auto: false };
+  const fallback: PenPrefs = { brush: "pen", color: "#2a2420", sizes: { ...BRUSH_DEFAULT_PX }, eraser: 14, auto: false, hold: true };
   try {
     const raw = JSON.parse(localStorage.getItem(PEN_KEY) ?? "null") as Partial<PenPrefs> | null;
     return raw ? { ...fallback, ...raw, sizes: { ...fallback.sizes, ...(raw.sizes ?? {}) } } : fallback;
@@ -175,9 +178,9 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const [penColors, setPenColors] = useState(false);
   const [bins, setBins] = useState(() => {
     try {
-      return localStorage.getItem("kniga-bins") !== "0";
+      return localStorage.getItem("kniga-bins") === "1";
     } catch {
-      return true;
+      return false;
     }
   });
   const toggleBins = () =>
@@ -235,7 +238,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
-  const livePath = useRef<SVGPathElement>(null);
+  const livePath = useRef<SVGGElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const diskRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -289,7 +292,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     if (!stage) return;
     const fit = () => {
       const rect = stage.getBoundingClientRect();
-      const w = Math.max(140, Math.min(twoUp ? (rect.width - 24) / 2 : rect.width - 8, (rect.height - 8) / (PAGE_H / 100), 720));
+      const w = Math.max(140, Math.min(twoUp ? (rect.width - 48) / 2 : rect.width - 48, (rect.height - 88) / (PAGE_H / 100), 720));
       setSize({ w, h: w * (PAGE_H / 100) });
     };
     fit();
@@ -419,17 +422,36 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
 
+  // Колесо мыши листает горизонтальные полосы инструментов.
+  useEffect(() => {
+    const onWheel = (event: WheelEvent) => {
+      const bar = (event.target as HTMLElement)?.closest?.<HTMLElement>(".no-scrollbar");
+      if (!bar || bar.scrollWidth <= bar.clientWidth || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      if (bar.scrollHeight > bar.clientHeight + 1) return;
+      bar.scrollLeft += event.deltaY;
+      event.preventDefault();
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, []);
+
   // ——— Клавиатура ———
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      const typing = (event.target as HTMLElement)?.closest?.("input, textarea");
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && !typing) {
+      const typing = (event.target as HTMLElement)?.closest?.("input, textarea, select, [contenteditable]");
+      if ((event.metaKey || event.ctrlKey) && (event.code === "KeyZ" || event.code === "KeyY") && !typing) {
         event.preventDefault();
-        if (event.shiftKey) doRedo();
+        if (event.shiftKey || event.code === "KeyY") doRedo();
         else doUndo();
       }
-      if (event.key === "Escape" && pipette) setPipette(null);
-      if ((event.key === "Delete" || event.key === "Backspace") && selected && !typing) {
+      if (event.key === "Escape" && !typing) {
+        if (pipette) setPipette(null);
+        else if (editing) setEditing(null);
+        else if (cropping) setCropping(false);
+        else if (selected) setSelected(null);
+        else if (tool !== "hand") setTool("hand");
+      }
+      if ((event.key === "Delete" || event.key === "Backspace") && selected && !typing && !panel) {
         const block = current()?.blocks.find((b) => b.id === selected);
         if (block?.locked) return;
         event.preventDefault();
@@ -506,7 +528,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   /** Текст и стикеры остаются внутри охранного поля. Фото: либо внутри, либо «на вылет» за край листа. Рисунки, фигуры и фото «через разворот» не двигаем. */
   const fitSafe = (b: PageBlock): PageBlock => {
-    if (b.type === "ink" || b.type === "shape" || (b.type === "photo" && b.spread)) return b;
+    // Рисунки, фигуры, стикеры, фото-вырезки и всё «через разворот» можно ставить где угодно, в том числе за охранное поле и за край листа.
+    if (b.type === "ink" || b.type === "shape" || b.type === "sticker" || ("spread" in b && b.spread) || (b.type === "photo" && b.frame === "sticker" && b.cut)) return b;
     const L = safe.left;
     const R = 100 - safe.right;
     const T = safe.top;
@@ -520,8 +543,23 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       const y = clamp(b.y, T, Math.max(T, B - h));
       return { ...b, x: round(x), y: round(y), ...("w" in b ? { w: round(w) } : {}) } as PageBlock;
     }
-    const [x, w] = snapAxis(b.x, b.w, L, R, bleedPct);
-    const [y, h] = snapAxis(b.y, b.h, T, B, bleedPct);
+    // Прилипание только у самого края (до 2,5 %) и без смены размера; остальное остаётся там, где поставили.
+    const soft = (start: number, len: number): [number, number] => {
+      let s2 = start;
+      let n = len;
+      if (Math.abs(s2) < 2.5) {
+        n += s2 + bleedPct;
+        s2 = -bleedPct;
+      }
+      if (Math.abs(100 - (s2 + n)) < 2.5) n = 100 + bleedPct - s2;
+      return [s2, n];
+    };
+    const [x, w] = soft(b.x, b.w);
+    const [y, h] = soft(b.y, b.h);
+    void L;
+    void R;
+    void T;
+    void B;
     return { ...b, x: round(x), y: round(y), w: round(w), h: round(h) } as PageBlock;
   };
 
@@ -716,13 +754,18 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   };
 
   // ——— Рисование и ластик ———
-  const blockAt = (clientX: number, clientY: number): string | null => {
+  /** Элемент под пальцем. С preferInk: рисунок важнее фото под ним, чтобы ластик не стирал и то и другое. */
+  const blockAt = (clientX: number, clientY: number, preferInk = false): string | null => {
+    let first: string | null = null;
     for (const el of document.elementsFromPoint(clientX, clientY)) {
       const wrapper = (el as HTMLElement).closest?.("[data-block]") as HTMLElement | null;
       const key = wrapper?.dataset.block;
-      if (key && !key.startsWith("ghost:")) return key;
+      if (!key || key.startsWith("ghost:")) continue;
+      if (!preferInk) return key;
+      first ??= key;
+      if (current()?.blocks.find((b) => b.id === key)?.type === "ink") return key;
     }
-    return null;
+    return first;
   };
 
   const updateCursor = (event: { clientX: number; clientY: number }, show: boolean) => {
@@ -745,20 +788,11 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     // Живой штрих рисуется поверх листа отдельным SVG и не перерисовывает всю страницу.
     const target = livePath.current;
     if (!target) return;
-    const g = strokeGeom(makeStroke(points, hasPressure ? pressure : undefined));
-    target.setAttribute("d", g.d);
-    target.setAttribute("fill", g.fill ? g.color : "none");
-    target.setAttribute("fill-opacity", String(g.alpha));
-    target.setAttribute("stroke", g.fill ? "none" : g.color);
-    target.setAttribute("stroke-opacity", String(g.alpha));
-    target.setAttribute("stroke-width", String(g.width));
-    target.setAttribute("stroke-linecap", g.cap);
-    if (g.dash) target.setAttribute("stroke-dasharray", g.dash);
-    else target.removeAttribute("stroke-dasharray");
+    target.innerHTML = geomToSvg(strokeGeom(makeStroke(points, hasPressure ? pressure : undefined)));
   };
 
   const clearLive = () => {
-    livePath.current?.setAttribute("d", "");
+    if (livePath.current) livePath.current.innerHTML = "";
   };
 
   const makeStroke = (points: number[], pressure?: number[]): InkStroke => ({
@@ -784,6 +818,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const startDraw = (event: React.PointerEvent) => {
     // Рисуем только в режиме рисунка или ластика. В обычном режиме палец и стилус двигают фото и текст.
     if (tool === "hand") return false;
+    if (event.pointerType === "mouse" && event.button !== 0) return false;
     if (event.pointerType === "pen") penSeen.current = performance.now();
     event.stopPropagation();
     event.preventDefault();
@@ -808,7 +843,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       pressure: [event.pointerType === "pen" && event.pressure > 0 ? event.pressure : 0.5],
       hasPressure: event.pointerType === "pen" && event.pressure > 0,
       erase,
-      target: erase ? (selected ?? blockAt(event.clientX, event.clientY)) : null,
+      target: erase ? (selected ?? blockAt(event.clientX, event.clientY, true)) : null,
       group: `erase:${eraseCount.current}`,
       maskAt: null,
       lx: p.x,
@@ -836,13 +871,25 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     draw.still = window.setTimeout(() => {
       const d = drawing.current;
       if (!d || d.erase || d.snapped || d.points.length < 6) return;
+      // Буквы и слова (мелкие штрихи) никогда не превращаются в фигуры: только крупный штрих, больше ~12 % страницы.
+      let x0 = Infinity;
+      let x1 = -Infinity;
+      let y0 = Infinity;
+      let y1 = -Infinity;
+      for (let i = 0; i + 1 < d.points.length; i += 2) {
+        x0 = Math.min(x0, d.points[i]);
+        x1 = Math.max(x1, d.points[i]);
+        y0 = Math.min(y0, d.points[i + 1]);
+        y1 = Math.max(y1, d.points[i + 1]);
+      }
+      if (Math.hypot(x1 - x0, y1 - y0) < 12 || !pen.hold) return;
       const rec = recognizeShape(d.points);
       if (!rec) return;
       d.snapped = rec;
       d.points = rec.points;
       liveUpdate(d.points, [], false);
       if (typeof navigator.vibrate === "function") navigator.vibrate(8);
-    }, 550);
+    }, 850);
   };
 
   const flushDraft = () => {
@@ -865,15 +912,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   };
 
   /** Стирает круг: у рисунка вырезает кусочки линий, у текста, фото и стикеров прячет участок маской. */
-  const eraseAt = (p: { x: number; y: number }, draw: Draw, at?: { x: number; y: number }) => {
-    if (!selected && at) {
-      const found = blockAt(at.x, at.y);
-      if (found !== draw.target) {
-        flushDraft();
-        draw.target = found;
-        draw.maskAt = null;
-      }
-    }
+  const eraseAt = (p: { x: number; y: number }, draw: Draw, _at?: { x: number; y: number }) => {
     if (!draw.target) return;
     const base = draftRef.current && draftRef.current.id === draw.target ? draftRef.current : current()?.blocks.find((b) => b.id === draw.target);
     if (!base || base.locked) return;
@@ -954,7 +993,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       if (straight && points.length >= 4) {
         points = lineOf(points[0], points[1], points[points.length - 2], points[points.length - 1]);
         pressure = undefined;
-      } else if (pen.auto) {
+      } else if (pen.auto && Math.hypot(Math.max(...points.filter((_, i) => i % 2 === 0)) - Math.min(...points.filter((_, i) => i % 2 === 0)), Math.max(...points.filter((_, i) => i % 2 === 1)) - Math.min(...points.filter((_, i) => i % 2 === 1))) >= 12) {
         const rec = recognizeShape(points);
         if (rec) {
           points = rec.points;
@@ -974,7 +1013,9 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       lastInk.current = { id: next.id, at: Date.now(), key };
       commit((p) => ({ ...p, blocks: [...p.blocks.slice(0, -1), next] }));
     } else {
-      const block = makeInkBlock([stroke], id);
+      let block = makeInkBlock([stroke], id);
+      // Рисунок зашёл за край страницы: он ляжет через разворот и продолжится на соседней.
+      if (partner && !isBack && (block.x < -0.5 || block.x + block.w > 100.5)) block = { ...block, spread: true };
       lastInk.current = { id: block.id, at: Date.now(), key };
       commit((p) => ({ ...p, blocks: [...p.blocks, block] }));
     }
@@ -1019,6 +1060,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   const beginGesture = (event: React.PointerEvent, block: PageBlock, mode: Gesture["mode"]) => {
     if (tool !== "hand" || pipette) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
     if (block.locked) return;
     if (editing === block.id && mode === "move") return;
     event.stopPropagation();
@@ -1213,7 +1255,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   const addNextPage = () => {
     const at = isBack ? pages.length : index + 1;
-    const created = insertPage({ ...blankPage(), paper: page.paper }, at);
+    const created = insertPage({ ...blankPage(), paper: page.paper, chapterId: page.chapterId }, at);
     turnPage();
     nav.replace({ id: "editor", pageId: created });
     toast("Новая страница добавлена следом");
@@ -1310,11 +1352,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           });
         },
         toggleSpread: () => {
-          if (selectedBlock.type !== "photo") return;
+          if (selectedBlock.type !== "photo" && selectedBlock.type !== "ink" && selectedBlock.type !== "sticker" && selectedBlock.type !== "shape") return;
           if (selectedBlock.spread) {
             commit((p) => ({ ...p, blocks: p.blocks.map((b) => (b.id === selectedBlock.id ? fitSafe({ ...b, spread: false } as PageBlock) : b)) }));
           } else {
-            const x = side === "right" ? -selectedBlock.w / 2 : 100 - selectedBlock.w / 2;
+            const bw = blockW(selectedBlock as { type: string; w?: number });
+            const x = side === "right" ? -bw / 2 : 100 - bw / 2;
             patchBlock(selectedBlock.id, { spread: true, x: round(x) } as Partial<PageBlock>);
             toast("Фото лежит на двух страницах. Двигайте его так, чтобы нужная часть оказалась по обе стороны корешка.", { duration: 6000 });
           }
@@ -1373,13 +1416,13 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             </button>
           ) : (
             <div className="flex items-center justify-center gap-1 text-xs text-muted">
-              <button type="button" className="grid size-7 place-items-center rounded-full disabled:opacity-30" disabled={index <= 0} onClick={() => go(-1)} aria-label="Предыдущая">
+              <button type="button" className="grid size-11 place-items-center rounded-full disabled:opacity-30" disabled={index <= 0} onClick={() => go(-1)} aria-label="Предыдущая">
                 <ChevronLeft className="size-4" />
               </button>
-              <span className="tabular-nums">
+              <span className="whitespace-nowrap tabular-nums">
                 {index + 1} / {pages.length}
               </span>
-              <button type="button" className="grid size-7 place-items-center rounded-full disabled:opacity-30" disabled={index >= pages.length - 1} onClick={() => go(1)} aria-label="Следующая">
+              <button type="button" className="grid size-11 place-items-center rounded-full disabled:opacity-30" disabled={index >= pages.length - 1} onClick={() => go(1)} aria-label="Следующая">
                 <ChevronRight className="size-4" />
               </button>
             </div>
@@ -1392,16 +1435,19 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           <IconBtn label="Вернуть отменённое" disabled={!redo.current.length} onClick={doRedo}>
             <Redo2 className="size-[18px]" />
           </IconBtn>
+          <IconBtn className="max-sm:hidden" label="Содержание: перейти к главе" onClick={() => setPanel("contents")}>
+            <ListChecks className="size-[18px]" />
+          </IconBtn>
           <IconBtn label="Слои страницы" onClick={() => { setTool("hand"); setPanel("layers"); }}>
             <Layers className="size-[18px]" />
           </IconBtn>
           {!isBack ? (
-            <IconBtn label="Добавить страницу следом" onClick={addNextPage}>
+            <IconBtn className="max-sm:hidden" label="Добавить страницу следом" onClick={addNextPage}>
               <FilePlus className="size-[18px]" />
             </IconBtn>
           ) : null}
           {partner ? (
-            <IconBtn label={spread ? "Одна страница" : "Разворот"} onClick={() => setSpread(!spread)}>
+            <IconBtn className="max-sm:hidden" label={spread ? "Одна страница" : "Разворот"} onClick={() => setSpread(!spread)}>
               {spread ? <Square className="size-[18px]" /> : <BookOpen className="size-[18px]" />}
             </IconBtn>
           ) : null}
@@ -1424,8 +1470,21 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
       {/* Лист */}
       <div className="relative min-h-0 flex-1">
-        <div ref={stageRef} className="no-scrollbar absolute inset-0 overflow-auto">
-          <div className="flex min-h-full items-center justify-center p-3" style={{ width: zoom > 1 ? size.w * zoom * (twoUp ? 2 : 1) + 24 : "100%" }}>
+        <div
+          ref={stageRef}
+          className="no-scrollbar absolute inset-0 overflow-auto"
+          onPointerDown={(event) => {
+            // Нажали на пустое место рядом со страницей: выходим из выделения, кисти, ластика и набора текста.
+            const t = event.target as HTMLElement;
+            if (t === event.currentTarget || t.dataset.stage) {
+              setSelected(null);
+              setEditing(null);
+              setCropping(false);
+              setTool("hand");
+            }
+          }}
+        >
+          <div data-stage="1" className="flex min-h-full items-center justify-center px-6 pb-8 pt-14" style={{ width: zoom > 1 ? size.w * zoom * (twoUp ? 2 : 1) + 48 : "100%" }}>
             {twoUp && partner && side === "right" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="left" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
             <div
               ref={sheetRef}
@@ -1493,7 +1552,10 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                           onTurn={(event) => beginGesture(event, block, "turn")}
                           onSize={(event) => beginGesture(event, block, "size")}
                           onDelete={() => removeBlock(block.id)}
-                          onLock={() => patchBlock(block.id, { locked: true } as Partial<PageBlock>)}
+                          onLock={() => {
+                            patchBlock(block.id, { locked: true } as Partial<PageBlock>);
+                            toast("Элемент закреплён", { action: { label: "Снять", onClick: () => patchBlock(block.id, { locked: false } as Partial<PageBlock>) }, duration: 4000 });
+                          }}
                         />
                       ) : null}
                     </PlacedBlock>
@@ -1502,7 +1564,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
               </PageSheet>
               {/* Рисуемый сейчас штрих (после отпускания он станет объектом на странице) */}
               <svg viewBox={`0 0 100 ${PAGE_H}`} className="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible">
-                <path ref={livePath} d="" />
+                <g ref={livePath} />
               </svg>
               {/* Охранное поле и зона корешка */}
               <div
@@ -1565,6 +1627,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             setSizePx={(v) => updatePen({ sizes: { ...pen.sizes, [pen.brush]: v } })}
             eraserPx={pen.eraser}
             setEraserPx={(v) => updatePen({ eraser: v })}
+            holdShapes={pen.hold}
+            setHoldShapes={(v) => updatePen({ hold: v })}
             autoShapes={pen.auto}
             setAutoShapes={(v) => updatePen({ auto: v })}
             straight={straight}
@@ -1648,11 +1712,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             <Layers className="size-5" />
           </ToolBtn>
           <ToolBtn label="Подсказки" onClick={() => setPanel("help")}>
-            <Sparkles className="size-5" />
+            <Lightbulb className="size-5" />
           </ToolBtn>
         </div>
       </nav>
 
+      <RotateHint />
       <PinnedRefs refs={pinned} onUnpin={togglePin} />
       <MoodBoard pinned={pinned} onPin={togglePin} open={mood} onToggle={() => setMood((v) => !v)} onPlace={(ref) => void placePhoto(ref, undefined, undefined, false)} />
 
@@ -1768,6 +1833,17 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             if (look === "card") addText({ look: "card", font: "sans", size: "sm", w: 56, x: 22 });
             else if (look === "pill") addText({ look: "pill", font: "sans", size: "sm", w: 40, x: 30 });
             else addText({ font: "serif", size: "lg", w: 84, x: 8, y: 8 });
+          }}
+        />
+      ) : null}
+
+      {panel === "contents" ? (
+        <ContentsSheet
+          current={page.id}
+          onClose={() => setPanel(null)}
+          onOpen={(pid) => {
+            setPanel(null);
+            if (pid !== page.id) nav.replace({ id: "editor", pageId: pid });
           }}
         />
       ) : null}
@@ -1893,7 +1969,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             ))}
           </div>
           <div className="grid gap-2">
-            <MenuRow icon={<Trash2 className="size-4" />} label={bins ? "Скрыть корзинки на элементах" : "Показать корзинки на каждом элементе"} onClick={() => { toggleBins(); setPanel(null); }} />
+            <MenuRow icon={<Trash2 className="size-4" />} label={bins ? "Убрать красные корзинки с элементов" : "Показывать корзинку на каждом элементе"} onClick={() => { toggleBins(); setPanel(null); }} />
+            <MenuRow icon={<ListChecks className="size-4" />} label="Содержание: перейти к главе" onClick={() => setPanel("contents")} />
             {!isBack ? <MenuRow icon={<BookOpen className="size-4" />} label="Листать книгу" onClick={() => { setPanel(null); nav.go({ id: "flip", pageId: page.id }); }} /> : null}
             {!isBack ? <MenuRow icon={<FilePlus className="size-4" />} label="Добавить страницу следом" onClick={() => { setPanel(null); addNextPage(); }} /> : null}
             {partner ? (
@@ -1923,61 +2000,21 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   );
 }
 
-/** Край по оси: внутри охранного поля или за краем листа на вылет. Возвращает [начало, длина]. */
-function snapAxis(start: number, len: number, lo: number, hi: number, bleed: number): [number, number] {
-  let s = start;
-  let n = len;
-  let startBleed = false;
-  if (s < lo) {
-    if (s < lo / 2) {
-      s = -bleed;
-      startBleed = true;
-    } else s = lo;
-  }
-  const e = s + n;
-  if (e > hi) {
-    if (e > (hi + 100) / 2) {
-      if (startBleed) n = 100 + bleed * 2;
-      else {
-        s = 100 + bleed - n;
-        if (s < lo) {
-          if (s < lo / 2) {
-            s = -bleed;
-            n = 100 + bleed * 2;
-          } else {
-            s = lo;
-            n = 100 + bleed - lo;
-          }
-        }
-      }
-    } else {
-      s = hi - n;
-      if (s < lo && !startBleed) {
-        s = lo;
-        n = hi - lo;
-      } else if (startBleed) {
-        n = hi + bleed;
-      }
-    }
-  }
-  return [s, n];
-}
-
 function Handles({ onTurn, onSize, onDelete, onLock }: { onTurn: (event: React.PointerEvent) => void; onSize: (event: React.PointerEvent) => void; onDelete: () => void; onLock: () => void }) {
   return (
     <>
       <span className="pointer-events-none absolute -inset-[5px] rounded-[6px] border-2 border-dashed border-rose" />
-      <button type="button" aria-label="Повернуть" className="handle pointer-events-auto absolute -top-12 left-1/2 grid size-9 -translate-x-1/2 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={onTurn}>
+      <button type="button" aria-label="Повернуть" className="handle pointer-events-auto absolute -top-14 left-1/2 grid size-11 -translate-x-1/2 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={onTurn}>
         <RotateCcw className="size-4" />
       </button>
       <span className="pointer-events-none absolute -top-3 left-1/2 h-3 w-px -translate-x-1/2 bg-rose" />
-      <button type="button" aria-label="Удалить" className="pointer-events-auto absolute -right-5 -top-5 grid size-10 place-items-center rounded-full bg-rose-deep text-paper shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onDelete}>
+      <button type="button" aria-label="Удалить" className="pointer-events-auto absolute -right-5 -top-5 grid size-11 place-items-center rounded-full bg-rose-deep text-paper shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onDelete}>
         <Trash2 className="size-4" />
       </button>
-      <button type="button" aria-label="Заблокировать" className="pointer-events-auto absolute -left-5 -top-5 grid size-10 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onLock}>
+      <button type="button" aria-label="Заблокировать" className="pointer-events-auto absolute -left-5 -top-5 grid size-11 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onLock}>
         <Lock className="size-4" />
       </button>
-      <button type="button" aria-label="Размер" className="handle pointer-events-auto absolute -bottom-5 -right-5 size-10 rounded-full border-[3px] border-rose bg-white shadow-md" onPointerDown={onSize} />
+      <button type="button" aria-label="Размер" className="handle pointer-events-auto absolute -bottom-5 -right-5 size-11 rounded-full border-[3px] border-rose bg-white shadow-md" onPointerDown={onSize} />
     </>
   );
 }
@@ -1993,9 +2030,34 @@ function PartnerPage({ page, meta, width, side, onOpen }: { page: BookPage; meta
         className="pointer-events-none absolute inset-y-0 w-[8%]"
         style={{ [side === "left" ? "right" : "left"]: 0, background: `linear-gradient(${side === "left" ? "270deg" : "90deg"}, rgba(42,36,32,.18), rgba(42,36,32,0))` }}
       />
-      <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-night/75 px-3 py-1 text-[11px] text-paper opacity-0 transition group-hover:opacity-100">
+      <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-night/75 px-3 py-1 text-xs text-paper transition [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
         Нажмите, чтобы оформлять
       </span>
     </button>
+  );
+}
+
+/** Телефон лёжа: на лист остаётся слишком мало места, просим повернуть. */
+function RotateHint() {
+  const query = "(orientation: landscape) and (max-height: 500px)";
+  const [wide, setWide] = useState(() => window.matchMedia(query).matches);
+  const [skip, setSkip] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const on = () => setWide(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  if (!wide || skip) return null;
+  return (
+    <div role="alertdialog" aria-label="Поверните телефон" className="fixed inset-0 z-[70] grid place-items-center bg-night/95 p-6 text-center text-paper">
+      <div className="max-w-xs">
+        <p className="display-title text-2xl">Поверните телефон</p>
+        <p className="mt-2 text-sm text-paper/80">Страницу удобнее редактировать, когда телефон стоит вертикально: лист получается крупнее.</p>
+        <button type="button" className="mt-4 min-h-11 rounded-full bg-paper px-5 text-sm font-medium text-ink" onClick={() => setSkip(true)}>
+          Всё равно продолжить
+        </button>
+      </div>
+    </div>
   );
 }

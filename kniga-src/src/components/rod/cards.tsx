@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { Mic, RotateCcw } from "lucide-react";
+import { Lightbulb, Mic, SkipForward } from "lucide-react";
+import { Cut, packBg } from "@/components/rod/botanica";
 import { toast } from "sonner";
 import { BONUS_PROMPTS, SITUATIONS, findSituation, type Situation } from "@/lib/rod/content";
 import { turnPage } from "@/lib/rod/sounds";
@@ -8,6 +9,21 @@ import type { PageBlock } from "@/lib/rod/types";
 import { recognition, type SpeechRec } from "@/lib/rod/speech";
 import { Button, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
 import { cn } from "@/lib/cn";
+
+/** Каждая колода: свой мотив из её фото-библиотеки, номер в каталоге и поверхность. */
+const CAT: Record<string, { tag: string; cut: string; tilt: number; tone: "night" | "paper" | "moss" | "plum" }> = {
+  kin: { tag: "для рода", cut: "engraving_circle", tilt: 0, tone: "night" },
+  feast: { tag: "за столом", cut: "rosebuds", tilt: 8, tone: "paper" },
+  mom: { tag: "для мамы", cut: "peony", tilt: -6, tone: "plum" },
+  dad: { tag: "для папы", cut: "driftwood", tilt: 6, tone: "paper" },
+  grandma: { tag: "для бабушки", cut: "lily_valley", tilt: 4, tone: "moss" },
+  grandpa: { tag: "для дедушки", cut: "wood_slice", tilt: -8, tone: "paper" },
+  album: { tag: "над альбомом", cut: "paper_two_scraps", tilt: 5, tone: "paper" },
+  dinner: { tag: "за ужином", cut: "daffodil", tilt: -10, tone: "paper" },
+  road: { tag: "в дороге", cut: "stick_rosehip", tilt: 14, tone: "moss" },
+};
+const catOf = (id: string) => CAT[id] ?? { tag: "", cut: "moth", tilt: 0, tone: "paper" as const };
+const numberOf = (id: string) => String(Math.max(0, SITUATIONS.findIndex((item) => item.id === id)) + 1).padStart(2, "0");
 
 export function CardsScreen() {
   const nav = useNav();
@@ -40,29 +56,27 @@ export function CardsScreen() {
 
   return (
     <ScreenFrame>
-      <TopBar kicker="Карточки" title="Спросите, пока можно" />
+      <TopBar kicker="Вопросы" title="Спросите, пока можно" />
       <p className="max-w-xl text-muted">
-        Передайте телефон. На карточке говорят в микрофон — коротко, как помнят. Ответы копятся, и из них можно собрать страницы.
+        Передайте телефон. На карточке говорят в микрофон: коротко, как помнят. Ответы копятся, и из них можно собрать страницы.
       </p>
 
-      <section className="wash-sage mt-5 rounded-4xl p-5">
-        <p className="text-sm font-semibold text-ink">Уже сказано</p>
-        <p className="mt-1 font-display text-3xl text-ink">
-          {notes.length === 0 ? "Пока пусто" : `${notes.length} ${answersLabel(notes.length)}`}
+      <section className="mt-6 border-y border-ink/15 py-5">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Уже сказано</p>
+            <p className="display-title mt-1 text-[2.4rem] leading-none text-ink">{notes.length === 0 ? "Пока пусто" : `${notes.length} ${answersLabel(notes.length)}`}</p>
+          </div>
+          <Button disabled={words < 12} onClick={harvest}>
+            Собрать страницы
+          </Button>
+        </div>
+        <p className="mt-2 text-sm text-muted">
+          {notes.length === 0 ? "Первый ответ появится после карточки." : words < 12 ? `Около ${words} слов. Ещё пара живых ответов, и можно собрать страницы.` : `Около ${words} слов. Уже можно собрать страницы.`}
         </p>
-        <p className="text-sm text-muted">
-          {notes.length === 0
-            ? "Первый ответ появится после карточки."
-            : words < 12
-              ? `Около ${words} слов. Ещё пара живых ответов — и можно собрать страницы.`
-              : `Около ${words} слов. Уже можно собрать страницы.`}
-        </p>
-        <Button className="mt-4" disabled={words < 12} onClick={harvest}>
-          Собрать страницы из ответов
-        </Button>
       </section>
 
-      <ul className="mt-5 grid gap-3">
+      <ul className="mt-6 grid gap-3">
         {play.map((item) => (
           <li key={item.id}>
             <DeckLink item={item} saved={notes.filter((note) => note.situationId === item.id).length} onOpen={() => nav.go({ id: "deck", situationId: item.id })} featured />
@@ -70,8 +84,8 @@ export function CardsScreen() {
         ))}
       </ul>
 
-      <h2 className="mt-6 font-display text-2xl text-ink">Разговоры</h2>
-      <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+      <h2 className="display-title mt-9 text-[1.8rem] text-ink">Разговоры</h2>
+      <ul className="mt-3 grid grid-cols-2 gap-3">
         {talks.map((item) => (
           <li key={item.id}>
             <DeckLink item={item} saved={notes.filter((note) => note.situationId === item.id).length} onOpen={() => nav.go({ id: "deck", situationId: item.id })} />
@@ -80,12 +94,12 @@ export function CardsScreen() {
       </ul>
 
       {notes.length > 0 ? (
-        <section className="mt-6">
-          <h2 className="font-display text-2xl text-ink">Последние ответы</h2>
+        <section className="mt-9">
+          <h2 className="display-title text-[1.8rem] text-ink">Последние ответы</h2>
           <ul className="mt-3 grid gap-2">
             {notes.slice(0, 5).map((note) => (
-              <li key={note.id} className="glass rounded-3xl p-4">
-                <p className="text-sm text-rose-deep">{note.situationTitle}</p>
+              <li key={note.id} className="glass rounded-2xl p-4">
+                <p className="text-sm text-gold-ink">{note.situationTitle}</p>
                 <p className="mt-1 font-medium text-ink">{note.question}</p>
                 <p className="mt-2 text-sm text-muted">{note.answer}</p>
                 <button type="button" className="mt-2 text-sm text-muted underline" onClick={() => removeNote(note.id)}>
@@ -100,25 +114,40 @@ export function CardsScreen() {
   );
 }
 
-function DeckLink({
-  item,
-  saved,
-  onOpen,
-  featured = false,
-}: {
-  item: Situation;
-  saved: number;
-  onOpen: () => void;
-  featured?: boolean;
-}) {
+function DeckLink({ item, saved, onOpen, featured = false }: { item: Situation; saved: number; onOpen: () => void; featured?: boolean }) {
+  const cat = catOf(item.id);
+  const total = item.questions.length;
+  const share = Math.min(100, Math.round((saved / Math.max(1, total)) * 100));
+  const dark = featured || cat.tone === "night";
   return (
-    <button type="button" onClick={onOpen} className={cn("h-full w-full rounded-4xl p-5 text-left", featured ? "wash-blush" : "glass")}>
-      <p className="text-sm text-rose-deep">{item.play ? "Семейная игра" : "Колода"}</p>
-      <p className={cn("font-display text-ink", featured ? "text-4xl" : "text-2xl")}>{item.title}</p>
-      <p className="mt-2 text-sm text-muted">{item.hint}</p>
-      <p className="mt-3 text-sm text-ink">
-        {item.questions.length} карточек{saved > 0 ? ` · сохранено ${saved}` : ""}
-      </p>
+    <button
+      type="button"
+      onClick={onOpen}
+      className={cn(
+        "relative block h-full w-full overflow-hidden rounded-2xl p-4 text-left",
+        featured ? "forest min-h-52 p-6 pr-32" : cat.tone === "moss" ? "wash-sage min-h-48" : cat.tone === "plum" ? "wash-blush min-h-48" : "glass min-h-48",
+      )}
+      style={featured ? { ["--forest-img" as string]: packBg("bg_8146") } : undefined}
+    >
+      <span className={cn("text-[11px] font-semibold uppercase tracking-[0.16em]", dark ? "text-[#c9ae74]" : "text-gold-ink")}>
+        № {numberOf(item.id)} · {item.play ? "Семейная игра" : "Колода"}
+      </span>
+      <span className={cn("display-title mt-2 block", featured ? "max-w-[12ch] text-[2.4rem] leading-[1.02] text-paper" : "relative z-10 max-w-[11ch] text-[1.45rem] leading-[1.08] text-ink")}>{item.title}</span>
+      {cat.tag ? <span className={cn("hand relative z-10 mt-1 block whitespace-nowrap text-[1.12rem] leading-none [transform:rotate(-2deg)]", dark ? "text-[#c9ae74]" : "text-gold-ink")}>{cat.tag}</span> : null}
+      {featured ? <span className="mt-2 block max-w-[28ch] text-sm text-paper/75">{item.hint}</span> : null}
+      <span className={cn("relative z-10 mt-4 block text-xs", featured ? "" : "max-w-[56%]", dark ? "text-paper/80" : "text-ink/75")}>
+        {saved > 0 ? `Отвечено ${saved} из ${total}` : `${total} карточек · начните с первой`}
+      </span>
+      {saved > 0 ? (
+        <span className={cn("mt-1.5 block h-[2px] w-full", dark ? "bg-paper/20" : "bg-ink/10")}>
+          <span className="block h-full bg-gold" style={{ width: `${Math.max(share, 3)}%` }} />
+        </span>
+      ) : null}
+      <Cut
+        id={cat.cut}
+        className={cn("pointer-events-none absolute", featured ? "-right-8 -top-6 w-40" : "-bottom-2 -right-4 w-[5.8rem]")}
+        style={{ transform: `rotate(${cat.tilt}deg)`, opacity: featured ? 0.95 : 1 }}
+      />
     </button>
   );
 }
@@ -127,7 +156,13 @@ export function DeckScreen({ situationId }: { situationId: string }) {
   const nav = useNav();
   const situation = findSituation(situationId);
   const addNote = useRod((state) => state.addNote);
-  const [index, setIndex] = useState(0);
+  const notes = useRod((state) => state.notes);
+  const [index, setIndex] = useState(() => {
+    if (!situation) return 0;
+    const answered = new Set(useRod.getState().notes.filter((note) => note.situationId === situation.id).map((note) => note.question));
+    const first = situation.questions.findIndex((item) => !answered.has(item));
+    return first < 0 ? 0 : first;
+  });
   const [answer, setAnswer] = useState("");
   const [drag, setDrag] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -206,18 +241,23 @@ export function DeckScreen({ situationId }: { situationId: string }) {
   };
 
   const shift = leave ?? drag;
+  const cat = catOf(situation.id);
+  const previous = question ? notes.find((note) => note.situationId === situation.id && note.question === question) : undefined;
+  const hasText = answer.trim().length > 0;
 
   return (
     <ScreenFrame>
-      <TopBar title={situation.title} kicker={situation.play ? "Семейная игра" : "Колода"} onBack={nav.back} />
+      <TopBar title={situation.title} kicker={`№ ${numberOf(situation.id)} · ${situation.play ? "Семейная игра" : "Колода"}`} onBack={nav.back} />
       {done ? (
-        <section className="wash-blush rounded-4xl p-6">
-          <h2 className="font-display text-4xl text-ink">Колода пройдена</h2>
-          <p className="mt-2 text-muted">Ответы уже в книге. Если разговор зашёл далеко, соберите из них страницы.</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button onClick={() => nav.tab({ id: "cards" })}>К накопленному</Button>
+        <section className="forest rounded-2xl p-6 pr-28" style={{ ["--forest-img" as string]: packBg("bg_8146") }}>
+          <h2 className="display-title text-[2.4rem] leading-none text-paper">Колода пройдена</h2>
+          <p className="hand mt-2 text-[1.6rem] leading-none text-[#c9ae74] [transform:rotate(-2deg)]">спасибо за этот разговор</p>
+          <p className="mt-3 max-w-[30ch] text-paper/80">Ответы уже в книге. Если разговор зашёл далеко, соберите из них страницы.</p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button variant="white" onClick={() => nav.tab({ id: "cards" })}>К накопленному</Button>
             <Button
-              variant="soft"
+              variant="ghost"
+              className="text-paper hover:bg-paper/10"
               onClick={() => {
                 setIndex(0);
                 setAnswer("");
@@ -226,10 +266,11 @@ export function DeckScreen({ situationId }: { situationId: string }) {
               Сначала
             </Button>
           </div>
+          <Cut id="moth" className="pointer-events-none absolute -right-6 -top-2 w-36 rotate-[12deg]" />
         </section>
       ) : (
         <>
-          <p className="text-sm text-muted">{situation.play ? "Говорит следующий. Если не знаете — так и скажите." : situation.hint}</p>
+          <p className="text-sm text-muted">{situation.play ? "Говорит следующий. Если не знаете, так и скажите." : situation.hint}</p>
           <div className="card-stage relative mx-auto mt-4 w-full max-w-sm" style={{ perspective: "1000px" }}>
             <CardBack className="absolute inset-x-8 top-6 bottom-0 scale-90 opacity-50" label="ещё в колоде" />
             <CardBack className="absolute inset-x-4 top-3 bottom-0 scale-95 opacity-80" label={situation.title} />
@@ -270,60 +311,66 @@ export function DeckScreen({ situationId }: { situationId: string }) {
                   transform: flipped ? "rotateY(180deg)" : "none",
                 }}
               >
-                <div className="card-face absolute inset-0 flex flex-col rounded-4xl p-5 shadow" style={{ backfaceVisibility: "hidden" }}>
-                  <div className="flex items-center justify-between gap-2 text-sm text-rose-deep">
-                    <span>{round ?? "Вопрос"}</span>
-                    <span className="tabular-nums">
-                      {index + 1} / {situation.questions.length}
-                    </span>
+                <div className="card-face absolute inset-0 flex flex-col overflow-hidden rounded-2xl p-5 shadow-[var(--shadow-soft)] ring-1 ring-ink/10" style={{ backfaceVisibility: "hidden" }}>
+                  <Cut id={cat.cut} className="pointer-events-none absolute -right-7 -top-6 w-28 opacity-90" style={{ transform: `rotate(${cat.tilt * 1.6}deg)` }} />
+                  <div className="relative flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-ink">
+                    <span className="tabular-nums">{index + 1} / {situation.questions.length}</span>
+                    <span className="h-px w-5 bg-gold" />
+                    <span className="max-w-[14ch] truncate">{round ?? "Вопрос"}</span>
                   </div>
-                  <h2 className="mt-3 font-display text-3xl leading-tight text-ink sm:text-4xl">{question}</h2>
+                  {previous ? <span className="relative mt-2 w-fit rounded-full bg-sage-soft px-3 py-1 text-xs font-semibold text-moss">Уже отвечено</span> : null}
+                  <h2 className="display-title relative mt-3 pr-16 text-[1.85rem] font-medium leading-[1.12] text-ink sm:text-4xl">{question}</h2>
+                  {previous ? <p className="relative mt-2 line-clamp-2 text-sm text-muted">Было: {previous.answer}</p> : null}
                   <div className="mt-auto">
+                    <p className="hand mb-1 text-[1.25rem] leading-none text-gold-ink">запиши так, как сказали</p>
                     <textarea
                       value={answer}
                       onChange={(event) => setAnswer(event.target.value)}
-                      placeholder="Скажите в микрофон или впишите"
+                      placeholder={previous ? "Дополнить ответ" : "Скажите в микрофон или впишите"}
                       className="field min-h-16 resize-none text-base"
                     />
-                    <div className="mt-3 flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={listen}
-                        className={cn(
-                          "inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold",
-                          listening ? "bg-night text-paper" : "bg-rose text-paper",
-                        )}
-                      >
-                        <Mic className="size-4" />
-                        {listening ? "Слушаю… остановить" : "Ответить голосом"}
-                      </button>
-                      <button type="button" aria-label="Рубашка" onClick={() => { turnPage(); setFlipped(true); }} className="grid size-12 place-items-center rounded-full bg-paper text-ink">
-                        <RotateCcw className="size-4" />
-                      </button>
-                    </div>
                   </div>
                 </div>
-                <button type="button" onClick={() => { turnPage(); setFlipped(false); }} className="card-back absolute inset-0 flex flex-col justify-between rounded-4xl p-5 text-left" style={{ transform: "rotateY(180deg)", backfaceVisibility: "hidden" }}>
-                  <span className="font-script text-3xl">Книга рода</span>
+                <button type="button" onClick={() => { turnPage(); setFlipped(false); }} className="card-back absolute inset-0 flex flex-col justify-between overflow-hidden rounded-2xl p-5 text-left" style={{ transform: "rotateY(180deg)", backfaceVisibility: "hidden", ["--forest-img" as string]: packBg("bg_8153") }}>
+                  <span className="hand text-[2.2rem] leading-none text-[#c9ae74]">Книга рода</span>
                   <span>
-                    <span className="block font-display text-3xl">А откуда мы это знаем?</span>
-                    <span className="mt-3 block text-sm leading-relaxed text-blush">
-                      {BONUS_PROMPTS.slice(0, 5).join(" · ")}
-                    </span>
+                    <span className="display-title block text-[2rem] leading-[1.05]">А откуда мы это знаем?</span>
+                    <span className="mt-3 block text-sm leading-relaxed text-paper/75">{BONUS_PROMPTS.slice(0, 5).join(" · ")}</span>
                   </span>
-                  <span className="text-sm">Нажмите, чтобы вернуться к вопросу</span>
+                  <span className="text-sm text-paper/80">Нажмите, чтобы вернуться к вопросу</span>
                 </button>
               </div>
             </article>
           </div>
-          <p className="mt-3 text-center text-sm text-muted">Вправо — оставить ответ. Влево — следующая карточка.</p>
-          <div className="mt-3 flex flex-wrap justify-center gap-2">
-            <Button variant="soft" onClick={() => advance(-1, false)}>
-              Дальше
-            </Button>
-            <Button onClick={() => advance(1, true)} disabled={!answer.trim()}>
-              Сохранить и дальше
-            </Button>
+          <div className="mx-auto mt-4 w-full max-w-sm">
+            {hasText ? (
+              <Button className="w-full" onClick={() => advance(1, true)}>
+                Сохранить и дальше
+              </Button>
+            ) : (
+              <button
+                type="button"
+                onClick={listen}
+                className={cn("inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold", listening ? "bg-night text-paper" : "bg-moss text-paper")}
+              >
+                <Mic className="size-4" />
+                {listening ? "Слушаю… остановить" : "Ответить голосом"}
+              </button>
+            )}
+            <div className="mt-2 flex items-center justify-center gap-2">
+              {hasText ? (
+                <Button variant="ghost" onClick={listen}>
+                  <Mic className="size-4" /> {listening ? "Остановить" : "Голосом"}
+                </Button>
+              ) : null}
+              <Button variant="ghost" onClick={() => advance(-1, false)}>
+                <SkipForward className="size-4" /> Пропустить
+              </Button>
+              <Button variant="ghost" onClick={() => { turnPage(); setFlipped(true); }}>
+                <Lightbulb className="size-4" /> Подсказки
+              </Button>
+            </div>
+            {index < 3 ? <p className="mt-1 text-center text-xs text-muted">Можно и смахнуть карточку: вправо оставить ответ, влево пропустить.</p> : null}
           </div>
         </>
       )}
@@ -333,8 +380,8 @@ export function DeckScreen({ situationId }: { situationId: string }) {
 
 function CardBack({ className, label }: { className?: string; label: string }) {
   return (
-    <div className={cn("card-back pointer-events-none flex items-end rounded-4xl p-4", className)}>
-      <p className="font-script text-2xl">{label}</p>
+    <div className={cn("card-back pointer-events-none flex items-end rounded-2xl p-4", className)} style={{ ["--forest-img" as string]: packBg("bg_8153") }}>
+      <p className="hand text-2xl text-[#c9ae74]">{label}</p>
     </div>
   );
 }
