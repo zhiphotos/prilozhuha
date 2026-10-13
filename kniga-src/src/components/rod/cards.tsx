@@ -133,7 +133,7 @@ function DeckLink({ item, saved, onOpen, featured = false }: { item: Situation; 
         № {numberOf(item.id)} · {item.play ? "Семейная игра" : "Колода"}
       </span>
       <span className={cn("mt-2 block", item.title.length > 11 || item.title.includes(" ") ? "font-sans font-semibold" : "display-title", featured ? "max-w-[12ch] text-[1.8rem] leading-[1] text-paper" : "relative z-10 max-w-[11ch] text-[1.1rem] leading-[1.05] text-ink")}>{item.title}</span>
-      {cat.tag ? <span className={cn("relative z-10 mt-1 block whitespace-nowrap text-[13px] font-medium", dark ? "text-[#c9ae74]" : "text-gold-ink")}>{cat.tag}</span> : null}
+      {cat.tag ? <span className={cn("hand relative z-10 mt-1 block whitespace-nowrap text-[1.12rem] leading-none [transform:rotate(-2deg)]", dark ? "text-[#c9ae74]" : "text-gold-ink")}>{cat.tag}</span> : null}
       {featured ? <span className="mt-2 block max-w-[28ch] text-sm text-paper/75">{item.hint}</span> : null}
       <span className={cn("relative z-10 mt-4 block text-xs", featured ? "" : "max-w-[56%]", dark ? "text-paper/80" : "text-ink/75")}>
         {saved > 0 ? `Отвечено ${saved} из ${total}` : `${total} карточек · начните с первой`}
@@ -251,7 +251,7 @@ export function DeckScreen({ situationId }: { situationId: string }) {
       {done ? (
         <section className="forest rounded-2xl p-6 pr-28" style={{ ["--forest-img" as string]: packBg("bg_8146") }}>
           <h2 className="display-title one-line leading-none text-paper [--max:2.2rem]" style={lineStyle("Колода пройдена")}>Колода пройдена</h2>
-          <p className="mt-2 text-[15px] text-[#c9ae74]">Спасибо за этот разговор.</p>
+          <p className="hand mt-2 text-[1.6rem] leading-none text-[#c9ae74] [transform:rotate(-2deg)]">спасибо за этот разговор</p>
           <p className="mt-3 max-w-[30ch] text-paper/80">Ответы уже в книге. Если разговор зашёл далеко, соберите из них страницы.</p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Button variant="white" onClick={() => nav.tab({ id: "cards" })}>К накопленному</Button>
@@ -322,7 +322,7 @@ export function DeckScreen({ situationId }: { situationId: string }) {
                   <h2 className="relative mt-3 pr-16 text-[1.7rem] font-semibold leading-[1.15] text-ink sm:text-[2rem]">{question}</h2>
                   {previous ? <p className="relative mt-2 line-clamp-2 text-sm text-muted">Было: {previous.answer}</p> : null}
                   <div className="mt-auto">
-                    <p className="mb-1 text-xs font-medium text-gold-ink">Запишите так, как сказали</p>
+                    <p className="hand mb-1 text-[1.25rem] leading-none text-gold-ink">запишите так, как сказали</p>
                     <textarea
                       value={answer}
                       onChange={(event) => setAnswer(event.target.value)}
@@ -332,7 +332,7 @@ export function DeckScreen({ situationId }: { situationId: string }) {
                   </div>
                 </div>
                 <button type="button" onClick={() => { turnPage(); setFlipped(false); }} className="card-back absolute inset-0 flex flex-col justify-between overflow-hidden rounded-2xl p-5 text-left" style={{ transform: "rotateY(180deg)", backfaceVisibility: "hidden", ["--forest-img" as string]: packBg("bg_8153") }}>
-                  <span className="display-title text-[1.3rem] leading-none text-[#c9ae74]">Книга рода</span>
+                  <span className="hand text-[2.2rem] leading-none text-[#c9ae74]">Книга рода</span>
                   <span>
                     <span className="block text-[1.6rem] font-semibold leading-[1.15]">Откуда это известно в семье?</span>
                     <span className="mt-3 block text-sm leading-relaxed text-paper/75">{BONUS_PROMPTS.slice(0, 5).join(" · ")}</span>
@@ -381,7 +381,7 @@ export function DeckScreen({ situationId }: { situationId: string }) {
 function CardBack({ className, label }: { className?: string; label: string }) {
   return (
     <div className={cn("card-back pointer-events-none flex items-end rounded-2xl p-4", className)} style={{ ["--forest-img" as string]: packBg("bg_8153") }}>
-      <p className="text-sm font-semibold text-[#c9ae74]">{label}</p>
+      <p className="hand text-2xl text-[#c9ae74]">{label}</p>
     </div>
   );
 }
