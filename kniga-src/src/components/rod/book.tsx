@@ -72,7 +72,7 @@ export function BookScreen() {
       </div>
 
       {!hasCover ? (
-        <button type="button" onClick={() => open(coverPage(meta), 0)} className="aurora mb-5 flex w-full items-center gap-4 rounded-[2rem] p-5 text-left">
+        <button type="button" onClick={() => open(coverPage(meta), 0)} className="aurora mb-5 flex w-full items-center gap-4 rounded-2xl p-5 text-left">
           <div className="w-20 shrink-0 overflow-hidden rounded-md shadow-lg">
             <PageSheet page={{ id: "c", ...coverPage(meta) }} meta={meta} />
           </div>
@@ -88,7 +88,7 @@ export function BookScreen() {
 
       <PageGrid pages={pages} meta={meta} onOpen={(id) => nav.go({ id: "editor", pageId: id })} onAdd={() => setLibrary(true)} />
 
-      <section className="glass mt-8 rounded-[2rem] p-5">
+      <section className="glass mt-8 rounded-2xl p-5">
         <div className="flex items-center gap-2">
           <Sparkles className="size-4 text-rose-deep" />
           <h2 className="display-title text-2xl text-ink">Чего не хватает книге</h2>
@@ -134,7 +134,7 @@ export function BookScreen() {
         </div>
       </section>
 
-      <section className={cn("mt-4 rounded-[2rem] p-5", ready ? "aurora" : "glass")}>
+      <section className={cn("mt-4 rounded-2xl p-5", ready ? "aurora" : "glass")}>
         <h2 className="display-title text-2xl text-ink">
           {ready ? "Ты собрал(а) материал для первой Книги рода" : "Когда страниц станет больше"}
         </h2>
@@ -389,7 +389,7 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
         ) : null}
       </div>
       {arrange ? (
-        <div className="glass sticky top-2 z-20 mb-4 flex flex-wrap items-center gap-2 rounded-[1.4rem] p-2">
+        <div className="glass sticky top-2 z-20 mb-4 flex flex-wrap items-center gap-2 rounded-xl p-2">
           <Button variant="white" className="min-h-10 px-3" onClick={() => setPicked(picked.length === pages.length ? [] : pages.map((page) => page.id))}>
             {picked.length === pages.length ? "Снять выбор" : "Выбрать все"}
           </Button>
@@ -530,7 +530,7 @@ function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: s
   });
 
   return (
-    <section className={cn("mb-6 rounded-[2rem] p-5", open ? "aurora" : "glass")}>
+    <section className={cn("mb-6 rounded-2xl p-5", open ? "aurora" : "glass")}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">Для участников программы</p>

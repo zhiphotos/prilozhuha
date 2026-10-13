@@ -45,7 +45,7 @@ export function MoodBoard({ open, onToggle, onPlace, pinned, onPin }: { open: bo
 
       <aside
         className={cn(
-          "glass-strong fixed bottom-24 right-2 top-[calc(max(0.75rem,env(safe-area-inset-top))+3.4rem)] z-[46] flex w-[min(20rem,78vw)] flex-col rounded-[1.6rem] p-3 transition-transform duration-300",
+          "glass-strong fixed bottom-24 right-2 top-[calc(max(0.75rem,env(safe-area-inset-top))+3.4rem)] z-[46] flex w-[min(20rem,78vw)] flex-col rounded-2xl p-3 transition-transform duration-300",
           open ? "translate-x-0" : "pointer-events-none translate-x-[110%]",
           dropping && "ring-4 ring-rose/60",
         )}

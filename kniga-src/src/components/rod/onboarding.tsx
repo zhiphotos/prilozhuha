@@ -3,6 +3,7 @@ import { AUDIENCES } from "@/lib/rod/content";
 import type { Audience } from "@/lib/rod/types";
 import { useRod } from "@/lib/rod/store";
 import { Button, Field } from "@/components/rod/chrome";
+import { Cut, packBg } from "@/components/rod/botanica";
 import { cn } from "@/lib/cn";
 
 export function Onboarding({ ready = true }: { ready?: boolean }) {
@@ -13,13 +14,16 @@ export function Onboarding({ ready = true }: { ready?: boolean }) {
   const named = audience === "children" || audience === "future";
 
   return (
-    <main className="grid min-h-dvh place-items-center px-4 py-10">
-      <div className="glass w-full max-w-xl rounded-4xl p-6 sm:p-8">
-        <p className="text-sm text-rose-deep">Книга рода</p>
-        <h1 className="mt-2 font-display text-4xl leading-tight text-ink sm:text-5xl">Для кого я это собираю?</h1>
-        <p className="mt-3 max-w-md text-muted">
-          Не ради дерева. Страница нужна человеку, который однажды её откроет.
-        </p>
+    <main className="min-h-dvh">
+      <header className="forest rounded-none px-6 pb-14 pt-[max(2.5rem,env(safe-area-inset-top))]" style={{ ["--forest-img" as string]: packBg("bg_8154") }}>
+        <div className="mx-auto max-w-xl">
+          <p className="font-script text-3xl text-[#c9ae74]">Книга рода</p>
+          <h1 className="display-title mt-4 max-w-[12ch] text-[2.8rem] leading-[1.02] text-paper sm:max-w-none sm:text-6xl">Для кого я это собираю?</h1>
+          <p className="mt-3 max-w-[32ch] text-paper/75">Не ради дерева. Страница нужна человеку, который однажды её откроет.</p>
+        </div>
+        <Cut id="moth" className="pointer-events-none absolute -right-8 top-8 w-44 rotate-[14deg] opacity-90" />
+      </header>
+      <div className="relative z-10 mx-auto -mt-6 w-full max-w-xl rounded-t-2xl bg-paper px-5 pb-10 pt-6 shadow-[var(--shadow-soft)] sm:rounded-2xl sm:px-8">
         <div className="mt-6 grid gap-2">
           {AUDIENCES.map((item) => {
             const active = audience === item.id;
@@ -29,14 +33,14 @@ export function Onboarding({ ready = true }: { ready?: boolean }) {
                 type="button"
                 onClick={() => setAudience(item.id)}
                 className={cn(
-                  "flex min-h-16 items-start gap-3 rounded-3xl border px-4 py-3 text-left",
-                  active ? "border-rose bg-blush/70" : "border-line bg-paper/60",
+                  "flex min-h-16 items-start gap-3 rounded-xl border px-4 py-3 text-left",
+                  active ? "border-moss bg-sage-soft" : "border-line bg-white/50",
                 )}
               >
                 <span
                   className={cn(
                     "mt-1 grid size-5 shrink-0 place-items-center rounded-full border",
-                    active ? "border-rose bg-rose" : "border-muted",
+                    active ? "border-moss bg-moss" : "border-muted",
                   )}
                   aria-hidden
                 >

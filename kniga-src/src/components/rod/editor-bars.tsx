@@ -205,7 +205,7 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
         />
       ) : null}
       <div
-        className="glass-strong sheet-in fixed inset-x-3 z-50 mx-auto max-w-xl rounded-[1.6rem] p-3"
+        className="glass-strong sheet-in fixed inset-x-3 z-50 mx-auto max-w-xl rounded-2xl p-3"
         style={{ bottom: `calc(${kb}px + 6.4rem - ${shownPos.dy}px)`, transform: `translateX(${shownPos.dx}px)`, maxHeight: "70svh", overflowY: "auto" }}
       >
         <div
@@ -367,7 +367,7 @@ export function PenBar({
 }) {
   const erasing = tool === "erase";
   return (
-    <div className="glass-strong mx-auto max-w-xl rounded-[1.6rem] p-2">
+    <div className="glass-strong mx-auto max-w-xl rounded-2xl p-2">
       <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
         {BRUSHES.map((item) => (
           <BarBtn

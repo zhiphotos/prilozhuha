@@ -35,7 +35,7 @@ export function Button({
       type={type}
       className={cn(
         "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45",
-        variant === "primary" && "bg-night text-paper shadow-[0_10px_24px_-12px_rgba(42,36,32,0.6)] hover:bg-ink",
+        variant === "primary" && "bg-moss text-paper shadow-[0_10px_24px_-14px_rgba(20,22,15,0.7)] hover:bg-night",
         variant === "ghost" && "bg-white/0 text-ink hover:bg-white/50",
         variant === "soft" && "glass text-ink hover:bg-white/70",
         variant === "night" && "bg-rose-deep text-paper hover:bg-rose",
@@ -66,7 +66,7 @@ export function TopBar({ title, kicker, onBack, action }: { title: string; kicke
         </button>
       ) : null}
       <div className="min-w-0 flex-1 pt-0.5">
-        {kicker ? <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-deep/80">{kicker}</p> : null}
+        {kicker ? <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-ink">{kicker}</p> : null}
         <h1 className="display-title mt-1 text-[2.1rem] leading-[1.05] text-ink sm:text-5xl">{title}</h1>
       </div>
       {action}
@@ -95,7 +95,7 @@ export function Dock() {
   const current = tabKey(nav.screen);
   return (
     <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 px-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] lg:hidden">
-      <ul className="glass-strong mx-auto grid max-w-md grid-cols-5 rounded-[1.6rem] p-1.5">
+      <ul className="glass-strong mx-auto grid max-w-md grid-cols-5 rounded-2xl p-1.5">
         {TABS.map((item) => {
           const Icon = item.icon;
           const active = current === item.id;
@@ -125,7 +125,7 @@ export function SideNav() {
   const nav = useNav();
   const current = tabKey(nav.screen);
   return (
-    <aside className="glass no-print sticky top-6 hidden h-fit flex-col gap-1 rounded-[2rem] p-3 lg:flex">
+    <aside className="glass no-print sticky top-6 hidden h-fit flex-col gap-1 rounded-2xl p-3 lg:flex">
       <p className="display-title px-3 pb-2 pt-2 text-2xl text-ink">Книга рода</p>
       {TABS.map((item) => {
         const Icon = item.icon;
@@ -208,7 +208,7 @@ export function Sheet({
         downOnBackdrop.current = false;
       }}
     >
-      <div ref={box} tabIndex={-1} className={cn("glass-strong sheet-in pointer-events-auto max-h-[min(86svh,calc(100dvh-1rem))] w-full max-w-lg overflow-auto overscroll-contain rounded-[2rem] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] outline-none", !dim && "!bg-paper shadow-2xl ring-1 ring-ink/10", className)}>
+      <div ref={box} tabIndex={-1} className={cn("glass-strong sheet-in pointer-events-auto max-h-[min(86svh,calc(100dvh-1rem))] w-full max-w-lg overflow-auto overscroll-contain rounded-2xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] outline-none", !dim && "!bg-paper shadow-2xl ring-1 ring-ink/10", className)}>
         <div className="sticky -top-5 z-10 -mx-1 mb-3 flex items-start justify-between gap-3">
           {title ? <h2 className="display-title text-[1.7rem] leading-tight text-ink">{title}</h2> : <span />}
           <button type="button" className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-ink" onClick={onClose} aria-label="Закрыть">

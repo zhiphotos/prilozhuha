@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { DOC_KINDS, EXAMPLE_TIMELINE, RELATIONS } from "@/lib/rod/content";
 import { useRod } from "@/lib/rod/store";
 import type { ArchiveTab } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
+import { Cut } from "@/components/rod/botanica";
 import { MediaImg } from "@/components/rod/media-img";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
 
@@ -15,20 +17,31 @@ const TABS: { id: ArchiveTab; label: string }[] = [
   { id: "docs", label: "Бумаги" },
 ];
 
+/** Форма добавления свёрнута, пока в списке уже что-то есть: список главный, форма по кнопке. */
+function AddFold({ label, empty, children }: { label: string; empty: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  if (empty || open) return <>{children}</>;
+  return (
+    <button type="button" onClick={() => setOpen(true)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-dashed border-moss/50 text-sm font-semibold text-moss">
+      <Plus className="size-4" /> {label}
+    </button>
+  );
+}
+
 export function ArchiveScreen({ tab }: { tab: ArchiveTab }) {
   const nav = useNav();
   return (
     <ScreenFrame>
       <TopBar kicker="Архив семьи" title="Что уже собрано" onBack={nav.back} />
-      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto pb-1">
+      <div className="no-scrollbar -mx-1 flex gap-1 overflow-x-auto border-b border-ink/10">
         {TABS.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => nav.replace({ id: "archive", tab: item.id })}
             className={cn(
-              "shrink-0 rounded-full px-4 py-2 text-sm font-medium",
-              tab === item.id ? "bg-night text-paper" : "glass text-ink",
+              "min-h-11 shrink-0 border-b-2 px-3 text-sm font-semibold",
+              tab === item.id ? "border-moss text-ink" : "border-transparent text-muted",
             )}
           >
             {item.label}
@@ -59,8 +72,9 @@ function PeoplePane() {
 
   return (
     <div className="grid gap-4">
+      <AddFold label="Добавить человека" empty={people.length === 0}>
       <form
-        className="glass grid gap-3 rounded-[2rem] p-5"
+        className="glass grid gap-3 rounded-2xl p-5"
         onSubmit={(event) => {
           event.preventDefault();
           if (!name.trim()) return;
@@ -93,9 +107,10 @@ function PeoplePane() {
           Добавить в семью
         </Button>
       </form>
+      </AddFold>
       <ul className="grid gap-2">
         {people.map((person) => (
-          <li key={person.id} className="glass rounded-3xl p-4">
+          <li key={person.id} className="glass rounded-2xl p-4">
             <button type="button" className="w-full text-left" onClick={() => setOpenId((value) => (value === person.id ? null : person.id))}>
               <p className="display-title text-2xl text-ink">{person.name}</p>
               <p className="text-sm text-muted">
@@ -129,7 +144,12 @@ function PeoplePane() {
           </li>
         ))}
       </ul>
-      {people.length === 0 ? <p className="text-sm text-muted">Пока никого нет. Первое имя уже меняет книгу.</p> : null}
+      {people.length === 0 ? (
+        <div className="flex items-center gap-4 border-t border-ink/10 pt-4">
+          <Cut id="moss_archive" className="w-24 shrink-0 rotate-[-4deg]" />
+          <p className="text-sm text-muted">Пока никого нет. Первое имя уже меняет книгу.</p>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -146,8 +166,9 @@ function TimePane() {
 
   return (
     <div className="grid gap-4">
+      <AddFold label="Добавить событие" empty={events.length === 0}>
       <form
-        className="glass grid gap-3 rounded-[2rem] p-5"
+        className="glass grid gap-3 rounded-2xl p-5"
         onSubmit={(event) => {
           event.preventDefault();
           if (!year.trim() || !title.trim()) return;
@@ -172,6 +193,7 @@ function TimePane() {
           Поставить на ленту
         </Button>
       </form>
+      </AddFold>
       {showingExample ? (
         <p className="text-sm text-muted">Так может выглядеть лента. Это пример, не ваши даты — он исчезнет, когда появится первое событие.</p>
       ) : (
@@ -206,7 +228,7 @@ function PhotosPane() {
       {photos.length === 0 ? <p className="text-sm text-muted">Подпись важнее фильтра. Один старый снимок уже глава.</p> : null}
       <ul className="grid gap-3 sm:grid-cols-2">
         {photos.map((photo) => (
-          <li key={photo.id} className="glass overflow-hidden rounded-[2rem]">
+          <li key={photo.id} className="glass overflow-hidden rounded-2xl">
             <MediaImg src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="aspect-[4/3] w-full object-cover" />
             <div className="p-4">
               <p className="font-medium text-ink">{photo.who || "Без подписи"}</p>
@@ -235,8 +257,9 @@ function PlacesPane() {
   const [note, setNote] = useState("");
   return (
     <div className="grid gap-3">
+      <AddFold label="Добавить место" empty={places.length === 0}>
       <form
-        className="glass grid gap-3 rounded-[2rem] p-5"
+        className="glass grid gap-3 rounded-2xl p-5"
         onSubmit={(event) => {
           event.preventDefault();
           if (!name.trim()) return;
@@ -259,9 +282,10 @@ function PlacesPane() {
           Сохранить место
         </Button>
       </form>
+      </AddFold>
       <ul className="grid gap-2">
         {places.map((place) => (
-          <li key={place.id} className="glass rounded-3xl p-4">
+          <li key={place.id} className="glass rounded-2xl p-4">
             <p className="display-title text-2xl text-ink">{place.name}</p>
             {place.years ? <p className="text-sm text-rose-deep">{place.years}</p> : null}
             {place.note ? <p className="mt-1 text-sm text-muted">{place.note}</p> : null}
@@ -285,8 +309,9 @@ function DocsPane() {
   const [note, setNote] = useState("");
   return (
     <div className="grid gap-3">
+      <AddFold label="Добавить бумагу" empty={documents.length === 0}>
       <form
-        className="glass grid gap-3 rounded-[2rem] p-5"
+        className="glass grid gap-3 rounded-2xl p-5"
         onSubmit={(event) => {
           event.preventDefault();
           if (!title.trim()) return;
@@ -319,9 +344,10 @@ function DocsPane() {
           Записать документ
         </Button>
       </form>
+      </AddFold>
       <ul className="grid gap-2">
         {documents.map((doc) => (
-          <li key={doc.id} className="glass rounded-3xl p-4">
+          <li key={doc.id} className="glass rounded-2xl p-4">
             <p className="font-medium text-ink">{doc.title}</p>
             <p className="text-sm text-muted">
               {doc.kind}
