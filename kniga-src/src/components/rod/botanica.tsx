@@ -198,3 +198,22 @@ export function packBg(id: string): string {
   const base = typeof document !== "undefined" ? document.baseURI : "";
   return `url("${new URL(packUrl(id), base || "http://localhost/").href}")`;
 }
+
+/** Нарисованная от руки стрелка-загогулина: подпись показывает на главное. */
+export function HandArrow({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 40" className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 8C14 4 26 8 30 18C34 28 28 34 22 30C17 26 24 19 33 22C42 25 49 30 58 33" />
+      <path d="M50 27L58 33L48 37" />
+    </svg>
+  );
+}
+
+/** Волнистое подчёркивание под словом, как карандашом. */
+export function HandUnderline({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 120 10" preserveAspectRatio="none" className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+      <path d="M2 6C14 2 22 9 36 5C50 1 58 9 72 5C86 1 96 8 118 4" />
+    </svg>
+  );
+}

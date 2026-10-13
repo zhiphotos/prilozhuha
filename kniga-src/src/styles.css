@@ -143,6 +143,15 @@
     box-shadow: var(--shadow-soft);
   }
 
+  /* Почерк бабушки: только слова и цифры (в шрифте нет ! ? - : и латиницы, их дорисует Caveat). */
+  .hand {
+    font-family: "kr-babushka", var(--font-script);
+    font-weight: 400;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+
   .hairline {
     height: 1px;
     background: linear-gradient(90deg, transparent, rgb(28 26 22 / 0.22), transparent);

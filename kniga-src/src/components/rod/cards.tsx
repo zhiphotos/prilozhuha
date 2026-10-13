@@ -11,18 +11,18 @@ import { Button, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
 import { cn } from "@/lib/cn";
 
 /** Каждая колода: свой мотив из её фото-библиотеки, номер в каталоге и поверхность. */
-const CAT: Record<string, { cut: string; tilt: number; tone: "night" | "paper" | "moss" | "plum" }> = {
-  kin: { cut: "engraving_circle", tilt: 0, tone: "night" },
-  feast: { cut: "rosebuds", tilt: 8, tone: "paper" },
-  mom: { cut: "peony", tilt: -6, tone: "plum" },
-  dad: { cut: "driftwood", tilt: 6, tone: "paper" },
-  grandma: { cut: "lily_valley", tilt: 4, tone: "moss" },
-  grandpa: { cut: "wood_slice", tilt: -8, tone: "paper" },
-  album: { cut: "paper_two_scraps", tilt: 5, tone: "paper" },
-  dinner: { cut: "daffodil", tilt: -10, tone: "paper" },
-  road: { cut: "stick_rosehip", tilt: 14, tone: "moss" },
+const CAT: Record<string, { tag: string; cut: string; tilt: number; tone: "night" | "paper" | "moss" | "plum" }> = {
+  kin: { tag: "для рода", cut: "engraving_circle", tilt: 0, tone: "night" },
+  feast: { tag: "за столом", cut: "rosebuds", tilt: 8, tone: "paper" },
+  mom: { tag: "для мамы", cut: "peony", tilt: -6, tone: "plum" },
+  dad: { tag: "для папы", cut: "driftwood", tilt: 6, tone: "paper" },
+  grandma: { tag: "для бабушки", cut: "lily_valley", tilt: 4, tone: "moss" },
+  grandpa: { tag: "для дедушки", cut: "wood_slice", tilt: -8, tone: "paper" },
+  album: { tag: "над альбомом", cut: "paper_two_scraps", tilt: 5, tone: "paper" },
+  dinner: { tag: "за ужином", cut: "daffodil", tilt: -10, tone: "paper" },
+  road: { tag: "в дороге", cut: "stick_rosehip", tilt: 14, tone: "moss" },
 };
-const catOf = (id: string) => CAT[id] ?? { cut: "moth", tilt: 0, tone: "paper" as const };
+const catOf = (id: string) => CAT[id] ?? { tag: "", cut: "moth", tilt: 0, tone: "paper" as const };
 const numberOf = (id: string) => String(Math.max(0, SITUATIONS.findIndex((item) => item.id === id)) + 1).padStart(2, "0");
 
 export function CardsScreen() {
@@ -133,6 +133,7 @@ function DeckLink({ item, saved, onOpen, featured = false }: { item: Situation; 
         № {numberOf(item.id)} · {item.play ? "Семейная игра" : "Колода"}
       </span>
       <span className={cn("display-title mt-2 block", featured ? "max-w-[12ch] text-[2.4rem] leading-[1.02] text-paper" : "relative z-10 max-w-[11ch] text-[1.45rem] leading-[1.08] text-ink")}>{item.title}</span>
+      {cat.tag ? <span className={cn("hand relative z-10 mt-1 block whitespace-nowrap text-[1.12rem] leading-none [transform:rotate(-2deg)]", dark ? "text-[#c9ae74]" : "text-gold-ink")}>{cat.tag}</span> : null}
       {featured ? <span className="mt-2 block max-w-[28ch] text-sm text-paper/75">{item.hint}</span> : null}
       <span className={cn("relative z-10 mt-4 block text-xs", featured ? "" : "max-w-[56%]", dark ? "text-paper/80" : "text-ink/75")}>
         {saved > 0 ? `Отвечено ${saved} из ${total}` : `${total} карточек · начните с первой`}
@@ -250,6 +251,7 @@ export function DeckScreen({ situationId }: { situationId: string }) {
       {done ? (
         <section className="forest rounded-2xl p-6 pr-28" style={{ ["--forest-img" as string]: packBg("bg_8146") }}>
           <h2 className="display-title text-[2.4rem] leading-none text-paper">Колода пройдена</h2>
+          <p className="hand mt-2 text-[1.6rem] leading-none text-[#c9ae74] [transform:rotate(-2deg)]">спасибо за этот разговор</p>
           <p className="mt-3 max-w-[30ch] text-paper/80">Ответы уже в книге. Если разговор зашёл далеко, соберите из них страницы.</p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Button variant="white" onClick={() => nav.tab({ id: "cards" })}>К накопленному</Button>
@@ -320,6 +322,7 @@ export function DeckScreen({ situationId }: { situationId: string }) {
                   <h2 className="display-title relative mt-3 pr-16 text-[1.85rem] font-medium leading-[1.12] text-ink sm:text-4xl">{question}</h2>
                   {previous ? <p className="relative mt-2 line-clamp-2 text-sm text-muted">Было: {previous.answer}</p> : null}
                   <div className="mt-auto">
+                    <p className="hand mb-1 text-[1.25rem] leading-none text-gold-ink">запиши так, как сказали</p>
                     <textarea
                       value={answer}
                       onChange={(event) => setAnswer(event.target.value)}
@@ -329,7 +332,7 @@ export function DeckScreen({ situationId }: { situationId: string }) {
                   </div>
                 </div>
                 <button type="button" onClick={() => { turnPage(); setFlipped(false); }} className="card-back absolute inset-0 flex flex-col justify-between overflow-hidden rounded-2xl p-5 text-left" style={{ transform: "rotateY(180deg)", backfaceVisibility: "hidden", ["--forest-img" as string]: packBg("bg_8153") }}>
-                  <span className="font-script text-3xl text-[#c9ae74]">Книга рода</span>
+                  <span className="hand text-[2.2rem] leading-none text-[#c9ae74]">Книга рода</span>
                   <span>
                     <span className="display-title block text-[2rem] leading-[1.05]">А откуда мы это знаем?</span>
                     <span className="mt-3 block text-sm leading-relaxed text-paper/75">{BONUS_PROMPTS.slice(0, 5).join(" · ")}</span>
@@ -378,7 +381,7 @@ export function DeckScreen({ situationId }: { situationId: string }) {
 function CardBack({ className, label }: { className?: string; label: string }) {
   return (
     <div className={cn("card-back pointer-events-none flex items-end rounded-2xl p-4", className)} style={{ ["--forest-img" as string]: packBg("bg_8153") }}>
-      <p className="font-script text-2xl text-[#c9ae74]">{label}</p>
+      <p className="hand text-2xl text-[#c9ae74]">{label}</p>
     </div>
   );
 }

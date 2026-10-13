@@ -17,7 +17,7 @@ export function Onboarding({ ready = true }: { ready?: boolean }) {
     <main className="min-h-dvh">
       <header className="forest rounded-none px-6 pb-14 pt-[max(2.5rem,env(safe-area-inset-top))]" style={{ ["--forest-img" as string]: packBg("bg_8154") }}>
         <div className="mx-auto max-w-xl">
-          <p className="font-script text-3xl text-[#c9ae74]">Книга рода</p>
+          <p className="hand text-[2.4rem] leading-none text-[#c9ae74]">Книга рода</p>
           <h1 className="display-title mt-4 max-w-[12ch] text-[2.8rem] leading-[1.02] text-paper sm:max-w-none sm:text-6xl">Для кого я это собираю?</h1>
           <p className="mt-3 max-w-[32ch] text-paper/75">Не ради дерева. Страница нужна человеку, который однажды её откроет.</p>
         </div>

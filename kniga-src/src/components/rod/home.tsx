@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowRight, BookCopy, BookOpen, Camera, Clock, Play, Search, Settings2, Users } from "lucide-react";
-import { Botanica, Cut, PAL_DARK, packBg } from "@/components/rod/botanica";
+import { Botanica, Cut, HandArrow, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/botanica";
 import { filledCount } from "@/components/rod/contents-sheet";
 import { AUDIENCES, LESSONS, audienceTitle, reminder } from "@/lib/rod/content";
 import { countsOf, isBookReady, nextStep, overallOf, partsOf, plural } from "@/lib/rod/progress";
@@ -42,6 +42,7 @@ export function HomeScreen() {
     counts.notes ? plural(counts.notes, "ответ", "ответа", "ответов") : "",
   ].filter(Boolean);
   const heading = mode === "new" ? "Начнём с одного имени" : mode === "going" ? "Продолжим книгу" : facts.length ? `Уже собрано: ${facts.slice(0, 3).join(", ")}` : "Книга началась";
+  const note = mode === "new" ? "первый шаг совсем небольшой" : mode === "going" ? "вот где остановились" : "двигайся по одному шагу";
   const heroLabel = mode === "going" ? "Продолжить" : "Следующий шаг";
   const heroTitle = mode === "going" && last ? last.title || "Страница" : step.title;
   const heroDetail = mode === "going" ? "Вернуться туда, где остановились" : step.detail;
@@ -55,7 +56,7 @@ export function HomeScreen() {
             <Botanica id="sprout" pal={PAL_DARK} className="size-8" />
           </span>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">{bookName ? `Книга · ${bookName}` : "Книга рода"}</p>
+            <p className="hand text-[1.7rem] leading-none text-gold-ink">{bookName ? `Книга ${bookName}` : "Книга рода"}</p>
             <p className="display-title text-2xl leading-tight text-ink">{who}</p>
           </div>
         </div>
@@ -71,10 +72,15 @@ export function HomeScreen() {
 
       <h1 className="display-title max-w-[14ch] text-[2.7rem] leading-[1.02] text-ink sm:max-w-none sm:text-6xl">{heading}</h1>
 
+      <p className="hand mt-5 flex items-center gap-2 text-[1.75rem] text-gold-ink [transform:rotate(-2deg)]">
+        {note}
+        <HandArrow className="mt-2 h-6 w-10 rotate-90" />
+      </p>
+
       <button
         type="button"
         onClick={heroGo}
-        className="forest mt-6 block w-full rounded-2xl p-6 pb-24 text-left sm:pb-6 sm:pr-56"
+        className="forest mt-1 block w-full rounded-2xl p-6 pb-24 text-left sm:pb-6 sm:pr-56"
         style={{ ["--forest-img" as string]: packBg("bg_8154") }}
       >
         <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">{heroLabel}</span>
@@ -148,6 +154,9 @@ export function HomeScreen() {
           </Button>
         ) : null}
       </section>
+
+      <p className="hand mt-12 text-center text-[1.9rem] text-gold-ink [transform:rotate(-1.5deg)]">с любовью к роду</p>
+      <Botanica id="sprout" pal={PAL_LIGHT} className="mx-auto mt-1 h-14 opacity-80" />
 
       {profile ? <ProfileSheet onClose={() => setProfile(false)} /> : null}
       {projects ? <ProjectsSheet onClose={() => setProjects(false)} /> : null}
