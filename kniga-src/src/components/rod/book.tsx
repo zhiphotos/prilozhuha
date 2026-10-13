@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { ArrowLeftRight, BookOpen, Lock, ChevronLeft, ChevronRight, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeftRight, BookOpen, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, ScreenFrame, Sheet, TopBar, useNav } from "@/components/rod/chrome";
 import { PageSheet } from "@/components/rod/page-view";
@@ -326,9 +326,12 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
   const [moving, setMoving] = useState(false);
   const [moveTo, setMoveTo] = useState("");
   const movePages = useRod((state) => state.movePages);
+  const duplicatePage = useRod((state) => state.duplicatePage);
 
   const drop = (ids: string[]) => {
     if (!ids.length) return;
+    undoStack.current = [...undoStack.current.slice(-39), () => [...ids].reverse().forEach((id) => restorePage(id))];
+    setUndoCount(undoStack.current.length);
     removePages(ids);
     setPicked([]);
     toast(ids.length === 1 ? "Страница в корзине" : `${ids.length} страниц в корзине`, {
@@ -336,47 +339,120 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
       duration: 8000,
     });
   };
-  const [drag, setDrag] = useState<{ id: string; pointerId: number; dx: number; dy: number; x0: number; y0: number; over: number } | null>(null);
+  const [drag, setDrag] = useState<{ id: string; pointerId: number; dx: number; dy: number; x0: number; y0: number; s0: number; over: number } | null>(null);
   const first = pages[0]?.kind === "cover" ? 1 : 0;
+  const pointer = useRef({ x: 0, y: 0 });
+  const scroller = useRef<HTMLElement | null>(null);
+  const undoStack = useRef<(() => void)[]>([]);
+  const [undoCount, setUndoCount] = useState(0);
+
+  /** Запоминаем порядок до изменения, чтобы кнопка «Отменить» вернула его. */
+  const remember = () => {
+    const order = pages.map((page) => page.id);
+    undoStack.current = [...undoStack.current.slice(-39), () => order.forEach((id, i) => placePage(id, i))];
+    setUndoCount(undoStack.current.length);
+  };
+  const doUndo = () => {
+    const back = undoStack.current.pop();
+    setUndoCount(undoStack.current.length);
+    if (back) back();
+  };
+  /** Копия встаёт сразу после оригинала; «Отменить» убирает её. */
+  const duplicate = (ids: string[]) => {
+    const made = ids.map((id) => (pages.find((page) => page.id === id)?.kind === "cover" ? null : duplicatePage(id))).filter((id): id is string => !!id);
+    if (!made.length) return;
+    undoStack.current = [...undoStack.current.slice(-39), () => removePages(made)];
+    setUndoCount(undoStack.current.length);
+    setPicked([]);
+    toast(made.length === 1 ? "Копия рядом со страницей" : `Копий: ${made.length}`);
+  };
+  const reorder = (apply: () => void) => {
+    remember();
+    apply();
+  };
 
   const move = (id: string, to: number) => {
     const target = Math.max(first, Math.min(pages.length - 1, to));
+    remember();
     placePage(id, target);
   };
 
-  const onDown = (event: React.PointerEvent, page: BookPage, index: number) => {
-    if (!arrange) return;
-    if ((event.target as HTMLElement).closest("button[aria-label]")) return;
-    if (page.kind === "cover") {
-      setPicked((list) => (list.includes(page.id) ? list.filter((id) => id !== page.id) : [...list, page.id]));
-      return;
+  const getScroller = (node: HTMLElement | null): HTMLElement => {
+    for (let el = node?.parentElement ?? null; el; el = el.parentElement) {
+      const overflow = getComputedStyle(el).overflowY;
+      if ((overflow === "auto" || overflow === "scroll") && el.scrollHeight > el.clientHeight) return el;
     }
+    return (document.scrollingElement as HTMLElement) ?? document.documentElement;
+  };
+
+  const track = (clientX: number, clientY: number) => {
+    const sc = scroller.current;
+    setDrag((d) => {
+      if (!d) return d;
+      const hit = document.elementsFromPoint(clientX, clientY).find((el) => el instanceof HTMLElement && el.dataset.idx && el.dataset.drag !== "1") as HTMLElement | undefined;
+      const over = hit ? Number(hit.dataset.idx) : d.over;
+      return { ...d, dx: clientX - d.x0, dy: clientY - d.y0 + ((sc?.scrollTop ?? 0) - d.s0), over: Math.max(first, over) };
+    });
+  };
+
+  // Пока страницу тащат, у верхнего и нижнего края экран сам едет, чтобы можно было дотащить далеко.
+  const dragId = drag?.id;
+  useEffect(() => {
+    if (!dragId) return;
+    let raf = 0;
+    const tick = () => {
+      const sc = scroller.current;
+      if (sc) {
+        const rect = sc === document.scrollingElement || sc === document.documentElement ? { top: 0, bottom: window.innerHeight } : sc.getBoundingClientRect();
+        const y = pointer.current.y;
+        const zone = 110;
+        let speed = 0;
+        if (y < rect.top + zone + 40) speed = -Math.min(18, (rect.top + zone + 40 - y) / 5);
+        else if (y > rect.bottom - zone - 60) speed = Math.min(18, (y - (rect.bottom - zone - 60)) / 5);
+        if (speed) {
+          sc.scrollTop += speed;
+          track(pointer.current.x, pointer.current.y);
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragId]);
+
+  const togglePick = (id: string) => setPicked((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]));
+
+  /** Тащить можно только за ручку под страницей: остальной экран свободно прокручивается пальцем. */
+  const onGripDown = (event: React.PointerEvent, page: BookPage, index: number) => {
+    if (!arrange) return;
     event.preventDefault();
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    setDrag({ id: page.id, pointerId: event.pointerId, dx: 0, dy: 0, x0: event.clientX, y0: event.clientY, over: index });
+    scroller.current = getScroller(event.currentTarget as HTMLElement);
+    pointer.current = { x: event.clientX, y: event.clientY };
+    setDrag({ id: page.id, pointerId: event.pointerId, dx: 0, dy: 0, x0: event.clientX, y0: event.clientY, s0: scroller.current.scrollTop, over: index });
   };
 
   const onMove = (event: React.PointerEvent) => {
     if (!drag || drag.pointerId !== event.pointerId) return;
-    const hit = document.elementsFromPoint(event.clientX, event.clientY).find((el) => el instanceof HTMLElement && el.dataset.idx && el.dataset.drag !== "1") as HTMLElement | undefined;
-    const over = hit ? Number(hit.dataset.idx) : drag.over;
-    setDrag({ ...drag, dx: event.clientX - drag.x0, dy: event.clientY - drag.y0, over: Math.max(first, over) });
+    pointer.current = { x: event.clientX, y: event.clientY };
+    track(event.clientX, event.clientY);
   };
 
   const onUp = (event: React.PointerEvent) => {
     if (!drag || drag.pointerId !== event.pointerId) return;
     const from = pages.findIndex((page) => page.id === drag.id);
-    const moved = Math.hypot(drag.dx, drag.dy) > 8;
+    const moved = Math.hypot(drag.dx, drag.dy) > 8 || from !== drag.over;
     if (moved && from !== drag.over) move(drag.id, drag.over);
-    // Простое касание без перетаскивания – выбрать страницу.
-    if (!moved) setPicked((list) => (list.includes(drag.id) ? list.filter((id) => id !== drag.id) : [...list, drag.id]));
+    // Простое касание ручки без перетаскивания – выбрать страницу.
+    if (!moved) togglePick(drag.id);
     setDrag(null);
   };
 
   return (
     <>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-sm text-muted">{arrange ? "Тащите – поменять место. Коснитесь – выбрать." : `${plural(pages.length, "страница", "страницы", "страниц")}`}</p>
+        <p className="text-sm text-muted">{arrange ? "Тащите за ручку под страницей – поменять место. Коснитесь страницы – выбрать." : `${plural(pages.length, "страница", "страницы", "страниц")}`}</p>
         {pages.length > 0 ? (
           <span className="flex shrink-0 gap-2">
             <Button variant="soft" className="min-h-10 px-3" onClick={onAdd}>
@@ -390,6 +466,9 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
       </div>
       {arrange ? (
         <div className="glass sticky top-2 z-20 mb-4 flex flex-wrap items-center gap-2 rounded-xl p-2">
+          <Button variant="white" className="min-h-10 px-3" disabled={!undoCount} onClick={doUndo}>
+            <Undo2 className="size-4" /> Отменить
+          </Button>
           <Button variant="white" className="min-h-10 px-3" onClick={() => setPicked(picked.length === pages.length ? [] : pages.map((page) => page.id))}>
             {picked.length === pages.length ? "Снять выбор" : "Выбрать все"}
           </Button>
@@ -398,10 +477,10 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
           </Button>
           {moving && picked.length ? (
             <span className="flex w-full flex-wrap items-center gap-2 rounded-2xl bg-white/70 p-2">
-              <Button className="min-h-10 px-3" variant="soft" onClick={() => { movePages(picked, 0); setMoving(false); toast("Перенесены в начало"); }}>
+              <Button className="min-h-10 px-3" variant="soft" onClick={() => { reorder(() => movePages(picked, 0)); setMoving(false); toast("Перенесены в начало"); }}>
                 В начало
               </Button>
-              <Button className="min-h-10 px-3" variant="soft" onClick={() => { movePages(picked, pages.length); setMoving(false); toast("Перенесены в конец"); }}>
+              <Button className="min-h-10 px-3" variant="soft" onClick={() => { reorder(() => movePages(picked, pages.length)); setMoving(false); toast("Перенесены в конец"); }}>
                 В конец
               </Button>
               <span className="text-sm text-ink">или после страницы №</span>
@@ -413,7 +492,7 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
                   // Номер страницы без обложки: после неё выбранные встают по списку без самих выбранных.
                   const rest = pages.filter((page) => !picked.includes(page.id));
                   const cover = rest[0]?.kind === "cover" ? 1 : 0;
-                  movePages(picked, Math.min(rest.length, cover + Number(moveTo)));
+                  reorder(() => movePages(picked, Math.min(rest.length, cover + Number(moveTo))));
                   setMoving(false);
                   toast(`Перенесены после страницы ${moveTo}`);
                 }}
@@ -422,6 +501,9 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
               </Button>
             </span>
           ) : null}
+          <Button variant="white" className="min-h-10 px-3" disabled={!picked.some((id) => pages.find((page) => page.id === id)?.kind !== "cover")} onClick={() => duplicate(picked)}>
+            <Copy className="size-4" /> Дублировать{picked.length ? ` · ${picked.length}` : ""}
+          </Button>
           <Button className="min-h-10 px-3" variant="night" disabled={!picked.length} onClick={() => drop(picked)}>
             <Trash2 className="size-4" /> Удалить выбранные{picked.length ? ` · ${picked.length}` : ""}
           </Button>
@@ -451,14 +533,13 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
               key={page.id}
               data-idx={index}
               data-drag={dragging ? "1" : undefined}
-              className={cn("relative", arrange && page.kind !== "cover" && "touch-none select-none", dragging && "z-30")}
+              className={cn("relative", arrange && "select-none", dragging && "z-30")}
               style={dragging ? { transform: `translate(${drag.dx}px, ${drag.dy}px) scale(1.06)`, pointerEvents: "none" } : undefined}
-              onPointerDown={(event) => onDown(event, page, index)}
               onPointerMove={onMove}
               onPointerUp={onUp}
               onPointerCancel={onUp}
             >
-              <button type="button" onClick={() => (arrange ? undefined : onOpen(page.id))} className={cn("group block w-full text-left", arrange && page.kind !== "cover" && "cursor-grab")}>
+              <button type="button" onClick={() => (arrange ? togglePick(page.id) : onOpen(page.id))} className="group block w-full text-left">
                 <div className={cn("thumb-shadow overflow-hidden rounded-[6px] transition", !arrange && "group-active:scale-[0.98]", arrange && page.kind !== "cover" && "animate-[wiggle_0.4s_ease-in-out_infinite_alternate]", target && "ring-4 ring-rose", dragging && "shadow-2xl", arrange && picked.includes(page.id) && "ring-4 ring-night")}>
                   <PageSheet page={page} meta={meta} editing />
                 </div>
@@ -466,6 +547,11 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
               {arrange ? (
                 <>
                   <span className={cn("pointer-events-none absolute left-2 top-2 grid size-6 place-items-center rounded-full border-2 border-white text-xs font-bold shadow", picked.includes(page.id) ? "bg-night text-paper" : "bg-white/70 text-transparent")}>✓</span>
+                  {page.kind !== "cover" ? (
+                    <button type="button" aria-label="Дублировать страницу" onClick={() => duplicate([page.id])} className="absolute right-12 top-2 grid size-8 place-items-center rounded-full bg-white/90 text-ink shadow">
+                      <Copy className="size-4" />
+                    </button>
+                  ) : null}
                   <button type="button" aria-label="Удалить страницу" onClick={() => drop([page.id])} className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-white/90 text-rose-deep shadow">
                     <Trash2 className="size-4" />
                   </button>
@@ -476,8 +562,12 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
                   <button type="button" aria-label="Раньше" disabled={index <= first} onClick={() => move(page.id, index - 1)} className="grid size-9 place-items-center rounded-full bg-white/80 text-ink disabled:opacity-30">
                     <ChevronLeft className="size-4" />
                   </button>
-                  <span className="truncate text-xs text-ink">
-                    {index}. {page.title}
+                  <span
+                    onPointerDown={(event) => onGripDown(event, page, index)}
+                    className="flex min-h-9 min-w-0 flex-1 cursor-grab touch-none items-center justify-center gap-1 rounded-full bg-white/80 px-2 text-xs text-ink"
+                  >
+                    <GripHorizontal className="size-4 shrink-0" />
+                    <span className="truncate">{index}. {page.title}</span>
                   </span>
                   <button type="button" aria-label="Позже" disabled={index >= pages.length - 1} onClick={() => move(page.id, index + 1)} className="grid size-9 place-items-center rounded-full bg-white/80 text-ink disabled:opacity-30">
                     <ChevronRight className="size-4" />
