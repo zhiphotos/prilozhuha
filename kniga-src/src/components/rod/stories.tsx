@@ -15,7 +15,7 @@ export function StoriesScreen() {
     <ScreenFrame>
       <TopBar kicker="Семейные истории" title="Расскажи историю" />
       <p className="max-w-xl text-muted">
-        Нажмите шаблон. Приложение задаст несколько вопросов и соберёт черновик. Его можно поправить перед сохранением — это прямая страница будущей книги.
+        Нажмите шаблон. Приложение задаст несколько вопросов и соберёт черновик. Его можно поправить перед сохранением – это уже готовая страница вашей книги.
       </p>
       {stories.length > 0 ? (
         <ul className="mt-5 grid gap-2">
@@ -114,7 +114,7 @@ export function WizardScreen({ templateId }: { templateId: string }) {
             </Button>
           </div>
           {!filled && step === template.questions.length - 1 ? (
-            <p className="mt-3 text-sm text-muted">Нужен хотя бы один ответ, иначе главе не на что опереться.</p>
+            <p className="mt-3 text-sm text-muted">Нужен хотя бы один ответ, нужен хотя бы один ответ, чтобы получилась история.</p>
           ) : null}
         </div>
       ) : (

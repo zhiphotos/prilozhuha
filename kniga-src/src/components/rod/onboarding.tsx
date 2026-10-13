@@ -19,7 +19,7 @@ export function Onboarding({ ready = true }: { ready?: boolean }) {
         <div className="mx-auto max-w-xl">
           <p className="hand text-[2.4rem] leading-none text-[#c9ae74]">Книга рода</p>
           <h1 className="display-title mt-4 max-w-[12ch] text-[2.8rem] leading-[1.02] text-paper sm:max-w-none sm:text-6xl">Для кого я это собираю?</h1>
-          <p className="mt-3 max-w-[32ch] text-paper/75">Не ради дерева. Страница нужна человеку, который однажды её откроет.</p>
+          <p className="mt-3 max-w-[32ch] text-paper/75">Страница нужна тому, кто однажды её откроет.</p>
         </div>
         <Cut id="moth" className="pointer-events-none absolute -right-8 top-8 w-44 rotate-[14deg] opacity-90" />
       </header>
@@ -56,7 +56,7 @@ export function Onboarding({ ready = true }: { ready?: boolean }) {
         </div>
         <div className="mt-5 grid gap-4">
           {named ? (
-            <Field label="Как его зовут?" hint="Можно пока не знать — поле не обязательное.">
+            <Field label="Как его зовут?" hint="Можно пока не знать – поле не обязательное.">
               <input
                 className="field"
                 value={dedicatee}

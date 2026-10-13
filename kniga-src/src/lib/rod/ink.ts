@@ -124,7 +124,7 @@ export type StrokeGeom = {
   /** Дополнительные слои поверх основного (у ниток: витки, блик). */
   layers?: StrokeLayer[];
   d: string;
-  /** true — заливка контура, false — линия по центру. */
+  /** true – заливка контура, false – линия по центру. */
   fill: boolean;
   width: number;
   dash?: string;
@@ -182,7 +182,7 @@ export function strokeGeom(stroke: InkStroke): StrokeGeom {
   }
   if (brush === "dashed" || brush === "dots") {
     const line = pts.length > 3 ? chaikin(thin(stabilize(pts, 2), w * 0.4), 2) : pts;
-    // Нитки — стежки с просветами, у каждого стежка круглые концы; пунктир — длиннее; точки — как бусины.
+    // Нитки – стежки с просветами, у каждого стежка круглые концы; пунктир – длиннее; точки – как бусины.
     const dash = brush === "dashed" ? `${r2(w * 3.2)} ${r2(w * 2.2)}` : `0 ${r2(w * 2.2)}`;
     return { d: pathOf(line), fill: false, width: brush === "dots" ? w * 1.3 : w, dash, cap: "round", alpha, color };
   }
@@ -446,7 +446,7 @@ function principal(pts: Pt[]) {
 
 /**
  * Узнаёт, что нарисовано: прямая, круг/овал, треугольник, четырёхугольник, звезда, сердце.
- * Если не похоже ни на что — null (штрих остаётся как нарисован, только сглаженный).
+ * Если не похоже ни на что – null (штрих остаётся как нарисован, только сглаженный).
  */
 export function recognizeShape(flat: number[]): Recognized {
   const raw = toPts(flat);
@@ -608,7 +608,7 @@ function looksLikeHeart(pts: Pt[], minX: number, maxX: number, minY: number, max
   return dip > 0.05 && bw < w * 0.5;
 }
 
-/** Прямая от начала до конца; почти горизонтальная/вертикальная/диагональная — встаёт ровно. */
+/** Прямая от начала до конца; почти горизонтальная/вертикальная/диагональная – встаёт ровно. */
 export function lineOf(x0: number, y0: number, x1: number, y1: number): number[] {
   const dx = x1 - x0;
   const dy = y1 - y0;

@@ -63,7 +63,7 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
       return;
     }
     let line = "";
-    // Слово длиннее строки режем по буквам — как на экране (break-words), иначе оно уезжает за край листа.
+    // Слово длиннее строки режем по буквам – как на экране (break-words), иначе оно уезжает за край листа.
     const pieces = words.flatMap((word) => {
       if (ctx.measureText(word).width <= maxWidth) return [word];
       const parts: string[] = [];
@@ -491,7 +491,7 @@ async function paintBlock(ctx: CanvasRenderingContext2D, block: PageBlock, dark:
   layer.height = 0;
 }
 
-/** Страница в печатном размере: обрезной формат + вылеты. Без setup — превью 18 см без вылетов. */
+/** Страница в печатном размере: обрезной формат + вылеты. Без setup – превью 18 см без вылетов. */
 export async function paintPage(page: BookPage, meta: CoverMeta, setup?: PrintSetup, ghosts: PageBlock[] = []): Promise<HTMLCanvasElement> {
   const trim = setup ? Math.round(setup.size * 10 * PX_PER_MM) : 2126;
   const bleed = setup ? Math.round(setup.bleed * PX_PER_MM) : 0;
@@ -561,7 +561,7 @@ function save(pdf: Uint8Array, name: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-/** Превью всей книги одним файлом — посмотреть или распечатать дома. */
+/** Превью всей книги одним файлом – посмотреть или распечатать дома. */
 export async function downloadFamilyBook(pages: BookPage[], meta: CoverMeta, onProgress?: (done: number, total: number) => void) {
   if (!pages.length) throw new Error("В книге ещё нет страниц");
   await fontsReady();
@@ -571,7 +571,7 @@ export async function downloadFamilyBook(pages: BookPage[], meta: CoverMeta, onP
     const sheet = await canvasJpeg(await paintPage(page, meta, { size: 20, bleed: 0, spine: 0 }, spreadGhosts(pages, page.id)));
     sheets.push({ ...sheet, pageW: 200 * MM, pageH: 200 * MM });
   }
-  save(buildJpegPdf(sheets), "Книга рода — просмотр.pdf");
+  save(buildJpegPdf(sheets), "Книга рода – просмотр.pdf");
 }
 
 /**
@@ -590,7 +590,7 @@ export async function downloadPrintBlock(pages: BookPage[], meta: CoverMeta, set
     const sheet = await canvasJpeg(await paintPage(page, meta, setup, spreadGhosts(inner, page.id)));
     sheets.push({ ...sheet, pageW: side, pageH: side, bleed: setup.bleed * MM });
   }
-  save(buildJpegPdf(sheets), `Книга рода — блок ${setup.size}x${setup.size} (${list.length} стр).pdf`);
+  save(buildJpegPdf(sheets), `Книга рода – блок ${setup.size}x${setup.size} (${list.length} стр).pdf`);
   return list.length;
 }
 
@@ -651,5 +651,5 @@ export async function downloadPrintCover(pages: BookPage[], meta: CoverMeta, set
   ctx.drawImage(front, bleed, 0, trim + bleed, front.height, bleed + trim + spine, 0, trim + bleed, front.height);
   const sheet = await canvasJpeg(canvas);
   const pdf = buildJpegPdf([{ ...sheet, pageW: canvas.width / PX_PER_MM * MM, pageH: canvas.height / PX_PER_MM * MM, bleed: setup.bleed * MM }]);
-  save(pdf, `Книга рода — обложка ${setup.size}x${setup.size}, корешок ${setup.spine} мм.pdf`);
+  save(pdf, `Книга рода – обложка ${setup.size}x${setup.size}, корешок ${setup.spine} мм.pdf`);
 }

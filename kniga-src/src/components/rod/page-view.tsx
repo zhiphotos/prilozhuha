@@ -146,7 +146,7 @@ export function StrokeShape({ stroke }: { stroke: InkStroke }) {
   );
 }
 
-/** Старые чернила поверх всей страницы (новые рисунки — блоки «ink») и штрих, который рисуется прямо сейчас. */
+/** Старые чернила поверх всей страницы (новые рисунки – блоки «ink») и штрих, который рисуется прямо сейчас. */
 export function InkLayer({ strokes, live }: { strokes: InkStroke[]; live?: InkStroke | null }) {
   return (
     <svg viewBox={`0 0 100 ${PAGE_H}`} className="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible">
@@ -197,7 +197,7 @@ export function PlacedBlock({
   );
 }
 
-/** Как блок выглядит. Без рамок выбора — их рисует редактор. Ластик (маска) и прозрачность действуют только на сам рисунок, не на рамки и кнопки выбора. */
+/** Как блок выглядит. Без рамок выбора – их рисует редактор. Ластик (маска) и прозрачность действуют только на сам рисунок, не на рамки и кнопки выбора. */
 export function BlockArt({ block, editing = false }: { block: PageBlock; editing?: boolean }) {
   const hasMask = Boolean(block.mask && block.mask.strokes.length);
   if (!hasMask && block.opacity === undefined) return <BlockArtInner block={block} editing={editing} />;

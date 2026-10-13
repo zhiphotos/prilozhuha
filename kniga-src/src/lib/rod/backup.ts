@@ -1,4 +1,4 @@
-// Резервная копия: вся книга с фотографиями в одном файле .kniga — его можно переложить на другое устройство.
+// Резервная копия: вся книга с фотографиями в одном файле .kniga – его можно переложить на другое устройство.
 import { afterHydrate } from "@/lib/rod/boot";
 import { flushBook, useRod } from "@/lib/rod/store";
 import { isMediaRef, mediaDataUrl, saveMedia } from "@/lib/rod/media";
@@ -42,7 +42,7 @@ export async function exportBook(): Promise<"shared" | "downloaded" | "cancelled
   const media: Record<string, string> = {};
   for (const ref of refs) media[ref] = await mediaDataUrl(ref);
   const body = JSON.stringify({ app: "kniga-roda", version: 1, savedAt: new Date().toISOString(), data, media });
-  const name = `Книга рода — копия ${new Date().toLocaleDateString("ru-RU")}.kniga`;
+  const name = `Книга рода – копия ${new Date().toLocaleDateString("ru-RU")}.kniga`;
   const mark = () => {
     try {
       localStorage.setItem(LAST_KEY, new Date().toISOString());

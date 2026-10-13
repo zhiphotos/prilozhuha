@@ -115,7 +115,7 @@ export function FlipBookScreen({ pageId }: { pageId?: string }) {
     setDrag(null);
     const quick = performance.now() - current.t < 280;
     if (current.leaf < 0) {
-      // Просто тап: правая половина — вперёд, левая — назад.
+      // Просто тап: правая половина – вперёд, левая – назад.
       const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
       const x = event.clientX - rect.left;
       flip(x > rect.width / 2 ? 1 : -1);
@@ -137,7 +137,7 @@ export function FlipBookScreen({ pageId }: { pageId?: string }) {
   const printFile = () => {
     setSaving("Готовлю файл…");
     void downloadFamilyBook(pages, meta, (done, total) => setSaving(`Страница ${done + 1} из ${total}…`))
-      .then(() => toast("Просмотр книги сохранён. Файл для типографии — в «Книга» → «Печать»."))
+      .then(() => toast("Просмотр книги сохранён. Файл для типографии – в «Книга» → «Печать»."))
       .catch(() => toast("Файл не собрался. Попробуйте ещё раз."))
       .finally(() => setSaving(null));
   };

@@ -35,7 +35,7 @@ export function CardsScreen() {
   const talks = SITUATIONS.filter((item) => !item.play);
 
   const harvest = () => {
-    // Каждая колода — своя страница: вопрос карточкой, ответ рукописным.
+    // Каждая колода – своя страница: вопрос карточкой, ответ рукописным.
     const groups = new Map<string, typeof notes>();
     notes.slice(0, 40).forEach((note) => groups.set(note.situationTitle, [...(groups.get(note.situationTitle) ?? []), note]));
     let first: string | null = null;
@@ -334,7 +334,7 @@ export function DeckScreen({ situationId }: { situationId: string }) {
                 <button type="button" onClick={() => { turnPage(); setFlipped(false); }} className="card-back absolute inset-0 flex flex-col justify-between overflow-hidden rounded-2xl p-5 text-left" style={{ transform: "rotateY(180deg)", backfaceVisibility: "hidden", ["--forest-img" as string]: packBg("bg_8153") }}>
                   <span className="hand text-[2.2rem] leading-none text-[#c9ae74]">Книга рода</span>
                   <span>
-                    <span className="display-title block text-[2rem] leading-[1.05]">А откуда мы это знаем?</span>
+                    <span className="display-title block text-[2rem] leading-[1.05]">Откуда это известно в семье?</span>
                     <span className="mt-3 block text-sm leading-relaxed text-paper/75">{BONUS_PROMPTS.slice(0, 5).join(" · ")}</span>
                   </span>
                   <span className="text-sm text-paper/80">Нажмите, чтобы вернуться к вопросу</span>

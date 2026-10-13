@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { MEDIA_STORE, idbDelete, idbGet, idbSet } from "@/lib/rod/idb";
 
-// Картинки лежат в IndexedDB отдельно от состояния, в состоянии — только ссылка "media:<id>".
+// Картинки лежат в IndexedDB отдельно от состояния, в состоянии – только ссылка "media:<id>".
 // Старые записи с data:URL продолжают работать как есть.
 
 const PREFIX = "media:";
@@ -52,7 +52,7 @@ export function resolveMedia(src: string): Promise<string> {
   return job;
 }
 
-/** Синхронно — если картинка уже загружена. */
+/** Синхронно – если картинка уже загружена. */
 export function peekMedia(src: string): string {
   if (!src) return "";
   if (!isMediaRef(src)) return src;
@@ -85,7 +85,7 @@ export async function mediaBlob(src: string): Promise<Blob | null> {
   return res ? res.blob() : null;
 }
 
-/** data:URL — нужен вырезке фона, которая работает с base64. */
+/** data:URL – нужен вырезке фона, которая работает с base64. */
 export async function mediaDataUrl(src: string): Promise<string> {
   if (!src || src.startsWith("data:")) return src;
   const blob = await mediaBlob(src);

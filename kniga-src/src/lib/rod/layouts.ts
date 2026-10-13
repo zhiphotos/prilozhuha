@@ -28,7 +28,7 @@ export function layoutFor(prompt: PagePrompt): PageBlock[] {
 
 function build(prompt: PagePrompt): Array<PageBlock | null> {
   const [q1 = "", q2 = "", q3 = ""] = prompt.questions;
-  // Квадратная страница: координаты в % стороны. Всё важное — внутри охранного поля (≈4–6 %).
+  // Квадратная страница: координаты в % стороны. Всё важное – внутри охранного поля (≈4–6 %).
   const long = prompt.title.length > 26;
   const title = text({ x: 8, y: 6, w: 84, text: prompt.title, size: "lg" });
   const hint = long ? null : text({ x: 8, y: 13, w: 84, text: prompt.hint, font: "script", size: "sm" });
@@ -127,7 +127,7 @@ function signed(meta: CoverMeta, y: number, x = 10, w = 80, align: "left" | "cen
   return meta.collector.trim() ? text({ x, y, w, text: `собрал(а) ${meta.collector.trim()}`, font: "sans", size: "sm", align }) : null;
 }
 
-/** Готовые дизайны обложки. Всё на них — обычные блоки: двигаются, меняются, удаляются. */
+/** Готовые дизайны обложки. Всё на них – обычные блоки: двигаются, меняются, удаляются. */
 export function coverDesigns(meta: CoverMeta): { id: string; label: string; page: Omit<BookPage, "id"> }[] {
   const make = (label: string, paper: BookPage["paper"], blocks: Array<PageBlock | null>) => ({
     id: label,
@@ -174,7 +174,7 @@ export function coverPage(meta: CoverMeta = { dedicatee: "", collector: "" }): O
   return coverDesigns(meta)[0].page;
 }
 
-/** Старая обложка (картинкой) превращается в блоки — её можно двигать. Свои блоки остаются сверху. */
+/** Старая обложка (картинкой) превращается в блоки – её можно двигать. Свои блоки остаются сверху. */
 export function migrateCover(page: BookPage, meta: CoverMeta): BookPage {
   if (page.kind !== "cover" || page.designed) return page;
   const design = coverDesigns(meta)[0].page;
@@ -211,7 +211,7 @@ export function pageFromPhoto(src: string, caption: string, detail: string): Omi
   };
 }
 
-/** Старые блоки (место, дата, голос, документ, облачко) становятся обычным текстом, толщина чернил — в % листа. */
+/** Старые блоки (место, дата, голос, документ, облачко) становятся обычным текстом, толщина чернил – в % листа. */
 export function migratePage(page: BookPage): BookPage {
   let changed = false;
   const blocks: PageBlock[] = page.blocks.map((block) => {

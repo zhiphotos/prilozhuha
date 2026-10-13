@@ -48,7 +48,7 @@ export function SurnameScreen() {
         {error ? <p className="text-sm text-rose-deep">{error}</p> : null}
         <Button type="submit">Разобрать фамилию</Button>
       </form>
-      <p className="mt-3 text-sm font-medium text-ink">Фамилия ≠ доказательство родства.</p>
+      <p className="mt-3 text-sm font-medium text-ink">Одинаковая фамилия ещё не значит, что люди родственники.</p>
       {result ? <Result reading={result} /> : null}
     </ScreenFrame>
   );
@@ -92,7 +92,7 @@ function Result({ reading }: { reading: SurnameReading }) {
         </ol>
         <p className="mt-3 text-sm text-muted">{reading.knownNote}</p>
       </section>
-      <p className="rounded-3xl bg-night px-4 py-3 text-sm text-paper">Фамилия ≠ доказательство родства. Однофамилец — ещё не родня.</p>
+      <p className="rounded-3xl bg-night px-4 py-3 text-sm text-paper">Одинаковая фамилия ещё не значит, что люди родственники. Однофамилец – ещё не родня.</p>
     </div>
   );
 }

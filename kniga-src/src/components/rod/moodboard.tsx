@@ -7,7 +7,7 @@ import { useMedia } from "@/lib/rod/media";
 import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
 
-/** «Вайб» — выезжающая справа доска с картинками-ориентирами: цвета, настроение, вёрстка. В книгу не печатается. */
+/** «Вайб» – выезжающая справа доска с картинками-ориентирами: цвета, настроение, вёрстка. В книгу не печатается. */
 export function MoodBoard({ open, onToggle, onPlace, pinned, onPin }: { open: boolean; onToggle: () => void; onPlace: (ref: string) => void; pinned: string[]; onPin: (ref: string) => void }) {
   const items = useRod((state) => state.moodboard);
   const addMood = useRod((state) => state.addMood);
@@ -38,7 +38,7 @@ export function MoodBoard({ open, onToggle, onPlace, pinned, onPin }: { open: bo
           open && "opacity-0 pointer-events-none",
         )}
         style={{ writingMode: "vertical-rl" }}
-        aria-label="Вайб — картинки-ориентиры"
+        aria-label="Вайб – картинки-ориентиры"
       >
         ✦ Вайб
       </button>

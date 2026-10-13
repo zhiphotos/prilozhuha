@@ -47,7 +47,7 @@ export function startDictation(handlers: Handlers): Dictation | null {
 
 function startRecording(handlers: Handlers): Dictation | null {
   if (!canRecord()) {
-    handlers.onError("Здесь нет доступа к микрофону. Нажмите значок микрофона на клавиатуре телефона — он диктует в любое поле.");
+    handlers.onError("Здесь нет доступа к микрофону. Нажмите значок микрофона на клавиатуре телефона – он диктует в любое поле.");
     handlers.onEnd();
     return null;
   }

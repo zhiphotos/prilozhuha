@@ -43,7 +43,7 @@ export function HomeScreen() {
     counts.notes ? plural(counts.notes, "ответ", "ответа", "ответов") : "",
   ].filter(Boolean);
   const heading = mode === "new" ? "Начнём с одного имени" : mode === "going" ? "Продолжим книгу" : facts.length ? `Уже собрано: ${facts.slice(0, 3).join(", ")}` : "Книга началась";
-  const note = mode === "new" ? "первый шаг совсем небольшой" : mode === "going" ? "вот где остановились" : "двигайся по одному шагу";
+  const note = mode === "new" ? "первый шаг совсем небольшой" : mode === "going" ? "здесь мы остановились" : "шаг за шагом";
   const heroLabel = mode === "going" ? "Продолжить" : "Следующий шаг";
   const heroTitle = mode === "going" && last ? last.title || "Страница" : step.title;
   const heroDetail = mode === "going" ? "Вернуться туда, где остановились" : step.detail;
@@ -264,7 +264,7 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
         </div>
         <div className="mt-6 rounded-3xl bg-white/60 p-4">
           <p className="font-semibold text-ink">Копия книги</p>
-          <p className="mt-1 text-sm text-muted">Книга хранится только в этом браузере. Сохраняйте копию в файл — с ней книгу можно открыть на другом телефоне или iPad.</p>
+          <p className="mt-1 text-sm text-muted">Книга хранится только в этом браузере. Сохраняйте копию в файл – с ней книгу можно открыть на другом телефоне или iPad.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="primary" onClick={() => void exportBook().then((mode) => mode !== "cancelled" && toast(mode === "shared" ? "Копия готова: выберите «Сохранить в Файлы»" : "Копия сохранена в «Загрузки»")).catch(() => toast("Копия не сохранилась"))}>
               Сохранить копию

@@ -17,7 +17,7 @@ export function LessonsScreen() {
     <ScreenFrame>
       <TopBar kicker="Программа" title="Книга рода" />
       <p className="max-w-xl text-muted">
-        Сначала бесплатный урок и живой сбор. Платная часть — когда захочется превратить материалы в настоящую историю, а не в папку.
+        Сначала бесплатный урок и живой сбор. Платная часть нужна, когда захочется превратить собранное в связный рассказ.
       </p>
       <ul className="mt-5 grid gap-3">
         {LESSONS.map((lesson, index) => {

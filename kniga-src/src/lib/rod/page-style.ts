@@ -1,8 +1,8 @@
 // Общие размеры и рисунки страницы. Экран и PDF берут их отсюда, поэтому печать совпадает с тем, что видно.
-// Все размеры — в процентах ширины страницы (на экране это единицы cqw).
+// Все размеры – в процентах ширины страницы (на экране это единицы cqw).
 import type { FontKind, FontRef, PaperKind, StickerKind, TextLook } from "@/lib/rod/types";
 
-/** Книга квадратная: страница на экране и в печати — квадрат. Размер в см выбирается при печати. */
+/** Книга квадратная: страница на экране и в печати – квадрат. Размер в см выбирается при печати. */
 export const PAGE_RATIO = 1;
 
 export type BookSize = 20 | 25 | 30;
@@ -17,7 +17,7 @@ export const DEFAULT_PRINT: PrintSetup = { size: 30, bleed: 5, spine: 10 };
 
 /**
  * Безопасная зона страницы в % стороны листа.
- * side: "right" — правая страница разворота (корешок слева), "left" — левая, "single" — обложка.
+ * side: "right" – правая страница разворота (корешок слева), "left" – левая, "single" – обложка.
  */
 export function safeArea(size: BookSize, side: "left" | "right" | "single") {
   const safe = (SAFE_MM / (size * 10)) * 100;
@@ -30,7 +30,7 @@ export function safeArea(size: BookSize, side: "left" | "right" | "single") {
   };
 }
 
-/** Чётные страницы книги — левые, нечётные — правые (обложка не считается). */
+/** Чётные страницы книги – левые, нечётные – правые (обложка не считается). */
 export function pageSide(index: number, hasCover: boolean): "left" | "right" | "single" {
   if (hasCover && index === 0) return "single";
   const n = hasCover ? index : index + 1;
@@ -104,7 +104,7 @@ export function textMetrics(font: FontRef, size: "sm" | "md" | "lg" | "xl", px?:
   return { size: px ? (px / PX_PAGE) * 100 : base, leading: LEADING[kind] };
 }
 
-/** Внутренние поля у карточки и плашки — в % ширины страницы. */
+/** Внутренние поля у карточки и плашки – в % ширины страницы. */
 export function lookPad(look: TextLook | undefined): { x: number; y: number; radius: number } {
   if (look === "card") return { x: 2.4, y: 1.8, radius: 2 };
   if (look === "pill") return { x: 2, y: 0.7, radius: 50 };
@@ -117,7 +117,7 @@ export function lookColors(look: TextLook | undefined, color?: string, bg?: stri
   return { bg: "transparent", fg: color || (darkPage ? COLORS.paper : COLORS.ink) };
 }
 
-/** Тёмная ли страница — тогда текст по умолчанию светлый. */
+/** Тёмная ли страница – тогда текст по умолчанию светлый. */
 export function isDark(color?: string): boolean {
   if (!color || !/^#[0-9a-f]{6}$/i.test(color)) return false;
   const n = parseInt(color.slice(1), 16);

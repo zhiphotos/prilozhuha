@@ -403,7 +403,7 @@ export function FontsSheet({ onClose, onUse }: { onClose: () => void; onUse: (fo
           <li key={font.id} className="flex items-center gap-2 rounded-2xl bg-white/70 p-3">
             <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onUse(`custom:${font.id}`)}>
               <span className="block truncate text-2xl text-ink" style={{ fontFamily: fontFamily(`custom:${font.id}`) }}>
-                Аа Бб Вв — {font.name}
+                Аа Бб Вв – {font.name}
               </span>
               <span className="text-xs text-muted">Нажмите, чтобы написать этим шрифтом</span>
             </button>

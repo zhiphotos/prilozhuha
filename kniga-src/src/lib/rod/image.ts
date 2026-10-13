@@ -35,7 +35,7 @@ function isHeic(blob: Blob) {
   return /image\/hei[cf]/i.test(blob.type) || /\.hei[cf]$/i.test(name);
 }
 
-/** Фото с iPhone (HEIC) Chrome и Windows не открывают — переводим в JPEG. */
+/** Фото с iPhone (HEIC) Chrome и Windows не открывают – переводим в JPEG. */
 async function decodable(source: Blob): Promise<HTMLImageElement> {
   try {
     return await decode(source);
@@ -79,7 +79,7 @@ async function expandShortPin(url: string): Promise<string | null> {
   return body.match(/https?:\/\/[a-z.]*pinterest\.[a-z.]+\/pin\/[^\s)"]+/i)?.[0] ?? null;
 }
 
-/** Адрес самой картинки пина — через открытый адрес виджетов Pinterest. */
+/** Адрес самой картинки пина – через открытый адрес виджетов Pinterest. */
 async function pinImage(url: string): Promise<string[]> {
   let link = url;
   if (/pin\.it\//i.test(link)) link = (await expandShortPin(link)) ?? link;
@@ -114,7 +114,7 @@ export async function importFromLink(link: string): Promise<string> {
 
 /** Картинка по адресу из интернета (перетащили из Pinterest или вставили ссылку). */
 export async function importImageUrl(url: string): Promise<string> {
-  // Pinterest не разрешает сайтам скачивать свои картинки напрямую, поэтому второй заход — через открытый прокси картинок.
+  // Pinterest не разрешает сайтам скачивать свои картинки напрямую, поэтому второй заход – через открытый прокси картинок.
   const direct = await fetch(url, { mode: "cors" }).catch(() => null);
   const res =
     direct && direct.ok
@@ -146,12 +146,12 @@ export async function imageFromTransfer(data: DataTransfer | null): Promise<stri
   return importFromLink(link);
 }
 
-/** У Pinterest в ленте маленькие превью — просим оригинал. */
+/** У Pinterest в ленте маленькие превью – просим оригинал. */
 export function upgradePin(url: string): string {
   return url.replace(/i\.pinimg\.com\/\d+x(\d+)?\//, "i.pinimg.com/originals/");
 }
 
-/** Свой стикер или футаж: GIF и SVG сохраняем как есть (анимация остаётся), остальное — как фото с прозрачностью. */
+/** Свой стикер или футаж: GIF и SVG сохраняем как есть (анимация остаётся), остальное – как фото с прозрачностью. */
 export async function importSticker(file: Blob): Promise<string> {
   const name = file instanceof File ? file.name : "";
   if (/image\/(gif|svg\+xml)/.test(file.type) || /\.(gif|svg)$/i.test(name)) {
@@ -189,7 +189,7 @@ export async function imageInfo(src: string): Promise<{ ratio: number; alpha: bo
           }
         }
       } catch {
-        /* не удалось прочитать пиксели — считаем, что прозрачности нет */
+        /* не удалось прочитать пиксели – считаем, что прозрачности нет */
       }
       resolve({ ratio, alpha });
     };
