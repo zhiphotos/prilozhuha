@@ -76,7 +76,7 @@ export function HomeScreen() {
       <h1 className="display-title one-line leading-[1.1] text-ink [--max:2.8rem]" style={lineStyle(heading)}>{heading}</h1>
       {facts.length && mode !== "new" ? <p className="mt-2 text-[15px] text-muted">{facts.slice(0, 3).join(", ")}</p> : null}
 
-      <p className="hand mt-2 text-[1.6rem] leading-none text-gold-ink">{note}</p>
+      <p className="hand -mt-1 text-[1.6rem] leading-none text-gold-ink">{note}</p>
 
       <button
         type="button"
