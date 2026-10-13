@@ -147,7 +147,7 @@ function PeoplePane() {
       {people.length === 0 ? (
         <div className="flex items-center gap-4 border-t border-ink/10 pt-4">
           <Cut id="moss_archive" className="w-24 shrink-0 rotate-[-4deg]" />
-          <p className="text-sm text-muted">Пока никого нет. Начните с одного имени.</p>
+          <p className="hand text-[1.5rem] leading-tight text-gold-ink">Пока никого нет. Начните с одного имени.</p>
         </div>
       ) : null}
     </div>
