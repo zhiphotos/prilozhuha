@@ -68,7 +68,7 @@ export function LessonsScreen() {
             <button key={lesson.id} type="button" onClick={() => (locked ? setPeek(lesson.id) : nav.go({ id: "lesson", lessonId: lesson.id }))} className="relative block w-full overflow-hidden rounded-2xl text-left">
               <img src={asset(`course/gc/ov-${lesson.id}.jpg`)} alt={lesson.title} loading="lazy" className="w-full" />
               <span className="absolute right-3 top-3 grid size-10 place-items-center rounded-full bg-paper/90 text-ink shadow">
-                {locked ? <Lock className="size-4" /> : passed ? <Check className="size-4" /> : <Play className="size-4" />}
+                {passed ? <Check className="size-4" /> : <Play className="size-4 translate-x-px" />}
               </span>
               <span className="sr-only">{lesson.title}</span>
             </button>
@@ -76,11 +76,6 @@ export function LessonsScreen() {
         })}
         <button type="button" onClick={() => (programOpen ? window.open(COURSE_COMMUNITY_URL, "_blank", "noopener") : setPay(true))} className="relative block w-full overflow-hidden rounded-2xl text-left">
           <img src={asset("course/gc/ov-community.jpg")} alt="Чат участников" loading="lazy" className="w-full" />
-          {!programOpen ? (
-            <span className="absolute right-3 top-3 grid size-10 place-items-center rounded-full bg-paper/90 text-ink shadow">
-              <Lock className="size-4" />
-            </span>
-          ) : null}
         </button>
       </div>
       <Reviews />
@@ -430,16 +425,13 @@ function LockedLesson({ lesson, onBack, onBuy, onNext, onMore, widget = false }:
           {widget ? <X className="size-5" /> : <ChevronLeft className="size-5" />}
         </button>
         <p className="min-w-0 flex-1 truncate text-sm font-semibold text-paper/85">{lesson.title}</p>
-        <Lock className="mr-2 size-4 text-[#c9ae74]" />
+        <span className="mr-2 w-1" />
       </header>
       <div className="mx-auto max-w-2xl pb-[max(2rem,env(safe-area-inset-bottom))]">
         {tile ? <img src={asset(tile.src)} alt={tile.title} className="mx-auto block w-full" draggable={false} /> : null}
         <div className="grid gap-2.5 px-5 pt-5">
-          <Button className="h-auto min-h-12 w-full whitespace-normal py-3 leading-snug" variant="white" onClick={onBuy}>
-            Купить уроки и полный доступ в приложение за {PROGRAM_PRICE}
-          </Button>
           {widget && onMore ? (
-            <Button className="w-full" variant="soft" onClick={onMore}>
+            <Button className="w-full" variant="white" onClick={onMore}>
               Читать подробнее
             </Button>
           ) : null}
@@ -448,6 +440,9 @@ function LockedLesson({ lesson, onBack, onBuy, onNext, onMore, widget = false }:
               Что будет в следующем уроке <ArrowRight className="size-4" />
             </button>
           ) : null}
+          <div className="mt-1">
+            <GoldTicket onClick={onBuy}>Купить уроки и полный доступ в приложение за {PROGRAM_PRICE}</GoldTicket>
+          </div>
         </div>
         {widget ? null : (
           <>
@@ -490,9 +485,11 @@ function LockedLesson({ lesson, onBack, onBuy, onNext, onMore, widget = false }:
           <div className="mt-6 rounded-2xl bg-paper p-5 text-ink">
             <PriceTag />
             <p className="mt-1 text-sm text-muted">Все уроки и полный доступ в приложение. Одна покупка, не по одному уроку.</p>
-            <Button className="mt-4 h-auto min-h-12 w-full whitespace-normal py-3 leading-snug" onClick={onBuy}>
-              Купить уроки и полный доступ в приложение
-            </Button>
+            <div className="mt-4">
+              <GoldTicket onClick={onBuy} cut="#f3f0e8">
+                Купить уроки и полный доступ в приложение
+              </GoldTicket>
+            </div>
           </div>
         </div>
           </>
@@ -659,5 +656,15 @@ function FreeLesson({ lesson, passed, onDone, onBack, onAll, onOpen }: { lesson:
         </div>
       </div>
     </div>
+  );
+}
+
+/** Золотой билет: главная кнопка покупки, всегда ниже остальных. */
+function GoldTicket({ children, onClick, cut }: { children: React.ReactNode; onClick: () => void; cut?: string }) {
+  return (
+    <button type="button" onClick={onClick} className="gold-ticket" style={cut ? ({ ["--ticket-cut" as string]: cut } as React.CSSProperties) : undefined}>
+      <span className="shine" aria-hidden />
+      <span className="relative">{children}</span>
+    </button>
   );
 }

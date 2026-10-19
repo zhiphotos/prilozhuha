@@ -624,3 +624,56 @@ body {
 }
 .kb-swatch[aria-checked="true"] { border-color: #f3f0e8; box-shadow: 0 0 0 2px #1c1915, inset 0 0 0 1px rgb(0 0 0 / 0.25); }
 .kb-desk.light .kb-swatch[aria-checked="true"] { box-shadow: 0 0 0 2px #f4f0e8, inset 0 0 0 1px rgb(0 0 0 / 0.25); }
+
+/* Золотой билет: переливающаяся кнопка покупки с вырезами по бокам */
+.gold-ticket {
+  position: relative;
+  display: flex;
+  min-height: 3.5rem;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 0.9rem;
+  padding: 0.85rem 2.2rem;
+  color: #2b1d05;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  background: linear-gradient(115deg, #b98a2e 0%, #f3d77e 22%, #fff3c0 38%, #e2b550 55%, #f6df8c 75%, #b98a2e 100%);
+  background-size: 220% 100%;
+  box-shadow: 0 10px 28px -10px rgb(201 174 116 / 0.65), inset 0 0 0 1.5px rgb(255 243 192 / 0.8), inset 0 0 0 5px rgb(120 82 12 / 0.18);
+  animation: gold-flow 4.5s ease-in-out infinite;
+}
+.gold-ticket::before,
+.gold-ticket::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: -0.55rem;
+  border-radius: 999px;
+  background: var(--ticket-cut, #14160f);
+}
+.gold-ticket::before { left: -0.55rem; }
+.gold-ticket::after { right: -0.55rem; }
+.gold-ticket > span.shine {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 35%, rgb(255 255 255 / 0.55) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: gold-shine 3.6s ease-in-out infinite;
+}
+@keyframes gold-flow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes gold-shine {
+  0%, 55% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gold-ticket, .gold-ticket > span.shine { animation: none; }
+}
