@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { REMIND_AFTER_EDITS, editsSinceBackup, markReminded, resetEdits, shouldRemind } from "@/lib/rod/edit-counter";
 // Резервная копия: вся книга с фотографиями в одном файле .kniga – его можно переложить на другое устройство.
 import { afterHydrate } from "@/lib/rod/boot";
 import { flushBook, useRod } from "@/lib/rod/store";
@@ -35,13 +36,14 @@ export function lastBackupAt(): Date | null {
 
 /** Правили страницы после последней копии: пора напомнить, что книга живёт только на этом устройстве. */
 export function changedSinceBackup(): boolean {
-  const last = lastBackupAt()?.getTime() ?? 0;
-  return useRod.getState().pages.some((page) => (page.editedAt ?? 0) > last);
+  return editsSinceBackup() >= REMIND_AFTER_EDITS;
 }
 
 /** Подсказка после работы: кнопка сразу собирает копию. */
 export function remindBackup(): void {
-  if (!changedSinceBackup()) return;
+  // Не после каждого выхода: только когда накопилось 20 правок и не чаще раза в несколько часов.
+  if (!shouldRemind()) return;
+  markReminded();
   toast("Книга хранится только на этом устройстве, ни в каком аккаунте. Сохраните копию после работы.", {
     duration: 14000,
     action: {
@@ -69,6 +71,7 @@ export async function exportBook(): Promise<"shared" | "downloaded" | "cancelled
   const mark = () => {
     try {
       localStorage.setItem(LAST_KEY, new Date().toISOString());
+      resetEdits();
     } catch {
       /* без отметки копия всё равно сохранена */
     }

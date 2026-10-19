@@ -2,6 +2,7 @@ import { toast } from "sonner";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import { applyFormat } from "@/lib/rod/book-format";
+import { noteEdit } from "@/lib/rod/edit-counter";
 import { DEFAULT_PRINT, isDark, type PrintSetup } from "@/lib/rod/page-style";
 import { MEDIA_STORE, STATE_STORE, idbClear, idbGet, idbSet } from "@/lib/rod/idb";
 import { activeProjectId, listProjects, setActiveProject, storageKeyFor } from "@/lib/rod/projects";
@@ -318,11 +319,13 @@ export const useRod = create<RodState>()(
         set((state) => ({ pages: [...state.pages, { ...input, id }] }));
         return id;
       },
-      updatePage: (id, updater) =>
+      updatePage: (id, updater) => {
+        noteEdit();
         set((state) => {
           if (id === BACK_ID) return { back: updater(state.back ?? backPage(state.pages[0]?.kind === "cover" ? state.pages[0] : null)) };
           return { pages: state.pages.map((page) => (page.id === id ? { ...updater(page), editedAt: Date.now() } : page)) };
-        }),
+        });
+      },
       setPlan: (plan) => set({ plan }),
       toggleChapter: (id) => set((state) => ({ plan: state.plan.map((c) => (c.id === id ? { ...c, done: !c.done } : c)) })),
       setChapterPlanned: (id, planned) => set((state) => ({ plan: state.plan.map((c) => (c.id === id ? { ...c, planned: Math.max(1, Math.min(60, Math.round(planned))) } : c)) })),
