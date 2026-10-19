@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { API_BASE } from "@/lib/rod/config";
+import { fetchInbox } from "@/lib/rod/family";
+import { FamilySheet } from "@/components/rod/family-sheet";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { DOC_KINDS, EXAMPLE_TIMELINE } from "@/lib/rod/content";
@@ -64,6 +67,32 @@ export function ArchiveScreen({ tab }: { tab: ArchiveTab }) {
   );
 }
 
+function FamilyCard() {
+  const room = useRod((state) => state.room);
+  const [open, setOpen] = useState(false);
+  const [waiting, setWaiting] = useState(0);
+  useEffect(() => {
+    if (!room || !API_BASE) return;
+    void fetchInbox().then((items) => setWaiting(items.length)).catch(() => undefined);
+  }, [room, open]);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => (API_BASE ? setOpen(true) : toast("Семейный доступ появится, когда подключится сервер приложения."))}
+        className="glass flex min-h-16 w-full items-center gap-3 rounded-2xl px-4 py-3 text-left"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-semibold text-ink">Пригласить родственников</span>
+          <span className="block text-sm text-muted">Пусть расскажут свои истории и пришлют фото. Уроки им не видны.</span>
+        </span>
+        {waiting > 0 ? <span className="grid min-w-7 place-items-center rounded-full bg-rose-deep px-2 py-1 text-xs font-semibold text-paper">{waiting}</span> : null}
+      </button>
+      {open ? <FamilySheet onClose={() => setOpen(false)} /> : null}
+    </>
+  );
+}
+
 function PeoplePane() {
   const people = useRod((state) => state.people);
   const addPerson = useRod((state) => state.addPerson);
@@ -72,6 +101,7 @@ function PeoplePane() {
 
   return (
     <div className="grid gap-4">
+      <FamilyCard />
       <AddFold label="Добавить человека" empty={people.length === 0}>
         <form
           className="glass grid gap-3 rounded-2xl p-5"
