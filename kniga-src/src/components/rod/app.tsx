@@ -96,7 +96,8 @@ export function RodApp() {
         <ScreenView key={formatKey} screen={screen} />
       ) : (
         <>
-          <div className="mx-auto grid min-h-dvh w-full max-w-6xl gap-6 px-4 pb-5 pt-[max(1.25rem,env(safe-area-inset-top))] lg:grid-cols-[220px_minmax(0,1fr)] lg:px-6 lg:py-8">
+          {screen.id === "lessons" ? <div aria-hidden className="fixed inset-0 bg-[#14160f]" /> : null}
+          <div className="relative mx-auto grid min-h-dvh w-full max-w-6xl gap-6 px-4 pb-5 pt-[max(1.25rem,env(safe-area-inset-top))] lg:grid-cols-[220px_minmax(0,1fr)] lg:px-6 lg:py-8">
             <SideNav />
             <main key={stack.length + screen.id} className="min-w-0 pb-32 lg:pb-8">
               <ScreenView screen={screen} />

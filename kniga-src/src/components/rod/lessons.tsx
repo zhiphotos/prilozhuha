@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowRight, Check, ChevronLeft, ExternalLink, FileText, Lock, Play, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
@@ -17,31 +17,48 @@ export function LessonsScreen() {
   const [pay, setPay] = useState(false);
   const [peek, setPeek] = useState<string | null>(null);
   const peeked = peek ? findLesson(peek) : null;
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem("kr-scroll-program")) {
+        sessionStorage.removeItem("kr-scroll-program");
+        window.setTimeout(() => document.getElementById("program")?.scrollIntoView({ behavior: "smooth", block: "start" }), 250);
+      }
+    } catch {
+      /* без прокрутки тоже работает */
+    }
+  }, []);
 
   return (
     <ScreenFrame>
-      <TopBar kicker="Программа" title="Книга рода" />
-      <p className="max-w-xl text-muted">
-        Сначала бесплатный урок и живой сбор. Платная часть нужна, когда захочется превратить собранное в связный рассказ.
-      </p>
+      <div className="mb-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">Программа</p>
+        <h1 className="display-title mt-1 text-[2rem] leading-[1.1] text-paper">Книга рода</h1>
+      </div>
+      <p className="max-w-xl text-paper/70">Начните с бесплатного урока. Если зацепит, дальше целая программа: видео, ИИ-помощник и материалы для печати.</p>
       {LESSONS.filter((lesson) => lesson.free).map((lesson) => {
         const passed = done.includes(lesson.id);
         return (
-          <button key={lesson.id} type="button" onClick={() => nav.go({ id: "lesson", lessonId: lesson.id })} className="aurora mt-5 flex w-full items-start gap-4 rounded-2xl p-5 text-left">
-            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-ink">{passed ? <Check className="size-4" /> : <Play className="size-4" />}</span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-ink/70">
+          <button key={lesson.id} type="button" onClick={() => nav.go({ id: "lesson", lessonId: lesson.id })} className="relative mt-5 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">
+            <img src={asset("course/site/free.jpg")} alt="" className="absolute inset-0 size-full scale-110 object-cover blur-md" draggable={false} />
+            <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
+            <span className="relative flex min-h-44 flex-col justify-end p-5">
+              <span className="mb-3 w-fit rounded-full border border-paper/30 bg-paper/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-paper backdrop-blur-md">
                 Бесплатный урок · {lesson.minutes} мин{passed ? " · пройден" : ""}
               </span>
-              <span className="mt-1 block text-[1.15rem] font-semibold leading-snug text-ink">{lesson.title}</span>
-              <span className="mt-1 block text-sm text-ink/70">{lesson.lead}</span>
+              <span className="flex items-end gap-4 rounded-2xl border border-paper/25 bg-paper/15 p-4 backdrop-blur-xl">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[1.3rem] font-semibold leading-tight text-paper">{lesson.title}</span>
+                  <span className="mt-1 block text-sm leading-snug text-paper/80">Смотрите первым: как создаётся Книга Рода с ИИ</span>
+                </span>
+                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-paper/90 text-[#14160f]">{passed ? <Check className="size-5" /> : <Play className="size-5 translate-x-0.5" />}</span>
+              </span>
             </span>
           </button>
         );
       })}
 
-      <h2 className="display-title mt-9 text-[1.35rem] text-ink">Программа «Книга Рода с ИИ»</h2>
-      <p className="mt-1 text-sm text-muted">Нажмите на урок: увидите, что в нём будет. Откроется после оплаты.</p>
+      <h2 id="program" className="display-title mt-10 scroll-mt-4 text-[1.35rem] text-paper">Программа «Книга Рода с ИИ»</h2>
+      <p className="mt-1 text-sm text-paper/65">Нажмите на урок: увидите, что в нём будет. Откроется после оплаты.</p>
       <div className="mt-4 grid gap-3">
         <img src={asset("course/gc/ov-welcome.jpg")} alt="Добро пожаловать в Книгу Рода" className="w-full rounded-2xl" />
         {LESSONS.filter((lesson) => !lesson.free).map((lesson) => {
@@ -80,7 +97,7 @@ export function LessonsScreen() {
           </Button>
         </div>
       ) : (
-        <p className="mt-4 text-sm text-sage">Программа открыта на этом устройстве.</p>
+        <p className="mt-4 text-sm text-[#c9ae74]">Программа открыта на этом устройстве.</p>
       )}
       {peeked ? <LockedLesson widget lesson={peeked} onBack={() => setPeek(null)} onNext={setPeek} onBuy={() => setPay(true)} onMore={() => { setPeek(null); nav.go({ id: "lesson", lessonId: peeked.id }); }} /> : null}
       {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
@@ -116,7 +133,7 @@ export function LessonScreen({ lessonId }: { lessonId: string }) {
   }
 
   if (lesson.free) {
-    return <FreeLesson lesson={lesson} passed={done.includes(lesson.id)} onDone={() => complete(lesson.id)} onBack={nav.back} onOpen={(to) => nav.go(linkScreen(to))} />;
+    return <FreeLesson lesson={lesson} passed={done.includes(lesson.id)} onDone={() => complete(lesson.id)} onBack={nav.back} onAll={() => { try { sessionStorage.setItem("kr-scroll-program", "1"); } catch { /* не страшно */ } nav.replace({ id: "lessons" }); }} onOpen={(to) => nav.go(linkScreen(to))} />;
   }
 
   if (lesson.blocks) {
@@ -519,7 +536,7 @@ function Reviews() {
   const [zoom, setZoom] = useState<string | null>(null);
   return (
     <section className="mt-9">
-      <h2 className="display-title text-[1.35rem] text-ink">Что говорят в сообществе</h2>
+      <h2 className="display-title text-[1.35rem] text-paper">Что говорят в сообществе</h2>
       <ul className="no-scrollbar -mx-5 mt-3 flex snap-x snap-mandatory scroll-pl-5 gap-3 overflow-x-auto px-5 pb-2">
         {REVIEWS.map((src) => (
           <li key={src} className="w-[78%] max-w-80 shrink-0 snap-start">
@@ -554,10 +571,10 @@ function CleanVideo({ url }: { url: string }) {
         <button type="button" onClick={() => setPlaying(true)} aria-label="Смотреть урок" className="group absolute inset-0 block size-full">
           <img src={poster} alt="" className="size-full object-cover" onLoad={(event) => { if (event.currentTarget.naturalWidth <= 120) setPoster(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`); }} onError={() => setPoster(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`)} />
           <span className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10" />
-          <span className="absolute left-1/2 top-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[#c9ae74] text-[#14160f] shadow-2xl transition group-active:scale-95">
-            <Play className="size-8 translate-x-0.5" />
+          <span className="absolute bottom-3 right-3 grid size-14 place-items-center rounded-full border border-paper/40 bg-paper/20 text-paper shadow-xl backdrop-blur-md transition group-active:scale-95">
+            <Play className="size-6 translate-x-0.5" />
           </span>
-          <span className="absolute inset-x-0 bottom-3 text-center text-xs font-semibold uppercase tracking-[0.18em] text-paper/90">Смотреть · 12 минут</span>
+          <span className="absolute bottom-5 left-4 text-xs font-semibold uppercase tracking-[0.18em] text-paper/90">Смотреть · 12 минут</span>
         </button>
       )}
     </div>
@@ -565,7 +582,7 @@ function CleanVideo({ url }: { url: string }) {
 }
 
 /** Бесплатный урок: тёмная страница, видео и описание, от которого хочется смотреть. */
-function FreeLesson({ lesson, passed, onDone, onBack, onOpen }: { lesson: Lesson; passed: boolean; onDone: () => void; onBack: () => void; onOpen: (to: NonNullable<Lesson["related"]>["to"]) => void }) {
+function FreeLesson({ lesson, passed, onDone, onBack, onAll, onOpen }: { lesson: Lesson; passed: boolean; onDone: () => void; onBack: () => void; onAll: () => void; onOpen: (to: NonNullable<Lesson["related"]>["to"]) => void }) {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-[#14160f] text-paper">
       <header className="sticky top-0 z-10 flex items-center gap-3 bg-[#14160f]/95 px-3 pb-2 pt-[max(0.6rem,env(safe-area-inset-top))] backdrop-blur">
@@ -578,53 +595,64 @@ function FreeLesson({ lesson, passed, onDone, onBack, onOpen }: { lesson: Lesson
         <CleanVideo url={INTRO_VIDEO} />
         <div className="px-5 pt-7">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#c9ae74]">12 минут · бесплатно</p>
-          <h1 className="display-title mt-2 text-[2rem] leading-[1.05] text-paper">Через двадцать лет ваш ребёнок откроет эту книгу</h1>
-          <p className="mt-4 text-[1.15rem] font-semibold leading-snug text-[#c9ae74]">И найдёт в ней вас. Ваш голос. Ваш род.</p>
+          <h1 className="display-title mt-2 text-[2rem] leading-[1.05] text-paper">Книга Рода – это до слёз и смеха</h1>
+          <p className="mt-4 text-[1.15rem] font-semibold leading-snug text-[#c9ae74]">Это способ узнать себя. Это новое хобби, от которого тепло внутри.</p>
           <p className="mt-4 text-base leading-relaxed text-paper/85">
-            Я покажу, как создаю Книгу Рода с ИИ. Без архивов, без редакторов и без «я не умею писать». Нужны только вы, телефон и один тихий вечер.
+            Вы не пишете книгу «ради книги». Вы возвращаетесь к себе: к своим корням, к своим реакциям и талантам. А по дороге получаете то, ради чего люди и садятся за такие книги. Я покажу, как создаю её с ИИ: без архивов и без «я не умею писать». Нужны только вы, телефон и тихий вечер.
           </p>
-          <ul className="mt-6 grid gap-3">
+          <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#c9ae74]">Что вы получите, пока делаете книгу</p>
+          <ul className="mt-3 grid gap-3.5">
             {[
-              ["Как это работает", "ИИ-интервьюер задаёт вопросы, а вы просто отвечаете голосом"],
-              ["Что делать, если ничего не осталось", "ни документов, ни фото, ни тех, кого можно спросить: книга всё равно получится"],
-              ["Как за один вечер появляются первые страницы", "смотрите на живом примере, шаг за шагом"],
-              ["Как выглядит готовая книга", "и почему её невозможно закрыть, пока не дочитаешь"],
+              ["Опору", "поймёте, откуда вы и на кого можете опереться, даже если спросить уже некого"],
+              ["Открытия о себе", "почему вы реагируете именно так, откуда ваши страхи, таланты и привычки"],
+              ["Тёплые вечера", "тихое хобби, после которого хочется улыбаться, а не отдыхать от него"],
+              ["Радость находок", "старое фото, забытая история, фраза бабушки: каждый вечер что-то находится"],
+              ["Красивую вещь на века", "книга, которую приятно держать в руках, дарить и перечитывать. И детям достанется огромная польза"],
+              ["Помощника, который делает всё с вами", "ИИ задаёт вопросы, ищет, пишет и оформляет, а вам остаётся только вспоминать"],
             ].map(([title, text]) => (
               <li key={title} className="flex gap-3">
-                <span className="mt-1 size-2 shrink-0 rotate-45 bg-[#c9ae74]" />
+                <span className="mt-2 size-2 shrink-0 rotate-45 bg-[#c9ae74]" />
                 <span>
-                  <span className="block text-[1.02rem] font-semibold text-paper">{title}</span>
+                  <span className="block text-[1.05rem] font-semibold text-paper">{title}</span>
                   <span className="block text-sm leading-snug text-paper/70">{text}</span>
                 </span>
               </li>
             ))}
           </ul>
-          <p className="mt-6 text-base font-semibold text-paper">Нажмите на видео. Дальше всё само.</p>
+          <p className="mt-7 text-[1.25rem] font-semibold leading-snug text-paper">Жмите на видео и вдохновляйтесь!</p>
         </div>
 
         <img src={asset("course/site/materials.jpg")} alt="" className="mt-8 block w-full" draggable={false} />
 
         <div className="px-5 pt-6">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#c9ae74]">После урока</p>
-          <div className="mt-3 grid gap-3">
-            {lesson.sections.map((section) => (
-              <article key={section.heading} className="rounded-2xl border border-paper/15 bg-paper/10 p-5">
-                <h2 className="text-[1.15rem] font-semibold leading-tight text-paper">{section.heading}</h2>
-                <div className="mt-2 grid gap-2 text-[15px] leading-relaxed text-paper/80">
-                  {section.paragraphs.map((paragraph) => (
-                    <p key={paragraph}>{paragraph}</p>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
+          <details className="group rounded-2xl border border-paper/15 bg-paper/5">
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 text-sm font-semibold text-paper">
+              Конспект урока
+              <span className="text-[#c9ae74] transition group-open:rotate-45">+</span>
+            </summary>
+            <div className="grid gap-3 px-4 pb-4">
+              {lesson.sections.map((section) => (
+                <article key={section.heading}>
+                  <h2 className="text-[1.05rem] font-semibold leading-tight text-paper">{section.heading}</h2>
+                  <div className="mt-1.5 grid gap-2 text-[15px] leading-relaxed text-paper/75">
+                    {section.paragraphs.map((paragraph) => (
+                      <p key={paragraph}>{paragraph}</p>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </details>
           <div className="mt-5 grid gap-2.5">
+            <Button className="w-full" variant="white" onClick={onAll}>
+              Посмотреть все уроки
+            </Button>
             {lesson.related ? (
               <Button variant="soft" className="w-full" onClick={() => onOpen(lesson.related!.to)}>
                 {lesson.related.label}
               </Button>
             ) : null}
-            <Button className="w-full" variant={passed ? "soft" : "white"} onClick={onDone}>
+            <Button className="w-full" variant="soft" onClick={onDone}>
               {passed ? "Урок пройден" : "Отметить пройденным"}
             </Button>
           </div>
