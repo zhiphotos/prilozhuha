@@ -1411,7 +1411,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   return (
     <div
-      className="editor-root fixed inset-0 z-40 flex flex-col"
+      className="editor-root fixed inset-x-0 top-0 z-40 flex h-dvh flex-col"
       onPointerDownCapture={onRootDown}
       onPointerMoveCapture={onRootMove}
       onPointerUpCapture={onRootUp}
@@ -1438,13 +1438,13 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             </button>
           ) : (
             <div className="flex items-center justify-center gap-1 text-xs text-muted">
-              <button type="button" className="grid size-11 place-items-center rounded-full disabled:opacity-30" disabled={index <= 0} onClick={() => go(-1)} aria-label="Предыдущая">
+              <button type="button" className="grid size-11 place-items-center rounded-full disabled:opacity-30 max-md:hidden" disabled={index <= 0} onClick={() => go(-1)} aria-label="Предыдущая">
                 <ChevronLeft className="size-4" />
               </button>
-              <span className="whitespace-nowrap tabular-nums">
-                {index + 1} / {pages.length}
-              </span>
-              <button type="button" className="grid size-11 place-items-center rounded-full disabled:opacity-30" disabled={index >= pages.length - 1} onClick={() => go(1)} aria-label="Следующая">
+              <button type="button" className="whitespace-nowrap rounded-full px-3 py-1 tabular-nums md:pointer-events-none" aria-label="Все страницы: перейти к главе" onClick={() => setPanel("contents")}>
+                {index + 1} / {pages.length} <span className="text-moss underline md:hidden">все</span>
+              </button>
+              <button type="button" className="grid size-11 place-items-center rounded-full disabled:opacity-30 max-md:hidden" disabled={index >= pages.length - 1} onClick={() => go(1)} aria-label="Следующая">
                 <ChevronRight className="size-4" />
               </button>
             </div>
@@ -1460,7 +1460,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           <IconBtn className="max-sm:hidden" label="Содержание: перейти к главе" onClick={() => setPanel("contents")}>
             <ListChecks className="size-[18px]" />
           </IconBtn>
-          <IconBtn label="Слои страницы" onClick={() => { setTool("hand"); setPanel("layers"); }}>
+          <IconBtn className="max-md:hidden" label="Слои страницы" onClick={() => { setTool("hand"); setPanel("layers"); }}>
             <Layers className="size-[18px]" />
           </IconBtn>
           {!isBack ? (
@@ -1698,7 +1698,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             <span className="truncate text-xs text-muted">Всё двигается и удаляется</span>
           </div>
         ) : (
-          <p className="h-11 truncate pt-3 text-center text-xs text-muted">Пунктир: безопасная зона, текст держите внутри. Фото можно тянуть до самого края.</p>
+          <p className="h-11 truncate pt-3 text-center text-xs text-muted max-md:hidden">Пунктир: безопасная зона, текст держите внутри. Фото можно тянуть до самого края.</p>
         )}
       </div>
 
