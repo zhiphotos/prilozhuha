@@ -6,24 +6,37 @@ attribute vec3 a_pos;
 attribute vec2 a_uv;
 attribute float a_shade;
 attribute float a_face;
-uniform vec2 u_view;
+uniform vec2 u_canvas;
+uniform vec2 u_origin;
+uniform float u_hinge;
 uniform float u_shadow;
+uniform float u_lift;
+uniform float u_focal;
+uniform float u_tilt;
+uniform float u_dir;
 varying vec2 v_uv;
 varying float v_shade;
 varying float v_face;
 varying float v_lift;
 void main() {
   vec2 p = a_pos.xy;
+  float z = max(a_pos.z, 0.0);
   if (u_shadow > 0.5) {
-    p.y += 7.0 + a_pos.z * 0.05;
+    p.y += 8.0;
+    p.x += 2.0;
   } else {
-    p.y -= a_pos.z * 0.12;
+    float zc = min(z, u_focal * 0.42);
+    float scale = u_focal / max(48.0, u_focal - zc);
+    p.y -= z * u_lift;
+    p.x += z * u_tilt * u_dir;
+    p.x = u_hinge + (p.x - u_hinge) * scale;
   }
-  gl_Position = vec4(p.x / u_view.x * 2.0 - 1.0, 1.0 - p.y / u_view.y * 2.0, 0.0, 1.0);
+  vec2 q = p - u_origin;
+  gl_Position = vec4(q.x / u_canvas.x * 2.0 - 1.0, 1.0 - q.y / u_canvas.y * 2.0, 0.0, 1.0);
   v_uv = a_uv;
   v_shade = a_shade;
   v_face = a_face;
-  v_lift = a_pos.z;
+  v_lift = z;
 }
 `;
 
@@ -38,16 +51,18 @@ varying float v_face;
 varying float v_lift;
 void main() {
   if (u_shadow > 0.5) {
-    float a = clamp(v_lift / 80.0, 0.0, 1.0) * 0.22;
+    float a = clamp(v_lift / 90.0, 0.0, 1.0) * 0.28;
     gl_FragColor = vec4(0.05, 0.04, 0.03, a);
     return;
   }
-  vec4 tex = texture2D(u_front, v_uv);
-  if (v_face > 0.5) tex = texture2D(u_back, v_uv);
-  float edge = smoothstep(0.0, 0.02, v_uv.x) * smoothstep(0.0, 0.02, 1.0 - v_uv.x);
-  vec3 rgb = tex.rgb * v_shade;
-  rgb = mix(rgb * 0.82, rgb, edge);
-  gl_FragColor = vec4(rgb, tex.a);
+  vec2 uv = v_uv;
+  vec4 tex = texture2D(u_front, uv);
+  if (v_face > 0.5) {
+    uv.x = 1.0 - uv.x;
+    tex = texture2D(u_back, uv);
+  }
+  float lit = clamp(v_shade, 0.86, 1.0);
+  gl_FragColor = vec4(tex.rgb * lit, tex.a);
 }
 `;
 
@@ -72,7 +87,8 @@ export class CurlRenderer {
   private bufIndex: WebGLBuffer;
   private front: WebGLTexture;
   private back: WebGLTexture;
-  private view = [1, 1];
+  private canvasCss = [1, 1];
+  private origin = [0, 0];
 
   constructor(canvas: HTMLCanvasElement) {
     const gl = canvas.getContext("webgl", { alpha: true, premultipliedAlpha: false, antialias: true });
@@ -101,7 +117,7 @@ export class CurlRenderer {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
   }
 
-  resize(cssW: number, cssH: number, dpr: number): void {
+  resize(cssW: number, cssH: number, originX: number, originY: number, dpr: number): void {
     const gl = this.gl;
     const w = Math.max(1, Math.round(cssW * dpr));
     const h = Math.max(1, Math.round(cssH * dpr));
@@ -110,7 +126,8 @@ export class CurlRenderer {
       canvas.width = w;
       canvas.height = h;
     }
-    this.view = [cssW, cssH];
+    this.canvasCss = [Math.max(1, cssW), Math.max(1, cssH)];
+    this.origin = [originX, originY];
     gl.viewport(0, 0, w, h);
   }
 
@@ -128,7 +145,7 @@ export class CurlRenderer {
     gl.clear(gl.COLOR_BUFFER_BIT);
   }
 
-  draw(mesh: Mesh): void {
+  draw(mesh: Mesh, proj: { hingeX: number; lift: number; focal: number; tilt: number; dir: number }): void {
     const gl = this.gl;
     gl.useProgram(this.program);
     const loc = (name: string) => gl.getAttribLocation(this.program, name);
@@ -138,9 +155,14 @@ export class CurlRenderer {
     bindAttrib(gl, this.bufFace, loc("a_face"), 1, mesh.face);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bufIndex);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.index, gl.DYNAMIC_DRAW);
-    const uView = gl.getUniformLocation(this.program, "u_view");
+    gl.uniform2f(gl.getUniformLocation(this.program, "u_canvas"), this.canvasCss[0], this.canvasCss[1]);
+    gl.uniform2f(gl.getUniformLocation(this.program, "u_origin"), this.origin[0], this.origin[1]);
+    gl.uniform1f(gl.getUniformLocation(this.program, "u_hinge"), proj.hingeX);
+    gl.uniform1f(gl.getUniformLocation(this.program, "u_lift"), proj.lift);
+    gl.uniform1f(gl.getUniformLocation(this.program, "u_focal"), Math.max(80, proj.focal));
+    gl.uniform1f(gl.getUniformLocation(this.program, "u_tilt"), proj.tilt);
+    gl.uniform1f(gl.getUniformLocation(this.program, "u_dir"), proj.dir);
     const uShadow = gl.getUniformLocation(this.program, "u_shadow");
-    gl.uniform2f(uView, this.view[0], this.view[1]);
     gl.uniform1i(gl.getUniformLocation(this.program, "u_front"), 0);
     gl.uniform1i(gl.getUniformLocation(this.program, "u_back"), 1);
     gl.activeTexture(gl.TEXTURE0);

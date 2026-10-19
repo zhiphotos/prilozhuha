@@ -23,23 +23,23 @@ export const LESSON_VIDEO: Record<string, string> = {
   l6: "",
 };
 
-/**
- * Папка с видео уроков в Dropbox. Ссылка на сам файл открывает его просмотр без входа в Dropbox.
- * Урок 1 … 6 программы = urok-1 … urok-6 (urok-4 и urok-6 в папке с пометкой «.part», это недокачанные файлы).
- */
-export const DROPBOX_FOLDER = "https://www.dropbox.com/scl/fo/nzjex04qtrfybe9wfip7y/AF1xesGjy07aCaV8m8mJlAY?rlkey=v1ln94f0d92njb8i57fu70io7&st=p93yv3ps";
-export const LESSON_DROPBOX_FILE: Record<string, string> = {
-  l1: "urok-1.mp4",
-  l2: "urok-2.mp4",
-  l3: "urok-3.mp4",
-  l4: "urok-4.mp4.part.mp4",
-  l5: "urok-5.mp4",
-  l6: "urok-6.mp4.part.mp4",
+/** Урок → ключ файла в общей папке и имя файла. Ключ видно в адресе файла, когда открываешь его в Dropbox. */
+const DROPBOX_FILES: Record<string, { key: string; name: string }> = {
+  l1: { key: "AFF2TZN0hVm7_7S9Uuxl--0", name: "urok-1.mp4" },
+  l2: { key: "ADW867TNUWZncm83Txkf8E8", name: "urok-2.mp4" },
+  l3: { key: "AHbeFJ6oiQW8LJfysVgQiUY", name: "urok-3.mp4" },
+  l4: { key: "AG5U0nqJr1E1QJFkuAQm-Iw", name: "urok-4.mp4.part.mp4" },
+  l5: { key: "ALwGtRdPrgUAzWx99DrA3Vo", name: "urok-5.mp4" },
+  l6: { key: "ABiZqWy79N7M9W-mBgfbCiA", name: "urok-6.mp4.part.mp4" },
 };
+const DROPBOX_QUERY = "rlkey=v1ln94f0d92njb8i57fu70io7&st=p93yv3ps";
 
-export function dropboxLessonUrl(lessonId: string): string {
-  const file = LESSON_DROPBOX_FILE[lessonId];
-  return file ? `${DROPBOX_FOLDER}&preview=${encodeURIComponent(file)}&dl=0` : "";
+/** Адрес, который проигрывается прямо в приложении (тег video), и запасной адрес страницы Dropbox. */
+export function dropboxLessonVideo(lessonId: string): { stream: string; page: string } | null {
+  const file = DROPBOX_FILES[lessonId];
+  if (!file) return null;
+  const base = `https://www.dropbox.com/scl/fo/nzjex04qtrfybe9wfip7y/${file.key}/${file.name}?${DROPBOX_QUERY}`;
+  return { stream: `${base}&raw=1`, page: `${base}&dl=0` };
 }
 
 export function checkCode(input: string): boolean {

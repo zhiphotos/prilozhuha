@@ -21,11 +21,11 @@ export type Binding = {
 };
 
 export const BINDINGS: readonly Binding[] = [
-  { id: "codex", name: "Корешок", ringR: 0, stiff: 1 },
-  { id: "wire", name: "Пружина", ringR: 2.5, stiff: 1 },
-  { id: "disc", name: "Диски", ringR: 3.5, stiff: 1.05 },
-  { id: "comb", name: "Гребень", ringR: 3, stiff: 1.2 },
-  { id: "rings", name: "Кольца", ringR: 18, stiff: 0.92 },
+  { id: "codex", name: "Корешок", ringR: 0, stiff: 0.74 },
+  { id: "wire", name: "Пружина", ringR: 2.5, stiff: 0.86 },
+  { id: "disc", name: "Диски", ringR: 3.5, stiff: 0.94 },
+  { id: "comb", name: "Гребень", ringR: 3, stiff: 1.08 },
+  { id: "rings", name: "Кольца", ringR: 18, stiff: 0.82 },
 ];
 
 export type Vert = {
@@ -53,7 +53,10 @@ export function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n));
 }
 
-/** Длина синусной дуги от хорды `chord` с подъёмом `bulge`. */
+/** Насколько лист поднимается в середине поворота. Плоский край даёт нулевую скорость. */
+export const BOW_LIFT = 0.74;
+/** Наклон к камере, чтобы лицо листа не схлопывалось в линию. */
+export const BOW_TILT = 0.48;
 export function sineLength(chord: number, bulge: number): number {
   const steps = 32;
   let length = 0;
@@ -218,7 +221,7 @@ export function deformPeel(
 
 function shadeFromSlope(dx: number, dz: number, back: boolean): number {
   const slope = Math.abs(dz) / (Math.hypot(dx, dz) || 1);
-  const crest = 1 - 0.34 * slope;
+  const crest = 1 - 0.1 * slope;
   return (back ? 0.8 : 1) * crest;
 }
 
@@ -339,33 +342,53 @@ export function buildBowMesh(opts: {
   cols?: number;
   rows?: number;
 }): Mesh {
-  const cols = opts.cols ?? 28;
-  const rows = opts.rows ?? 10;
+  const cols = opts.cols ?? 36;
+  const rows = opts.rows ?? 18;
   const { hingeX, top, width, height, stiff, dir } = opts;
   const grabT = clamp(opts.grabT, 0.08, 0.92);
-  const grabS = clamp(opts.grabS ?? 1, 0.45, 1);
+  const grabS = clamp(opts.grabS ?? 1, 0.18, 1);
   const radius = Math.max(24, grabS * width);
   const fingerLocal = dir * (opts.fingerX - hingeX);
-  // Дальше обреза лист не тянется. Ближе к сшивке — поднимается и переходит на другую сторону.
-  const chord = clamp(fingerLocal, -radius, radius);
-  const cosA = chord / radius;
-  const sinA = Math.sqrt(Math.max(0, 1 - cosA * cosA)) / Math.max(0.85, stiff);
-  const back = cosA < -0.04;
-  const yPull = clamp(opts.fingerY - (top + grabT * height), -height * 0.18, height * 0.18);
+  const t = clamp(fingerLocal / radius, -1, 1);
+  const progress = (1 - t) * 0.5;
+  const rigid = stiff >= 1.3;
+  const back = t + BOW_TILT * (1 - t * t) * BOW_LIFT < 0;
+  if (rigid) {
+    const lift = 1 - t * t;
+    return gridMesh(cols, rows, (c, r) => {
+      const s = c / cols;
+      const v = r / rows;
+      return {
+        x: hingeX + dir * t * s * width,
+        y: top + v * height,
+        z: lift * BOW_LIFT * s * width,
+        u: dir === 1 ? s : 1 - s,
+        v,
+        back,
+      };
+    });
+  }
+  const flex = 1 / Math.max(0.62, stiff);
+  const yPull = clamp(opts.fingerY - (top + grabT * height), -height * 0.2, height * 0.2);
+  const reach = 0.58 + progress * 1.05;
 
   return gridMesh(cols, rows, (c, r) => {
     const s = c / cols;
-    const t = r / rows;
-    const along = s * width;
-    const localX = cosA * along;
-    const z = sinA * along;
-    const yFollow = yPull * Math.min(1, s / grabS) * 0.35;
+    const v = r / rows;
+    const fromFinger = Math.hypot((1 - s) * 0.72, (v - grabT) * 0.55);
+    const influence = clamp(1 - fromFinger / reach, 0, 1);
+    const soft = influence * influence * (3 - 2 * influence);
+    const tRow = 1 - 2 * progress * soft;
+    const lift = 1 - tRow * tRow;
+    const arc = Math.pow(s, 1.75);
+    const bow = Math.sin(Math.PI * s) * width * 0.16 * flex * lift;
+    const sag = Math.sin(Math.PI * s) * height * 0.055 * flex * lift * (0.12 + Math.abs(v - grabT));
     return {
-      x: hingeX + dir * localX,
-      y: top + t * height + yFollow,
-      z,
+      x: hingeX + dir * tRow * s * width,
+      y: top + v * height + yPull * s * soft + sag,
+      z: lift * BOW_LIFT * arc * width + bow,
       u: dir === 1 ? s : 1 - s,
-      v: t,
+      v,
       back,
     };
   });

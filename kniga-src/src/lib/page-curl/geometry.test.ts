@@ -44,7 +44,7 @@ test("угол загиба оказывается на пальце", () => {
   assert.equal(spine.z, 0);
 });
 
-test("лист на пружине остаётся целым прямоугольником", () => {
+test("лист на пружине гнётся, но край у пальца и корешок на месте", () => {
   const mesh = buildBowMesh({
     hingeX: 80,
     top: 0,
@@ -58,20 +58,27 @@ test("лист на пружине остаётся целым прямоуго�
     stiff: 1,
     dir: 1,
   });
+  const nx = mesh.cols + 1;
+  const ny = mesh.rows + 1;
+  const hinge = mesh.pos[0];
+  const midRow = Math.round(ny * 0.5);
+  const edge = mesh.pos[(midRow * nx + mesh.cols) * 3];
   let minY = Infinity;
   let maxY = -Infinity;
-  let minX = Infinity;
-  let maxX = -Infinity;
-  for (let i = 0; i < mesh.pos.length; i += 3) {
-    minX = Math.min(minX, mesh.pos[i]);
-    maxX = Math.max(maxX, mesh.pos[i]);
-    minY = Math.min(minY, mesh.pos[i + 1]);
-    maxY = Math.max(maxY, mesh.pos[i + 1]);
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (let i = 1; i < mesh.pos.length; i += 3) {
+    minY = Math.min(minY, mesh.pos[i]);
+    maxY = Math.max(maxY, mesh.pos[i]);
   }
-  assert.ok(Math.abs(minY) < 2, `top ${minY}`);
-  assert.ok(Math.abs(maxY - 520) < 2, `bottom ${maxY}`);
-  assert.ok(Math.abs(minX - 80) < 2, `hinge ${minX}`);
-  assert.ok(maxX < 80 + 190, `edge stayed with the finger ${maxX}`);
+  for (let i = 2; i < mesh.pos.length; i += 3) {
+    minZ = Math.min(minZ, mesh.pos[i]);
+    maxZ = Math.max(maxZ, mesh.pos[i]);
+  }
+  assert.ok(Math.abs(hinge - 80) < 2, `hinge ${hinge}`);
+  assert.ok(Math.abs(edge - 260) < 14, `edge follows the finger ${edge}`);
+  assert.ok(minY > -8 && maxY < 520 + 48, `sheet stayed in the page ${minY} ${maxY}`);
+  assert.ok(maxZ > 40, `page actually bows ${maxZ}`);
 });
 
 test("короткая хорда поднимает середину листа, обрез остаётся на столе", () => {

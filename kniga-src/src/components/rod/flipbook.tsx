@@ -12,7 +12,7 @@ import oakUrl from "@/assets/book/backgrounds/oak.jpg";
 import walnutUrl from "@/assets/book/backgrounds/walnut.jpg";
 import linenUrl from "@/assets/book/backgrounds/linen.jpg";
 import stoneUrl from "@/assets/book/backgrounds/stone.jpg";
-import { BINDINGS, buildBowMesh, buildPeelMesh, type BindingId, type Mesh } from "@/lib/page-curl/geometry";
+import { BINDINGS, BOW_TILT, buildBowMesh, type BindingId } from "@/lib/page-curl/geometry";
 import { CurlRenderer } from "@/lib/page-curl/renderer";
 import { PAGE_RATIO } from "@/lib/rod/page-style";
 import { downloadFamilyBook, paintPage } from "@/lib/rod/print-book";
@@ -34,7 +34,8 @@ type Mode = "corner" | "edge" | "bow";
 type Live = {
   active: boolean; dir: 1 | -1; mode: Mode; grabT: number; grabS: number;
   x: number; y: number; vx: number; vy: number; downX: number; downY: number; followX: number; followY: number;
-  anim: { destX: number; destY: number; flip: boolean } | null;
+  goalX: number; goalY: number; tex: boolean;
+  anim: { destX: number; destY: number; flip: boolean; fromX: number; fromY: number; t: number; dur: number } | null;
 };
 type Box = { w: number; h: number; gutter: number; pageX: number; pageY: number; pageW: number; pageH: number };
 
@@ -72,11 +73,6 @@ function layoutOf(w: number, h: number, channel: number): Box {
 }
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-function mirrorMesh(mesh: Mesh, gutter: number) {
-  for (let i = 0; i < mesh.pos.length; i += 3) mesh.pos[i] = gutter * 2 - mesh.pos[i];
-  for (let i = 0; i < mesh.uv.length; i += 2) mesh.uv[i] = 1 - mesh.uv[i];
-  return mesh;
-}
 
 /** Страницы рисует тот же код, что и печать: в листалке видно ровно то, что будет в PDF. paintPage держит общее состояние, поэтому по одной. */
 let paintQueue: Promise<unknown> = Promise.resolve();
@@ -310,6 +306,17 @@ function Stage({ pageId }: { pageId?: string }) {
     drawFace(underLeftRef.current, current > 0 ? f[2 * (current - 1) + 1] : f[0], "left", box.pageW, box.pageH);
   }, [drawFace]);
 
+  /** Слой с изгибом лежит на весь экран: лист может подняться за рамку книги. Сообщаем рендереру, где рамка. */
+  const resizeCurl = () => {
+    const frame = frameRef.current;
+    const curl = curlRef.current;
+    const renderer = rendererRef.current;
+    if (!frame || !curl || !renderer) return;
+    const fr = frame.getBoundingClientRect();
+    const cr = curl.getBoundingClientRect();
+    renderer.resize(cr.width, cr.height, cr.left - fr.left, cr.top - fr.top, Math.min(2, window.devicePixelRatio || 1));
+  };
+
   // Перерисовать при смене размера, разворота, сшивки, страниц или когда пришла картинка страницы
   useEffect(() => {
     const frame = frameRef.current;
@@ -317,7 +324,7 @@ function Stage({ pageId }: { pageId?: string }) {
     const measure = () => {
       const rect = frame.getBoundingClientRect();
       boxRef.current = layoutOf(rect.width || size.w, rect.height || size.h, channelFor(bindingRef.current));
-      rendererRef.current?.resize(boxRef.current.w, boxRef.current.h, Math.min(2, window.devicePixelRatio || 1));
+      resizeCurl();
       if (!liveRef.current?.active) rendererRef.current?.clear();
       paintPages();
       prepareBack();
@@ -325,7 +332,9 @@ function Stage({ pageId }: { pageId?: string }) {
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(frame);
+    if (curlRef.current) observer.observe(curlRef.current);
     return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size, index, binding, paintPages, prepareBack, paintTick]);
 
   // Сброс картинок, если страницы поменялись снаружи
@@ -346,15 +355,13 @@ function Stage({ pageId }: { pageId?: string }) {
     const renderer = rendererRef.current;
     if (!live?.active || !renderer) return;
     if (live.anim) {
-      const heavy = indexRef.current < 0;
-      const pull = reduced() ? 220 : heavy ? 38 : 64;
-      const damp = reduced() ? 18 : heavy ? 12 : 10;
-      live.vx += ((live.anim.destX - live.x) * pull - live.vx * damp) * dt;
-      live.vy += ((live.anim.destY - live.y) * pull - live.vy * damp) * dt;
-      live.x += live.vx * dt;
-      live.y += live.vy * dt;
-      const done = Math.hypot(live.anim.destX - live.x, live.anim.destY - live.y) < 2.5 && Math.hypot(live.vx, live.vy) < 40;
-      if (done) {
+      // Полёт листа по времени: ровное ускорение и торможение, без пружины (она давала лаги).
+      live.anim.t += dt;
+      const u = Math.min(1, live.anim.t / live.anim.dur);
+      const e = u * u * (3 - 2 * u);
+      live.x = live.anim.fromX + (live.anim.destX - live.anim.fromX) * e;
+      live.y = live.anim.fromY + (live.anim.destY - live.anim.fromY) * e;
+      if (u >= 1) {
         const flipped = live.anim.flip;
         liveRef.current = null;
         renderer.clear();
@@ -371,16 +378,23 @@ function Stage({ pageId }: { pageId?: string }) {
     const box = boxRef.current;
     const closedNow = indexRef.current < 0;
     const bind = BINDINGS.find((item) => item.id === bindingRef.current) ?? BINDINGS[1];
-    let mesh = closedNow
+    const mesh = closedNow
       ? buildBowMesh({ hingeX: 0, top: 0, width: box.w, height: box.h, fingerX: live.x, fingerY: live.y, grabT: live.grabT, grabS: live.grabS, ringR: 0, stiff: 1.45, dir: 1 })
-      : live.mode === "bow"
-        ? buildBowMesh({ hingeX: live.dir === 1 ? box.pageX : box.pageW, top: box.pageY, width: box.pageW, height: box.pageH, fingerX: live.x, fingerY: live.y, grabT: live.grabT, grabS: live.grabS, ringR: 0, stiff: bind.stiff, dir: live.dir })
-        : buildPeelMesh({ pageX: box.pageX, pageY: box.pageY, width: box.pageW, height: box.pageH, fingerX: live.dir === 1 ? live.x : box.gutter * 2 - live.x, fingerY: live.y, mode: live.mode === "corner" ? "corner" : "edge" });
-    if (!closedNow && live.mode !== "bow" && live.dir === -1) mesh = mirrorMesh(mesh, box.gutter);
-    const front = live.dir === 1 ? rightRef.current : leftRef.current;
-    if (front) renderer.setFront(front);
+      : buildBowMesh({ hingeX: live.dir === 1 ? box.pageX : box.pageW, top: box.pageY, width: box.pageW, height: box.pageH, fingerX: live.x, fingerY: live.y, grabT: live.grabT, grabS: live.grabS, ringR: 0, stiff: bind.stiff, dir: live.dir });
+    if (!live.tex) {
+      const front = closedNow || live.dir === 1 ? rightRef.current : leftRef.current;
+      if (front) renderer.setFront(front);
+      prepareBackRef.current();
+      live.tex = true;
+    }
     renderer.clear();
-    renderer.draw(mesh);
+    renderer.draw(mesh, {
+      hingeX: closedNow ? 0 : live.dir === 1 ? box.pageX : box.pageW,
+      lift: 1.08,
+      focal: Math.max(box.w, box.h) * 2.2,
+      tilt: BOW_TILT,
+      dir: closedNow ? 1 : live.dir,
+    });
   }
 
   // Кадр анимации. step читает только ссылки, поэтому достаточно одного запуска.
@@ -401,25 +415,22 @@ function Stage({ pageId }: { pageId?: string }) {
 
   const beginLive = (point: { x: number; y: number }): Live | null => {
     const box = boxRef.current;
+    const base = { active: true, mode: "bow" as Mode, vx: 0, vy: 0, downX: point.x, downY: point.y, followX: point.x, followY: point.y, goalX: point.x, goalY: point.y, x: point.x, y: point.y, tex: false, anim: null };
     if (indexRef.current < 0) {
       if (point.x < box.w * 0.12 || point.y < 0 || point.y > box.h) return null;
-      return { active: true, dir: 1, mode: "bow", grabT: clamp01(point.y / box.h), grabS: clamp01(Math.max(0.72, point.x / box.w)), x: point.x, y: point.y, vx: 0, vy: 0, downX: point.x, downY: point.y, followX: point.x, followY: point.y, anim: null };
+      return { ...base, dir: 1, grabT: clamp01(point.y / box.h), grabS: Math.min(1, Math.max(0.2, point.x / box.w)) };
     }
     const onRight = point.x >= box.gutter;
     const localX = onRight ? point.x - box.pageX : box.pageW - point.x;
     const localY = point.y - box.pageY;
     if (localX < -12 || localY < -12 || localX > box.pageW + 12 || localY > box.pageH + 12) return null;
     if (!onRight && point.x > box.pageW + 12) return null;
-    const nearCorner = localY < box.pageH * 0.22 || localY > box.pageH * 0.78;
-    const mode: Mode = bindingRef.current === "codex" ? (nearCorner ? "corner" : "edge") : "bow";
-    const dir: 1 | -1 = onRight ? 1 : -1;
-    const foreX = dir === 1 ? box.pageX + box.pageW : 0;
-    const followX = mode === "bow" ? point.x : foreX;
-    const followY = mode === "corner" ? (localY < box.pageH * 0.5 ? box.pageY : box.pageY + box.pageH) : point.y;
-    return { active: true, dir, mode, grabT: clamp01(localY / box.pageH), grabS: clamp01(Math.max(0.55, localX / box.pageW)), x: followX, y: followY, vx: 0, vy: 0, downX: point.x, downY: point.y, followX, followY, anim: null };
+    return { ...base, dir: onRight ? 1 : -1, grabT: clamp01(localY / box.pageH), grabS: Math.min(1, Math.max(0.2, localX / Math.max(1, box.pageW))) };
   };
 
   const finishLive = (live: Live, forceFlip?: boolean) => {
+    live.x = live.goalX;
+    live.y = live.goalY;
     const box = boxRef.current;
     const closed = indexRef.current < 0;
     const hinge = closed ? 0 : live.dir === 1 ? box.pageX : box.pageW;
@@ -429,11 +440,14 @@ function Stage({ pageId }: { pageId?: string }) {
     const allow = closed ? true : live.dir === 1 ? !atEnd : true;
     const toward = forceFlip || (live.dir === 1 ? live.vx < -380 || live.x < hinge + arm * (closed ? 0.42 : 0.28) : live.vx > 380 || live.x > hinge - arm * 0.28);
     const naturalY = box.pageY + live.grabT * (closed ? box.h : box.pageH);
-    const fore = live.dir === 1 ? box.pageX + box.pageW : 0;
-    const restX = live.mode === "bow" || closed ? hinge + live.dir * arm : fore;
-    const restY = live.mode === "corner" ? (live.grabT > 0.5 ? box.pageY + box.pageH : box.pageY) : naturalY;
-    const flipX = live.mode === "bow" || closed ? hinge - live.dir * arm : box.gutter - live.dir * box.pageW * 0.35;
-    live.anim = toward && allow ? { destX: flipX, destY: naturalY, flip: true } : { destX: restX, destY: restY, flip: false };
+    const restX = hinge + live.dir * arm;
+    const flipX = hinge - live.dir * arm;
+    const flip = toward && allow;
+    const destX = flip ? flipX : restX;
+    const destY = naturalY;
+    const dist = Math.hypot(destX - live.x, destY - live.y);
+    const dur = reduced() ? 0.01 : Math.min(0.62, Math.max(0.28, dist / 980));
+    live.anim = { destX, destY, flip, fromX: live.x, fromY: live.y, t: 0, dur };
   };
 
   const localPoint = (el: HTMLElement, event: { clientX: number; clientY: number }) => {
@@ -446,9 +460,6 @@ function Stage({ pageId }: { pageId?: string }) {
     const live = beginLive(localPoint(event.currentTarget, event));
     if (!live) return;
     liveRef.current = live;
-    const front = live.dir === 1 ? rightRef.current : leftRef.current;
-    if (front) rendererRef.current?.setFront(front);
-    prepareBackRef.current();
     setCurlDir(live.dir);
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -467,12 +478,14 @@ function Stage({ pageId }: { pageId?: string }) {
     live.vy = (nextY - live.y) / dt;
     live.x = nextX;
     live.y = nextY;
+    live.goalX = nextX;
+    live.goalY = nextY;
   };
   const pointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
     const live = liveRef.current;
     if (!live?.active || live.anim) return;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    const moved = Math.hypot(live.x - live.followX, live.y - live.followY) > 8;
+    const moved = Math.hypot(live.goalX - live.followX, live.goalY - live.followY) > 8;
     finishLive(live, !moved);
   };
 
@@ -487,9 +500,6 @@ function Stage({ pageId }: { pageId?: string }) {
     const live = beginLive(point);
     if (!live) return;
     liveRef.current = live;
-    const front = live.dir === 1 ? rightRef.current : leftRef.current;
-    if (front) rendererRef.current?.setFront(front);
-    prepareBackRef.current();
     setCurlDir(live.dir);
     finishLive(live, true);
   };
