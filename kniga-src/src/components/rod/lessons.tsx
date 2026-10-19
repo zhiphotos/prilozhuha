@@ -418,8 +418,8 @@ function LockedLesson({ lesson, onBack, onBuy, onNext, onMore, widget = false }:
       <div className="mx-auto max-w-2xl pb-[max(2rem,env(safe-area-inset-bottom))]">
         {tile ? <img src={asset(tile.src)} alt={tile.title} className="mx-auto block w-full" draggable={false} /> : null}
         <div className="grid gap-2.5 px-5 pt-5">
-          <Button className="w-full" variant="white" onClick={onBuy}>
-            Купить программу · {PROGRAM_PRICE}
+          <Button className="h-auto min-h-12 w-full whitespace-normal py-3 leading-snug" variant="white" onClick={onBuy}>
+            Купить уроки и полный доступ в приложение за {PROGRAM_PRICE}
           </Button>
           {widget && onMore ? (
             <Button className="w-full" variant="soft" onClick={onMore}>
@@ -472,9 +472,9 @@ function LockedLesson({ lesson, onBack, onBuy, onNext, onMore, widget = false }:
           </ul>
           <div className="mt-6 rounded-2xl bg-paper p-5 text-ink">
             <PriceTag />
-            <p className="mt-1 text-sm text-muted">Вся программа целиком, не по одному уроку.</p>
-            <Button className="mt-4 w-full" onClick={onBuy}>
-              Открыть программу
+            <p className="mt-1 text-sm text-muted">Все уроки и полный доступ в приложение. Одна покупка, не по одному уроку.</p>
+            <Button className="mt-4 h-auto min-h-12 w-full whitespace-normal py-3 leading-snug" onClick={onBuy}>
+              Купить уроки и полный доступ в приложение
             </Button>
           </div>
         </div>
