@@ -7,6 +7,8 @@ export type Person = {
   birthYear: string;
   maidenName: string;
   notes: string;
+  /** Годы жизни и фамилия по документам (необязательно). */
+  deathYear?: string;
 };
 
 export type Place = {
@@ -93,7 +95,7 @@ type Placed = {
   spread?: boolean;
 };
 
-export type BrushKind = "pen" | "marker" | "brush" | "highlighter" | "thread" | "dashed" | "dots";
+export type BrushKind = "pen" | "marker" | "brush" | "highlighter" | "thread" | "dashed" | "dots" | "wash" | "ink" | "calligraphy" | "charcoal" | "stitch" | "leaf";
 
 export type InkStroke = {
   id: string;
@@ -198,6 +200,8 @@ export type BookPage = {
   kind: "cover" | "page";
   /** Обложка собрана из блоков, которые можно двигать (новые обложки). */
   designed?: boolean;
+  /** Когда страницу правили последний раз (мс). Главная предлагает вернуться к последней исправленной. */
+  editedAt?: number;
   /** Свой цвет страницы поверх выбранной бумаги. */
   bg?: string;
   paper: PaperKind;

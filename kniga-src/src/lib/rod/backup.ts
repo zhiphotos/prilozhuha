@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 // Резервная копия: вся книга с фотографиями в одном файле .kniga – его можно переложить на другое устройство.
 import { afterHydrate } from "@/lib/rod/boot";
 import { flushBook, useRod } from "@/lib/rod/store";
@@ -30,6 +31,28 @@ export function lastBackupAt(): Date | null {
   } catch {
     return null;
   }
+}
+
+/** Правили страницы после последней копии: пора напомнить, что книга живёт только на этом устройстве. */
+export function changedSinceBackup(): boolean {
+  const last = lastBackupAt()?.getTime() ?? 0;
+  return useRod.getState().pages.some((page) => (page.editedAt ?? 0) > last);
+}
+
+/** Подсказка после работы: кнопка сразу собирает копию. */
+export function remindBackup(): void {
+  if (!changedSinceBackup()) return;
+  toast("Книга хранится только на этом устройстве, ни в каком аккаунте. Сохраните копию после работы.", {
+    duration: 14000,
+    action: {
+      label: "Сохранить копию",
+      onClick: () =>
+        void exportBook().then((mode) => {
+          if (mode === "cancelled") return;
+          toast(mode === "shared" ? "Копия готова: выберите «Сохранить в Файлы»" : "Копия сохранена в «Загрузки»");
+        }).catch(() => toast("Копия не сохранилась")),
+    },
+  });
 }
 
 /** Собирает копию: вся книга и все фото одним файлом. На телефоне открывает «Поделиться» (там «Сохранить в Файлы»), на компьютере скачивает. */

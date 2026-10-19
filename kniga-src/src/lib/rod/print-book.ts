@@ -22,6 +22,7 @@ import {
 import { MM, buildJpegPdf, type PdfSheet } from "@/lib/rod/pdf";
 import type { PrintSetup } from "@/lib/rod/page-style";
 import { shapeParts, shapeStyle } from "@/lib/rod/shapes";
+import { isStampBrush, stampRaster } from "@/lib/rod/stamp-brush";
 import { spreadGhosts } from "@/lib/rod/spread";
 import { backPage } from "@/lib/rod/store";
 import type { BookPage, PageBlock, PaperKind, SpineSetup } from "@/lib/rod/types";
@@ -382,6 +383,11 @@ function paintShape(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { t
 
 function paintStrokeList(ctx: CanvasRenderingContext2D, strokes: import("@/lib/rod/types").InkStroke[]) {
   for (const stroke of strokes) {
+    if (isStampBrush(stroke.brush)) {
+      const raster = stampRaster(stroke);
+      if (raster) ctx.drawImage(raster.canvas, raster.x, raster.y, raster.w, raster.h);
+      continue;
+    }
     const g = strokeGeom(stroke);
     if (!g.d) continue;
     const path = new Path2D(g.d);

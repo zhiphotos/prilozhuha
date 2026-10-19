@@ -545,6 +545,12 @@ export const RELATIONS = [
   "дядя",
 ];
 
+/** Мужчинам девичью фамилию не спрашиваем. «Я», «ребёнок», «супруг или супруга» могут быть любыми, поле остаётся. */
+const MALE_RELATIONS = /^(папа|дедушка|прадедушка|брат|дядя|отец|сын|муж|дед)/i;
+export function canHaveMaiden(relation: string): boolean {
+  return !MALE_RELATIONS.test(relation.trim());
+}
+
 export const DOC_KINDS = ["свидетельство", "письмо", "награда", "выписка", "конверт или открытка", "другое"];
 
 export const REGIONS = [

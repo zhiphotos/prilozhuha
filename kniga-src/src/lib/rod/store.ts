@@ -312,7 +312,7 @@ export const useRod = create<RodState>()(
       updatePage: (id, updater) =>
         set((state) => {
           if (id === BACK_ID) return { back: updater(state.back ?? backPage(state.pages[0]?.kind === "cover" ? state.pages[0] : null)) };
-          return { pages: state.pages.map((page) => (page.id === id ? updater(page) : page)) };
+          return { pages: state.pages.map((page) => (page.id === id ? { ...updater(page), editedAt: Date.now() } : page)) };
         }),
       setPlan: (plan) => set({ plan }),
       toggleChapter: (id) => set((state) => ({ plan: state.plan.map((c) => (c.id === id ? { ...c, done: !c.done } : c)) })),

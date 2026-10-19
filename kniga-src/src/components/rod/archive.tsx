@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { DOC_KINDS, EXAMPLE_TIMELINE, RELATIONS } from "@/lib/rod/content";
+import { DOC_KINDS, EXAMPLE_TIMELINE, RELATIONS, canHaveMaiden } from "@/lib/rod/content";
 import { useRod } from "@/lib/rod/store";
 import type { ArchiveTab } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
@@ -78,7 +78,7 @@ function PeoplePane() {
         onSubmit={(event) => {
           event.preventDefault();
           if (!name.trim()) return;
-          addPerson({ name: name.trim(), relation, birthYear: birthYear.trim(), maidenName: maidenName.trim(), notes: "" });
+          addPerson({ name: name.trim(), relation, birthYear: birthYear.trim(), maidenName: canHaveMaiden(relation) ? maidenName.trim() : "", notes: "" });
           setName("");
           setBirthYear("");
           setMaidenName("");
@@ -99,9 +99,11 @@ function PeoplePane() {
           <Field label="Год рождения" hint="Если помните примерно – так и напишите.">
             <input className="field" value={birthYear} onChange={(event) => setBirthYear(event.target.value)} placeholder="1948" />
           </Field>
-          <Field label="Девичья фамилия">
-            <input className="field" value={maidenName} onChange={(event) => setMaidenName(event.target.value)} placeholder="Если знаете" />
-          </Field>
+          {canHaveMaiden(relation) ? (
+            <Field label="Девичья фамилия">
+              <input className="field" value={maidenName} onChange={(event) => setMaidenName(event.target.value)} placeholder="Если знаете" />
+            </Field>
+          ) : null}
         </div>
         <Button type="submit" disabled={!name.trim()}>
           Добавить в семью
@@ -116,24 +118,41 @@ function PeoplePane() {
               <p className="text-sm text-muted">
                 {person.relation}
                 {person.birthYear ? ` · ${person.birthYear}` : ""}
-                {person.maidenName ? ` · девичья ${person.maidenName}` : ""}
+                {person.maidenName && canHaveMaiden(person.relation) ? ` · девичья ${person.maidenName}` : ""}
+                {person.deathYear ? ` – ${person.deathYear}` : ""}
               </p>
             </button>
             {openId === person.id ? (
               <div className="mt-3 grid gap-3">
-                <Field label="Заметки">
+                <Field label="Имя и фамилия">
+                  <input className="field" value={person.name} onChange={(event) => updatePerson(person.id, { name: event.target.value })} />
+                </Field>
+                <Field label="Кем приходится">
+                  <select className="field" value={person.relation} onChange={(event) => updatePerson(person.id, { relation: event.target.value })}>
+                    {(RELATIONS.includes(person.relation) ? RELATIONS : [person.relation, ...RELATIONS]).map((item) => (
+                      <option key={item}>{item}</option>
+                    ))}
+                  </select>
+                </Field>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Год рождения">
+                    <input className="field" value={person.birthYear} onChange={(event) => updatePerson(person.id, { birthYear: event.target.value })} />
+                  </Field>
+                  <Field label="Год ухода" hint="Если нужно.">
+                    <input className="field" value={person.deathYear ?? ""} onChange={(event) => updatePerson(person.id, { deathYear: event.target.value })} />
+                  </Field>
+                </div>
+                {canHaveMaiden(person.relation) ? (
+                  <Field label="Девичья фамилия">
+                    <input className="field" value={person.maidenName} onChange={(event) => updatePerson(person.id, { maidenName: event.target.value })} />
+                  </Field>
+                ) : null}
+                <Field label="Комментарий">
                   <textarea
                     className="field min-h-20"
                     value={person.notes}
                     onChange={(event) => updatePerson(person.id, { notes: event.target.value })}
                     placeholder="Фраза, привычка, чего не знаете"
-                  />
-                </Field>
-                <Field label="Девичья фамилия">
-                  <input
-                    className="field"
-                    value={person.maidenName}
-                    onChange={(event) => updatePerson(person.id, { maidenName: event.target.value })}
                   />
                 </Field>
                 <button type="button" className="text-left text-sm text-muted underline" onClick={() => removePerson(person.id)}>
@@ -222,6 +241,7 @@ function PhotosPane() {
   const nav = useNav();
   const photos = useRod((state) => state.photos);
   const removePhoto = useRod((state) => state.removePhoto);
+  const [viewAt, setViewAt] = useState<number | null>(null);
   return (
     <div className="grid gap-3">
       <Button onClick={() => nav.go({ id: "photo-new" })}>Оцифровать фотографию</Button>
@@ -229,7 +249,9 @@ function PhotosPane() {
       <ul className="grid gap-3 sm:grid-cols-2">
         {photos.map((photo) => (
           <li key={photo.id} className="glass overflow-hidden rounded-2xl">
-            <MediaImg src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="aspect-[4/3] w-full object-cover" />
+            <button type="button" className="block w-full" aria-label="Открыть фото" onClick={() => setViewAt(photos.indexOf(photo))}>
+              <MediaImg src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="aspect-[4/3] w-full object-cover" />
+            </button>
             <div className="p-4">
               <p className="font-medium text-ink">{photo.who || "Без подписи"}</p>
               <p className="text-sm text-muted">
@@ -244,6 +266,7 @@ function PhotosPane() {
           </li>
         ))}
       </ul>
+      {viewAt !== null ? <PhotoViewer photos={photos} start={viewAt} onClose={() => setViewAt(null)} /> : null}
     </div>
   );
 }
@@ -367,4 +390,60 @@ function DocsPane() {
 function yearNum(value: string): number {
   const match = value.match(/\d{3,4}/);
   return match ? Number(match[0]) : 9999;
+}
+
+/** Просмотр: стрелки, свайп и клавиши листают всю галерею, не закрывая фото. */
+function PhotoViewer({ photos, start, onClose }: { photos: { id: string; dataUrl: string; who: string; where: string; year: string; what: string }[]; start: number; onClose: () => void }) {
+  const [at, setAt] = useState(Math.min(start, photos.length - 1));
+  const touch = useRef<number | null>(null);
+  const go = (dir: number) => setAt((value) => (value + dir + photos.length) % photos.length);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") go(-1);
+      else if (event.key === "ArrowRight") go(1);
+      else if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+  const photo = photos[at];
+  if (!photo) return null;
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex flex-col bg-night/95 text-paper"
+      onTouchStart={(event) => (touch.current = event.touches[0]?.clientX ?? null)}
+      onTouchEnd={(event) => {
+        const from = touch.current;
+        touch.current = null;
+        const to = event.changedTouches[0]?.clientX;
+        if (from === null || to === undefined || Math.abs(to - from) < 50) return;
+        go(to < from ? 1 : -1);
+      }}
+    >
+      <div className="flex items-center justify-between px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <span className="text-sm tabular-nums text-paper/80">{at + 1} из {photos.length}</span>
+        <button type="button" aria-label="Закрыть" className="grid size-11 place-items-center rounded-full bg-paper/10" onClick={onClose}>
+          <X className="size-5" />
+        </button>
+      </div>
+      <div className="relative flex min-h-0 flex-1 items-center justify-center px-2">
+        <MediaImg src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="max-h-full max-w-full object-contain" />
+        {photos.length > 1 ? (
+          <>
+            <button type="button" aria-label="Предыдущее фото" className="absolute left-2 grid size-12 place-items-center rounded-full bg-night/60" onClick={() => go(-1)}>
+              <ChevronLeft className="size-6" />
+            </button>
+            <button type="button" aria-label="Следующее фото" className="absolute right-2 grid size-12 place-items-center rounded-full bg-night/60" onClick={() => go(1)}>
+              <ChevronRight className="size-6" />
+            </button>
+          </>
+        ) : null}
+      </div>
+      <div className="px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 text-center">
+        <p className="font-semibold">{photo.who || "Без подписи"}</p>
+        <p className="text-sm text-paper/70">{[photo.where, photo.year].filter(Boolean).join(" · ")}</p>
+        {photo.what ? <p className="mt-1 text-sm text-paper/85">{photo.what}</p> : null}
+      </div>
+    </div>
+  );
 }

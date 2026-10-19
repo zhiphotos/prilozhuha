@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { ImagePlus } from "lucide-react";
+import { isStampBrush, stampRaster } from "@/lib/rod/stamp-brush";
 import { PAGE_H as INK_PAGE_H, inkColor as inkColorOf, strokeGeom } from "@/lib/rod/ink";
 import { maskDataUrl, maskStyleFromUrl } from "@/lib/rod/mask";
 import { useMedia } from "@/lib/rod/media";
@@ -131,6 +132,7 @@ export function CoverArt({ meta }: { meta: CoverMeta }) {
 }
 
 export function StrokeShape({ stroke }: { stroke: InkStroke }) {
+  if (isStampBrush(stroke.brush)) return <StampShape stroke={stroke} />;
   const g = strokeGeom(stroke);
   if (!g.d) return null;
   if (g.fill) return <path d={g.d} fill={g.color} fillOpacity={g.alpha} />;
@@ -142,6 +144,14 @@ export function StrokeShape({ stroke }: { stroke: InkStroke }) {
       ))}
     </>
   );
+}
+
+/** Штамповые кисти (акварель, тушь, уголь…) рисуются растром: он же идёт в печать. */
+function StampShape({ stroke }: { stroke: InkStroke }) {
+  const raster = stampRaster(stroke);
+  const href = useMemo(() => raster?.canvas.toDataURL("image/png") ?? "", [raster]);
+  if (!raster || !href) return null;
+  return <image href={href} x={raster.x} y={raster.y} width={raster.w} height={raster.h} preserveAspectRatio="none" />;
 }
 
 /** Старые чернила поверх всей страницы (новые рисунки – блоки «ink») и штрих, который рисуется прямо сейчас. */

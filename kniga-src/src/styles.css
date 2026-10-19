@@ -569,3 +569,58 @@ body {
     border-color: var(--color-ink);
   }
 }
+
+/* Листалка: стол, книга, сшивки (порт из рабочего макета «Переплёт») */
+.kb-desk {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: #1a1916;
+  background-size: cover;
+  background-position: center;
+  color: #f3f0e8;
+}
+.kb-desk.light { color: #1c1a16; }
+.kb-desk.light .kb-muted { color: rgb(28 26 22 / 0.65); }
+.kb-muted { color: rgb(243 240 232 / 0.7); }
+.kb-frame {
+  position: relative;
+  background: #24231e;
+  box-shadow: 0 1.5rem 3rem rgb(0 0 0 / 0.4);
+  touch-action: none;
+  user-select: none;
+  overflow: hidden;
+  transition: width 0.7s cubic-bezier(0.2, 0.7, 0.2, 1), aspect-ratio 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.kb-frame.plain { background: transparent; box-shadow: none; overflow: visible; }
+.kb-fore-edge, .kb-spine-edge { position: absolute; pointer-events: none; }
+.kb-fore-edge {
+  z-index: 1; right: 0; top: 1.5%; bottom: 1.5%; width: 8px;
+  background: repeating-linear-gradient(#f7f1e6 0 1px, #e4d3bc 1px 2px, #c4513a 2px 3px, #efe4d2 3px 5px);
+}
+.kb-spine-edge { z-index: 5; left: 0; top: 0; bottom: 0; width: 14px; background: linear-gradient(90deg, #3a1418 0%, #7a3038 55%, rgb(122 48 56 / 0) 100%); }
+.kb-sheet { position: absolute; top: 0; height: 100%; overflow: hidden; }
+.kb-sheet canvas { display: block; width: 100%; height: 100%; }
+.kb-under { z-index: 0; }
+.kb-top { z-index: 2; }
+.kb-curl { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; }
+.kb-curl[data-off="1"] { visibility: hidden; }
+.kb-binding { position: absolute; z-index: 1; left: 50%; top: 0; height: 100%; width: auto; transform: translateX(-50%); pointer-events: none; user-select: none; filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.35)); }
+.kb-binding-codex { z-index: 3; width: 18%; height: 100%; object-fit: fill; filter: none; opacity: 0.72; }
+.kb-binding-rings { height: 94%; top: 3%; }
+.kb-binding-disc, .kb-binding-comb, .kb-binding-wire { height: 100%; }
+.kb-chip {
+  min-height: 2.75rem; padding: 0 0.9rem; border: 1px solid rgb(255 255 255 / 0.35); border-radius: 999px;
+  background: transparent; color: inherit; font-weight: 500; font-size: 0.95rem;
+}
+.kb-chip[aria-selected="true"] { background: #f3f0e8; border-color: #f3f0e8; color: #1a1916; }
+.kb-desk.light .kb-chip { border-color: rgb(28 26 22 / 0.35); }
+.kb-desk.light .kb-chip[aria-selected="true"] { background: #1c1a16; border-color: #1c1a16; color: #f3f0e8; }
+.kb-swatch {
+  width: 2.75rem; height: 2.75rem; padding: 0; border-radius: 999px; border: 2px solid rgb(255 255 255 / 0.35);
+  background-color: #1a1916; background-size: cover; background-position: center;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.25); display: grid; place-items: center; font-size: 1.1rem; color: #f3f0e8;
+}
+.kb-swatch[aria-checked="true"] { border-color: #f3f0e8; box-shadow: 0 0 0 2px #1c1915, inset 0 0 0 1px rgb(0 0 0 / 0.25); }
+.kb-desk.light .kb-swatch[aria-checked="true"] { box-shadow: 0 0 0 2px #f4f0e8, inset 0 0 0 1px rgb(0 0 0 / 0.25); }

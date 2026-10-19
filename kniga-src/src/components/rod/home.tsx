@@ -11,7 +11,7 @@ import type { Audience, Screen } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
 import { toast } from "sonner";
 import { Button, Field, ScreenFrame, Sheet, lineStyle, useNav } from "@/components/rod/chrome";
-import { exportBook, lastBackupAt } from "@/lib/rod/backup";
+import { changedSinceBackup, exportBook, lastBackupAt } from "@/lib/rod/backup";
 import { InstallCard, InstallSheet } from "@/components/rod/install-hint";
 import { ProjectsSheet } from "@/components/rod/projects-sheet";
 import { activeProjectId, listProjects } from "@/lib/rod/projects";
@@ -36,7 +36,7 @@ export function HomeScreen() {
 
   const total = counts.people + counts.places + counts.photos + counts.stories + counts.docs + counts.notes;
   const worked = data.pages.filter((page) => page.kind !== "cover" && filledCount(page) > 0);
-  const last = worked[worked.length - 1];
+  const last = worked.reduce<(typeof worked)[number] | undefined>((best, page) => (!best || (page.editedAt ?? 0) >= (best.editedAt ?? 0) ? page : best), undefined);
   const mode: "new" | "started" | "going" = last && (worked.length >= 3 || ready) ? "going" : total > 0 || data.pages.length > 1 ? "started" : "new";
   const facts = [
     counts.people ? plural(counts.people, "человек", "человека", "человек") : "",
@@ -172,7 +172,7 @@ export function HomeScreen() {
 function BackupCard({ hasData }: { hasData: boolean }) {
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState(() => lastBackupAt());
-  const old = last ? Date.now() - last.getTime() > 7 * 86400000 : hasData;
+  const old = last ? Date.now() - last.getTime() > 7 * 86400000 || changedSinceBackup() : hasData;
   const save = () => {
     setBusy(true);
     void exportBook()
@@ -190,7 +190,7 @@ function BackupCard({ hasData }: { hasData: boolean }) {
       <p className="mt-1 text-[1.35rem] font-semibold leading-tight text-ink">
         {last ? `Последняя копия: ${last.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}` : hasData ? "Копии ещё нет" : "Здесь появится копия"}
       </p>
-      <p className="mt-1 text-sm text-muted">Весь текст и все фото в одном файле. Его можно открыть на другом телефоне или сохранить в «Файлы», чтобы ничего не потерять.</p>
+      <p className="mt-1 text-sm text-muted">Книга хранится только в этом телефоне или браузере, ни в каком аккаунте её нет. Сохраняйте копию после каждой работы: весь текст и все фото в одном файле. Его можно открыть на другом устройстве или положить в «Файлы».</p>
       <Button className="mt-4" onClick={save} disabled={busy || !hasData}>
         {busy ? "Собираю…" : "Скачать копию всей книги"}
       </Button>
