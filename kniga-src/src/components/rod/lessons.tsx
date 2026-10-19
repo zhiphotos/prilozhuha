@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowRight, Check, ChevronLeft, ExternalLink, FileText, Lock, Play, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson, type Lesson } from "@/lib/rod/content";
@@ -14,6 +15,8 @@ export function LessonsScreen() {
   const programOpen = useRod((state) => state.programOpen);
   const done = useRod((state) => state.doneLessons);
   const [pay, setPay] = useState(false);
+  const [peek, setPeek] = useState<string | null>(null);
+  const peeked = peek ? findLesson(peek) : null;
 
   return (
     <ScreenFrame>
@@ -45,7 +48,7 @@ export function LessonsScreen() {
           const locked = !programOpen;
           const passed = done.includes(lesson.id);
           return (
-            <button key={lesson.id} type="button" onClick={() => nav.go({ id: "lesson", lessonId: lesson.id })} className="relative block w-full overflow-hidden rounded-2xl text-left">
+            <button key={lesson.id} type="button" onClick={() => (locked ? setPeek(lesson.id) : nav.go({ id: "lesson", lessonId: lesson.id }))} className="relative block w-full overflow-hidden rounded-2xl text-left">
               <img src={asset(`course/gc/ov-${lesson.id}.jpg`)} alt={lesson.title} loading="lazy" className="w-full" />
               <span className="absolute right-3 top-3 grid size-10 place-items-center rounded-full bg-paper/90 text-ink shadow">
                 {locked ? <Lock className="size-4" /> : passed ? <Check className="size-4" /> : <Play className="size-4" />}
@@ -79,6 +82,7 @@ export function LessonsScreen() {
       ) : (
         <p className="mt-4 text-sm text-sage">Программа открыта на этом устройстве.</p>
       )}
+      {peeked ? <LockedLesson widget lesson={peeked} onBack={() => setPeek(null)} onNext={setPeek} onBuy={() => setPay(true)} onMore={() => { setPeek(null); nav.go({ id: "lesson", lessonId: peeked.id }); }} /> : null}
       {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
     </ScreenFrame>
   );
@@ -105,7 +109,7 @@ export function LessonScreen({ lessonId }: { lessonId: string }) {
   if (locked) {
     return (
       <>
-        <LockedLesson lesson={lesson} onBack={nav.back} onBuy={() => setPay(true)} />
+        <LockedLesson lesson={lesson} onBack={nav.back} onBuy={() => setPay(true)} onNext={(id) => nav.replace({ id: "lesson", lessonId: id })} />
         {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
       </>
     );
@@ -397,17 +401,16 @@ function FileViewer({ file, onClose }: { file: { url: string; name: string }; on
 }
 
 /** Закрытый урок: окно «что здесь будет», кнопка «Купить» и переход к следующему уроку. */
-function LockedLesson({ lesson, onBack, onBuy }: { lesson: Lesson; onBack: () => void; onBuy: () => void }) {
-  const nav = useNav();
+function LockedLesson({ lesson, onBack, onBuy, onNext, onMore, widget = false }: { lesson: Lesson; onBack: () => void; onBuy: () => void; onNext: (id: string) => void; onMore?: () => void; widget?: boolean }) {
   const pitch = PITCH[lesson.id];
   const tile = TILES.find((item) => item.id === lesson.id);
   const paid = LESSONS.filter((item) => !item.free);
   const next = paid[paid.findIndex((item) => item.id === lesson.id) + 1];
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#14160f] text-paper">
+  const body = (
+    <>
       <header className="sticky top-0 z-10 flex items-center gap-3 bg-[#14160f]/95 px-3 pb-2 pt-[max(0.6rem,env(safe-area-inset-top))] backdrop-blur">
-        <button type="button" onClick={onBack} aria-label="Назад к программе" className="grid size-11 shrink-0 place-items-center rounded-full bg-paper/10 text-paper">
-          <ChevronLeft className="size-5" />
+        <button type="button" onClick={onBack} aria-label={widget ? "Закрыть" : "Назад к программе"} className="grid size-11 shrink-0 place-items-center rounded-full bg-paper/10 text-paper">
+          {widget ? <X className="size-5" /> : <ChevronLeft className="size-5" />}
         </button>
         <p className="min-w-0 flex-1 truncate text-sm font-semibold text-paper/85">{lesson.title}</p>
         <Lock className="mr-2 size-4 text-[#c9ae74]" />
@@ -418,12 +421,19 @@ function LockedLesson({ lesson, onBack, onBuy }: { lesson: Lesson; onBack: () =>
           <Button className="w-full" variant="white" onClick={onBuy}>
             Купить программу · {PROGRAM_PRICE}
           </Button>
+          {widget && onMore ? (
+            <Button className="w-full" variant="soft" onClick={onMore}>
+              Читать подробнее
+            </Button>
+          ) : null}
           {next ? (
-            <button type="button" onClick={() => nav.replace({ id: "lesson", lessonId: next.id })} className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#c9ae74]/60 px-5 text-sm font-semibold text-[#c9ae74]">
+            <button type="button" onClick={() => onNext(next.id)} className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#c9ae74]/60 px-5 text-sm font-semibold text-[#c9ae74]">
               Что будет в следующем уроке <ArrowRight className="size-4" />
             </button>
           ) : null}
         </div>
+        {widget ? null : (
+          <>
         {pitch ? (
           <div className="px-5 pt-8">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">Что вы получите в этом уроке</p>
@@ -468,8 +478,20 @@ function LockedLesson({ lesson, onBack, onBuy }: { lesson: Lesson; onBack: () =>
             </Button>
           </div>
         </div>
+          </>
+        )}
       </div>
-    </div>
+    </>
+  );
+  if (!widget) return <div className="fixed inset-0 z-50 overflow-y-auto bg-[#14160f] text-paper">{body}</div>;
+  // Через портал: у экрана есть анимация, из-за неё fixed внутри считался бы от всей длины страницы.
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center" onClick={onBack}>
+      <div className="max-h-[92dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-3xl bg-[#14160f] text-paper shadow-2xl sm:rounded-3xl" onClick={(event) => event.stopPropagation()}>
+        {body}
+      </div>
+    </div>,
+    document.body,
   );
 }
 
