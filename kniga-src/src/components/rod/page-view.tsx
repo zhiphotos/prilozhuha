@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { ImagePlus } from "lucide-react";
+import { isStampBrush, stampRaster } from "@/lib/rod/stamp-brush";
 import { PAGE_H as INK_PAGE_H, inkColor as inkColorOf, strokeGeom } from "@/lib/rod/ink";
 import { maskDataUrl, maskStyleFromUrl } from "@/lib/rod/mask";
 import { useMedia } from "@/lib/rod/media";
@@ -131,6 +132,7 @@ export function CoverArt({ meta }: { meta: CoverMeta }) {
 }
 
 export function StrokeShape({ stroke }: { stroke: InkStroke }) {
+  if (isStampBrush(stroke.brush)) return <StampShape stroke={stroke} />;
   const g = strokeGeom(stroke);
   if (!g.d) return null;
   if (g.fill) return <path d={g.d} fill={g.color} fillOpacity={g.alpha} />;
@@ -142,6 +144,14 @@ export function StrokeShape({ stroke }: { stroke: InkStroke }) {
       ))}
     </>
   );
+}
+
+/** Штамповые кисти (акварель, тушь, уголь…) рисуются растром: он же идёт в печать. */
+function StampShape({ stroke }: { stroke: InkStroke }) {
+  const raster = stampRaster(stroke);
+  const href = useMemo(() => raster?.canvas.toDataURL("image/png") ?? "", [raster]);
+  if (!raster || !href) return null;
+  return <image href={href} x={raster.x} y={raster.y} width={raster.w} height={raster.h} preserveAspectRatio="none" />;
 }
 
 /** Старые чернила поверх всей страницы (новые рисунки – блоки «ink») и штрих, который рисуется прямо сейчас. */
@@ -266,6 +276,7 @@ export function ShapeArt({ block }: { block: Extract<PageBlock, { type: "shape" 
 export function InkArt({ block, editing }: { block: Extract<PageBlock, { type: "ink" }>; editing: boolean }) {
   return (
     <svg viewBox={`0 0 ${block.ow} ${block.oh}`} preserveAspectRatio="none" className="pointer-events-none block h-full w-full overflow-visible">
+      {block.fill ? <FillImage src={block.fill} w={block.ow} h={block.oh} editing={editing} /> : null}
       {block.strokes.map((stroke) => (
         <StrokeShape key={stroke.id} stroke={stroke} />
       ))}
@@ -287,6 +298,13 @@ export function InkArt({ block, editing }: { block: Extract<PageBlock, { type: "
         : null}
     </svg>
   );
+}
+
+/** Заливка фигуры: картинка под линиями, растягивается вместе с рисунком. */
+function FillImage({ src, w, h, editing }: { src: string; w: number; h: number; editing: boolean }) {
+  const url = useMedia(src);
+  // В режиме правки нажатие на залитое место выбирает всю фигуру, как нажатие на фото.
+  return url ? <image href={url} x={0} y={0} width={w} height={h} preserveAspectRatio="none" data-hit={editing ? "1" : undefined} style={editing ? { pointerEvents: "all" } : undefined} /> : null;
 }
 
 function hitPoints(points: number[]) {

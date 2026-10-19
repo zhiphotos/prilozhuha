@@ -7,6 +7,17 @@ export type Person = {
   birthYear: string;
   maidenName: string;
   notes: string;
+  /** Годы жизни и фамилия по документам (необязательно). */
+  deathYear?: string;
+  /** Родители (id людей из этого же списка): по ним строится схема семьи. */
+  parents?: string[];
+  /** Имя, отчество и фамилия по отдельности; `name` собирается из них. */
+  firstName?: string;
+  patronymic?: string;
+  lastName?: string;
+  gender?: "m" | "f";
+  /** Фото человека (ссылка на хранилище), в древе показывается кружком. */
+  photo?: string;
 };
 
 export type Place = {
@@ -93,7 +104,7 @@ type Placed = {
   spread?: boolean;
 };
 
-export type BrushKind = "pen" | "marker" | "brush" | "highlighter" | "thread" | "dashed" | "dots";
+export type BrushKind = "pen" | "marker" | "brush" | "highlighter" | "thread" | "dashed" | "dots" | "wash" | "ink" | "charcoal";
 
 export type InkStroke = {
   id: string;
@@ -185,6 +196,8 @@ export type PageBlock =
       ow: number;
       oh: number;
       strokes: InkStroke[];
+      /** Заливка внутри контура (картинка во всю рамку рисунка, под линиями). */
+      fill?: string;
     } & Placed);
 
 /** Глава из оглавления: её страницы помечены `chapterId`. */
@@ -198,6 +211,8 @@ export type BookPage = {
   kind: "cover" | "page";
   /** Обложка собрана из блоков, которые можно двигать (новые обложки). */
   designed?: boolean;
+  /** Когда страницу правили последний раз (мс). Главная предлагает вернуться к последней исправленной. */
+  editedAt?: number;
   /** Свой цвет страницы поверх выбранной бумаги. */
   bg?: string;
   paper: PaperKind;
@@ -206,7 +221,7 @@ export type BookPage = {
   blocks: PageBlock[];
 };
 
-export type ArchiveTab = "people" | "time" | "photos" | "places" | "docs";
+export type ArchiveTab = "people" | "tree" | "time" | "photos" | "places" | "docs";
 
 export type Screen =
   | { id: "home" }
@@ -223,6 +238,7 @@ export type Screen =
   | { id: "book" }
   | { id: "editor"; pageId: string }
   | { id: "projects" }
+  | { id: "legal"; doc?: string }
   | { id: "flip"; pageId?: string };
 
 export type LessonLink =

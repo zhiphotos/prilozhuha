@@ -74,6 +74,7 @@ export function CardsScreen() {
         <p className="mt-2 text-sm text-muted">
           {notes.length === 0 ? "Первый ответ появится после карточки." : words < 12 ? `Около ${words} слов. Ещё пара живых ответов, и можно собрать страницы.` : `Около ${words} слов. Уже можно собрать страницы.`}
         </p>
+        <p className="mt-2 text-xs text-muted">Ответы хранятся в этом телефоне вместе с книгой, в блоке «Последние ответы» ниже. «Собрать страницы» превращает их в страницы книги. Чтобы не потерять, сохраняйте копию книги на Главной.</p>
       </section>
 
       <ul className="mt-6 grid gap-3">
@@ -114,7 +115,7 @@ export function CardsScreen() {
   );
 }
 
-function DeckLink({ item, saved, onOpen, featured = false }: { item: Situation; saved: number; onOpen: () => void; featured?: boolean }) {
+export function DeckLink({ item, saved, onOpen, featured = false }: { item: Situation; saved: number; onOpen: () => void; featured?: boolean }) {
   const cat = catOf(item.id);
   const total = item.questions.length;
   const share = Math.min(100, Math.round((saved / Math.max(1, total)) * 100));

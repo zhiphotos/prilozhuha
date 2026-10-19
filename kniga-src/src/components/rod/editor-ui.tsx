@@ -22,7 +22,7 @@ export function ToolBtn({ label, children, onClick, active }: { label: string; c
     <button
       type="button"
       onClick={onClick}
-      className={cn("flex min-h-[3.4rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[1.2rem] text-[11.5px] font-medium leading-none transition", active ? "bg-white text-ink" : "text-paper/90 active:bg-white/15")}
+      className={cn("flex min-h-[3.6rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[1.2rem] text-[12.5px] font-medium leading-none transition", active ? "bg-white text-ink" : "text-paper/90 active:bg-white/15")}
     >
       {children}
       <span className="truncate">{label}</span>
@@ -38,7 +38,7 @@ export function PinIcon() {
   );
 }
 
-export function BarBtn({ children, onClick, active, label, danger, disabled, wide }: { children: React.ReactNode; onClick: () => void; active?: boolean; label?: string; danger?: boolean; disabled?: boolean; wide?: boolean }) {
+export function BarBtn({ children, onClick, active, label, danger, disabled, wide, phoneHidden }: { children: React.ReactNode; onClick: () => void; active?: boolean; label?: string; danger?: boolean; disabled?: boolean; wide?: boolean; phoneHidden?: boolean }) {
   return (
     <button
       type="button"
@@ -49,6 +49,7 @@ export function BarBtn({ children, onClick, active, label, danger, disabled, wid
       className={cn(
         "flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full text-[13px] font-medium transition disabled:opacity-40",
         wide === false ? "w-11" : "px-3.5",
+        phoneHidden && "max-md:hidden",
         active ? "bg-night text-paper" : danger ? "bg-rose-deep text-paper" : "bg-white/80 text-ink",
       )}
     >

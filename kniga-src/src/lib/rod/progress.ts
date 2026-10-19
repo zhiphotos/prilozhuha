@@ -1,3 +1,4 @@
+import { maidenAllowed } from "@/lib/rod/person";
 import type { Audience, BookPage, CardNote, FamilyDoc, FamilyPhoto, Person, Place, Story, TimelineEvent } from "@/lib/rod/types";
 import type { Screen } from "@/lib/rod/types";
 
@@ -68,7 +69,7 @@ export function partsOf(data: RodSnapshot): ProgressPart[] {
   const familyPoints = data.people.reduce((sum, person) => {
     let score = 1;
     if (person.birthYear.trim()) score += 0.45;
-    if (person.maidenName.trim()) score += 0.7;
+    if (person.maidenName.trim() || !maidenAllowed(person)) score += 0.7;
     if (person.notes.trim()) score += 0.25;
     return sum + score;
   }, 0);

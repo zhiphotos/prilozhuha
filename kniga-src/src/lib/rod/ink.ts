@@ -2,10 +2,15 @@
 // поэтому экран (SVG) и печать (Path2D на холсте) рисуют один и тот же путь.
 import { getStroke } from "perfect-freehand";
 import { COLORS, PAGE_RATIO, PX_PAGE } from "@/lib/rod/page-style";
+import { STAMP_DEFAULT_PX, STAMP_KINDS, STAMP_LABELS } from "@/lib/rod/stamp-kinds";
 import type { BrushKind, InkStroke, PageBlock } from "@/lib/rod/types";
 
 /** Высота страницы в единицах ширины. */
-export const PAGE_H = 100 * PAGE_RATIO;
+export let PAGE_H = 100 * PAGE_RATIO;
+/** Формат книги сменился: пересчитать высоту страницы в единицах ширины. */
+export function syncPageH(): void {
+  PAGE_H = 100 * PAGE_RATIO;
+}
 
 export function inkColor(color: string): string {
   if (color.startsWith("#") || color.startsWith("rgb")) return color;
@@ -24,13 +29,14 @@ export const BRUSHES: { id: BrushKind; label: string; hint: string }[] = [
   { id: "thread", label: "Нитки", hint: "Шов строчкой" },
   { id: "dashed", label: "Пунктир", hint: "Линия пунктиром" },
   { id: "dots", label: "Точки", hint: "Линия из точек" },
+  ...(STAMP_KINDS.map((id) => ({ id, ...STAMP_LABELS[id] })) as { id: BrushKind; label: string; hint: string }[]),
 ];
 
 /** Размеры кисти в пикселях (страница = 1000 px). */
 export const px2w = (px: number) => (px / PX_PAGE) * 100;
 export const w2px = (w: number) => Math.round((w / 100) * PX_PAGE * 10) / 10;
 
-export const BRUSH_DEFAULT_PX: Record<BrushKind, number> = { pen: 5, marker: 22, brush: 14, highlighter: 34, thread: 9, dashed: 6, dots: 9 };
+export const BRUSH_DEFAULT_PX: Record<BrushKind, number> = { pen: 5, marker: 22, brush: 14, highlighter: 34, thread: 9, dashed: 6, dots: 9, ...STAMP_DEFAULT_PX };
 export const BRUSH_ALPHA: Partial<Record<BrushKind, number>> = { marker: 0.45, highlighter: 0.35 };
 
 type Pt = [number, number];
@@ -640,7 +646,7 @@ export function makeInkBlock(strokes: InkStroke[], newId: () => string): InkBloc
 
 /** Дописывает штрих к свежему нетронутому рисунку (слово, написанное несколькими штрихами). */
 export function mergeInk(block: InkBlock, stroke: InkStroke): InkBlock {
-  const untouched = !block.rotate && Math.abs(block.w - block.ow) < 0.05 && Math.abs(block.h - block.oh) < 0.05;
+  const untouched = !block.fill && !block.rotate && Math.abs(block.w - block.ow) < 0.05 && Math.abs(block.h - block.oh) < 0.05;
   if (!untouched) return makeInkBlock([stroke], () => crypto.randomUUID());
   const mine = shiftStrokes(block.strokes, block.x, block.y);
   const merged = makeInkBlock([...mine, stroke], () => block.id);

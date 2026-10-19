@@ -1,16 +1,20 @@
-import { useState } from "react";
-import { Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { DOC_KINDS, EXAMPLE_TIMELINE, RELATIONS } from "@/lib/rod/content";
+import { DOC_KINDS, EXAMPLE_TIMELINE } from "@/lib/rod/content";
+import { maidenAllowed, personEvents } from "@/lib/rod/person";
+import { EMPTY_PERSON, PersonAvatar, PersonEditor, PersonFields, type PersonDraft } from "@/components/rod/person-fields";
 import { useRod } from "@/lib/rod/store";
 import type { ArchiveTab } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
+import { TreePane } from "@/components/rod/family-tree";
 import { Cut } from "@/components/rod/botanica";
 import { MediaImg } from "@/components/rod/media-img";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
 
 const TABS: { id: ArchiveTab; label: string }[] = [
   { id: "people", label: "Люди" },
+  { id: "tree", label: "Древо" },
   { id: "time", label: "Лента" },
   { id: "photos", label: "Фото" },
   { id: "places", label: "Места" },
@@ -50,6 +54,7 @@ export function ArchiveScreen({ tab }: { tab: ArchiveTab }) {
       </div>
       <div className="mt-4">
         {tab === "people" ? <PeoplePane /> : null}
+        {tab === "tree" ? <TreePane /> : null}
         {tab === "time" ? <TimePane /> : null}
         {tab === "photos" ? <PhotosPane /> : null}
         {tab === "places" ? <PlacesPane /> : null}
@@ -62,83 +67,46 @@ export function ArchiveScreen({ tab }: { tab: ArchiveTab }) {
 function PeoplePane() {
   const people = useRod((state) => state.people);
   const addPerson = useRod((state) => state.addPerson);
-  const updatePerson = useRod((state) => state.updatePerson);
-  const removePerson = useRod((state) => state.removePerson);
-  const [name, setName] = useState("");
-  const [relation, setRelation] = useState("бабушка");
-  const [birthYear, setBirthYear] = useState("");
-  const [maidenName, setMaidenName] = useState("");
+  const [draft, setDraft] = useState<PersonDraft>(EMPTY_PERSON);
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
     <div className="grid gap-4">
       <AddFold label="Добавить человека" empty={people.length === 0}>
-      <form
-        className="glass grid gap-3 rounded-2xl p-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (!name.trim()) return;
-          addPerson({ name: name.trim(), relation, birthYear: birthYear.trim(), maidenName: maidenName.trim(), notes: "" });
-          setName("");
-          setBirthYear("");
-          setMaidenName("");
-          toast("Человек добавлен");
-        }}
-      >
-        <Field label="Имя">
-          <input className="field" value={name} onChange={(event) => setName(event.target.value)} placeholder="Как зовут в семье" />
-        </Field>
-        <Field label="Кем приходится">
-          <select className="field" value={relation} onChange={(event) => setRelation(event.target.value)}>
-            {RELATIONS.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
-        </Field>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Год рождения" hint="Если помните примерно – так и напишите.">
-            <input className="field" value={birthYear} onChange={(event) => setBirthYear(event.target.value)} placeholder="1948" />
-          </Field>
-          <Field label="Девичья фамилия">
-            <input className="field" value={maidenName} onChange={(event) => setMaidenName(event.target.value)} placeholder="Если знаете" />
-          </Field>
-        </div>
-        <Button type="submit" disabled={!name.trim()}>
-          Добавить в семью
-        </Button>
-      </form>
+        <form
+          className="glass grid gap-3 rounded-2xl p-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!draft.name.trim()) return;
+            addPerson({ ...draft, name: draft.name.trim(), maidenName: maidenAllowed(draft) ? draft.maidenName.trim() : "", birthYear: draft.birthYear.trim(), parents: (draft.parents ?? []).filter(Boolean) });
+            setDraft(EMPTY_PERSON);
+            toast("Человек добавлен: он на ленте и в древе");
+          }}
+        >
+          <PersonFields value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} others={people} />
+          <Button type="submit" disabled={!draft.name.trim()}>
+            Добавить в семью
+          </Button>
+        </form>
       </AddFold>
       <ul className="grid gap-2">
         {people.map((person) => (
           <li key={person.id} className="glass rounded-2xl p-4">
-            <button type="button" className="w-full text-left" onClick={() => setOpenId((value) => (value === person.id ? null : person.id))}>
-              <p className="text-lg font-semibold text-ink">{person.name}</p>
-              <p className="text-sm text-muted">
-                {person.relation}
-                {person.birthYear ? ` · ${person.birthYear}` : ""}
-                {person.maidenName ? ` · девичья ${person.maidenName}` : ""}
-              </p>
+            <button type="button" className="flex w-full items-center gap-3 text-left" onClick={() => setOpenId((value) => (value === person.id ? null : person.id))}>
+              <PersonAvatar person={person} size={48} />
+              <span className="min-w-0">
+                <span className="block text-lg font-semibold text-ink">{person.name}</span>
+                <span className="block text-sm text-muted">
+                  {person.relation}
+                  {person.birthYear ? ` · ${person.birthYear}` : ""}
+                  {person.deathYear ? ` – ${person.deathYear}` : ""}
+                  {person.maidenName && maidenAllowed(person) ? ` · девичья ${person.maidenName}` : ""}
+                </span>
+              </span>
             </button>
             {openId === person.id ? (
-              <div className="mt-3 grid gap-3">
-                <Field label="Заметки">
-                  <textarea
-                    className="field min-h-20"
-                    value={person.notes}
-                    onChange={(event) => updatePerson(person.id, { notes: event.target.value })}
-                    placeholder="Фраза, привычка, чего не знаете"
-                  />
-                </Field>
-                <Field label="Девичья фамилия">
-                  <input
-                    className="field"
-                    value={person.maidenName}
-                    onChange={(event) => updatePerson(person.id, { maidenName: event.target.value })}
-                  />
-                </Field>
-                <button type="button" className="text-left text-sm text-muted underline" onClick={() => removePerson(person.id)}>
-                  Убрать из семьи
-                </button>
+              <div className="mt-3">
+                <PersonEditor person={person} onRemoved={() => setOpenId(null)} />
               </div>
             ) : null}
           </li>
@@ -161,7 +129,9 @@ function TimePane() {
   const [year, setYear] = useState("");
   const [title, setTitle] = useState("");
   const [detail, setDetail] = useState("");
-  const sorted = [...events].sort((a, b) => yearNum(a.year) - yearNum(b.year));
+  const people = useRod((state) => state.people);
+  const auto = personEvents(people);
+  const sorted = [...events.map((item) => ({ ...item, personId: "" })), ...auto].sort((a, b) => yearNum(a.year) - yearNum(b.year));
   const showingExample = sorted.length === 0;
 
   return (
@@ -206,7 +176,7 @@ function TimePane() {
             <p className="text-sm tabular-nums text-rose-deep">{event.year}</p>
             <p className="text-lg font-semibold text-ink">{event.title}</p>
             {event.detail ? <p className="text-sm text-muted">{event.detail}</p> : null}
-            {!showingExample ? (
+            {!showingExample && !("personId" in event && event.personId) ? (
               <button type="button" className="mt-1 text-sm text-muted underline" onClick={() => removeEvent(event.id)}>
                 Удалить
               </button>
@@ -222,6 +192,7 @@ function PhotosPane() {
   const nav = useNav();
   const photos = useRod((state) => state.photos);
   const removePhoto = useRod((state) => state.removePhoto);
+  const [viewAt, setViewAt] = useState<number | null>(null);
   return (
     <div className="grid gap-3">
       <Button onClick={() => nav.go({ id: "photo-new" })}>Оцифровать фотографию</Button>
@@ -229,7 +200,9 @@ function PhotosPane() {
       <ul className="grid gap-3 sm:grid-cols-2">
         {photos.map((photo) => (
           <li key={photo.id} className="glass overflow-hidden rounded-2xl">
-            <MediaImg src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="aspect-[4/3] w-full object-cover" />
+            <button type="button" className="block w-full" aria-label="Открыть фото" onClick={() => setViewAt(photos.indexOf(photo))}>
+              <MediaImg src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="aspect-[4/3] w-full object-cover" />
+            </button>
             <div className="p-4">
               <p className="font-medium text-ink">{photo.who || "Без подписи"}</p>
               <p className="text-sm text-muted">
@@ -244,6 +217,7 @@ function PhotosPane() {
           </li>
         ))}
       </ul>
+      {viewAt !== null ? <PhotoViewer photos={photos} start={viewAt} onClose={() => setViewAt(null)} /> : null}
     </div>
   );
 }
@@ -367,4 +341,60 @@ function DocsPane() {
 function yearNum(value: string): number {
   const match = value.match(/\d{3,4}/);
   return match ? Number(match[0]) : 9999;
+}
+
+/** Просмотр: стрелки, свайп и клавиши листают всю галерею, не закрывая фото. */
+function PhotoViewer({ photos, start, onClose }: { photos: { id: string; dataUrl: string; who: string; where: string; year: string; what: string }[]; start: number; onClose: () => void }) {
+  const [at, setAt] = useState(Math.min(start, photos.length - 1));
+  const touch = useRef<number | null>(null);
+  const go = (dir: number) => setAt((value) => (value + dir + photos.length) % photos.length);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") go(-1);
+      else if (event.key === "ArrowRight") go(1);
+      else if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+  const photo = photos[at];
+  if (!photo) return null;
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex flex-col bg-night/95 text-paper"
+      onTouchStart={(event) => (touch.current = event.touches[0]?.clientX ?? null)}
+      onTouchEnd={(event) => {
+        const from = touch.current;
+        touch.current = null;
+        const to = event.changedTouches[0]?.clientX;
+        if (from === null || to === undefined || Math.abs(to - from) < 50) return;
+        go(to < from ? 1 : -1);
+      }}
+    >
+      <div className="flex items-center justify-between px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <span className="text-sm tabular-nums text-paper/80">{at + 1} из {photos.length}</span>
+        <button type="button" aria-label="Закрыть" className="grid size-11 place-items-center rounded-full bg-paper/10" onClick={onClose}>
+          <X className="size-5" />
+        </button>
+      </div>
+      <div className="relative flex min-h-0 flex-1 items-center justify-center px-2">
+        <MediaImg src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="max-h-full max-w-full object-contain" />
+        {photos.length > 1 ? (
+          <>
+            <button type="button" aria-label="Предыдущее фото" className="absolute left-2 grid size-12 place-items-center rounded-full bg-night/60" onClick={() => go(-1)}>
+              <ChevronLeft className="size-6" />
+            </button>
+            <button type="button" aria-label="Следующее фото" className="absolute right-2 grid size-12 place-items-center rounded-full bg-night/60" onClick={() => go(1)}>
+              <ChevronRight className="size-6" />
+            </button>
+          </>
+        ) : null}
+      </div>
+      <div className="px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 text-center">
+        <p className="font-semibold">{photo.who || "Без подписи"}</p>
+        <p className="text-sm text-paper/70">{[photo.where, photo.year].filter(Boolean).join(" · ")}</p>
+        {photo.what ? <p className="mt-1 text-sm text-paper/85">{photo.what}</p> : null}
+      </div>
+    </div>
+  );
 }

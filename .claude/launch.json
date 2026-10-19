@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kniga",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "kniga-src", "run", "dev"],
+      "port": 8080
+    }
+  ]
+}

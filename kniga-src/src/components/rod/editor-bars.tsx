@@ -23,8 +23,10 @@ import {
   Type,
   Unlock,
   GripHorizontal,
+  PaintBucket,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/cn";
 import { BarBtn, Stepper } from "@/components/rod/editor-ui";
 import { ColorSheet } from "@/components/rod/color-sheet";
 import { Button, Sheet } from "@/components/rod/chrome";
@@ -36,9 +38,10 @@ import { libFont } from "@/lib/rod/fonts";
 import { SHAPES, isStrokedShape, shapeStyle } from "@/lib/rod/shapes";
 import { FONT_LABEL } from "@/lib/rod/pages";
 import { useRod } from "@/lib/rod/store";
+import { flowToNextPages } from "@/lib/rod/text-flow";
 import type { BlendKind, BrushKind, FontKind, FontRef, PageBlock, PhotoFrame, ShapeKind, TextLook } from "@/lib/rod/types";
 
-export type Tool = "hand" | "draw" | "erase";
+export type Tool = "hand" | "draw" | "erase" | "fill";
 
 export type BlockOps = {
   patch: (partial: Partial<PageBlock>, group?: string) => void;
@@ -373,26 +376,62 @@ export function PenBar({
   onDone: () => void;
 }) {
   const erasing = tool === "erase";
+  const [menu, setMenu] = useState<null | "brush" | "shapes">(null);
+  const current = BRUSHES.find((item) => item.id === brush) ?? BRUSHES[0];
+  const hint = tool === "fill" ? "Нажмите внутрь замкнутого контура: он закрасится выбранным цветом" : erasing ? eraseHint : "";
+  const anyShape = holdShapes || autoShapes || straight;
+  const pick = (action: () => void) => {
+    action();
+    setMenu(null);
+  };
   return (
-    <div className="glass-strong mx-auto max-w-xl rounded-2xl p-2">
-      <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
-        {BRUSHES.map((item) => (
-          <BarBtn
-            key={item.id}
-            active={!erasing && brush === item.id}
-            label={item.hint}
-            onClick={() => {
-              setBrush(item.id);
-              setTool("draw");
-            }}
-          >
-            {item.id === "highlighter" ? <Highlighter className="size-4" /> : item.id === "pen" ? <PenLine className="size-4" /> : null}
-            {item.label}
-          </BarBtn>
-        ))}
-        <BarBtn active={erasing} onClick={() => setTool("erase")}>
-          <Eraser className="size-4" /> Ластик
+    <div className="glass-strong relative mx-auto max-w-xl rounded-2xl p-2">
+      {/* Всплывающие списки не меняют высоту панели: страница не прыгает. */}
+      {menu === "brush" ? (
+        <div className="absolute inset-x-0 bottom-full mb-2 grid max-h-[46dvh] grid-cols-2 gap-2 overflow-y-auto rounded-2xl bg-paper p-2 shadow-xl">
+          {BRUSHES.map((item) => (
+            <button key={item.id} type="button" onClick={() => pick(() => { setBrush(item.id); setTool("draw"); })} className={cn("min-h-14 rounded-xl px-3 py-2 text-left", tool === "draw" && brush === item.id ? "bg-night text-paper" : "bg-white text-ink")}>
+              <span className="block text-sm font-semibold">{item.label}</span>
+              <span className={cn("block text-xs leading-tight", tool === "draw" && brush === item.id ? "text-paper/70" : "text-muted")}>{item.hint}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {menu === "shapes" ? (
+        <div className="absolute inset-x-0 bottom-full mb-2 grid gap-2 rounded-2xl bg-paper p-3 shadow-xl">
+          {(
+            [
+              ["Фигура по задержке", "Задержите перо на секунду: линия или круг выровняются", holdShapes, setHoldShapes],
+              ["Фигуры сразу", "Круг, квадрат, звезда, сердце выровняются сразу после рисования", autoShapes, setAutoShapes],
+              ["Только прямые", "Всё, что рисуете, будет прямой линией", straight, setStraight],
+            ] as const
+          ).map(([title, text, on, set]) => (
+            <button key={title} type="button" aria-pressed={on} onClick={() => set(!on)} className={cn("flex min-h-14 items-center gap-3 rounded-xl px-3 py-2 text-left", on ? "bg-night text-paper" : "bg-white text-ink")}>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">{title}</span>
+                <span className={cn("block text-xs leading-tight", on ? "text-paper/70" : "text-muted")}>{text}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <div className="flex items-center gap-1.5">
+        <BarBtn active={tool === "draw"} label="Выбрать кисть" onClick={() => setMenu(menu === "brush" ? null : "brush")}>
+          <PenLine className="size-4" /> {current.label} ▾
         </BarBtn>
+        <BarBtn active={erasing} label="Ластик" onClick={() => pick(() => setTool("erase"))}>
+          <Eraser className="size-4" /> <span className="max-[400px]:hidden">Ластик</span>
+        </BarBtn>
+        <BarBtn active={tool === "fill"} label="Нажмите внутрь замкнутого контура: он закрасится выбранным цветом" onClick={() => pick(() => setTool("fill"))}>
+          <PaintBucket className="size-4" /> <span className="max-[400px]:hidden">Заливка</span>
+        </BarBtn>
+        <BarBtn active={anyShape || menu === "shapes"} label="Выравнивание линий и фигур" onClick={() => setMenu(menu === "shapes" ? null : "shapes")}>
+          ◇ <span className="max-[400px]:hidden">Фигуры</span>
+        </BarBtn>
+        <span className="min-w-0 flex-1" />
+        <Button className="min-h-11 shrink-0 px-5" onClick={onDone}>
+          Готово
+        </Button>
       </div>
       <div className="mt-2 flex items-center gap-2">
         <button type="button" aria-label="Цвет" onClick={onColor} className="size-11 shrink-0 rounded-full border-[3px] border-white shadow ring-1 ring-ink/20" style={{ background: erasing ? "#fff" : color }}>
@@ -405,24 +444,8 @@ export function PenBar({
           <Stepper label={erasing ? "Ластик" : "Кисть"} value={erasing ? eraserPx : sizePx} min={1} max={erasing ? 150 : 140} onChange={erasing ? setEraserPx : setSizePx} />
         </div>
       </div>
-      {erasing ? <p className="mt-1.5 px-1 text-xs text-muted">{eraseHint}. Размер от 1 пикселя: стирайте тонкие детали букв и краёв.</p> : null}
-      <div className="mt-2 flex items-center gap-1.5">
-      <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
-        <BarBtn active={holdShapes} onClick={() => setHoldShapes(!holdShapes)} label="Задержите перо на секунду: крупная линия или фигура выровняется. Мелкие буквы не меняются">
-          Фигура по задержке
-        </BarBtn>
-        <BarBtn active={autoShapes} onClick={() => setAutoShapes(!autoShapes)} label="Круг, квадрат, звезда, сердце сами выровняются сразу после рисования">
-          Фигуры сразу
-        </BarBtn>
-        <BarBtn active={straight} onClick={() => setStraight(!straight)} label="Всё, что рисуете, будет прямой линией">
-          Только прямые
-        </BarBtn>
-        <span className="hidden px-1 text-xs leading-tight text-muted sm:block">Задержите перо на секунду: линия и фигура выровняются</span>
-      </div>
-        <Button className="min-h-11 shrink-0 px-4" onClick={onDone}>
-          Готово
-        </Button>
-      </div>
+      {/* Подсказка занимает одну строку фиксированной высоты, поэтому панель не растёт. */}
+      <p className="mt-1 h-4 truncate px-1 text-[11px] leading-4 text-muted">{hint}</p>
     </div>
   );
 }
@@ -431,6 +454,7 @@ export function PenBar({
 
 export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; busy: boolean; ops: BlockOps; onInspector: () => void }) {
   const [colors, setColors] = useState<null | "text" | "shape-fill" | "shape-stroke" | "ink">(null);
+  const [more, setMore] = useState(false);
   const locked = Boolean(block.locked);
   return (
     <div className="glass-strong no-scrollbar mx-auto flex max-w-xl items-center gap-1.5 overflow-x-auto rounded-full p-1.5">
@@ -440,13 +464,13 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
       <BarBtn label="Копия" onClick={ops.duplicate}>
         <Copy className="size-4" /> Копия
       </BarBtn>
-      <BarBtn label={locked ? "Разблокировать" : "Закрепить: не будет двигаться"} active={locked} onClick={ops.toggleLock}>
+      <BarBtn phoneHidden label={locked ? "Разблокировать" : "Закрепить: не будет двигаться"} active={locked} onClick={ops.toggleLock}>
         {locked ? <Lock className="size-4" /> : <Unlock className="size-4" />} {locked ? "Снять" : "Закрепить"}
       </BarBtn>
-      <BarBtn label="Слой выше (на шаг)" onClick={() => ops.layer("up")}>
+      <BarBtn phoneHidden label="Слой выше (на шаг)" onClick={() => ops.layer("up")}>
         <BringToFront className="size-4" /> Выше
       </BarBtn>
-      <BarBtn label="Слой ниже" onClick={() => ops.layer("down")}>
+      <BarBtn phoneHidden label="Слой ниже" onClick={() => ops.layer("down")}>
         <SendToBack className="size-4" /> Ниже
       </BarBtn>
       <span className="mx-0.5 h-6 w-px shrink-0 bg-ink/15" />
@@ -480,19 +504,19 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
           <BarBtn onClick={ops.replace} label="Заменить фото на другое с теми же настройками">
             <Replace className="size-4" /> Заменить
           </BarBtn>
-          <BarBtn onClick={() => ops.patch({ shadow: block.shadow === false } as Partial<PageBlock>)} active={block.shadow !== false} label="Тень под фото">
+          <BarBtn phoneHidden onClick={() => ops.patch({ shadow: block.shadow === false } as Partial<PageBlock>)} active={block.shadow !== false} label="Тень под фото">
             <Droplet className="size-4" /> Тень
           </BarBtn>
-          <BarBtn onClick={ops.write}>
+          <BarBtn phoneHidden onClick={ops.write}>
             <Type className="size-4" /> Надпись
           </BarBtn>
-          <BarBtn onClick={ops.full}>
+          <BarBtn phoneHidden onClick={ops.full}>
             <Maximize className="size-4" /> На весь лист
           </BarBtn>
         </>
       ) : null}
       {block.type === "photo" || block.type === "ink" || block.type === "sticker" || block.type === "shape" ? (
-        <BarBtn onClick={ops.toggleSpread} disabled={!ops.canSpread && !block.spread} active={Boolean(block.spread)} label="Лежит на двух страницах разворота">
+        <BarBtn phoneHidden onClick={ops.toggleSpread} disabled={!ops.canSpread && !block.spread} active={Boolean(block.spread)} label="Лежит на двух страницах разворота">
           <BookOpen className="size-4" /> Через разворот
         </BarBtn>
       ) : null}
@@ -517,23 +541,74 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
           <BarBtn onClick={() => setColors("ink")}>
             <span className="size-4 rounded-full border border-ink/20" style={{ background: block.strokes[0]?.color.startsWith("#") ? block.strokes[0].color : "#2a2420" }} /> Цвет
           </BarBtn>
-          <BarBtn onClick={() => ops.inkScale(0.8)}>Тоньше</BarBtn>
-          <BarBtn onClick={() => ops.inkScale(1.25)}>Толще</BarBtn>
+          <BarBtn phoneHidden onClick={() => ops.inkScale(0.8)}>Тоньше</BarBtn>
+          <BarBtn phoneHidden onClick={() => ops.inkScale(1.25)}>Толще</BarBtn>
         </>
       ) : null}
       {block.mask?.strokes.length ? (
-        <BarBtn onClick={ops.resetMask} label="Вернуть всё, что стёрли ластиком">
+        <BarBtn phoneHidden onClick={ops.resetMask} label="Вернуть всё, что стёрли ластиком">
           Вернуть стёртое
         </BarBtn>
       ) : null}
       {block.type !== "slot" ? (
-        <BarBtn onClick={ops.erase} label="Стереть часть этого элемента ластиком">
+        <BarBtn phoneHidden onClick={ops.erase} label="Стереть часть этого элемента ластиком">
           <Eraser className="size-4" /> Ластик
         </BarBtn>
       ) : null}
-      <BarBtn label="Все свойства" onClick={onInspector}>
-        <SlidersHorizontal className="size-4" /> Ещё
+      <BarBtn phoneHidden label="Все свойства" onClick={onInspector}>
+        <SlidersHorizontal className="size-4" /> Свойства
       </BarBtn>
+      <button type="button" onClick={() => setMore(true)} className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-night px-4 text-[13px] font-semibold text-paper md:hidden">
+        <SlidersHorizontal className="size-4" /> Ещё
+      </button>
+      {more ? (
+        <Sheet title="Ещё" onClose={() => setMore(false)} dim={false}>
+          <div className="grid grid-cols-2 gap-2 [&_button]:h-12 [&_button]:w-full [&_button]:justify-start [&_button]:rounded-2xl" onClickCapture={() => window.setTimeout(() => setMore(false), 0)}>
+            <BarBtn label={locked ? "Разблокировать" : "Закрепить: не будет двигаться"} active={locked} onClick={ops.toggleLock}>
+              {locked ? <Lock className="size-4" /> : <Unlock className="size-4" />} {locked ? "Снять" : "Закрепить"}
+            </BarBtn>
+            <BarBtn onClick={() => ops.layer("up")}>
+              <BringToFront className="size-4" /> Слой выше
+            </BarBtn>
+            <BarBtn onClick={() => ops.layer("down")}>
+              <SendToBack className="size-4" /> Слой ниже
+            </BarBtn>
+            {block.type === "photo" ? (
+              <>
+                <BarBtn onClick={() => ops.patch({ shadow: block.shadow === false } as Partial<PageBlock>)} active={block.shadow !== false}>
+                  <Droplet className="size-4" /> Тень
+                </BarBtn>
+                <BarBtn onClick={ops.write}>
+                  <Type className="size-4" /> Надпись
+                </BarBtn>
+                <BarBtn onClick={ops.full}>
+                  <Maximize className="size-4" /> На весь лист
+                </BarBtn>
+              </>
+            ) : null}
+            {block.type === "photo" || block.type === "ink" || block.type === "sticker" || block.type === "shape" ? (
+              <BarBtn onClick={ops.toggleSpread} disabled={!ops.canSpread && !block.spread} active={Boolean(block.spread)}>
+                <BookOpen className="size-4" /> Через разворот
+              </BarBtn>
+            ) : null}
+            {block.type === "ink" ? (
+              <>
+                <BarBtn onClick={() => ops.inkScale(0.8)}>Тоньше</BarBtn>
+                <BarBtn onClick={() => ops.inkScale(1.25)}>Толще</BarBtn>
+              </>
+            ) : null}
+            {block.mask?.strokes.length ? <BarBtn onClick={ops.resetMask}>Вернуть стёртое</BarBtn> : null}
+            {block.type !== "slot" ? (
+              <BarBtn onClick={ops.erase}>
+                <Eraser className="size-4" /> Ластик
+              </BarBtn>
+            ) : null}
+            <BarBtn onClick={onInspector}>
+              <SlidersHorizontal className="size-4" /> Все свойства
+            </BarBtn>
+          </div>
+        </Sheet>
+      ) : null}
       {colors ? (
         <ColorSheet
           title={colors === "shape-stroke" ? "Цвет контура" : "Цвет"}
@@ -610,6 +685,40 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
             </div>
             <div className="mt-2">
               <Stepper label="Размер" value={px} min={10} max={300} onChange={(v) => ops.patch({ px: v } as Partial<PageBlock>, `size:${block.id}`)} />
+              <button
+                type="button"
+                className="mt-1.5 text-sm text-rose-deep underline"
+                onClick={() => {
+                  const state = useRod.getState();
+                  let count = 0;
+                  for (const page of state.pages) {
+                    if (!page.blocks.some((item) => item.type === "text" && item.id !== block.id)) continue;
+                    state.updatePage(page.id, (current) => ({
+                      ...current,
+                      blocks: current.blocks.map((item) => {
+                        if (item.type !== "text") return item;
+                        count += 1;
+                        return { ...item, px };
+                      }),
+                    }));
+                  }
+                  ops.patch({ px } as Partial<PageBlock>);
+                  toast(`Размер ${px} px поставлен на ${count + 1} текстах книги`);
+                }}
+              >
+                Поставить {px} px на все тексты книги
+              </button>
+              <button
+                type="button"
+                className="mt-1 block text-sm text-rose-deep underline"
+                onClick={() => {
+                  const owner = useRod.getState().pages.find((page) => page.blocks.some((item) => item.id === block.id));
+                  const made = owner ? flowToNextPages(owner.id, block.id) : 0;
+                  toast(made ? `Лишнее перенесено на ${made} ${made === 1 ? "новую страницу" : "новые страницы"}` : "Весь текст помещается на странице");
+                }}
+              >
+                Что не поместилось, перенести на следующую страницу
+              </button>
             </div>
             <div className="no-scrollbar -mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1">
               {(["plain", "card", "pill"] as TextLook[]).map((look) => (

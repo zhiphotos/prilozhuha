@@ -36,12 +36,12 @@ export function CoverSetup({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Обложка целиком" onClose={onClose} className="max-w-xl">
       <p className="mb-2 text-sm text-muted">Так обложка ляжет на разворот: задняя сторона, корешок, лицевая.</p>
-      <div className="flex items-stretch overflow-hidden rounded-2xl border border-ink/10 shadow-sm" style={{ height: 110 }}>
+      <div className="flex items-stretch overflow-hidden rounded-2xl border border-ink/10 shadow-sm" style={{ height: 130 }}>
         <div className="grid flex-1 place-items-center text-xs text-ink/75" style={{ background: backColor }}>
           задняя
         </div>
         <div className="grid w-9 place-items-center overflow-hidden" style={{ background: spineColor }}>
-          <span className="whitespace-nowrap text-xs" style={{ writingMode: "vertical-rl", color: spine.color ?? (isDark(spineColor) ? "#fbf8f3" : "#2a2420"), fontFamily: fontFamily(spine.font) }}>
+          <span className="whitespace-nowrap" style={{ writingMode: "vertical-rl", fontSize: spinePreviewPx(spine.size, print.size, print.spine), maxHeight: "88%", overflow: "hidden", color: spine.color ?? (isDark(spineColor) ? "#fbf8f3" : "#2a2420"), fontFamily: fontFamily(spine.font) }}>
             {label}
           </span>
         </div>
@@ -64,8 +64,12 @@ export function CoverSetup({ onClose }: { onClose: () => void }) {
         ) : null}
       </div>
 
-      <p className="mb-1.5 mt-5 text-sm font-medium text-ink">Корешок ({print.spine} мм)</p>
+      <p className="mb-1.5 mt-5 text-base font-semibold text-ink">Корешок ({print.spine} мм): надпись, размер, цвет</p>
       <input className="field" value={spine.text} placeholder={label} onChange={(event) => setSpine({ text: event.target.value })} />
+      <div className="mt-3">
+        <Stepper label="Размер надписи" value={spine.size} min={0} max={120} unit={spine.size ? "px" : "авто"} onChange={(size) => setSpine({ size })} />
+        <p className="mt-1 text-xs text-muted">«Авто» подгоняет по толщине корешка. Своё число делает надпись крупнее или мельче, но выше толщины корешка она не вырастет.</p>
+      </div>
       <p className="mb-1 mt-3 text-xs text-muted">Цвет корешка</p>
       <ColorRow compact value={spine.bg} onPick={(bg) => setSpine({ bg })} onReset={spine.bg ? () => setSpine({ bg: undefined }) : undefined} title="Цвет корешка" />
       <p className="mb-1 mt-3 text-xs text-muted">Цвет надписи</p>
@@ -73,12 +77,16 @@ export function CoverSetup({ onClose }: { onClose: () => void }) {
       <div className="no-scrollbar -mx-1 mt-3 flex gap-1.5 overflow-x-auto px-1">
         <FontChips value={spine.font} onPick={(font) => setSpine({ font })} />
       </div>
-      <div className="mt-3">
-        <Stepper label="Размер" value={spine.size} min={0} max={120} unit={spine.size ? "px" : "авто"} onChange={(size) => setSpine({ size })} />
-      </div>
       <Button className="mt-4 w-full" onClick={onClose}>
         Готово
       </Button>
     </Sheet>
   );
+}
+
+/** Размер надписи в превью: тот же расчёт, что в печати (`downloadPrintCover`), в масштабе превью, где корешок 36 px. */
+function spinePreviewPx(size: number, trimCm: number, spineMm: number): number {
+  const spineBox = 36;
+  if (!size || spineMm <= 0) return spineBox * 0.55;
+  return Math.max(6, Math.min(spineBox * 0.9, (size * trimCm * 0.36) / spineMm));
 }

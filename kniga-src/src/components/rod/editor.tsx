@@ -1,3 +1,4 @@
+import { remindBackup } from "@/lib/rod/backup";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import {
@@ -30,6 +31,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, Sheet, useNav } from "@/components/rod/chrome";
+import { fillInside } from "@/lib/rod/fill";
 import { BlockBar, Inspector, PenBar, TextPanel, type BlockOps, type Tool } from "@/components/rod/editor-bars";
 import { FontsSheet, GENERIC_QUESTIONS, HelpSheet, LayersSheet, PasteSheet, PhotoSheet, PinterestPanel, StickersSheet, type PhotoStyle } from "@/components/rod/editor-sheets";
 import { BarBtn, IconBtn, MenuRow, ToolBtn } from "@/components/rod/editor-ui";
@@ -45,7 +47,7 @@ import { BRUSH_ALPHA, BRUSH_DEFAULT_PX, PAGE_H, eraseFromStrokes, lineOf, makeIn
 import { coverDesigns, blankPage } from "@/lib/rod/layouts";
 import { liftSubject } from "@/lib/rod/lift";
 import { mediaDataUrl, saveMedia } from "@/lib/rod/media";
-import { PAPER, POLAROID, blockW, defaultStickerWidth, pageSide, safeArea, stickerRatio } from "@/lib/rod/page-style";
+import { PAPER, POLAROID, blockW, heightCm, defaultStickerWidth, pageSide, safeArea, stickerRatio } from "@/lib/rod/page-style";
 import { findPrompt } from "@/lib/rod/pages";
 import { paintPage } from "@/lib/rod/print-book";
 import { defaultShapeBox } from "@/lib/rod/shapes";
@@ -507,8 +509,9 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   // ——— Охранное поле ———
   const side = isBack ? "single" : pageSide(index, hasCover);
-  const safe = safeArea(print.size, side);
+  const safe = safeArea(print.size, heightCm(print), side);
   const bleedPct = (print.bleed / (print.size * 10)) * 100;
+  const bleedPctY = (print.bleed / (heightCm(print) * 10)) * 100;
 
   const heightOf = (b: PageBlock): number => {
     if ("h" in b && typeof b.h === "number") return b.h;
@@ -519,7 +522,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   };
 
   /** Фото на весь лист вместе с вылетами, под обрез. */
-  const fullPage = () => ({ x: round(-bleedPct), y: round(-bleedPct), w: round(100 + bleedPct * 2), h: round(100 + bleedPct * 2), rotate: 0, frame: "none" as PhotoFrame });
+  const fullPage = () => ({ x: round(-bleedPct), y: round(-bleedPctY), w: round(100 + bleedPct * 2), h: round(100 + bleedPctY * 2), rotate: 0, frame: "none" as PhotoFrame });
 
   const warnFull = (ratio: number) => {
     const crop = Math.abs(ratio - 1) > 0.05 ? (ratio > 1 ? " Фото вытянуто вверх, сверху и снизу его подрежет до квадрата." : " Фото широкое, по бокам его подрежет до квадрата.") : "";
@@ -544,18 +547,18 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       return { ...b, x: round(x), y: round(y), ...("w" in b ? { w: round(w) } : {}) } as PageBlock;
     }
     // Прилипание только у самого края (до 2,5 %) и без смены размера; остальное остаётся там, где поставили.
-    const soft = (start: number, len: number): [number, number] => {
+    const soft = (start: number, len: number, bleedBy: number): [number, number] => {
       let s2 = start;
       let n = len;
       if (Math.abs(s2) < 2.5) {
-        n += s2 + bleedPct;
-        s2 = -bleedPct;
+        n += s2 + bleedBy;
+        s2 = -bleedBy;
       }
-      if (Math.abs(100 - (s2 + n)) < 2.5) n = 100 + bleedPct - s2;
+      if (Math.abs(100 - (s2 + n)) < 2.5) n = 100 + bleedBy - s2;
       return [s2, n];
     };
-    const [x, w] = soft(b.x, b.w);
-    const [y, h] = soft(b.y, b.h);
+    const [x, w] = soft(b.x, b.w, bleedPct);
+    const [y, h] = soft(b.y, b.h, bleedPctY);
     void L;
     void R;
     void T;
@@ -828,6 +831,25 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     // Второй палец – это жест (шаг назад), а не рисование.
     if (touches.current.size >= 2) return true;
     setEditing(null);
+    if (tool === "fill") {
+      const at = toPct(event.clientX, event.clientY);
+      const live = current();
+      if (live) {
+        void fillInside(live, at.x, at.y, pen.color).then((result) => {
+          if (result.ok) {
+            commit(result.page);
+            toast("Закрашено", { duration: 1200 });
+          } else if (result.reason === "open") {
+            toast("Контур не замкнут: цвет вытекает за край. Закройте щель линией и нажмите снова.", { duration: 5000 });
+          } else if (result.reason === "wall") {
+            toast("Вы нажали на саму линию. Нажмите внутри контура.", { duration: 3500 });
+          } else {
+            toast("Не получилось закрасить", { duration: 3000 });
+          }
+        });
+      }
+      return true;
+    }
     try {
       sheetRef.current?.setPointerCapture(event.pointerId);
     } catch {
@@ -1389,7 +1411,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   return (
     <div
-      className="editor-root fixed inset-0 z-40 flex flex-col"
+      className="editor-root fixed inset-x-0 top-0 z-40 flex h-dvh flex-col"
       onPointerDownCapture={onRootDown}
       onPointerMoveCapture={onRootMove}
       onPointerUpCapture={onRootUp}
@@ -1405,7 +1427,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     >
       {/* Верх */}
       <header className="relative z-[46] flex items-center gap-2 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <button type="button" className="glass-strong grid size-11 shrink-0 place-items-center rounded-full" aria-label="К книге" onClick={() => nav.back()}>
+        <button type="button" className="glass-strong grid size-11 shrink-0 place-items-center rounded-full" aria-label="К книге" onClick={() => { remindBackup(); nav.back(); }}>
           <ChevronLeft className="size-5" />
         </button>
         <div className="min-w-0 flex-1 text-center">
@@ -1416,13 +1438,13 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             </button>
           ) : (
             <div className="flex items-center justify-center gap-1 text-xs text-muted">
-              <button type="button" className="grid size-11 place-items-center rounded-full disabled:opacity-30" disabled={index <= 0} onClick={() => go(-1)} aria-label="Предыдущая">
+              <button type="button" className="grid size-11 place-items-center rounded-full disabled:opacity-30 max-md:hidden" disabled={index <= 0} onClick={() => go(-1)} aria-label="Предыдущая">
                 <ChevronLeft className="size-4" />
               </button>
-              <span className="whitespace-nowrap tabular-nums">
-                {index + 1} / {pages.length}
-              </span>
-              <button type="button" className="grid size-11 place-items-center rounded-full disabled:opacity-30" disabled={index >= pages.length - 1} onClick={() => go(1)} aria-label="Следующая">
+              <button type="button" className="whitespace-nowrap rounded-full px-3 py-1 tabular-nums md:pointer-events-none" aria-label="Все страницы: перейти к главе" onClick={() => setPanel("contents")}>
+                {index + 1} / {pages.length} <span className="text-moss underline md:hidden">все</span>
+              </button>
+              <button type="button" className="grid size-11 place-items-center rounded-full disabled:opacity-30 max-md:hidden" disabled={index >= pages.length - 1} onClick={() => go(1)} aria-label="Следующая">
                 <ChevronRight className="size-4" />
               </button>
             </div>
@@ -1438,7 +1460,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           <IconBtn className="max-sm:hidden" label="Содержание: перейти к главе" onClick={() => setPanel("contents")}>
             <ListChecks className="size-[18px]" />
           </IconBtn>
-          <IconBtn label="Слои страницы" onClick={() => { setTool("hand"); setPanel("layers"); }}>
+          <IconBtn className="max-md:hidden" label="Слои страницы" onClick={() => { setTool("hand"); setPanel("layers"); }}>
             <Layers className="size-[18px]" />
           </IconBtn>
           {!isBack ? (
@@ -1470,6 +1492,16 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
       {/* Лист */}
       <div className="relative min-h-0 flex-1">
+        {!isBack && !drawingTool ? (
+          <>
+            <button type="button" className="glass-strong absolute left-1.5 top-1/2 z-[44] grid size-12 -translate-y-1/2 place-items-center rounded-full disabled:opacity-0" disabled={index <= 0} onClick={() => go(-1)} aria-label="Предыдущая страница">
+              <ChevronLeft className="size-6" />
+            </button>
+            <button type="button" className="glass-strong absolute right-1.5 top-1/2 z-[44] grid size-12 -translate-y-1/2 place-items-center rounded-full disabled:opacity-0" disabled={index >= pages.length - 1} onClick={() => go(1)} aria-label="Следующая страница">
+              <ChevronRight className="size-6" />
+            </button>
+          </>
+        ) : null}
         <div
           ref={stageRef}
           className="no-scrollbar absolute inset-0 overflow-auto"
@@ -1484,7 +1516,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             }
           }}
         >
-          <div data-stage="1" className="flex min-h-full items-center justify-center px-6 pb-8 pt-14" style={{ width: zoom > 1 ? size.w * zoom * (twoUp ? 2 : 1) + 48 : "100%" }}>
+          <div data-stage="1" className="flex min-h-full items-center justify-center px-4 pb-4 pt-4 md:px-6 md:pb-8 md:pt-14" style={{ width: zoom > 1 ? size.w * zoom * (twoUp ? 2 : 1) + 48 : "100%" }}>
             {twoUp && partner && side === "right" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="left" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
             <div
               ref={sheetRef}
@@ -1500,7 +1532,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
               onContextMenu={(event) => event.preventDefault()}
             >
               {/* Вылет под обрез: сюда можно тянуть фото, всё остальное отрежется */}
-              <div className="pointer-events-none absolute rounded-[2px] border border-dashed border-rose/40" style={{ inset: `-${bleedPct}%` }} />
+              <div className="pointer-events-none absolute rounded-[2px] border border-dashed border-rose/40" style={{ inset: `-${bleedPctY}% -${bleedPct}%` }} />
               <PageSheet page={page} meta={meta} hideStrokes clip={false} className="rounded-[2px]">
                 <div data-bg="1" className="absolute inset-0" />
                 {page.blocks.map((blockBase) => {
@@ -1590,7 +1622,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             {twoUp && partner && side === "left" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="right" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
           </div>
         </div>
-        <div className="glass-strong absolute bottom-2 right-3 z-10 flex items-center rounded-full p-1">
+        <div className="glass-strong absolute right-3 top-1 z-10 flex origin-top-right items-center rounded-full p-1 max-md:scale-90 md:bottom-2 md:top-auto">
           <IconBtn label="Мельче" disabled={zoom <= 1} onClick={() => setZoom((z) => Math.max(1, z - 0.5))}>
             <ZoomOut className="size-4" />
           </IconBtn>
@@ -1666,7 +1698,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             <span className="truncate text-xs text-muted">Всё двигается и удаляется</span>
           </div>
         ) : (
-          <p className="h-11 truncate pt-3 text-center text-xs text-muted">Пунктир: безопасная зона, текст держите внутри. Фото можно тянуть до самого края.</p>
+          <p className="h-11 truncate pt-3 text-center text-xs text-muted max-md:hidden">Пунктир: безопасная зона, текст держите внутри. Фото можно тянуть до самого края.</p>
         )}
       </div>
 
@@ -1710,9 +1742,6 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           </ToolBtn>
           <ToolBtn label="Слои" onClick={() => { setTool("hand"); setPanel("layers"); }}>
             <Layers className="size-5" />
-          </ToolBtn>
-          <ToolBtn label="Подсказки" onClick={() => setPanel("help")}>
-            <Lightbulb className="size-5" />
           </ToolBtn>
         </div>
       </nav>

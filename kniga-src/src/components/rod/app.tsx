@@ -5,6 +5,8 @@ import { BookScreen } from "@/components/rod/book";
 import { CardsScreen, DeckScreen } from "@/components/rod/cards";
 import { Dock, NavProvider, SideNav, type Nav } from "@/components/rod/chrome";
 import { EditorScreen } from "@/components/rod/editor";
+import { handlePaymentReturn, verifyAccess } from "@/lib/rod/pay";
+import { LegalScreen } from "@/components/rod/legal";
 import { FlipBookScreen } from "@/components/rod/flipbook";
 import { HomeScreen } from "@/components/rod/home";
 import { LessonScreen, LessonsScreen } from "@/components/rod/lessons";
@@ -19,10 +21,18 @@ import type { Screen } from "@/lib/rod/types";
 
 type HistoryState = { rod: true; stack: Screen[] };
 
+/** Адрес #/legal/offer открывает документ сразу, даже до знакомства с приложением. */
+function initialStack(): Screen[] {
+  const match = typeof window !== "undefined" ? window.location.hash.match(/^#\/legal(?:\/([\w-]+))?/) : null;
+  return match ? [{ id: "home" }, { id: "legal", doc: match[1] }] : [{ id: "home" }];
+}
+
 export function RodApp() {
   const onboarded = useRod((state) => state.onboarded);
+  const print = useRod((state) => state.print);
+  const formatKey = `${print.size}x${print.height ?? print.size}`;
   const [hydrated, setHydrated] = useState(false);
-  const [stack, setStack] = useState<Screen[]>([{ id: "home" }]);
+  const [stack, setStack] = useState<Screen[]>(() => initialStack());
   const stackRef = useRef(stack);
   stackRef.current = stack;
 
@@ -31,6 +41,8 @@ export function RodApp() {
     void Promise.resolve(useRod.persist.rehydrate()).finally(() => {
       if (!alive) return;
       afterHydrate();
+      handlePaymentReturn();
+      void verifyAccess();
       setHydrated(true);
     });
     // Просим браузер не чистить базу книги, когда мало места.
@@ -76,7 +88,7 @@ export function RodApp() {
   );
 
   if (!hydrated) return <Onboarding ready={false} />;
-  if (!onboarded) {
+  if (!onboarded && nav.screen.id !== "legal") {
     return (
       <>
         <Onboarding />
@@ -91,10 +103,11 @@ export function RodApp() {
   return (
     <NavProvider value={nav}>
       {full ? (
-        <ScreenView screen={screen} />
+        <ScreenView key={formatKey} screen={screen} />
       ) : (
         <>
-          <div className="mx-auto grid min-h-dvh w-full max-w-6xl gap-6 px-4 pb-5 pt-[max(1.25rem,env(safe-area-inset-top))] lg:grid-cols-[220px_minmax(0,1fr)] lg:px-6 lg:py-8">
+          {screen.id === "lessons" ? <div aria-hidden className="fixed inset-0 bg-[#14160f]" /> : null}
+          <div className="relative mx-auto grid min-h-dvh w-full max-w-6xl gap-6 px-4 pb-5 pt-[max(1.25rem,env(safe-area-inset-top))] lg:grid-cols-[220px_minmax(0,1fr)] lg:px-6 lg:py-8">
             <SideNav />
             <main key={stack.length + screen.id} className="min-w-0 pb-32 lg:pb-8">
               <ScreenView screen={screen} />
@@ -139,6 +152,8 @@ function ScreenView({ screen }: { screen: Screen }) {
       return <PhotoNewScreen />;
     case "surname":
       return <SurnameScreen />;
+    case "legal":
+      return <LegalScreen doc={screen.doc} />;
     default:
       return <HomeScreen />;
   }

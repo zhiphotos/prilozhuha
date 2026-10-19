@@ -1,6 +1,8 @@
 import { toast } from "sonner";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import { applyFormat } from "@/lib/rod/book-format";
+import { noteEdit } from "@/lib/rod/edit-counter";
 import { DEFAULT_PRINT, isDark, type PrintSetup } from "@/lib/rod/page-style";
 import { MEDIA_STORE, STATE_STORE, idbClear, idbGet, idbSet } from "@/lib/rod/idb";
 import { activeProjectId, listProjects, setActiveProject, storageKeyFor } from "@/lib/rod/projects";
@@ -37,6 +39,8 @@ type RodState = {
   pages: BookPage[];
   trash: TrashedPage[];
   programOpen: boolean;
+  /** Оплаченный доступ: подписанный токен от сервера. В копию книги не попадает, чтобы файлом нельзя было открыть программу другим. */
+  access: { token: string; until: number; order: string } | null;
   doneLessons: string[];
   print: PrintSetup;
   /** Картинки-ориентиры для дизайна («вайб»), в книгу не печатаются. */
@@ -93,6 +97,8 @@ type RodState = {
   restorePage: (id: string) => void;
   purgeTrash: () => void;
   openProgram: () => void;
+  grantAccess: (access: { token: string; until: number; order: string }) => void;
+  revokeAccess: () => void;
   completeLesson: (id: string) => void;
   resetAll: () => void;
 };
@@ -114,6 +120,7 @@ const empty = {
   pages: [] as BookPage[],
   trash: [] as TrashedPage[],
   programOpen: false,
+  access: null,
   doneLessons: [] as string[],
   print: DEFAULT_PRINT as PrintSetup,
   moodboard: [] as string[],
@@ -278,7 +285,10 @@ export const useRod = create<RodState>()(
         set((state) => ({
           people: state.people.map((person) => (person.id === id ? { ...person, ...patch } : person)),
         })),
-      removePerson: (id) => set((state) => ({ people: state.people.filter((person) => person.id !== id) })),
+      removePerson: (id) =>
+        set((state) => ({
+          people: state.people.filter((person) => person.id !== id).map((person) => (person.parents?.includes(id) ? { ...person, parents: person.parents.filter((parent) => parent !== id) } : person)),
+        })),
       addPlace: (input) => set((state) => ({ places: [{ ...input, id: uid() }, ...state.places] })),
       removePlace: (id) => set((state) => ({ places: state.places.filter((place) => place.id !== id) })),
       addPhoto: (input) => {
@@ -309,11 +319,13 @@ export const useRod = create<RodState>()(
         set((state) => ({ pages: [...state.pages, { ...input, id }] }));
         return id;
       },
-      updatePage: (id, updater) =>
+      updatePage: (id, updater) => {
+        noteEdit();
         set((state) => {
           if (id === BACK_ID) return { back: updater(state.back ?? backPage(state.pages[0]?.kind === "cover" ? state.pages[0] : null)) };
-          return { pages: state.pages.map((page) => (page.id === id ? updater(page) : page)) };
-        }),
+          return { pages: state.pages.map((page) => (page.id === id ? { ...updater(page), editedAt: Date.now() } : page)) };
+        });
+      },
       setPlan: (plan) => set({ plan }),
       toggleChapter: (id) => set((state) => ({ plan: state.plan.map((c) => (c.id === id ? { ...c, done: !c.done } : c)) })),
       setChapterPlanned: (id, planned) => set((state) => ({ plan: state.plan.map((c) => (c.id === id ? { ...c, planned: Math.max(1, Math.min(60, Math.round(planned))) } : c)) })),
@@ -424,6 +436,8 @@ export const useRod = create<RodState>()(
         }),
       purgeTrash: () => set({ trash: [] }),
       openProgram: () => set({ programOpen: true }),
+      grantAccess: (access) => set({ access, programOpen: true }),
+      revokeAccess: () => set({ access: null, programOpen: false }),
       addMood: (ref) => set((state) => ({ moodboard: [ref, ...state.moodboard].slice(0, 120) })),
       removeMood: (ref) => set((state) => ({ moodboard: state.moodboard.filter((item) => item !== ref) })),
       setPrint: (patch) => set((state) => ({ print: { ...state.print, ...patch } })),
@@ -444,3 +458,8 @@ export const useRod = create<RodState>()(
     },
   ),
 );
+
+// Формат страницы (пропорция) живёт в настройках печати: при смене или загрузке книги пересчитываем размеры.
+useRod.subscribe((state, prev) => {
+  if (state.print !== prev.print) applyFormat(state.print);
+});

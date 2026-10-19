@@ -1,10 +1,14 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { Cut } from "@/components/rod/botanica";
 import { STORY_TEMPLATES, findTemplate } from "@/lib/rod/content";
 import { composeStory } from "@/lib/rod/narrative";
 import { useRod } from "@/lib/rod/store";
 import { pageFromStory } from "@/lib/rod/layouts";
 import { DictateButton } from "@/components/rod/dictate-button";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
+
+/** Вырезки из её библиотеки: разделяют группы историй. */
+const DIVIDERS = ["peony", "lily_valley", "rosebuds", "daffodil", "stick_rosehip", "driftwood"];
 
 export function StoriesScreen() {
   const nav = useNav();
@@ -34,19 +38,28 @@ export function StoriesScreen() {
       ) : null}
       <ul className="mt-5 grid gap-2">
         {STORY_TEMPLATES.map((template, index) => (
-          <li key={template.id} data-tour={index === 0 ? "stories-list" : undefined}>
-            <button
-              type="button"
-              onClick={() => nav.go({ id: "wizard", templateId: template.id })}
-              className="glass flex w-full items-center justify-between gap-3 rounded-3xl px-4 py-4 text-left"
-            >
-              <span>
-                <span className="block font-medium text-ink">{template.title}</span>
-                <span className="block text-sm text-muted">{template.lead}</span>
-              </span>
-              <span className="shrink-0 text-sm text-rose-deep">{template.questions.length}</span>
-            </button>
-          </li>
+          <Fragment key={template.id}>
+            {index > 0 && index % 3 === 0 ? (
+              <li aria-hidden className="flex items-center gap-3 py-3">
+                <span className="h-px flex-1 bg-ink/15" />
+                <Cut id={DIVIDERS[(index / 3 - 1) % DIVIDERS.length]} className="w-24 shrink-0" style={{ transform: `rotate(${index % 2 ? -6 : 6}deg)` }} />
+                <span className="h-px flex-1 bg-ink/15" />
+              </li>
+            ) : null}
+            <li data-tour={index === 0 ? "stories-list" : undefined}>
+              <button
+                type="button"
+                onClick={() => nav.go({ id: "wizard", templateId: template.id })}
+                className="glass flex w-full items-center justify-between gap-3 rounded-3xl px-4 py-4 text-left"
+              >
+                <span>
+                  <span className="block font-medium text-ink">{template.title}</span>
+                  <span className="block text-sm text-muted">{template.lead}</span>
+                </span>
+                <span className="shrink-0 text-sm text-rose-deep">{template.questions.length}</span>
+              </button>
+            </li>
+          </Fragment>
         ))}
       </ul>
     </ScreenFrame>

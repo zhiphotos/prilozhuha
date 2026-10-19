@@ -3,30 +3,48 @@
 import type { FontKind, FontRef, PaperKind, StickerKind, TextLook } from "@/lib/rod/types";
 
 /** Книга квадратная: страница на экране и в печати – квадрат. Размер в см выбирается при печати. */
-export const PAGE_RATIO = 1;
+export let PAGE_RATIO = 1;
+/** Формат книги меняется пользователем: высота страницы в долях ширины. Меняет и `PAGE_H` в ink.ts через applyFormat (book-format.ts). */
+export function setPageRatio(ratio: number): void {
+  PAGE_RATIO = Math.max(0.3, Math.min(3, ratio));
+}
 
-export type BookSize = 20 | 25 | 30;
-export const BOOK_SIZES: BookSize[] = [20, 25, 30];
+export type BookSize = number;
+/** Готовые форматы: ширина × высота страницы, см. Свой размер вводится руками. */
+export const BOOK_FORMATS: { id: string; w: number; h: number; label: string }[] = [
+  { id: "sq20", w: 20, h: 20, label: "Квадрат 20×20" },
+  { id: "sq25", w: 25, h: 25, label: "Квадрат 25×25" },
+  { id: "sq30", w: 30, h: 30, label: "Квадрат 30×30" },
+  { id: "a5", w: 14.8, h: 21, label: "A5 книжная" },
+  { id: "a4", w: 21, h: 29.7, label: "A4 книжная" },
+  { id: "a4l", w: 29.7, h: 21, label: "A4 альбомная" },
+  { id: "alb", w: 30, h: 20, label: "Альбом 30×20" },
+  { id: "por", w: 20, h: 25, label: "Книжная 20×25" },
+];
+export const heightCm = (setup: { size: number; height?: number }): number => setup.height ?? setup.size;
 
 /** Охранное поле от края обреза и от корешка, мм. */
 export const SAFE_MM = 10;
 export const GUTTER_MM = 15;
 
-export type PrintSetup = { size: BookSize; bleed: number; spine: number };
+/** size – ширина страницы в см, height – высота (если не задана, квадрат). */
+export type PrintSetup = { size: BookSize; height?: number; bleed: number; spine: number };
 export const DEFAULT_PRINT: PrintSetup = { size: 30, bleed: 5, spine: 10 };
 
 /**
  * Безопасная зона страницы в % стороны листа.
  * side: "right" – правая страница разворота (корешок слева), "left" – левая, "single" – обложка.
  */
-export function safeArea(size: BookSize, side: "left" | "right" | "single") {
-  const safe = (SAFE_MM / (size * 10)) * 100;
-  const gutter = (GUTTER_MM / (size * 10)) * 100;
+export function safeArea(width: number, height: number, side: "left" | "right" | "single") {
+  // Поля в % страницы: по горизонтали от ширины, по вертикали от высоты (как у блоков).
+  const safeX = (SAFE_MM / (width * 10)) * 100;
+  const safeY = (SAFE_MM / (height * 10)) * 100;
+  const gutter = (GUTTER_MM / (width * 10)) * 100;
   return {
-    top: safe,
-    bottom: safe,
-    left: side === "right" ? gutter : safe,
-    right: side === "left" ? gutter : safe,
+    top: safeY,
+    bottom: safeY,
+    left: side === "right" ? gutter : safeX,
+    right: side === "left" ? gutter : safeX,
   };
 }
 

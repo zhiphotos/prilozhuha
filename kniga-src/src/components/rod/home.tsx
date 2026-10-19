@@ -1,17 +1,19 @@
 import { useState } from "react";
-import { ArrowRight, BookCopy, BookOpen, Camera, Clock, Play, Search, Settings2, Users } from "lucide-react";
+import { ArrowRight, BookCopy, BookOpen, Camera, Clock, GraduationCap, PenLine, Play, Search, Settings2, Users } from "lucide-react";
 import { OpenCopyButton } from "@/components/rod/open-copy";
 import { requestTour } from "@/components/rod/tour";
 import { Botanica, Cut, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/botanica";
 import { filledCount } from "@/components/rod/contents-sheet";
-import { AUDIENCES, LESSONS, audienceTitle, reminder } from "@/lib/rod/content";
+import { AUDIENCES, LESSONS, SITUATIONS, audienceTitle, reminder } from "@/lib/rod/content";
+import { DeckLink } from "@/components/rod/cards";
+import { LegalLinks } from "@/components/rod/legal";
 import { countsOf, isBookReady, nextStep, overallOf, partsOf, plural } from "@/lib/rod/progress";
 import { useRod } from "@/lib/rod/store";
 import type { Audience, Screen } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
 import { toast } from "sonner";
 import { Button, Field, ScreenFrame, Sheet, lineStyle, useNav } from "@/components/rod/chrome";
-import { exportBook, lastBackupAt } from "@/lib/rod/backup";
+import { changedSinceBackup, exportBook, lastBackupAt } from "@/lib/rod/backup";
 import { InstallCard, InstallSheet } from "@/components/rod/install-hint";
 import { ProjectsSheet } from "@/components/rod/projects-sheet";
 import { activeProjectId, listProjects } from "@/lib/rod/projects";
@@ -36,7 +38,7 @@ export function HomeScreen() {
 
   const total = counts.people + counts.places + counts.photos + counts.stories + counts.docs + counts.notes;
   const worked = data.pages.filter((page) => page.kind !== "cover" && filledCount(page) > 0);
-  const last = worked[worked.length - 1];
+  const last = worked.reduce<(typeof worked)[number] | undefined>((best, page) => (!best || (page.editedAt ?? 0) >= (best.editedAt ?? 0) ? page : best), undefined);
   const mode: "new" | "started" | "going" = last && (worked.length >= 3 || ready) ? "going" : total > 0 || data.pages.length > 1 ? "started" : "new";
   const facts = [
     counts.people ? plural(counts.people, "человек", "человека", "человек") : "",
@@ -133,9 +135,27 @@ export function HomeScreen() {
       ) : null}
 
       <section className="mt-9">
+        <div className="flex items-baseline justify-between border-b border-ink/15 pb-2">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Вопросы для семьи</h2>
+          <button type="button" className="text-xs font-semibold text-moss underline" onClick={() => nav.tab({ id: "cards" })}>
+            Все колоды
+          </button>
+        </div>
+        {/* Карточки листаются вбок, как в Кики. */}
+        <ul className="no-scrollbar -mx-5 mt-3 flex snap-x snap-mandatory scroll-pl-5 gap-3 overflow-x-auto px-5 pb-2">
+          {SITUATIONS.map((item) => (
+            <li key={item.id} className="w-[68%] max-w-64 shrink-0 snap-start">
+              <DeckLink item={item} saved={data.notes.filter((note) => note.situationId === item.id).length} onOpen={() => nav.go({ id: "deck", situationId: item.id })} />
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="mt-9">
         <h2 className="border-b border-ink/15 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Ещё в мастерской</h2>
         <ul>
-          <Row icon={Search} title="Откуда моя фамилия?" text="Значение, написание, регионы" onClick={() => nav.go({ id: "surname" })} />
+          <Row icon={PenLine} title="Расскажи историю" text="Первая любовь, дом детства, праздник: приложение задаёт вопросы и собирает черновик главы" onClick={() => nav.tab({ id: "stories" })} />
+          {free ? <Row icon={GraduationCap} title="Бесплатный урок" text={`«${free.title}»: ${free.minutes} минут`} onClick={() => nav.go({ id: "lesson", lessonId: free.id })} /> : null}
           <Row icon={Camera} title="Оцифровать фотографию" text="Кто, где, какой год" onClick={() => nav.go({ id: "photo-new" })} />
           <Row icon={Clock} title="Лента времени" text={counts.events ? plural(counts.events, "событие", "события", "событий") : "Годы рядом друг с другом"} onClick={() => nav.go({ id: "archive", tab: "time" })} />
           <Row icon={Users} title="Семейный архив" text={counts.people ? plural(counts.people, "человек", "человека", "человек") : "Люди, места, бумаги"} onClick={() => nav.go({ id: "archive", tab: "people" })} />
@@ -160,6 +180,8 @@ export function HomeScreen() {
       <BackupCard hasData={total > 0 || data.pages.length > 1} />
       <InstallCard />
 
+      <LegalLinks />
+
       <p className="hand mt-12 text-center text-[1.9rem] text-gold-ink">с любовью к роду</p>
       <Botanica id="sprout" pal={PAL_LIGHT} className="mx-auto mt-1 h-14 opacity-80" />
 
@@ -172,7 +194,7 @@ export function HomeScreen() {
 function BackupCard({ hasData }: { hasData: boolean }) {
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState(() => lastBackupAt());
-  const old = last ? Date.now() - last.getTime() > 7 * 86400000 : hasData;
+  const old = last ? Date.now() - last.getTime() > 7 * 86400000 || changedSinceBackup() : hasData;
   const save = () => {
     setBusy(true);
     void exportBook()
@@ -190,7 +212,7 @@ function BackupCard({ hasData }: { hasData: boolean }) {
       <p className="mt-1 text-[1.35rem] font-semibold leading-tight text-ink">
         {last ? `Последняя копия: ${last.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}` : hasData ? "Копии ещё нет" : "Здесь появится копия"}
       </p>
-      <p className="mt-1 text-sm text-muted">Весь текст и все фото в одном файле. Его можно открыть на другом телефоне или сохранить в «Файлы», чтобы ничего не потерять.</p>
+      <p className="mt-1 text-sm text-muted">Книга хранится только в этом телефоне или браузере, ни в каком аккаунте её нет. Сохраняйте копию после каждой работы: весь текст и все фото в одном файле. Его можно открыть на другом устройстве или положить в «Файлы».</p>
       <Button className="mt-4" onClick={save} disabled={busy || !hasData}>
         {busy ? "Собираю…" : "Скачать копию всей книги"}
       </Button>
