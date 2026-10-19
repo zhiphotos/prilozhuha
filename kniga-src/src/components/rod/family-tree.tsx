@@ -67,8 +67,7 @@ export function TreePane() {
     if (!ctx) throw new Error("Не удалось нарисовать");
     ctx.scale(scale, scale);
     ctx.translate(pad, pad);
-    ctx.fillStyle = "#f3f0e8";
-    ctx.fillRect(-pad, -pad, base.width + pad * 2, base.height + pad * 2);
+    // Фон не рисуем: картинка прозрачная и ложится на любую бумагу страницы.
     ctx.strokeStyle = "rgba(63,74,34,0.55)";
     ctx.lineWidth = 1.5;
     for (const line of lines) {
