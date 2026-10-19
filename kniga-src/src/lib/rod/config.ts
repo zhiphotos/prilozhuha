@@ -15,26 +15,26 @@ export const ACCESS_CODES = ["КНИГА"];
  */
 export const LESSON_VIDEO: Record<string, string> = {
   start: "",
-  interview: "",
-  maiden: "",
-  photo: "",
-  places: "",
-  chapter: "",
-  assemble: "",
+  l1: "",
+  l2: "",
+  l3: "",
+  l4: "",
+  l5: "",
+  l6: "",
 };
 
 /**
  * Папка с видео уроков в Dropbox. Ссылка на сам файл открывает его просмотр без входа в Dropbox.
- * Соответствие уроков файлам проверить: urok-1 … urok-6 (urok-4 и urok-6 в папке с пометкой «.part», это недокачанные файлы).
+ * Урок 1 … 6 программы = urok-1 … urok-6 (urok-4 и urok-6 в папке с пометкой «.part», это недокачанные файлы).
  */
 export const DROPBOX_FOLDER = "https://www.dropbox.com/scl/fo/nzjex04qtrfybe9wfip7y/AF1xesGjy07aCaV8m8mJlAY?rlkey=v1ln94f0d92njb8i57fu70io7&st=p93yv3ps";
 export const LESSON_DROPBOX_FILE: Record<string, string> = {
-  interview: "urok-1.mp4",
-  maiden: "urok-2.mp4",
-  photo: "urok-3.mp4",
-  places: "urok-4.mp4.part.mp4",
-  chapter: "urok-5.mp4",
-  assemble: "urok-6.mp4.part.mp4",
+  l1: "urok-1.mp4",
+  l2: "urok-2.mp4",
+  l3: "urok-3.mp4",
+  l4: "urok-4.mp4.part.mp4",
+  l5: "urok-5.mp4",
+  l6: "urok-6.mp4.part.mp4",
 };
 
 export function dropboxLessonUrl(lessonId: string): string {

@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { ArrowRight, BookCopy, BookOpen, Camera, Clock, Play, Search, Settings2, Users } from "lucide-react";
+import { ArrowRight, BookCopy, BookOpen, Camera, Clock, GraduationCap, PenLine, Play, Search, Settings2, Users } from "lucide-react";
 import { OpenCopyButton } from "@/components/rod/open-copy";
 import { requestTour } from "@/components/rod/tour";
 import { Botanica, Cut, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/botanica";
 import { filledCount } from "@/components/rod/contents-sheet";
-import { AUDIENCES, LESSONS, audienceTitle, reminder } from "@/lib/rod/content";
+import { AUDIENCES, LESSONS, SITUATIONS, audienceTitle, reminder } from "@/lib/rod/content";
+import { DeckLink } from "@/components/rod/cards";
 import { countsOf, isBookReady, nextStep, overallOf, partsOf, plural } from "@/lib/rod/progress";
 import { useRod } from "@/lib/rod/store";
 import type { Audience, Screen } from "@/lib/rod/types";
@@ -133,9 +134,27 @@ export function HomeScreen() {
       ) : null}
 
       <section className="mt-9">
+        <div className="flex items-baseline justify-between border-b border-ink/15 pb-2">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Вопросы для семьи</h2>
+          <button type="button" className="text-xs font-semibold text-moss underline" onClick={() => nav.tab({ id: "cards" })}>
+            Все колоды
+          </button>
+        </div>
+        {/* Карточки листаются вбок, как в Кики. */}
+        <ul className="no-scrollbar -mx-5 mt-3 flex snap-x snap-mandatory scroll-pl-5 gap-3 overflow-x-auto px-5 pb-2">
+          {SITUATIONS.map((item) => (
+            <li key={item.id} className="w-[68%] max-w-64 shrink-0 snap-start">
+              <DeckLink item={item} saved={data.notes.filter((note) => note.situationId === item.id).length} onOpen={() => nav.go({ id: "deck", situationId: item.id })} />
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="mt-9">
         <h2 className="border-b border-ink/15 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Ещё в мастерской</h2>
         <ul>
-          <Row icon={Search} title="Откуда моя фамилия?" text="Значение, написание, регионы" onClick={() => nav.go({ id: "surname" })} />
+          <Row icon={PenLine} title="Расскажи историю" text="Первая любовь, дом детства, праздник: приложение задаёт вопросы и собирает черновик главы" onClick={() => nav.tab({ id: "stories" })} />
+          {free ? <Row icon={GraduationCap} title="Бесплатный урок" text={`«${free.title}»: ${free.minutes} минут`} onClick={() => nav.go({ id: "lesson", lessonId: free.id })} /> : null}
           <Row icon={Camera} title="Оцифровать фотографию" text="Кто, где, какой год" onClick={() => nav.go({ id: "photo-new" })} />
           <Row icon={Clock} title="Лента времени" text={counts.events ? plural(counts.events, "событие", "события", "событий") : "Годы рядом друг с другом"} onClick={() => nav.go({ id: "archive", tab: "time" })} />
           <Row icon={Users} title="Семейный архив" text={counts.people ? plural(counts.people, "человек", "человека", "человек") : "Люди, места, бумаги"} onClick={() => nav.go({ id: "archive", tab: "people" })} />
