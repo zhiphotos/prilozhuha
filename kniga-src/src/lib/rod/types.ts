@@ -11,6 +11,13 @@ export type Person = {
   deathYear?: string;
   /** Родители (id людей из этого же списка): по ним строится схема семьи. */
   parents?: string[];
+  /** Имя, отчество и фамилия по отдельности; `name` собирается из них. */
+  firstName?: string;
+  patronymic?: string;
+  lastName?: string;
+  gender?: "m" | "f";
+  /** Фото человека (ссылка на хранилище), в древе показывается кружком. */
+  photo?: string;
 };
 
 export type Place = {
@@ -189,6 +196,8 @@ export type PageBlock =
       ow: number;
       oh: number;
       strokes: InkStroke[];
+      /** Заливка внутри контура (картинка во всю рамку рисунка, под линиями). */
+      fill?: string;
     } & Placed);
 
 /** Глава из оглавления: её страницы помечены `chapterId`. */

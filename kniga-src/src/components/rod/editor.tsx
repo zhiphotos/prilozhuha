@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, Sheet, useNav } from "@/components/rod/chrome";
+import { fillInside } from "@/lib/rod/fill";
 import { BlockBar, Inspector, PenBar, TextPanel, type BlockOps, type Tool } from "@/components/rod/editor-bars";
 import { FontsSheet, GENERIC_QUESTIONS, HelpSheet, LayersSheet, PasteSheet, PhotoSheet, PinterestPanel, StickersSheet, type PhotoStyle } from "@/components/rod/editor-sheets";
 import { BarBtn, IconBtn, MenuRow, ToolBtn } from "@/components/rod/editor-ui";
@@ -830,6 +831,25 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     // Второй палец – это жест (шаг назад), а не рисование.
     if (touches.current.size >= 2) return true;
     setEditing(null);
+    if (tool === "fill") {
+      const at = toPct(event.clientX, event.clientY);
+      const live = current();
+      if (live) {
+        void fillInside(live, at.x, at.y, pen.color).then((result) => {
+          if (result.ok) {
+            commit(result.page);
+            toast("Закрашено", { duration: 1200 });
+          } else if (result.reason === "open") {
+            toast("Контур не замкнут: цвет вытекает за край. Закройте щель линией и нажмите снова.", { duration: 5000 });
+          } else if (result.reason === "wall") {
+            toast("Вы нажали на саму линию. Нажмите внутри контура.", { duration: 3500 });
+          } else {
+            toast("Не получилось закрасить", { duration: 3000 });
+          }
+        });
+      }
+      return true;
+    }
     try {
       sheetRef.current?.setPointerCapture(event.pointerId);
     } catch {
@@ -1496,7 +1516,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             }
           }}
         >
-          <div data-stage="1" className="flex min-h-full items-center justify-center px-6 pb-8 pt-14" style={{ width: zoom > 1 ? size.w * zoom * (twoUp ? 2 : 1) + 48 : "100%" }}>
+          <div data-stage="1" className="flex min-h-full items-center justify-center px-4 pb-4 pt-4 md:px-6 md:pb-8 md:pt-14" style={{ width: zoom > 1 ? size.w * zoom * (twoUp ? 2 : 1) + 48 : "100%" }}>
             {twoUp && partner && side === "right" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="left" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
             <div
               ref={sheetRef}
@@ -1602,7 +1622,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             {twoUp && partner && side === "left" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="right" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
           </div>
         </div>
-        <div className="glass-strong absolute bottom-2 right-3 z-10 flex items-center rounded-full p-1">
+        <div className="glass-strong absolute right-3 top-1 z-10 flex origin-top-right items-center rounded-full p-1 max-md:scale-90 md:bottom-2 md:top-auto">
           <IconBtn label="Мельче" disabled={zoom <= 1} onClick={() => setZoom((z) => Math.max(1, z - 0.5))}>
             <ZoomOut className="size-4" />
           </IconBtn>

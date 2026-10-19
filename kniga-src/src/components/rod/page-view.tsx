@@ -276,6 +276,7 @@ export function ShapeArt({ block }: { block: Extract<PageBlock, { type: "shape" 
 export function InkArt({ block, editing }: { block: Extract<PageBlock, { type: "ink" }>; editing: boolean }) {
   return (
     <svg viewBox={`0 0 ${block.ow} ${block.oh}`} preserveAspectRatio="none" className="pointer-events-none block h-full w-full overflow-visible">
+      {block.fill ? <FillImage src={block.fill} w={block.ow} h={block.oh} editing={editing} /> : null}
       {block.strokes.map((stroke) => (
         <StrokeShape key={stroke.id} stroke={stroke} />
       ))}
@@ -297,6 +298,13 @@ export function InkArt({ block, editing }: { block: Extract<PageBlock, { type: "
         : null}
     </svg>
   );
+}
+
+/** Заливка фигуры: картинка под линиями, растягивается вместе с рисунком. */
+function FillImage({ src, w, h, editing }: { src: string; w: number; h: number; editing: boolean }) {
+  const url = useMedia(src);
+  // В режиме правки нажатие на залитое место выбирает всю фигуру, как нажатие на фото.
+  return url ? <image href={url} x={0} y={0} width={w} height={h} preserveAspectRatio="none" data-hit={editing ? "1" : undefined} style={editing ? { pointerEvents: "all" } : undefined} /> : null;
 }
 
 function hitPoints(points: number[]) {

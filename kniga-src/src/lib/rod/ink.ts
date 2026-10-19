@@ -646,7 +646,7 @@ export function makeInkBlock(strokes: InkStroke[], newId: () => string): InkBloc
 
 /** Дописывает штрих к свежему нетронутому рисунку (слово, написанное несколькими штрихами). */
 export function mergeInk(block: InkBlock, stroke: InkStroke): InkBlock {
-  const untouched = !block.rotate && Math.abs(block.w - block.ow) < 0.05 && Math.abs(block.h - block.oh) < 0.05;
+  const untouched = !block.fill && !block.rotate && Math.abs(block.w - block.ow) < 0.05 && Math.abs(block.h - block.oh) < 0.05;
   if (!untouched) return makeInkBlock([stroke], () => crypto.randomUUID());
   const mine = shiftStrokes(block.strokes, block.x, block.y);
   const merged = makeInkBlock([...mine, stroke], () => block.id);

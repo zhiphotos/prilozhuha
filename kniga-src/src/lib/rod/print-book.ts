@@ -382,7 +382,7 @@ function paintShape(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { t
   ctx.restore();
 }
 
-function paintStrokeList(ctx: CanvasRenderingContext2D, strokes: import("@/lib/rod/types").InkStroke[]) {
+export function paintStrokeList(ctx: CanvasRenderingContext2D, strokes: import("@/lib/rod/types").InkStroke[]) {
   for (const stroke of strokes) {
     if (isStampBrush(stroke.brush)) {
       const raster = stampRaster(stroke);
@@ -414,7 +414,7 @@ function paintStrokeList(ctx: CanvasRenderingContext2D, strokes: import("@/lib/r
   }
 }
 
-function paintInk(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { type: "ink" }>) {
+async function paintInk(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { type: "ink" }>) {
   const x = (block.x / 100) * W;
   const y = (block.y / 100) * H;
   const w = (block.w / 100) * W;
@@ -422,6 +422,10 @@ function paintInk(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { typ
   ctx.save();
   rotateAround(ctx, x, y, w, h, block.rotate ?? 0);
   ctx.scale(w / block.ow, h / block.oh);
+  if (block.fill) {
+    const fill = await loadMedia(block.fill);
+    if (fill) ctx.drawImage(fill, 0, 0, block.ow, block.oh);
+  }
   paintStrokeList(ctx, block.strokes);
   ctx.restore();
 }
@@ -456,7 +460,7 @@ async function paintBlock(ctx: CanvasRenderingContext2D, block: PageBlock, dark:
     else if (block.type === "photo") await paintPhoto(target, block);
     else if (block.type === "sticker") await paintSticker(target, block);
     else if (block.type === "shape") paintShape(target, block);
-    else if (block.type === "ink") paintInk(target, block);
+    else if (block.type === "ink") await paintInk(target, block);
   };
   const mask = block.mask && block.mask.strokes.length ? block.mask : null;
   if (!mask && block.opacity === undefined && !block.blend) {

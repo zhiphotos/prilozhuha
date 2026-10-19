@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { DOC_KINDS, EXAMPLE_TIMELINE, RELATIONS, canHaveMaiden } from "@/lib/rod/content";
+import { DOC_KINDS, EXAMPLE_TIMELINE } from "@/lib/rod/content";
+import { maidenAllowed, personEvents } from "@/lib/rod/person";
+import { EMPTY_PERSON, PersonAvatar, PersonEditor, PersonFields, type PersonDraft } from "@/components/rod/person-fields";
 import { useRod } from "@/lib/rod/store";
 import type { ArchiveTab } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
@@ -12,7 +14,7 @@ import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chr
 
 const TABS: { id: ArchiveTab; label: string }[] = [
   { id: "people", label: "Люди" },
-  { id: "tree", label: "Схема" },
+  { id: "tree", label: "Древо" },
   { id: "time", label: "Лента" },
   { id: "photos", label: "Фото" },
   { id: "places", label: "Места" },
@@ -65,143 +67,46 @@ export function ArchiveScreen({ tab }: { tab: ArchiveTab }) {
 function PeoplePane() {
   const people = useRod((state) => state.people);
   const addPerson = useRod((state) => state.addPerson);
-  const updatePerson = useRod((state) => state.updatePerson);
-  const removePerson = useRod((state) => state.removePerson);
-  const [name, setName] = useState("");
-  const [relation, setRelation] = useState("бабушка");
-  const [birthYear, setBirthYear] = useState("");
-  const [maidenName, setMaidenName] = useState("");
-  const [parentIds, setParentIds] = useState<string[]>([]);
+  const [draft, setDraft] = useState<PersonDraft>(EMPTY_PERSON);
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
     <div className="grid gap-4">
       <AddFold label="Добавить человека" empty={people.length === 0}>
-      <form
-        className="glass grid gap-3 rounded-2xl p-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (!name.trim()) return;
-          addPerson({ name: name.trim(), relation, birthYear: birthYear.trim(), maidenName: canHaveMaiden(relation) ? maidenName.trim() : "", notes: "", parents: parentIds.filter(Boolean) });
-          setParentIds([]);
-          setName("");
-          setBirthYear("");
-          setMaidenName("");
-          toast("Человек добавлен");
-        }}
-      >
-        <Field label="Имя">
-          <input className="field" value={name} onChange={(event) => setName(event.target.value)} placeholder="Как зовут в семье" />
-        </Field>
-        <Field label="Кем приходится">
-          <select className="field" value={relation} onChange={(event) => setRelation(event.target.value)}>
-            {RELATIONS.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
-        </Field>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Год рождения" hint="Если помните примерно – так и напишите.">
-            <input className="field" value={birthYear} onChange={(event) => setBirthYear(event.target.value)} placeholder="1948" />
-          </Field>
-          {canHaveMaiden(relation) ? (
-            <Field label="Девичья фамилия">
-              <input className="field" value={maidenName} onChange={(event) => setMaidenName(event.target.value)} placeholder="Если знаете" />
-            </Field>
-          ) : null}
-        </div>
-        {people.length ? (
-          <Field label="Чей ребёнок" hint="Родители нужны для схемы семьи. Можно пропустить.">
-            <div className="grid grid-cols-2 gap-2">
-              {[0, 1].map((slot) => (
-                <select key={slot} className="field" value={parentIds[slot] ?? ""} onChange={(event) => setParentIds((current) => { const next = [...current]; next[slot] = event.target.value; return next; })}>
-                  <option value="">{slot === 0 ? "Родитель 1" : "Родитель 2"}</option>
-                  {people.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} ({item.relation})
-                    </option>
-                  ))}
-                </select>
-              ))}
-            </div>
-          </Field>
-        ) : null}
-        <Button type="submit" disabled={!name.trim()}>
-          Добавить в семью
-        </Button>
-      </form>
+        <form
+          className="glass grid gap-3 rounded-2xl p-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!draft.name.trim()) return;
+            addPerson({ ...draft, name: draft.name.trim(), maidenName: maidenAllowed(draft) ? draft.maidenName.trim() : "", birthYear: draft.birthYear.trim(), parents: (draft.parents ?? []).filter(Boolean) });
+            setDraft(EMPTY_PERSON);
+            toast("Человек добавлен: он на ленте и в древе");
+          }}
+        >
+          <PersonFields value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} others={people} />
+          <Button type="submit" disabled={!draft.name.trim()}>
+            Добавить в семью
+          </Button>
+        </form>
       </AddFold>
       <ul className="grid gap-2">
         {people.map((person) => (
           <li key={person.id} className="glass rounded-2xl p-4">
-            <button type="button" className="w-full text-left" onClick={() => setOpenId((value) => (value === person.id ? null : person.id))}>
-              <p className="text-lg font-semibold text-ink">{person.name}</p>
-              <p className="text-sm text-muted">
-                {person.relation}
-                {person.birthYear ? ` · ${person.birthYear}` : ""}
-                {person.maidenName && canHaveMaiden(person.relation) ? ` · девичья ${person.maidenName}` : ""}
-                {person.deathYear ? ` – ${person.deathYear}` : ""}
-              </p>
+            <button type="button" className="flex w-full items-center gap-3 text-left" onClick={() => setOpenId((value) => (value === person.id ? null : person.id))}>
+              <PersonAvatar person={person} size={48} />
+              <span className="min-w-0">
+                <span className="block text-lg font-semibold text-ink">{person.name}</span>
+                <span className="block text-sm text-muted">
+                  {person.relation}
+                  {person.birthYear ? ` · ${person.birthYear}` : ""}
+                  {person.deathYear ? ` – ${person.deathYear}` : ""}
+                  {person.maidenName && maidenAllowed(person) ? ` · девичья ${person.maidenName}` : ""}
+                </span>
+              </span>
             </button>
             {openId === person.id ? (
-              <div className="mt-3 grid gap-3">
-                <Field label="Имя и фамилия">
-                  <input className="field" value={person.name} onChange={(event) => updatePerson(person.id, { name: event.target.value })} />
-                </Field>
-                <Field label="Кем приходится">
-                  <select className="field" value={person.relation} onChange={(event) => updatePerson(person.id, { relation: event.target.value })}>
-                    {(RELATIONS.includes(person.relation) ? RELATIONS : [person.relation, ...RELATIONS]).map((item) => (
-                      <option key={item}>{item}</option>
-                    ))}
-                  </select>
-                </Field>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Год рождения">
-                    <input className="field" value={person.birthYear} onChange={(event) => updatePerson(person.id, { birthYear: event.target.value })} />
-                  </Field>
-                  <Field label="Год ухода" hint="Если нужно.">
-                    <input className="field" value={person.deathYear ?? ""} onChange={(event) => updatePerson(person.id, { deathYear: event.target.value })} />
-                  </Field>
-                </div>
-                {canHaveMaiden(person.relation) ? (
-                  <Field label="Девичья фамилия">
-                    <input className="field" value={person.maidenName} onChange={(event) => updatePerson(person.id, { maidenName: event.target.value })} />
-                  </Field>
-                ) : null}
-                <Field label="Чей ребёнок">
-                  <div className="grid grid-cols-2 gap-2">
-                    {[0, 1].map((slot) => (
-                      <select
-                        key={slot}
-                        className="field"
-                        value={person.parents?.[slot] ?? ""}
-                        onChange={(event) => {
-                          const next = [...(person.parents ?? [])];
-                          next[slot] = event.target.value;
-                          updatePerson(person.id, { parents: next.filter(Boolean) });
-                        }}
-                      >
-                        <option value="">{slot === 0 ? "Родитель 1" : "Родитель 2"}</option>
-                        {people.filter((item) => item.id !== person.id).map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.name} ({item.relation})
-                          </option>
-                        ))}
-                      </select>
-                    ))}
-                  </div>
-                </Field>
-                <Field label="Комментарий">
-                  <textarea
-                    className="field min-h-20"
-                    value={person.notes}
-                    onChange={(event) => updatePerson(person.id, { notes: event.target.value })}
-                    placeholder="Фраза, привычка, чего не знаете"
-                  />
-                </Field>
-                <button type="button" className="text-left text-sm text-muted underline" onClick={() => removePerson(person.id)}>
-                  Убрать из семьи
-                </button>
+              <div className="mt-3">
+                <PersonEditor person={person} onRemoved={() => setOpenId(null)} />
               </div>
             ) : null}
           </li>
@@ -224,7 +129,9 @@ function TimePane() {
   const [year, setYear] = useState("");
   const [title, setTitle] = useState("");
   const [detail, setDetail] = useState("");
-  const sorted = [...events].sort((a, b) => yearNum(a.year) - yearNum(b.year));
+  const people = useRod((state) => state.people);
+  const auto = personEvents(people);
+  const sorted = [...events.map((item) => ({ ...item, personId: "" })), ...auto].sort((a, b) => yearNum(a.year) - yearNum(b.year));
   const showingExample = sorted.length === 0;
 
   return (
@@ -269,7 +176,7 @@ function TimePane() {
             <p className="text-sm tabular-nums text-rose-deep">{event.year}</p>
             <p className="text-lg font-semibold text-ink">{event.title}</p>
             {event.detail ? <p className="text-sm text-muted">{event.detail}</p> : null}
-            {!showingExample ? (
+            {!showingExample && !("personId" in event && event.personId) ? (
               <button type="button" className="mt-1 text-sm text-muted underline" onClick={() => removeEvent(event.id)}>
                 Удалить
               </button>
