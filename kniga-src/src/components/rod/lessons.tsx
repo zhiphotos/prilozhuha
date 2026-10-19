@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Check, Lock, Play } from "lucide-react";
 import { toast } from "sonner";
 import { LESSONS, PROGRAM_PRICE, findLesson } from "@/lib/rod/content";
-import { LESSON_VIDEO, PAY_URL, checkCode, embedUrl } from "@/lib/rod/config";
+import { LESSON_VIDEO, PAY_URL, checkCode, dropboxLessonUrl, embedUrl } from "@/lib/rod/config";
 import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
 import { Button, ScreenFrame, Sheet, TopBar, linkScreen, useNav } from "@/components/rod/chrome";
@@ -155,6 +155,20 @@ export function LessonScreen({ lessonId }: { lessonId: string }) {
 
 function LessonVideo({ lessonId }: { lessonId: string }) {
   const video = embedUrl(LESSON_VIDEO[lessonId] ?? "");
+  const dropbox = dropboxLessonUrl(lessonId);
+  if (!video && dropbox) {
+    return (
+      <a href={dropbox} target="_blank" rel="noopener noreferrer" className="aurora mb-4 grid aspect-video w-full place-items-center rounded-2xl text-center">
+        <div>
+          <span className="mx-auto grid size-14 place-items-center rounded-full bg-white text-ink shadow">
+            <Play className="size-6 translate-x-0.5" />
+          </span>
+          <p className="mt-3 text-sm font-semibold text-ink">Смотреть видео урока</p>
+          <p className="text-xs text-ink/60">Откроется в Dropbox</p>
+        </div>
+      </a>
+    );
+  }
   if (!video) {
     return (
       <div className="aurora mb-4 grid aspect-video w-full place-items-center rounded-2xl text-center">

@@ -23,6 +23,25 @@ export const LESSON_VIDEO: Record<string, string> = {
   assemble: "",
 };
 
+/**
+ * Папка с видео уроков в Dropbox. Ссылка на сам файл открывает его просмотр без входа в Dropbox.
+ * Соответствие уроков файлам проверить: urok-1 … urok-6 (urok-4 и urok-6 в папке с пометкой «.part», это недокачанные файлы).
+ */
+export const DROPBOX_FOLDER = "https://www.dropbox.com/scl/fo/nzjex04qtrfybe9wfip7y/AF1xesGjy07aCaV8m8mJlAY?rlkey=v1ln94f0d92njb8i57fu70io7&st=p93yv3ps";
+export const LESSON_DROPBOX_FILE: Record<string, string> = {
+  interview: "urok-1.mp4",
+  maiden: "urok-2.mp4",
+  photo: "urok-3.mp4",
+  places: "urok-4.mp4.part.mp4",
+  chapter: "urok-5.mp4",
+  assemble: "urok-6.mp4.part.mp4",
+};
+
+export function dropboxLessonUrl(lessonId: string): string {
+  const file = LESSON_DROPBOX_FILE[lessonId];
+  return file ? `${DROPBOX_FOLDER}&preview=${encodeURIComponent(file)}&dl=0` : "";
+}
+
 export function checkCode(input: string): boolean {
   const clean = input.trim().toUpperCase().replace(/\s+/g, "");
   return ACCESS_CODES.some((code) => code.toUpperCase().replace(/\s+/g, "") === clean);
