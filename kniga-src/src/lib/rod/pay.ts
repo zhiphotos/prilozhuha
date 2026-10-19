@@ -1,0 +1,71 @@
+import { toast } from "sonner";
+import { API_BASE } from "@/lib/rod/config";
+import { LEGAL_VERSION } from "@/lib/rod/legal-docs";
+import { useRod } from "@/lib/rod/store";
+
+const post = async <T,>(path: string, body: unknown): Promise<T & { error?: string }> => {
+  const response = await fetch(`${API_BASE}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  return (await response.json().catch(() => ({ error: "Сервер не ответил." }))) as T & { error?: string };
+};
+
+/** Адрес приложения без хвоста: сюда банк вернёт покупателя. */
+const appAddress = () => `${window.location.origin}${window.location.pathname}`;
+
+/** Открывает платёжную страницу банка. Чек придёт на указанную почту. */
+export async function startCheckout(email: string, ads: boolean): Promise<string> {
+  const answer = await post<{ url?: string }>("/api/checkout", { email, ads, legal: LEGAL_VERSION, app: appAddress() });
+  if (!answer.url) throw new Error(answer.error || "Не получилось открыть оплату.");
+  return answer.url;
+}
+
+/** Вернуть доступ на другом устройстве: номер заказа и почта из чека. */
+export async function claimAccess(order: string, email: string): Promise<void> {
+  const answer = await post<{ token?: string; until?: number }>("/api/claim", { order: order.trim(), email: email.trim() });
+  if (!answer.token || !answer.until) throw new Error(answer.error || "Заказ не найден.");
+  useRod.getState().grantAccess({ token: answer.token, until: answer.until, order: order.trim() });
+}
+
+/** Банк вернул человека в приложение: забираем токен из адреса и открываем программу. */
+export function handlePaymentReturn(): void {
+  const params = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const token = hash.get("kr-access");
+  const order = hash.get("order") ?? "";
+  const paid = params.get("paid");
+  if (!token && paid === null) return;
+  try {
+    window.history.replaceState(window.history.state, "", window.location.pathname);
+  } catch {
+    /* адрес можно не чистить */
+  }
+  if (token) {
+    const parts = token.split(".");
+    let until = Date.now() + 365 * 86400000;
+    try {
+      until = (JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))) as { x: number }).x;
+    } catch {
+      /* срок возьмёт сервер при проверке */
+    }
+    useRod.getState().grantAccess({ token, until, order });
+    toast("Оплата прошла. Программа открыта", { description: order ? `Номер заказа: ${order}. Чек пришёл на почту.` : undefined, duration: 12000 });
+  } else if (paid === "0") {
+    toast("Оплата не прошла. Деньги не списаны. Попробуйте ещё раз.", { duration: 8000 });
+  }
+}
+
+/** При запуске: срок вышел или платёж возвращён – закрываем программу. Нет связи – оставляем как есть. */
+export async function verifyAccess(): Promise<void> {
+  const { access, revokeAccess } = useRod.getState();
+  if (!access) return;
+  if (Date.now() > access.until) {
+    revokeAccess();
+    return;
+  }
+  if (!API_BASE) return;
+  try {
+    const answer = await post<{ valid?: boolean }>("/api/verify", { token: access.token });
+    if (answer.valid === false) revokeAccess();
+  } catch {
+    /* без сети доступ сохраняется */
+  }
+}

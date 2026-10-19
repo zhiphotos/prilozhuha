@@ -6,6 +6,7 @@ import { Botanica, Cut, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/bot
 import { filledCount } from "@/components/rod/contents-sheet";
 import { AUDIENCES, LESSONS, SITUATIONS, audienceTitle, reminder } from "@/lib/rod/content";
 import { DeckLink } from "@/components/rod/cards";
+import { LegalLinks } from "@/components/rod/legal";
 import { countsOf, isBookReady, nextStep, overallOf, partsOf, plural } from "@/lib/rod/progress";
 import { useRod } from "@/lib/rod/store";
 import type { Audience, Screen } from "@/lib/rod/types";
@@ -178,6 +179,8 @@ export function HomeScreen() {
 
       <BackupCard hasData={total > 0 || data.pages.length > 1} />
       <InstallCard />
+
+      <LegalLinks />
 
       <p className="hand mt-12 text-center text-[1.9rem] text-gold-ink">с любовью к роду</p>
       <Botanica id="sprout" pal={PAL_LIGHT} className="mx-auto mt-1 h-14 opacity-80" />

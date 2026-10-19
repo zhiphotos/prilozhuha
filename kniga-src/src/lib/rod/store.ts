@@ -38,6 +38,8 @@ type RodState = {
   pages: BookPage[];
   trash: TrashedPage[];
   programOpen: boolean;
+  /** Оплаченный доступ: подписанный токен от сервера. В копию книги не попадает, чтобы файлом нельзя было открыть программу другим. */
+  access: { token: string; until: number; order: string } | null;
   doneLessons: string[];
   print: PrintSetup;
   /** Картинки-ориентиры для дизайна («вайб»), в книгу не печатаются. */
@@ -94,6 +96,8 @@ type RodState = {
   restorePage: (id: string) => void;
   purgeTrash: () => void;
   openProgram: () => void;
+  grantAccess: (access: { token: string; until: number; order: string }) => void;
+  revokeAccess: () => void;
   completeLesson: (id: string) => void;
   resetAll: () => void;
 };
@@ -115,6 +119,7 @@ const empty = {
   pages: [] as BookPage[],
   trash: [] as TrashedPage[],
   programOpen: false,
+  access: null,
   doneLessons: [] as string[],
   print: DEFAULT_PRINT as PrintSetup,
   moodboard: [] as string[],
@@ -428,6 +433,8 @@ export const useRod = create<RodState>()(
         }),
       purgeTrash: () => set({ trash: [] }),
       openProgram: () => set({ programOpen: true }),
+      grantAccess: (access) => set({ access, programOpen: true }),
+      revokeAccess: () => set({ access: null, programOpen: false }),
       addMood: (ref) => set((state) => ({ moodboard: [ref, ...state.moodboard].slice(0, 120) })),
       removeMood: (ref) => set((state) => ({ moodboard: state.moodboard.filter((item) => item !== ref) })),
       setPrint: (patch) => set((state) => ({ print: { ...state.print, ...patch } })),

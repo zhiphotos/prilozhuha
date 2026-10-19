@@ -4,7 +4,7 @@ import { afterHydrate } from "@/lib/rod/boot";
 import { flushBook, useRod } from "@/lib/rod/store";
 import { isMediaRef, mediaDataUrl, saveMedia } from "@/lib/rod/media";
 
-const DATA_KEYS = ["onboarded", "audience", "dedicatee", "collector", "people", "places", "photos", "stories", "events", "documents", "notes", "pages", "trash", "programOpen", "doneLessons", "print", "moodboard", "back", "spine", "fonts", "userStickers", "plan"] as const;
+const DATA_KEYS = ["onboarded", "audience", "dedicatee", "collector", "people", "places", "photos", "stories", "events", "documents", "notes", "pages", "trash", "doneLessons", "print", "moodboard", "back", "spine", "fonts", "userStickers", "plan"] as const;
 
 function collectRefs(value: unknown, into: Set<string>) {
   if (typeof value === "string") {

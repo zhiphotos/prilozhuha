@@ -238,6 +238,7 @@ export type Screen =
   | { id: "book" }
   | { id: "editor"; pageId: string }
   | { id: "projects" }
+  | { id: "legal"; doc?: string }
   | { id: "flip"; pageId?: string };
 
 export type LessonLink =

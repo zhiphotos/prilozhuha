@@ -5,7 +5,9 @@ import { toast } from "sonner";
 import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson, type Lesson } from "@/lib/rod/content";
 import { PITCH, PROGRAM_PERKS } from "@/lib/rod/lesson-pitch";
 import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
-import { INTRO_VIDEO, LESSON_VIDEO, PAY_URL, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
+import { API_BASE, INTRO_VIDEO, LESSON_VIDEO, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
+import { LegalLinks } from "@/components/rod/legal";
+import { claimAccess, startCheckout } from "@/lib/rod/pay";
 import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
 import { Button, ScreenFrame, Sheet, TopBar, linkScreen, useNav } from "@/components/rod/chrome";
@@ -95,6 +97,7 @@ export function LessonsScreen() {
         <p className="mt-4 text-sm text-[#c9ae74]">Программа открыта на этом устройстве.</p>
       )}
       {peeked ? <LockedLesson widget lesson={peeked} onBack={() => setPeek(null)} onNext={setPeek} onBuy={() => setPay(true)} onMore={() => { setPeek(null); nav.go({ id: "lesson", lessonId: peeked.id }); }} /> : null}
+      <LegalLinks dark />
       {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
     </ScreenFrame>
   );
@@ -231,18 +234,92 @@ function LessonVideo({ lessonId, flat = false }: { lessonId: string; flat?: bool
 }
 
 function PaySheet({ onClose }: { onClose: () => void }) {
+  const nav = useNav();
   const openProgram = useRod((state) => state.openProgram);
+  const [mode, setMode] = useState<"buy" | "restore">("buy");
+  const [email, setEmail] = useState("");
+  const [terms, setTerms] = useState(false);
+  const [pd, setPd] = useState(false);
+  const [ads, setAds] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [order, setOrder] = useState("");
   const [code, setCode] = useState("");
   const [wrong, setWrong] = useState(false);
+  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+  const doc = (id: string, label: string) => (
+    <button type="button" className="inline text-left font-semibold underline" onClick={() => { onClose(); nav.go({ id: "legal", doc: id }); }}>
+      {label}
+    </button>
+  );
+  const check = "mt-0.5 size-5 shrink-0 accent-[#3f4a22]";
+
+  const pay = async () => {
+    setBusy(true);
+    try {
+      window.location.href = await startCheckout(email.trim(), ads);
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Не получилось открыть оплату.", { duration: 6000 });
+      setBusy(false);
+    }
+  };
+  const restore = async () => {
+    setBusy(true);
+    try {
+      await claimAccess(order, email);
+      toast("Программа открыта");
+      onClose();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Заказ не найден.", { duration: 6000 });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Sheet title="Программа «Книга рода»" onClose={onClose}>
       <PriceTag />
-      <p className="mt-2 text-sm text-muted">Шесть уроков откроются здесь же: интервью, визуал, родовое древо, исследование рода, архивы, вёрстка и мемуары. И полный шаблон Книги рода на 100 страниц.</p>
-      {PAY_URL ? (
-        <Button className="mt-4 w-full" onClick={() => window.open(PAY_URL, "_blank", "noopener")}>
-          Оплатить
-        </Button>
+      <p className="mt-2 text-sm text-muted">Шесть уроков с видео, ИИ-помощник и шаблоны, полный шаблон книги на 100 страниц, материалы для печати. Оплата разовая, без автоматических списаний.</p>
+
+      {API_BASE && mode === "buy" ? (
+        <form className="mt-4 grid gap-3" onSubmit={(event) => { event.preventDefault(); if (validEmail && terms && pd) void pay(); }}>
+          <div>
+            <label className="block text-sm font-medium text-ink" htmlFor="pay-email">Почта для чека</label>
+            <input id="pay-email" type="email" inputMode="email" autoComplete="email" className="field mt-1.5" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@mail.ru" />
+          </div>
+          <label className="flex cursor-pointer items-start gap-3 text-sm leading-snug text-ink">
+            <input type="checkbox" className={check} checked={terms} onChange={(event) => setTerms(event.target.checked)} />
+            <span>Я принимаю {doc("offer", "публичную оферту")} и {doc("terms", "пользовательское соглашение")}, знакомлюсь с {doc("privacy", "политикой обработки данных")}</span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-3 text-sm leading-snug text-ink">
+            <input type="checkbox" className={check} checked={pd} onChange={(event) => setPd(event.target.checked)} />
+            <span>Я даю {doc("consent-pd", "согласие на обработку персональных данных")}</span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-3 text-sm leading-snug text-muted">
+            <input type="checkbox" className={check} checked={ads} onChange={(event) => setAds(event.target.checked)} />
+            <span>Хочу получать новости и предложения ({doc("consent-ads", "согласие на рассылку")}). Необязательно.</span>
+          </label>
+          <Button type="submit" disabled={busy || !validEmail || !terms || !pd} className="h-auto min-h-12 w-full whitespace-normal py-3">
+            {busy ? "Открываю оплату…" : `Оплатить ${PROGRAM_PRICE}`}
+          </Button>
+          <p className="text-xs text-muted">Оплата на защищённой странице Альфа-Банка. Чек придёт на указанную почту.</p>
+          <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("restore")}>Уже оплатили? Вернуть доступ на этом устройстве</button>
+        </form>
       ) : null}
+
+      {API_BASE && mode === "restore" ? (
+        <form className="mt-4 grid gap-3" onSubmit={(event) => { event.preventDefault(); void restore(); }}>
+          <p className="text-sm text-muted">Номер заказа и почту можно найти в чеке или в письме банка.</p>
+          <input className="field" value={order} onChange={(event) => setOrder(event.target.value)} placeholder="Номер заказа, например kr-abc123-1a2b3c4d" autoComplete="off" />
+          <input className="field" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Почта из чека" />
+          <Button type="submit" disabled={busy || !order.trim() || !validEmail}>{busy ? "Проверяю…" : "Вернуть доступ"}</Button>
+          <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("buy")}>Назад к оплате</button>
+        </form>
+      ) : null}
+
+      {!API_BASE ? (
+        <p className="mt-4 rounded-2xl bg-white/60 p-4 text-sm text-ink">Оплата картой скоро появится. Если у вас уже есть код доступа, введите его ниже.</p>
+      ) : null}
+
       <form
         className="mt-5"
         onSubmit={(event) => {
@@ -255,7 +332,7 @@ function PaySheet({ onClose }: { onClose: () => void }) {
         }}
       >
         <label className="block text-sm font-medium text-ink" htmlFor="access-code">
-          {PAY_URL ? "После оплаты придёт код доступа" : "Код доступа"}
+          Есть код доступа?
         </label>
         <div className="mt-1.5 flex gap-2">
           <input id="access-code" className="field uppercase" value={code} onChange={(event) => { setCode(event.target.value); setWrong(false); }} placeholder="Введите код" autoComplete="off" />

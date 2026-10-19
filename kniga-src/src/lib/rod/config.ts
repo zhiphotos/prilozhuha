@@ -10,6 +10,12 @@ export const PAY_URL = "";
 export const ACCESS_CODES = ["КНИГА"];
 
 /**
+ * Адрес серверной части (папка kniga-api, проект на Vercel), например "https://kniga-roda-api.vercel.app".
+ * Пока пусто, оплата картой скрыта и работает только ввод кода. Как подключить: kniga-api/README.md.
+ */
+export const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "";
+
+/**
  * Видео уроков: id урока → ссылка. Подходят YouTube, Vimeo, Kinescope, Rutube или прямая ссылка на .mp4.
  * Пока ссылки нет, в уроке видно место под видео.
  */
