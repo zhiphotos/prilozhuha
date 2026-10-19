@@ -5,12 +5,14 @@ import { DOC_KINDS, EXAMPLE_TIMELINE, RELATIONS, canHaveMaiden } from "@/lib/rod
 import { useRod } from "@/lib/rod/store";
 import type { ArchiveTab } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
+import { TreePane } from "@/components/rod/family-tree";
 import { Cut } from "@/components/rod/botanica";
 import { MediaImg } from "@/components/rod/media-img";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
 
 const TABS: { id: ArchiveTab; label: string }[] = [
   { id: "people", label: "Люди" },
+  { id: "tree", label: "Схема" },
   { id: "time", label: "Лента" },
   { id: "photos", label: "Фото" },
   { id: "places", label: "Места" },
@@ -50,6 +52,7 @@ export function ArchiveScreen({ tab }: { tab: ArchiveTab }) {
       </div>
       <div className="mt-4">
         {tab === "people" ? <PeoplePane /> : null}
+        {tab === "tree" ? <TreePane /> : null}
         {tab === "time" ? <TimePane /> : null}
         {tab === "photos" ? <PhotosPane /> : null}
         {tab === "places" ? <PlacesPane /> : null}
@@ -68,6 +71,7 @@ function PeoplePane() {
   const [relation, setRelation] = useState("бабушка");
   const [birthYear, setBirthYear] = useState("");
   const [maidenName, setMaidenName] = useState("");
+  const [parentIds, setParentIds] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
@@ -78,7 +82,8 @@ function PeoplePane() {
         onSubmit={(event) => {
           event.preventDefault();
           if (!name.trim()) return;
-          addPerson({ name: name.trim(), relation, birthYear: birthYear.trim(), maidenName: canHaveMaiden(relation) ? maidenName.trim() : "", notes: "" });
+          addPerson({ name: name.trim(), relation, birthYear: birthYear.trim(), maidenName: canHaveMaiden(relation) ? maidenName.trim() : "", notes: "", parents: parentIds.filter(Boolean) });
+          setParentIds([]);
           setName("");
           setBirthYear("");
           setMaidenName("");
@@ -105,6 +110,22 @@ function PeoplePane() {
             </Field>
           ) : null}
         </div>
+        {people.length ? (
+          <Field label="Чей ребёнок" hint="Родители нужны для схемы семьи. Можно пропустить.">
+            <div className="grid grid-cols-2 gap-2">
+              {[0, 1].map((slot) => (
+                <select key={slot} className="field" value={parentIds[slot] ?? ""} onChange={(event) => setParentIds((current) => { const next = [...current]; next[slot] = event.target.value; return next; })}>
+                  <option value="">{slot === 0 ? "Родитель 1" : "Родитель 2"}</option>
+                  {people.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} ({item.relation})
+                    </option>
+                  ))}
+                </select>
+              ))}
+            </div>
+          </Field>
+        ) : null}
         <Button type="submit" disabled={!name.trim()}>
           Добавить в семью
         </Button>
@@ -147,6 +168,29 @@ function PeoplePane() {
                     <input className="field" value={person.maidenName} onChange={(event) => updatePerson(person.id, { maidenName: event.target.value })} />
                   </Field>
                 ) : null}
+                <Field label="Чей ребёнок">
+                  <div className="grid grid-cols-2 gap-2">
+                    {[0, 1].map((slot) => (
+                      <select
+                        key={slot}
+                        className="field"
+                        value={person.parents?.[slot] ?? ""}
+                        onChange={(event) => {
+                          const next = [...(person.parents ?? [])];
+                          next[slot] = event.target.value;
+                          updatePerson(person.id, { parents: next.filter(Boolean) });
+                        }}
+                      >
+                        <option value="">{slot === 0 ? "Родитель 1" : "Родитель 2"}</option>
+                        {people.filter((item) => item.id !== person.id).map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name} ({item.relation})
+                          </option>
+                        ))}
+                      </select>
+                    ))}
+                  </div>
+                </Field>
                 <Field label="Комментарий">
                   <textarea
                     className="field min-h-20"

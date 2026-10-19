@@ -9,6 +9,8 @@ export type Person = {
   notes: string;
   /** Годы жизни и фамилия по документам (необязательно). */
   deathYear?: string;
+  /** Родители (id людей из этого же списка): по ним строится схема семьи. */
+  parents?: string[];
 };
 
 export type Place = {
@@ -210,7 +212,7 @@ export type BookPage = {
   blocks: PageBlock[];
 };
 
-export type ArchiveTab = "people" | "time" | "photos" | "places" | "docs";
+export type ArchiveTab = "people" | "tree" | "time" | "photos" | "places" | "docs";
 
 export type Screen =
   | { id: "home" }

@@ -279,7 +279,10 @@ export const useRod = create<RodState>()(
         set((state) => ({
           people: state.people.map((person) => (person.id === id ? { ...person, ...patch } : person)),
         })),
-      removePerson: (id) => set((state) => ({ people: state.people.filter((person) => person.id !== id) })),
+      removePerson: (id) =>
+        set((state) => ({
+          people: state.people.filter((person) => person.id !== id).map((person) => (person.parents?.includes(id) ? { ...person, parents: person.parents.filter((parent) => parent !== id) } : person)),
+        })),
       addPlace: (input) => set((state) => ({ places: [{ ...input, id: uid() }, ...state.places] })),
       removePlace: (id) => set((state) => ({ places: state.places.filter((place) => place.id !== id) })),
       addPhoto: (input) => {
