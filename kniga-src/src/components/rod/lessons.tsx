@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Check, ExternalLink, FileText, Lock, Play } from "lucide-react";
+import { Check, ChevronLeft, ExternalLink, FileText, Lock, Play, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson } from "@/lib/rod/content";
-import { COURSE_COMMUNITY_URL, type CourseBlock } from "@/lib/rod/course-lessons";
+import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson, type Lesson } from "@/lib/rod/content";
+import { PITCH, PROGRAM_PERKS } from "@/lib/rod/lesson-pitch";
+import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
 import { LESSON_VIDEO, PAY_URL, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
 import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
@@ -44,7 +45,7 @@ export function LessonsScreen() {
           const locked = !programOpen;
           const passed = done.includes(lesson.id);
           return (
-            <button key={lesson.id} type="button" onClick={() => (locked ? setPay(true) : nav.go({ id: "lesson", lessonId: lesson.id }))} className="relative block w-full overflow-hidden rounded-2xl text-left">
+            <button key={lesson.id} type="button" onClick={() => nav.go({ id: "lesson", lessonId: lesson.id })} className="relative block w-full overflow-hidden rounded-2xl text-left">
               <img src={asset(`course/gc/ov-${lesson.id}.jpg`)} alt={lesson.title} loading="lazy" className="w-full" />
               <span className="absolute right-3 top-3 grid size-10 place-items-center rounded-full bg-paper/90 text-ink shadow">
                 {locked ? <Lock className="size-4" /> : passed ? <Check className="size-4" /> : <Play className="size-4" />}
@@ -101,33 +102,15 @@ export function LessonScreen({ lessonId }: { lessonId: string }) {
   const locked = !lesson.free && !programOpen;
   if (locked) {
     return (
-      <ScreenFrame>
-        <TopBar title={lesson.title} kicker="Закрытый урок" onBack={nav.back} />
-        <div className="glass rounded-2xl p-5">
-          <Lock className="size-5 text-rose-deep" />
-          <p className="mt-3 text-muted">{lesson.lead}</p>
-          <Button className="mt-4" onClick={() => setPay(true)}>
-            Открыть программу · {PROGRAM_PRICE} вместо {PROGRAM_OLD_PRICE}
-          </Button>
-        </div>
+      <>
+        <LockedLesson lesson={lesson} onBack={nav.back} onBuy={() => setPay(true)} />
         {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
-      </ScreenFrame>
+      </>
     );
   }
 
   if (lesson.blocks) {
-    const passedBlocks = done.includes(lesson.id);
-    return (
-      <ScreenFrame>
-        <TopBar title={lesson.title} kicker="Программа «Книга рода»" onBack={nav.back} />
-        <BlocksLesson lessonId={lesson.id} blocks={lesson.blocks} />
-        <div className="mt-6 flex flex-wrap gap-2">
-          <Button onClick={() => complete(lesson.id)} variant={passedBlocks ? "soft" : "primary"}>
-            {passedBlocks ? "Урок пройден" : "Отметить пройденным"}
-          </Button>
-        </div>
-      </ScreenFrame>
-    );
+    return <BlocksLesson lesson={lesson} passed={done.includes(lesson.id)} onDone={() => complete(lesson.id)} onBack={nav.back} />;
   }
 
   const section = lesson.sections[step];
@@ -181,14 +164,14 @@ export function LessonScreen({ lessonId }: { lessonId: string }) {
   );
 }
 
-function LessonVideo({ lessonId }: { lessonId: string }) {
+function LessonVideo({ lessonId, flat = false }: { lessonId: string; flat?: boolean }) {
   const video = embedUrl(LESSON_VIDEO[lessonId] ?? "");
   const dropbox = dropboxLessonVideo(lessonId);
   const [failed, setFailed] = useState(false);
   if (!video && dropbox) {
     // Видео играет прямо в приложении, из общей папки Dropbox.
     return (
-      <div className="mb-4 overflow-hidden rounded-2xl bg-night shadow-lg">
+      <div className={cn("overflow-hidden bg-night", flat ? "" : "mb-4 rounded-2xl shadow-lg")}>
         {failed ? (
           <div className="grid aspect-video w-full place-items-center p-6 text-center text-paper">
             <p className="text-sm">Видео не загрузилось. Проверьте интернет и попробуйте ещё раз.</p>
@@ -278,11 +261,11 @@ function PriceTag({ big = false }: { big?: boolean }) {
 }
 
 /** Простая разметка из платформы: **жирное**, абзацы, списки через «- ». */
-function Rich({ text }: { text: string }) {
+function Rich({ text, dark = false }: { text: string; dark?: boolean }) {
   const bold = (line: string) =>
     line.split(/(\*\*[^*]+\*\*)/g).map((part, index) => (part.startsWith("**") && part.endsWith("**") ? <strong key={index}>{part.slice(2, -2)}</strong> : <span key={index}>{part}</span>));
   return (
-    <div className="grid gap-3 text-base leading-relaxed text-ink">
+    <div className={cn("grid gap-3 text-base leading-relaxed", dark ? "text-paper/90" : "text-ink")}>
       {text.split(/\n{2,}/).map((chunk, index) => {
         const lines = chunk.split("\n");
         if (lines.every((line) => /^\s*[-•]\s+/.test(line))) {
@@ -309,54 +292,165 @@ function Rich({ text }: { text: string }) {
   );
 }
 
-/** Урок программы: те же блоки, что на платформе (баннеры, видео, файлы, кнопки, домашнее задание). */
-function BlocksLesson({ lessonId, blocks }: { lessonId: string; blocks: CourseBlock[] }) {
+/** Тёмная «страница книги»: картинки на всю ширину встык, как будто урок разворачивается единым листом. */
+function BlocksLesson({ lesson, passed, onDone, onBack }: { lesson: Lesson; passed: boolean; onDone: () => void; onBack: () => void }) {
+  const [file, setFile] = useState<{ url: string; name: string } | null>(null);
   let videoSeen = false;
   return (
-    <div className="grid gap-4">
-      {blocks.map((block, index) => {
-        switch (block.type) {
-          case "image":
-            return block.url ? <img key={index} src={asset(block.url)} alt="" loading="lazy" className="w-full rounded-2xl" /> : null;
-          case "video": {
-            if (videoSeen) return null;
-            videoSeen = true;
-            return <LessonVideo key={index} lessonId={lessonId} />;
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#14160f] text-paper">
+      <header className="sticky top-0 z-10 flex items-center gap-3 bg-[#14160f]/95 px-3 pb-2 pt-[max(0.6rem,env(safe-area-inset-top))] backdrop-blur">
+        <button type="button" onClick={onBack} aria-label="Назад к программе" className="grid size-11 shrink-0 place-items-center rounded-full bg-paper/10 text-paper">
+          <ChevronLeft className="size-5" />
+        </button>
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-paper/85">{lesson.title}</p>
+      </header>
+      <div className="mx-auto max-w-2xl pb-[max(2rem,env(safe-area-inset-bottom))]">
+        {(lesson.blocks ?? []).map((block, index) => {
+          switch (block.type) {
+            case "image":
+              return block.url ? <img key={index} src={asset(block.url)} alt="" loading={index < 3 ? "eager" : "lazy"} className="block w-full" draggable={false} /> : null;
+            case "video": {
+              if (videoSeen) return null;
+              videoSeen = true;
+              return <LessonVideo key={index} lessonId={lesson.id} flat />;
+            }
+            case "heading":
+              return (
+                <h2 key={index} className="display-title px-5 pb-1 pt-6 text-[1.5rem] text-paper">
+                  {block.text}
+                </h2>
+              );
+            case "text":
+              return block.text ? (
+                <div key={index} className="px-5 py-3">
+                  <Rich text={block.text} dark />
+                </div>
+              ) : null;
+            case "file":
+              return block.url ? (
+                <div key={index} className="px-5 py-1.5">
+                  <button type="button" onClick={() => setFile({ url: asset(block.url ?? ""), name: block.name || "Файл" })} className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-paper/15 bg-paper/10 px-4 py-3 text-left text-paper">
+                    <FileText className="size-5 shrink-0 text-[#c9ae74]" />
+                    <span className="min-w-0 flex-1 text-sm font-semibold">{block.name || "Файл"}</span>
+                    <span className="text-xs text-paper/60">открыть</span>
+                  </button>
+                </div>
+              ) : null;
+            case "button":
+              return block.url ? (
+                <div key={index} className="px-5 py-1.5">
+                  <a href={block.url} target="_blank" rel="noopener noreferrer" className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#c9ae74] px-5 text-sm font-semibold text-[#14160f]">
+                    {block.text || "Открыть"} <ExternalLink className="size-4" />
+                  </a>
+                </div>
+              ) : null;
+            case "divider":
+              return <hr key={index} className="mx-5 my-3 border-paper/15" />;
+            case "homework":
+              return block.text ? (
+                <div key={index} className="mx-5 my-4 rounded-2xl border border-[#c9ae74]/40 bg-paper/10 p-5">
+                  <Rich text={block.text} dark />
+                </div>
+              ) : null;
+            default:
+              return null;
           }
-          case "heading":
-            return (
-              <h2 key={index} className="display-title text-[1.5rem] text-ink">
-                {block.text}
-              </h2>
-            );
-          case "text":
-            return block.text ? <Rich key={index} text={block.text} /> : null;
-          case "file":
-            return block.url ? (
-              <a key={index} href={asset(block.url)} target="_blank" rel="noopener noreferrer" className="glass flex min-h-14 items-center gap-3 rounded-2xl px-4 py-3 text-ink">
-                <FileText className="size-5 shrink-0 text-rose-deep" />
-                <span className="min-w-0 flex-1 text-sm font-semibold">{block.name || "Файл"}</span>
-                <span className="text-xs text-muted">PDF</span>
-              </a>
-            ) : null;
-          case "button":
-            return block.url ? (
-              <a key={index} href={block.url} target="_blank" rel="noopener noreferrer" className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-moss px-5 text-sm font-semibold text-paper">
-                {block.text || "Открыть"} <ExternalLink className="size-4" />
-              </a>
-            ) : null;
-          case "divider":
-            return <hr key={index} className="border-ink/15" />;
-          case "homework":
-            return block.text ? (
-              <div key={index} className="wash-sage rounded-2xl p-5">
-                <Rich text={block.text} />
-              </div>
-            ) : null;
-          default:
-            return null;
-        }
-      })}
+        })}
+        <div className="px-5 pt-4">
+          <Button className="w-full" onClick={onDone} variant={passed ? "soft" : "white"}>
+            {passed ? "Урок пройден" : "Отметить пройденным"}
+          </Button>
+        </div>
+      </div>
+      {file ? <FileViewer file={file} onClose={() => setFile(null)} /> : null}
     </div>
   );
 }
+
+/** Файл открывается поверх урока, а не вместо него: «К уроку» сразу возвращает назад. */
+function FileViewer({ file, onClose }: { file: { url: string; name: string }; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[60] flex flex-col bg-[#14160f] text-paper">
+      <header className="flex items-center gap-2 px-3 pb-2 pt-[max(0.6rem,env(safe-area-inset-top))]">
+        <button type="button" onClick={onClose} className="flex min-h-11 items-center gap-1.5 rounded-full bg-paper px-4 text-sm font-semibold text-[#14160f]">
+          <ChevronLeft className="size-4" /> К уроку
+        </button>
+        <p className="min-w-0 flex-1 truncate text-center text-sm text-paper/80">{file.name}</p>
+        <a href={file.url} target="_blank" rel="noopener noreferrer" className="grid size-11 place-items-center rounded-full bg-paper/10" aria-label="Открыть отдельно">
+          <ExternalLink className="size-4" />
+        </a>
+      </header>
+      <iframe src={file.url} title={file.name} className="min-h-0 w-full flex-1 bg-paper" />
+      <div className="px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
+        <Button className="w-full" variant="white" onClick={onClose}>
+          Вернуться к уроку
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** Закрытый урок: что человек получит, если откроет программу. */
+function LockedLesson({ lesson, onBack, onBuy }: { lesson: Lesson; onBack: () => void; onBuy: () => void }) {
+  const pitch = PITCH[lesson.id];
+  const banner = lesson.blocks?.find((block) => block.type === "image")?.url;
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#14160f] text-paper">
+      <header className="sticky top-0 z-10 flex items-center gap-3 bg-[#14160f]/95 px-3 pb-2 pt-[max(0.6rem,env(safe-area-inset-top))] backdrop-blur">
+        <button type="button" onClick={onBack} aria-label="Назад к программе" className="grid size-11 shrink-0 place-items-center rounded-full bg-paper/10 text-paper">
+          <ChevronLeft className="size-5" />
+        </button>
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-paper/85">{lesson.title}</p>
+        <Lock className="mr-2 size-4 text-[#c9ae74]" />
+      </header>
+      <div className="mx-auto max-w-2xl pb-[max(2rem,env(safe-area-inset-bottom))]">
+        {banner ? <img src={asset(banner)} alt="" className="block w-full" draggable={false} /> : null}
+        {pitch ? (
+          <div className="px-5 pt-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">Что вы получите в этом уроке</p>
+            <h2 className="display-title mt-2 text-[1.7rem] leading-tight text-paper">{pitch.hook}</h2>
+            <p className="mt-3 text-base leading-relaxed text-paper/85">{pitch.promise}</p>
+            <ul className="mt-5 grid gap-2.5">
+              {pitch.inside.map((item) => (
+                <li key={item.title} className="flex gap-3 rounded-2xl border border-paper/15 bg-paper/10 p-4">
+                  <Sparkles className="mt-0.5 size-4 shrink-0 text-[#c9ae74]" />
+                  <span>
+                    <span className="block text-sm font-semibold text-paper">{item.title}</span>
+                    <span className="mt-0.5 block text-sm leading-snug text-paper/75">{item.text}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-5 rounded-2xl border border-[#c9ae74]/40 p-4 text-sm leading-relaxed text-paper/90">
+              <span className="font-semibold text-[#c9ae74]">Итог урока. </span>
+              {pitch.result}
+            </p>
+          </div>
+        ) : null}
+        <div className="px-5 pt-8">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">И ещё вся программа</p>
+          <ul className="mt-3 grid gap-2.5">
+            {PROGRAM_PERKS.map((perk) => (
+              <li key={perk.title} className="flex gap-3 text-sm">
+                <Check className="mt-0.5 size-4 shrink-0 text-[#c9ae74]" />
+                <span>
+                  <span className="font-semibold text-paper">{perk.title}. </span>
+                  <span className="text-paper/75">{perk.text}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-6 rounded-2xl bg-paper p-5 text-ink">
+            <PriceTag />
+            <p className="mt-1 text-sm text-muted">Вся программа целиком, не по одному уроку.</p>
+            <Button className="mt-4 w-full" onClick={onBuy}>
+              Открыть программу
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+

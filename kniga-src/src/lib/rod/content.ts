@@ -13,6 +13,12 @@ export const AUDIENCES: { id: Audience; title: string; text: string }[] = [
   { id: "family", title: "Для всей семьи", text: "Общая страница, к которой можно вернуться вместе" },
 ];
 
+/** На платформе картинка «Вступление» стоит после видео. Для приложения: баннер, вступление, видео, методические материалы. */
+function introFirst(blocks: CourseBlock[]): CourseBlock[] {
+  if (blocks[1]?.type === "video" && blocks[2]?.type === "image") return [blocks[0], blocks[2], blocks[1], ...blocks.slice(3)];
+  return blocks;
+}
+
 export type Lesson = {
   id: string;
   title: string;
@@ -85,7 +91,7 @@ export const LESSONS: Lesson[] = [
       minutes: 0,
       free: false,
       lead: "",
-      blocks: lesson.blocks,
+      blocks: introFirst(lesson.blocks),
       sections: [],
     }),
   ),
