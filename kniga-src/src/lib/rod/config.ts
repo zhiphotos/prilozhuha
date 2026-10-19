@@ -42,6 +42,9 @@ export function dropboxLessonVideo(lessonId: string): { stream: string; page: st
   return { stream: `${base}&raw=1`, page: `${base}&dl=0` };
 }
 
+/** Вступительное видео с сайта программы (YouTube). */
+export const INTRO_VIDEO = "https://www.youtube.com/watch?v=TOz2-eyQGPA";
+
 export function checkCode(input: string): boolean {
   const clean = input.trim().toUpperCase().replace(/\s+/g, "");
   return ACCESS_CODES.some((code) => code.toUpperCase().replace(/\s+/g, "") === clean);

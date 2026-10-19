@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Check, ChevronLeft, ExternalLink, FileText, Lock, Play, Sparkles } from "lucide-react";
+import { Check, ChevronLeft, ExternalLink, FileText, Lock, Play, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson, type Lesson } from "@/lib/rod/content";
 import { PITCH, PROGRAM_PERKS } from "@/lib/rod/lesson-pitch";
 import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
-import { LESSON_VIDEO, PAY_URL, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
+import { INTRO_VIDEO, LESSON_VIDEO, PAY_URL, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
 import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
 import { Button, ScreenFrame, Sheet, TopBar, linkScreen, useNav } from "@/components/rod/chrome";
@@ -37,6 +37,12 @@ export function LessonsScreen() {
         );
       })}
 
+      <IntroVideo />
+
+      <h2 className="display-title mt-9 text-[1.35rem] text-ink">Что внутри каждого урока</h2>
+      <p className="mt-1 text-sm text-muted">Нажмите на картинку, чтобы увидеть её целиком.</p>
+      <TileGrid />
+
       <h2 className="display-title mt-9 text-[1.35rem] text-ink">Программа «Книга Рода с ИИ»</h2>
       <p className="mt-1 text-sm text-muted">Шесть уроков с видео, файлами и домашними заданиями. Открываются после оплаты.</p>
       <div className="mt-4 grid gap-3">
@@ -63,6 +69,8 @@ export function LessonsScreen() {
           ) : null}
         </button>
       </div>
+      <Reviews />
+
       {!programOpen ? (
         <div className="wash-blush mt-3 rounded-2xl p-5">
           <p className="text-sm text-rose-deep">Вся программа, шесть уроков</p>
@@ -405,6 +413,7 @@ function LockedLesson({ lesson, onBack, onBuy }: { lesson: Lesson; onBack: () =>
       </header>
       <div className="mx-auto max-w-2xl pb-[max(2rem,env(safe-area-inset-bottom))]">
         {banner ? <img src={asset(banner)} alt="" className="block w-full" draggable={false} /> : null}
+        <TileButton lessonId={lesson.id} />
         {pitch ? (
           <div className="px-5 pt-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">Что вы получите в этом уроке</p>
@@ -454,3 +463,97 @@ function LockedLesson({ lesson, onBack, onBuy }: { lesson: Lesson; onBack: () =>
 }
 
 
+
+const TILES = [1, 2, 3, 4, 5, 6].map((n) => ({ id: `l${n}`, src: `course/site/lesson${n}.jpg`, title: `Урок ${n}` }));
+const REVIEWS = [1, 2, 3].map((n) => `course/site/review${n}.jpg`);
+
+/** Картинка на весь экран целиком, без обрезки. */
+function ImageZoom({ src, onClose }: { src: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[70] flex flex-col bg-black/95" onClick={onClose}>
+      <div className="flex justify-end p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <button type="button" aria-label="Закрыть" className="grid size-11 place-items-center rounded-full bg-paper/15 text-paper" onClick={onClose}>
+          <X className="size-5" />
+        </button>
+      </div>
+      <div className="flex min-h-0 flex-1 items-center justify-center p-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <img src={asset(src)} alt="" className="max-h-full max-w-full object-contain" />
+      </div>
+    </div>
+  );
+}
+
+/** Вступительное видео с сайта: зачем его смотреть. */
+function IntroVideo() {
+  const video = embedUrl(INTRO_VIDEO);
+  if (!video) return null;
+  return (
+    <section className="mt-9">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-ink">Вступительное видео · бесплатный урок</p>
+      <h2 className="display-title mt-1 text-[1.35rem] text-ink">Как создаётся Книга Рода</h2>
+      <div className="mt-3 overflow-hidden rounded-2xl bg-night shadow-lg">
+        {video.kind === "iframe" ? <iframe src={video.src} title="Вступительное видео" className="aspect-video w-full" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen /> : <video src={video.src} controls playsInline className="aspect-video w-full" />}
+      </div>
+      <p className="mt-3 text-sm leading-relaxed text-ink/85">
+        Смотрите его первым: это бесплатный урок, с которого начинается Книга Рода. За несколько минут вы поймёте, как из разрозненных воспоминаний, старых фотографий и пары фамилий получается настоящая семейная книга. Увидите, как ИИ-помощник берёт на себя самое трудное: задаёт вопросы, помогает искать предков и превращает ваши слова в красивый текст.
+      </p>
+      <p className="mt-2 text-sm leading-relaxed text-ink/85">Даже если у вас нет ни одного старого документа и спросить уже не у кого: главная часть книги зашита в вас самих.</p>
+    </section>
+  );
+}
+
+function TileGrid() {
+  const [zoom, setZoom] = useState<string | null>(null);
+  return (
+    <>
+      <ul className="mt-3 grid grid-cols-2 gap-3">
+        {TILES.map((tile) => (
+          <li key={tile.id}>
+            <button type="button" onClick={() => setZoom(tile.src)} className="block w-full overflow-hidden rounded-2xl bg-black" aria-label={tile.title}>
+              <img src={asset(tile.src)} alt={tile.title} loading="lazy" className="w-full" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      {zoom ? <ImageZoom src={zoom} onClose={() => setZoom(null)} /> : null}
+    </>
+  );
+}
+
+/** Картинка урока с сайта: нажатие открывает её целиком. */
+function TileButton({ lessonId }: { lessonId: string }) {
+  const [zoom, setZoom] = useState(false);
+  const tile = TILES.find((item) => item.id === lessonId);
+  if (!tile) return null;
+  return (
+    <>
+      <div className="px-5 pt-5">
+        <button type="button" onClick={() => setZoom(true)} className="block w-full overflow-hidden rounded-2xl bg-black" aria-label="Что в уроке">
+          <img src={asset(tile.src)} alt={tile.title} className="w-full" />
+        </button>
+        <p className="mt-1 text-center text-xs text-paper/60">Нажмите, чтобы увидеть целиком</p>
+      </div>
+      {zoom ? <ImageZoom src={tile.src} onClose={() => setZoom(false)} /> : null}
+    </>
+  );
+}
+
+/** Отзывы участниц с сайта. */
+function Reviews() {
+  const [zoom, setZoom] = useState<string | null>(null);
+  return (
+    <section className="mt-9">
+      <h2 className="display-title text-[1.35rem] text-ink">Что говорят в сообществе</h2>
+      <ul className="no-scrollbar -mx-5 mt-3 flex snap-x snap-mandatory scroll-pl-5 gap-3 overflow-x-auto px-5 pb-2">
+        {REVIEWS.map((src) => (
+          <li key={src} className="w-[78%] max-w-80 shrink-0 snap-start">
+            <button type="button" onClick={() => setZoom(src)} className="block w-full overflow-hidden rounded-2xl bg-black" aria-label="Отзыв">
+              <img src={asset(src)} alt="Отзыв участницы" loading="lazy" className="w-full" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      {zoom ? <ImageZoom src={zoom} onClose={() => setZoom(null)} /> : null}
+    </section>
+  );
+}
