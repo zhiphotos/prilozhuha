@@ -7,6 +7,7 @@ import { filledCount } from "@/components/rod/contents-sheet";
 import { AUDIENCES, LESSONS, SITUATIONS, audienceTitle, reminder } from "@/lib/rod/content";
 import { DeckLink } from "@/components/rod/cards";
 import { LegalLinks } from "@/components/rod/legal";
+import { RemindersCard } from "@/components/rod/reminders-card";
 import { countsOf, isBookReady, nextStep, overallOf, partsOf, plural } from "@/lib/rod/progress";
 import { useRod } from "@/lib/rod/store";
 import type { Audience, Screen } from "@/lib/rod/types";
@@ -177,6 +178,7 @@ export function HomeScreen() {
         ) : null}
       </section>
 
+      <RemindersCard />
       <BackupCard hasData={total > 0 || data.pages.length > 1} />
       <InstallCard />
 

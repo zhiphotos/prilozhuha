@@ -6,6 +6,8 @@ import { CardsScreen, DeckScreen } from "@/components/rod/cards";
 import { Dock, NavProvider, SideNav, type Nav } from "@/components/rod/chrome";
 import { EditorScreen } from "@/components/rod/editor";
 import { handlePaymentReturn, verifyAccess } from "@/lib/rod/pay";
+import { pingPush } from "@/lib/rod/push";
+import { JoinScreen } from "@/components/rod/join";
 import { LegalScreen } from "@/components/rod/legal";
 import { FlipBookScreen } from "@/components/rod/flipbook";
 import { HomeScreen } from "@/components/rod/home";
@@ -22,7 +24,20 @@ import type { Screen } from "@/lib/rod/types";
 type HistoryState = { rod: true; stack: Screen[] };
 
 /** Адрес #/legal/offer открывает документ сразу, даже до знакомства с приложением. */
+const GO: Record<string, Screen> = {
+  home: { id: "home" },
+  cards: { id: "cards" },
+  stories: { id: "stories" },
+  lessons: { id: "lessons" },
+  book: { id: "book" },
+  archive: { id: "archive", tab: "people" },
+};
+
 function initialStack(): Screen[] {
+  const go = typeof window !== "undefined" ? window.location.hash.match(/^#\/go\/(\w+)/) : null;
+  if (go && GO[go[1]]) return go[1] === "home" ? [{ id: "home" }] : [{ id: "home" }, GO[go[1]]];
+  const join = typeof window !== "undefined" ? window.location.hash.match(/^#\/join\/([0-9a-f]{12})\.([\w-]{6,})/) : null;
+  if (join) return [{ id: "join", room: join[1], invite: join[2] }];
   const match = typeof window !== "undefined" ? window.location.hash.match(/^#\/legal(?:\/([\w-]+))?/) : null;
   return match ? [{ id: "home" }, { id: "legal", doc: match[1] }] : [{ id: "home" }];
 }
@@ -43,6 +58,7 @@ export function RodApp() {
       afterHydrate();
       handlePaymentReturn();
       void verifyAccess();
+      void pingPush();
       setHydrated(true);
     });
     // Просим браузер не чистить базу книги, когда мало места.
@@ -88,7 +104,7 @@ export function RodApp() {
   );
 
   if (!hydrated) return <Onboarding ready={false} />;
-  if (!onboarded && nav.screen.id !== "legal") {
+  if (!onboarded && nav.screen.id !== "legal" && nav.screen.id !== "join") {
     return (
       <>
         <Onboarding />
@@ -154,6 +170,8 @@ function ScreenView({ screen }: { screen: Screen }) {
       return <SurnameScreen />;
     case "legal":
       return <LegalScreen doc={screen.doc} />;
+    case "join":
+      return <JoinScreen room={screen.room} invite={screen.invite} />;
     default:
       return <HomeScreen />;
   }
