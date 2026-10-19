@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronLeft, ExternalLink, FileText, Lock, Play, Sparkles, X } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, ExternalLink, FileText, Lock, Play, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson, type Lesson } from "@/lib/rod/content";
 import { PITCH, PROGRAM_PERKS } from "@/lib/rod/lesson-pitch";
@@ -37,14 +37,8 @@ export function LessonsScreen() {
         );
       })}
 
-      <IntroVideo />
-
-      <h2 className="display-title mt-9 text-[1.35rem] text-ink">Что внутри каждого урока</h2>
-      <p className="mt-1 text-sm text-muted">Нажмите на картинку, чтобы увидеть её целиком.</p>
-      <TileGrid />
-
       <h2 className="display-title mt-9 text-[1.35rem] text-ink">Программа «Книга Рода с ИИ»</h2>
-      <p className="mt-1 text-sm text-muted">Шесть уроков с видео, файлами и домашними заданиями. Открываются после оплаты.</p>
+      <p className="mt-1 text-sm text-muted">Нажмите на урок: увидите, что в нём будет. Откроется после оплаты.</p>
       <div className="mt-4 grid gap-3">
         <img src={asset("course/gc/ov-welcome.jpg")} alt="Добро пожаловать в Книгу Рода" className="w-full rounded-2xl" />
         {LESSONS.filter((lesson) => !lesson.free).map((lesson) => {
@@ -115,6 +109,10 @@ export function LessonScreen({ lessonId }: { lessonId: string }) {
         {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
       </>
     );
+  }
+
+  if (lesson.free) {
+    return <FreeLesson lesson={lesson} passed={done.includes(lesson.id)} onDone={() => complete(lesson.id)} onBack={nav.back} onOpen={(to) => nav.go(linkScreen(to))} />;
   }
 
   if (lesson.blocks) {
@@ -398,10 +396,13 @@ function FileViewer({ file, onClose }: { file: { url: string; name: string }; on
   );
 }
 
-/** Закрытый урок: что человек получит, если откроет программу. */
+/** Закрытый урок: окно «что здесь будет», кнопка «Купить» и переход к следующему уроку. */
 function LockedLesson({ lesson, onBack, onBuy }: { lesson: Lesson; onBack: () => void; onBuy: () => void }) {
+  const nav = useNav();
   const pitch = PITCH[lesson.id];
-  const banner = lesson.blocks?.find((block) => block.type === "image")?.url;
+  const tile = TILES.find((item) => item.id === lesson.id);
+  const paid = LESSONS.filter((item) => !item.free);
+  const next = paid[paid.findIndex((item) => item.id === lesson.id) + 1];
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-[#14160f] text-paper">
       <header className="sticky top-0 z-10 flex items-center gap-3 bg-[#14160f]/95 px-3 pb-2 pt-[max(0.6rem,env(safe-area-inset-top))] backdrop-blur">
@@ -412,10 +413,19 @@ function LockedLesson({ lesson, onBack, onBuy }: { lesson: Lesson; onBack: () =>
         <Lock className="mr-2 size-4 text-[#c9ae74]" />
       </header>
       <div className="mx-auto max-w-2xl pb-[max(2rem,env(safe-area-inset-bottom))]">
-        {banner ? <img src={asset(banner)} alt="" className="block w-full" draggable={false} /> : null}
-        <TileButton lessonId={lesson.id} />
+        {tile ? <img src={asset(tile.src)} alt={tile.title} className="mx-auto block w-full" draggable={false} /> : null}
+        <div className="grid gap-2.5 px-5 pt-5">
+          <Button className="w-full" variant="white" onClick={onBuy}>
+            Купить программу · {PROGRAM_PRICE}
+          </Button>
+          {next ? (
+            <button type="button" onClick={() => nav.replace({ id: "lesson", lessonId: next.id })} className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#c9ae74]/60 px-5 text-sm font-semibold text-[#c9ae74]">
+              Что будет в следующем уроке <ArrowRight className="size-4" />
+            </button>
+          ) : null}
+        </div>
         {pitch ? (
-          <div className="px-5 pt-6">
+          <div className="px-5 pt-8">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">Что вы получите в этом уроке</p>
             <h2 className="display-title mt-2 text-[1.7rem] leading-tight text-paper">{pitch.hook}</h2>
             <p className="mt-3 text-base leading-relaxed text-paper/85">{pitch.promise}</p>
@@ -436,7 +446,8 @@ function LockedLesson({ lesson, onBack, onBuy }: { lesson: Lesson; onBack: () =>
             </p>
           </div>
         ) : null}
-        <div className="px-5 pt-8">
+        <img src={asset("course/site/materials.jpg")} alt="Материалы программы" className="mt-8 block w-full" draggable={false} />
+        <div className="px-5 pt-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">И ещё вся программа</p>
           <ul className="mt-3 grid gap-2.5">
             {PROGRAM_PERKS.map((perk) => (
@@ -462,8 +473,6 @@ function LockedLesson({ lesson, onBack, onBuy }: { lesson: Lesson; onBack: () =>
   );
 }
 
-
-
 const TILES = [1, 2, 3, 4, 5, 6].map((n) => ({ id: `l${n}`, src: `course/site/lesson${n}.jpg`, title: `Урок ${n}` }));
 const REVIEWS = [1, 2, 3].map((n) => `course/site/review${n}.jpg`);
 
@@ -480,61 +489,6 @@ function ImageZoom({ src, onClose }: { src: string; onClose: () => void }) {
         <img src={asset(src)} alt="" className="max-h-full max-w-full object-contain" />
       </div>
     </div>
-  );
-}
-
-/** Вступительное видео с сайта: зачем его смотреть. */
-function IntroVideo() {
-  const video = embedUrl(INTRO_VIDEO);
-  if (!video) return null;
-  return (
-    <section className="mt-9">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-ink">Вступительное видео · бесплатный урок</p>
-      <h2 className="display-title mt-1 text-[1.35rem] text-ink">Как создаётся Книга Рода</h2>
-      <div className="mt-3 overflow-hidden rounded-2xl bg-night shadow-lg">
-        {video.kind === "iframe" ? <iframe src={video.src} title="Вступительное видео" className="aspect-video w-full" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen /> : <video src={video.src} controls playsInline className="aspect-video w-full" />}
-      </div>
-      <p className="mt-3 text-sm leading-relaxed text-ink/85">
-        Смотрите его первым: это бесплатный урок, с которого начинается Книга Рода. За несколько минут вы поймёте, как из разрозненных воспоминаний, старых фотографий и пары фамилий получается настоящая семейная книга. Увидите, как ИИ-помощник берёт на себя самое трудное: задаёт вопросы, помогает искать предков и превращает ваши слова в красивый текст.
-      </p>
-      <p className="mt-2 text-sm leading-relaxed text-ink/85">Даже если у вас нет ни одного старого документа и спросить уже не у кого: главная часть книги зашита в вас самих.</p>
-    </section>
-  );
-}
-
-function TileGrid() {
-  const [zoom, setZoom] = useState<string | null>(null);
-  return (
-    <>
-      <ul className="mt-3 grid grid-cols-2 gap-3">
-        {TILES.map((tile) => (
-          <li key={tile.id}>
-            <button type="button" onClick={() => setZoom(tile.src)} className="block w-full overflow-hidden rounded-2xl bg-black" aria-label={tile.title}>
-              <img src={asset(tile.src)} alt={tile.title} loading="lazy" className="w-full" />
-            </button>
-          </li>
-        ))}
-      </ul>
-      {zoom ? <ImageZoom src={zoom} onClose={() => setZoom(null)} /> : null}
-    </>
-  );
-}
-
-/** Картинка урока с сайта: нажатие открывает её целиком. */
-function TileButton({ lessonId }: { lessonId: string }) {
-  const [zoom, setZoom] = useState(false);
-  const tile = TILES.find((item) => item.id === lessonId);
-  if (!tile) return null;
-  return (
-    <>
-      <div className="px-5 pt-5">
-        <button type="button" onClick={() => setZoom(true)} className="block w-full overflow-hidden rounded-2xl bg-black" aria-label="Что в уроке">
-          <img src={asset(tile.src)} alt={tile.title} className="w-full" />
-        </button>
-        <p className="mt-1 text-center text-xs text-paper/60">Нажмите, чтобы увидеть целиком</p>
-      </div>
-      {zoom ? <ImageZoom src={tile.src} onClose={() => setZoom(false)} /> : null}
-    </>
   );
 }
 
@@ -555,5 +509,105 @@ function Reviews() {
       </ul>
       {zoom ? <ImageZoom src={zoom} onClose={() => setZoom(null)} /> : null}
     </section>
+  );
+}
+
+/** Видео без лишнего: своя обложка и кнопка, плеер YouTube появляется только после нажатия. */
+function CleanVideo({ url }: { url: string }) {
+  const id = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]{6,})/)?.[1];
+  const [playing, setPlaying] = useState(false);
+  const [poster, setPoster] = useState(id ? `https://i.ytimg.com/vi/${id}/maxresdefault.jpg` : "");
+  if (!id) return null;
+  return (
+    <div className="relative aspect-video w-full overflow-hidden bg-black">
+      {playing ? (
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&color=white`}
+          title="Урок"
+          className="absolute inset-0 size-full"
+          allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+          allowFullScreen
+        />
+      ) : (
+        <button type="button" onClick={() => setPlaying(true)} aria-label="Смотреть урок" className="group absolute inset-0 block size-full">
+          <img src={poster} alt="" className="size-full object-cover" onLoad={(event) => { if (event.currentTarget.naturalWidth <= 120) setPoster(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`); }} onError={() => setPoster(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`)} />
+          <span className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10" />
+          <span className="absolute left-1/2 top-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[#c9ae74] text-[#14160f] shadow-2xl transition group-active:scale-95">
+            <Play className="size-8 translate-x-0.5" />
+          </span>
+          <span className="absolute inset-x-0 bottom-3 text-center text-xs font-semibold uppercase tracking-[0.18em] text-paper/90">Смотреть · 12 минут</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Бесплатный урок: тёмная страница, видео и описание, от которого хочется смотреть. */
+function FreeLesson({ lesson, passed, onDone, onBack, onOpen }: { lesson: Lesson; passed: boolean; onDone: () => void; onBack: () => void; onOpen: (to: NonNullable<Lesson["related"]>["to"]) => void }) {
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#14160f] text-paper">
+      <header className="sticky top-0 z-10 flex items-center gap-3 bg-[#14160f]/95 px-3 pb-2 pt-[max(0.6rem,env(safe-area-inset-top))] backdrop-blur">
+        <button type="button" onClick={onBack} aria-label="Назад" className="grid size-11 shrink-0 place-items-center rounded-full bg-paper/10 text-paper">
+          <ChevronLeft className="size-5" />
+        </button>
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-paper/85">Бесплатный урок</p>
+      </header>
+      <div className="mx-auto max-w-2xl pb-[max(2rem,env(safe-area-inset-bottom))]">
+        <CleanVideo url={INTRO_VIDEO} />
+        <div className="px-5 pt-7">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#c9ae74]">12 минут · бесплатно</p>
+          <h1 className="display-title mt-2 text-[2rem] leading-[1.05] text-paper">Через двадцать лет ваш ребёнок откроет эту книгу</h1>
+          <p className="mt-4 text-[1.15rem] font-semibold leading-snug text-[#c9ae74]">И найдёт в ней вас. Ваш голос. Ваш род.</p>
+          <p className="mt-4 text-base leading-relaxed text-paper/85">
+            Я покажу, как создаю Книгу Рода с ИИ. Без архивов, без редакторов и без «я не умею писать». Нужны только вы, телефон и один тихий вечер.
+          </p>
+          <ul className="mt-6 grid gap-3">
+            {[
+              ["Как это работает", "ИИ-интервьюер задаёт вопросы, а вы просто отвечаете голосом"],
+              ["Что делать, если ничего не осталось", "ни документов, ни фото, ни тех, кого можно спросить: книга всё равно получится"],
+              ["Как за один вечер появляются первые страницы", "смотрите на живом примере, шаг за шагом"],
+              ["Как выглядит готовая книга", "и почему её невозможно закрыть, пока не дочитаешь"],
+            ].map(([title, text]) => (
+              <li key={title} className="flex gap-3">
+                <span className="mt-1 size-2 shrink-0 rotate-45 bg-[#c9ae74]" />
+                <span>
+                  <span className="block text-[1.02rem] font-semibold text-paper">{title}</span>
+                  <span className="block text-sm leading-snug text-paper/70">{text}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-6 text-base font-semibold text-paper">Нажмите на видео. Дальше всё само.</p>
+        </div>
+
+        <img src={asset("course/site/materials.jpg")} alt="" className="mt-8 block w-full" draggable={false} />
+
+        <div className="px-5 pt-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#c9ae74]">После урока</p>
+          <div className="mt-3 grid gap-3">
+            {lesson.sections.map((section) => (
+              <article key={section.heading} className="rounded-2xl border border-paper/15 bg-paper/10 p-5">
+                <h2 className="text-[1.15rem] font-semibold leading-tight text-paper">{section.heading}</h2>
+                <div className="mt-2 grid gap-2 text-[15px] leading-relaxed text-paper/80">
+                  {section.paragraphs.map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="mt-5 grid gap-2.5">
+            {lesson.related ? (
+              <Button variant="soft" className="w-full" onClick={() => onOpen(lesson.related!.to)}>
+                {lesson.related.label}
+              </Button>
+            ) : null}
+            <Button className="w-full" variant={passed ? "soft" : "white"} onClick={onDone}>
+              {passed ? "Урок пройден" : "Отметить пройденным"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
