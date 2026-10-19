@@ -6,7 +6,11 @@ import { STAMP_DEFAULT_PX, STAMP_KINDS, STAMP_LABELS } from "@/lib/rod/stamp-kin
 import type { BrushKind, InkStroke, PageBlock } from "@/lib/rod/types";
 
 /** Высота страницы в единицах ширины. */
-export const PAGE_H = 100 * PAGE_RATIO;
+export let PAGE_H = 100 * PAGE_RATIO;
+/** Формат книги сменился: пересчитать высоту страницы в единицах ширины. */
+export function syncPageH(): void {
+  PAGE_H = 100 * PAGE_RATIO;
+}
 
 export function inkColor(color: string): string {
   if (color.startsWith("#") || color.startsWith("rgb")) return color;

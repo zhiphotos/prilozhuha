@@ -21,6 +21,8 @@ type HistoryState = { rod: true; stack: Screen[] };
 
 export function RodApp() {
   const onboarded = useRod((state) => state.onboarded);
+  const print = useRod((state) => state.print);
+  const formatKey = `${print.size}x${print.height ?? print.size}`;
   const [hydrated, setHydrated] = useState(false);
   const [stack, setStack] = useState<Screen[]>([{ id: "home" }]);
   const stackRef = useRef(stack);
@@ -91,7 +93,7 @@ export function RodApp() {
   return (
     <NavProvider value={nav}>
       {full ? (
-        <ScreenView screen={screen} />
+        <ScreenView key={formatKey} screen={screen} />
       ) : (
         <>
           <div className="mx-auto grid min-h-dvh w-full max-w-6xl gap-6 px-4 pb-5 pt-[max(1.25rem,env(safe-area-inset-top))] lg:grid-cols-[220px_minmax(0,1fr)] lg:px-6 lg:py-8">

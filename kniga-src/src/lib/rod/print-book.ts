@@ -8,6 +8,7 @@ import {
   COLORS,
   FONT_FAMILY,
   PAGE_RATIO,
+  heightCm,
   blockW,
   POLAROID,
   fontFamily,
@@ -590,14 +591,15 @@ export async function downloadPrintBlock(pages: BookPage[], meta: CoverMeta, set
   if (!inner.length) throw new Error("В книге ещё нет страниц");
   const list = inner.length % 2 ? [...inner, { id: "blank", title: "", kind: "page" as const, paper: inner[inner.length - 1].paper, strokes: [], blocks: [] }] : inner;
   await fontsReady();
-  const side = (setup.size * 10 + setup.bleed * 2) * MM;
+  const sideW = (setup.size * 10 + setup.bleed * 2) * MM;
+  const sideH = (heightCm(setup) * 10 + setup.bleed * 2) * MM;
   const sheets: PdfSheet[] = [];
   for (const [index, page] of list.entries()) {
     onProgress?.(index, list.length);
     const sheet = await canvasJpeg(await paintPage(page, meta, setup, spreadGhosts(inner, page.id)));
-    sheets.push({ ...sheet, pageW: side, pageH: side, bleed: setup.bleed * MM });
+    sheets.push({ ...sheet, pageW: sideW, pageH: sideH, bleed: setup.bleed * MM });
   }
-  save(buildJpegPdf(sheets), `Книга рода – блок ${setup.size}x${setup.size} (${list.length} стр).pdf`);
+  save(buildJpegPdf(sheets), `Книга рода – блок ${setup.size}x${heightCm(setup)} (${list.length} стр).pdf`);
   return list.length;
 }
 
@@ -622,7 +624,7 @@ export async function downloadPrintCover(pages: BookPage[], meta: CoverMeta, set
   const spine = Math.round(setup.spine * PX_PER_MM);
   const canvas = document.createElement("canvas");
   canvas.width = trim * 2 + spine + bleed * 2;
-  canvas.height = trim + bleed * 2;
+  canvas.height = front.height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Не удалось собрать обложку");
   const frontColor = cover.bg || PAPER_BG[cover.paper];
@@ -649,7 +651,7 @@ export async function downloadPrintCover(pages: BookPage[], meta: CoverMeta, set
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.font = `${fontWeight(spineSet.font)} ${fontPx}px ${fontFamily(spineSet.font)}`;
-      ctx.fillText(spineText(spineSet, meta), 0, 0, trim * 0.8);
+      ctx.fillText(spineText(spineSet, meta), 0, 0, (canvas.height - bleed * 2) * 0.8);
     }
     ctx.restore();
   }
@@ -658,5 +660,5 @@ export async function downloadPrintCover(pages: BookPage[], meta: CoverMeta, set
   ctx.drawImage(front, bleed, 0, trim + bleed, front.height, bleed + trim + spine, 0, trim + bleed, front.height);
   const sheet = await canvasJpeg(canvas);
   const pdf = buildJpegPdf([{ ...sheet, pageW: canvas.width / PX_PER_MM * MM, pageH: canvas.height / PX_PER_MM * MM, bleed: setup.bleed * MM }]);
-  save(pdf, `Книга рода – обложка ${setup.size}x${setup.size}, корешок ${setup.spine} мм.pdf`);
+  save(pdf, `Книга рода – обложка ${setup.size}x${heightCm(setup)}, корешок ${setup.spine} мм.pdf`);
 }

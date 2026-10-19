@@ -36,6 +36,7 @@ import { libFont } from "@/lib/rod/fonts";
 import { SHAPES, isStrokedShape, shapeStyle } from "@/lib/rod/shapes";
 import { FONT_LABEL } from "@/lib/rod/pages";
 import { useRod } from "@/lib/rod/store";
+import { flowToNextPages } from "@/lib/rod/text-flow";
 import type { BlendKind, BrushKind, FontKind, FontRef, PageBlock, PhotoFrame, ShapeKind, TextLook } from "@/lib/rod/types";
 
 export type Tool = "hand" | "draw" | "erase";
@@ -610,6 +611,40 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
             </div>
             <div className="mt-2">
               <Stepper label="Размер" value={px} min={10} max={300} onChange={(v) => ops.patch({ px: v } as Partial<PageBlock>, `size:${block.id}`)} />
+              <button
+                type="button"
+                className="mt-1.5 text-sm text-rose-deep underline"
+                onClick={() => {
+                  const state = useRod.getState();
+                  let count = 0;
+                  for (const page of state.pages) {
+                    if (!page.blocks.some((item) => item.type === "text" && item.id !== block.id)) continue;
+                    state.updatePage(page.id, (current) => ({
+                      ...current,
+                      blocks: current.blocks.map((item) => {
+                        if (item.type !== "text") return item;
+                        count += 1;
+                        return { ...item, px };
+                      }),
+                    }));
+                  }
+                  ops.patch({ px } as Partial<PageBlock>);
+                  toast(`Размер ${px} px поставлен на ${count + 1} текстах книги`);
+                }}
+              >
+                Поставить {px} px на все тексты книги
+              </button>
+              <button
+                type="button"
+                className="mt-1 block text-sm text-rose-deep underline"
+                onClick={() => {
+                  const owner = useRod.getState().pages.find((page) => page.blocks.some((item) => item.id === block.id));
+                  const made = owner ? flowToNextPages(owner.id, block.id) : 0;
+                  toast(made ? `Лишнее перенесено на ${made} ${made === 1 ? "новую страницу" : "новые страницы"}` : "Весь текст помещается на странице");
+                }}
+              >
+                Что не поместилось, перенести на следующую страницу
+              </button>
             </div>
             <div className="no-scrollbar -mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1">
               {(["plain", "card", "pill"] as TextLook[]).map((look) => (

@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import { applyFormat } from "@/lib/rod/book-format";
 import { DEFAULT_PRINT, isDark, type PrintSetup } from "@/lib/rod/page-style";
 import { MEDIA_STORE, STATE_STORE, idbClear, idbGet, idbSet } from "@/lib/rod/idb";
 import { activeProjectId, listProjects, setActiveProject, storageKeyFor } from "@/lib/rod/projects";
@@ -444,3 +445,8 @@ export const useRod = create<RodState>()(
     },
   ),
 );
+
+// Формат страницы (пропорция) живёт в настройках печати: при смене или загрузке книги пересчитываем размеры.
+useRod.subscribe((state, prev) => {
+  if (state.print !== prev.print) applyFormat(state.print);
+});

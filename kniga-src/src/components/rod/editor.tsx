@@ -46,7 +46,7 @@ import { BRUSH_ALPHA, BRUSH_DEFAULT_PX, PAGE_H, eraseFromStrokes, lineOf, makeIn
 import { coverDesigns, blankPage } from "@/lib/rod/layouts";
 import { liftSubject } from "@/lib/rod/lift";
 import { mediaDataUrl, saveMedia } from "@/lib/rod/media";
-import { PAPER, POLAROID, blockW, defaultStickerWidth, pageSide, safeArea, stickerRatio } from "@/lib/rod/page-style";
+import { PAPER, POLAROID, blockW, heightCm, defaultStickerWidth, pageSide, safeArea, stickerRatio } from "@/lib/rod/page-style";
 import { findPrompt } from "@/lib/rod/pages";
 import { paintPage } from "@/lib/rod/print-book";
 import { defaultShapeBox } from "@/lib/rod/shapes";
@@ -508,8 +508,9 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   // ——— Охранное поле ———
   const side = isBack ? "single" : pageSide(index, hasCover);
-  const safe = safeArea(print.size, side);
+  const safe = safeArea(print.size, heightCm(print), side);
   const bleedPct = (print.bleed / (print.size * 10)) * 100;
+  const bleedPctY = (print.bleed / (heightCm(print) * 10)) * 100;
 
   const heightOf = (b: PageBlock): number => {
     if ("h" in b && typeof b.h === "number") return b.h;
@@ -520,7 +521,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   };
 
   /** Фото на весь лист вместе с вылетами, под обрез. */
-  const fullPage = () => ({ x: round(-bleedPct), y: round(-bleedPct), w: round(100 + bleedPct * 2), h: round(100 + bleedPct * 2), rotate: 0, frame: "none" as PhotoFrame });
+  const fullPage = () => ({ x: round(-bleedPct), y: round(-bleedPctY), w: round(100 + bleedPct * 2), h: round(100 + bleedPctY * 2), rotate: 0, frame: "none" as PhotoFrame });
 
   const warnFull = (ratio: number) => {
     const crop = Math.abs(ratio - 1) > 0.05 ? (ratio > 1 ? " Фото вытянуто вверх, сверху и снизу его подрежет до квадрата." : " Фото широкое, по бокам его подрежет до квадрата.") : "";
@@ -545,18 +546,18 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       return { ...b, x: round(x), y: round(y), ...("w" in b ? { w: round(w) } : {}) } as PageBlock;
     }
     // Прилипание только у самого края (до 2,5 %) и без смены размера; остальное остаётся там, где поставили.
-    const soft = (start: number, len: number): [number, number] => {
+    const soft = (start: number, len: number, bleedBy: number): [number, number] => {
       let s2 = start;
       let n = len;
       if (Math.abs(s2) < 2.5) {
-        n += s2 + bleedPct;
-        s2 = -bleedPct;
+        n += s2 + bleedBy;
+        s2 = -bleedBy;
       }
-      if (Math.abs(100 - (s2 + n)) < 2.5) n = 100 + bleedPct - s2;
+      if (Math.abs(100 - (s2 + n)) < 2.5) n = 100 + bleedBy - s2;
       return [s2, n];
     };
-    const [x, w] = soft(b.x, b.w);
-    const [y, h] = soft(b.y, b.h);
+    const [x, w] = soft(b.x, b.w, bleedPct);
+    const [y, h] = soft(b.y, b.h, bleedPctY);
     void L;
     void R;
     void T;
@@ -1471,6 +1472,16 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
       {/* Лист */}
       <div className="relative min-h-0 flex-1">
+        {!isBack && !drawingTool ? (
+          <>
+            <button type="button" className="glass-strong absolute left-1.5 top-1/2 z-[44] grid size-12 -translate-y-1/2 place-items-center rounded-full disabled:opacity-0" disabled={index <= 0} onClick={() => go(-1)} aria-label="Предыдущая страница">
+              <ChevronLeft className="size-6" />
+            </button>
+            <button type="button" className="glass-strong absolute right-1.5 top-1/2 z-[44] grid size-12 -translate-y-1/2 place-items-center rounded-full disabled:opacity-0" disabled={index >= pages.length - 1} onClick={() => go(1)} aria-label="Следующая страница">
+              <ChevronRight className="size-6" />
+            </button>
+          </>
+        ) : null}
         <div
           ref={stageRef}
           className="no-scrollbar absolute inset-0 overflow-auto"
@@ -1501,7 +1512,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
               onContextMenu={(event) => event.preventDefault()}
             >
               {/* Вылет под обрез: сюда можно тянуть фото, всё остальное отрежется */}
-              <div className="pointer-events-none absolute rounded-[2px] border border-dashed border-rose/40" style={{ inset: `-${bleedPct}%` }} />
+              <div className="pointer-events-none absolute rounded-[2px] border border-dashed border-rose/40" style={{ inset: `-${bleedPctY}% -${bleedPct}%` }} />
               <PageSheet page={page} meta={meta} hideStrokes clip={false} className="rounded-[2px]">
                 <div data-bg="1" className="absolute inset-0" />
                 {page.blocks.map((blockBase) => {

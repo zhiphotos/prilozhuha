@@ -13,7 +13,7 @@ import { ContentsSheet } from "@/components/rod/contents-sheet";
 import { downloadFamilyBook, downloadPrintBlock, downloadPrintCover } from "@/lib/rod/print-book";
 import { useRod } from "@/lib/rod/store";
 import type { BookPage, PaperKind } from "@/lib/rod/types";
-import { BOOK_SIZES, GUTTER_MM, PAPER, SAFE_MM } from "@/lib/rod/page-style";
+import { BOOK_FORMATS, GUTTER_MM, PAPER, SAFE_MM, heightCm } from "@/lib/rod/page-style";
 import { cn } from "@/lib/cn";
 
 export function BookScreen() {
@@ -252,24 +252,40 @@ function PrintSheet({ pages, meta, onClose }: { pages: BookPage[]; meta: { dedic
   };
   return (
     <Sheet title="Файл для типографии" onClose={onClose}>
-      <p className="text-sm text-muted">Формат книги</p>
-      <div className="mt-2 flex gap-2">
-        {BOOK_SIZES.map((size) => (
-          <button key={size} type="button" onClick={() => setPrint({ size })} className={cn("flex-1 rounded-2xl px-3 py-3 text-center", print.size === size ? "bg-night text-paper" : "bg-white/70 text-ink")}>
-            <span className="block text-lg font-semibold">
-              {size}×{size}
-            </span>
-            <span className="text-xs opacity-70">см</span>
-          </button>
-        ))}
+      <p className="text-sm text-muted">Формат книги (ширина × высота страницы)</p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        {BOOK_FORMATS.map((format) => {
+          const on = print.size === format.w && heightCm(print) === format.h;
+          return (
+            <button key={format.id} type="button" onClick={() => setPrint({ size: format.w, height: format.h })} className={cn("rounded-2xl px-3 py-2.5 text-left", on ? "bg-night text-paper" : "bg-white/70 text-ink")}>
+              <span className="block text-sm font-semibold">{format.label}</span>
+              <span className="text-xs opacity-70">
+                {format.w}×{format.h} см
+              </span>
+            </button>
+          );
+        })}
       </div>
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <label className="block">
+          <span className="mb-1 block text-sm text-muted">Свой размер: ширина, см</span>
+          <input className="field" type="number" inputMode="decimal" min={8} max={60} step={0.1} value={print.size} onChange={(event) => setPrint({ size: Math.max(8, Math.min(60, Number(event.target.value) || 8)) })} />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-sm text-muted">высота, см</span>
+          <input className="field" type="number" inputMode="decimal" min={8} max={60} step={0.1} value={heightCm(print)} onChange={(event) => setPrint({ height: Math.max(8, Math.min(60, Number(event.target.value) || 8)) })} />
+        </label>
+      </div>
+      <p className="mt-2 text-xs text-muted">
+        {print.size === heightCm(print) ? "Квадратная страница." : print.size > heightCm(print) ? "Альбомная ориентация." : "Книжная ориентация."} Размер можно менять в любой момент: всё на страницах подстроится по пропорциям.
+      </p>
       <div className="mt-4 grid grid-cols-2 gap-3">
         <label className="block">
           <span className="mb-1 block text-sm text-muted">Вылеты, мм</span>
           <select className="field" value={print.bleed} onChange={(event) => setPrint({ bleed: Number(event.target.value) })}>
-            {[3, 4, 5].map((mm) => (
+            {[0, 3, 4, 5, 6, 8, 10, 15, 20].map((mm) => (
               <option key={mm} value={mm}>
-                {mm} мм с каждой стороны
+                {mm === 0 ? "без вылетов" : mm >= 15 ? `${mm} мм (загиб под твёрдую обложку)` : `${mm} мм с каждой стороны`}
               </option>
             ))}
           </select>
@@ -294,7 +310,7 @@ function PrintSheet({ pages, meta, onClose }: { pages: BookPage[]; meta: { dedic
         <p className="font-semibold">Что внутри файлов</p>
         <ul className="mt-2 grid list-disc gap-1 pl-5 text-ink/80">
           <li>
-            Страница {print.size}×{print.size} см + вылеты {print.bleed} мм: файл {print.size * 10 + print.bleed * 2}×{print.size * 10 + print.bleed * 2} мм, 300 dpi, RGB.
+            Страница {print.size}×{heightCm(print)} см + вылеты {print.bleed} мм: файл {Math.round((print.size * 10 + print.bleed * 2) * 10) / 10}×{Math.round((heightCm(print) * 10 + print.bleed * 2) * 10) / 10} мм, 300 dpi, RGB.
           </li>
           <li>Обрезной формат отмечен в PDF (TrimBox) – типография увидит, где резать.</li>
           <li>

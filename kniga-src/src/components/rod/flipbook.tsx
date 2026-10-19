@@ -38,6 +38,7 @@ type Live = {
 };
 type Box = { w: number; h: number; gutter: number; pageX: number; pageY: number; pageW: number; pageH: number };
 
+const SHOWN_BINDINGS: BindingId[] = ["codex", "wire", "comb"];
 const BINDING_NAMES: Record<BindingId, string> = { codex: "Обычная книга", wire: "Пружина", disc: "Диски", comb: "Гребень", rings: "Кольца" };
 const BINDING_TEX: Record<BindingId, string> = { codex: codexTex, wire: wireTex, disc: discTex, comb: combTex, rings: ringsTex };
 const BACKGROUNDS = [
@@ -155,7 +156,7 @@ function Stage({ pageId }: { pageId?: string }) {
 
   const [binding, setBinding] = useState<BindingId>(() => {
     const saved = lsGet(LS_BIND);
-    return BINDINGS.some((item) => item.id === saved) ? (saved as BindingId) : "wire";
+    return SHOWN_BINDINGS.some((id) => id === saved) ? (saved as BindingId) : "wire";
   });
   const [bg, setBg] = useState<BgId>(() => {
     const saved = lsGet(LS_BG);
@@ -616,7 +617,7 @@ function Stage({ pageId }: { pageId?: string }) {
           </button>
         </div>
         <div className="no-scrollbar flex max-w-full gap-1.5 overflow-x-auto" role="tablist" aria-label="Переплёт">
-          {BINDINGS.map((item) => (
+          {BINDINGS.filter((item) => SHOWN_BINDINGS.includes(item.id)).map((item) => (
             <button key={item.id} type="button" role="tab" aria-selected={item.id === binding} className="kb-chip shrink-0" onClick={() => pickBinding(item.id)}>
               {BINDING_NAMES[item.id]}
             </button>

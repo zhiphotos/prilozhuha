@@ -95,7 +95,7 @@ type Placed = {
   spread?: boolean;
 };
 
-export type BrushKind = "pen" | "marker" | "brush" | "highlighter" | "thread" | "dashed" | "dots" | "wash" | "ink" | "calligraphy" | "charcoal" | "stitch" | "leaf";
+export type BrushKind = "pen" | "marker" | "brush" | "highlighter" | "thread" | "dashed" | "dots" | "wash" | "ink" | "charcoal";
 
 export type InkStroke = {
   id: string;
