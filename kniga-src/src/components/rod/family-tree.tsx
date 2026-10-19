@@ -169,16 +169,25 @@ export function TreePane() {
       const probe = new Image();
       probe.src = await mediaDataUrl(src);
       await probe.decode();
-      const ratio = probe.naturalHeight / probe.naturalWidth;
-      const w = 88;
-      const h = Math.min(88, (w * ratio) / (PAGE_H / 100));
+      const ratio = probe.naturalHeight / probe.naturalWidth; // высота в единицах ширины
+      // Вписываем целиком, без обрезки: 90 % ширины и 88 % высоты страницы, что тесное, то и определяет размер.
+      const maxW = 90;
+      const maxH = 88;
+      let w = maxW;
+      let h = ((w * ratio) / PAGE_H) * 100;
+      if (h > maxH) {
+        h = maxH;
+        w = ((h * PAGE_H) / 100) / ratio;
+      }
+      const x = (100 - w) / 2;
+      const y = (100 - h) / 2;
       insertPage(
         {
           title: "Древо семьи",
           kind: "page",
           paper: "cream",
           strokes: [],
-          blocks: [{ id: crypto.randomUUID().slice(0, 8), type: "photo", x: 6, y: Math.max(4, (100 - h) / 2), w, h, src, caption: "", frame: "none", shadow: false }],
+          blocks: [{ id: crypto.randomUUID().slice(0, 8), type: "photo", x, y, w, h, src, caption: "", frame: "none", shadow: false }],
         },
         pages.length,
       );

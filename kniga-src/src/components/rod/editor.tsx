@@ -1743,9 +1743,6 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           <ToolBtn label="Слои" onClick={() => { setTool("hand"); setPanel("layers"); }}>
             <Layers className="size-5" />
           </ToolBtn>
-          <ToolBtn label="Подсказки" onClick={() => setPanel("help")}>
-            <Lightbulb className="size-5" />
-          </ToolBtn>
         </div>
       </nav>
 
