@@ -1,43 +1,21 @@
 // Автоперенос длинного текста на следующие страницы, как в Word: меряем строки тем же шрифтом, что на странице.
 import { PAGE_H } from "@/lib/rod/ink";
-import { fontFamily, fontWeight, lookPad, textMetrics } from "@/lib/rod/page-style";
+import { lineBox, wrapLines } from "@/lib/rod/measure";
 import { useRod } from "@/lib/rod/store";
 import type { PageBlock } from "@/lib/rod/types";
 
 type TextBlock = Extract<PageBlock, { type: "text" }>;
 
-const BOTTOM = 7; // нижнее поле, % ширины
-const TOP = 8; // верх страницы-продолжения
+const BOTTOM = 7; // нижнее поле, единицы ширины
+const TOP = 8; // верх страницы-продолжения, % высоты
 
 /** Разбивает текст на куски по высоте страницы. Первый кусок остаётся на странице блока. */
 export function flowChunks(block: TextBlock): string[] {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return [block.text];
-  const metrics = textMetrics(block.font, block.size, block.px);
-  const pad = lookPad(block.look);
-  const sizePx = metrics.size * 10;
-  ctx.font = `${fontWeight(block.font)} ${sizePx}px ${fontFamily(block.font)}`;
-  const widthPx = Math.max(40, (block.w - pad.x * 2) * 10);
-  const lineH = metrics.size * metrics.leading;
-  const room = (top: number) => Math.max(1, Math.floor((PAGE_H - BOTTOM - top - pad.y * 2) / lineH));
-
-  const lines: string[] = [];
-  for (const paragraph of block.text.split("\n")) {
-    if (!paragraph.trim()) {
-      lines.push("");
-      continue;
-    }
-    let line = "";
-    for (const word of paragraph.split(/\s+/).filter(Boolean)) {
-      const test = line ? `${line} ${word}` : word;
-      if (line && ctx.measureText(test).width > widthPx) {
-        lines.push(line);
-        line = word;
-      } else line = test;
-    }
-    lines.push(line);
-  }
+  const style = { font: block.font, size: block.size, px: block.px, look: block.look, w: block.w };
+  const { line, padY } = lineBox(style);
+  const lines = wrapLines(block.text, style);
+  // y блока в процентах высоты страницы; все расчёты в единицах ширины, как и высота строки.
+  const room = (topPercent: number) => Math.max(1, Math.floor((PAGE_H - BOTTOM - (topPercent / 100) * PAGE_H - padY * 2) / line));
   const chunks: string[] = [];
   let at = 0;
   let capacity = room(block.y);

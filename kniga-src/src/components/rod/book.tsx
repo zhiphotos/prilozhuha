@@ -9,6 +9,7 @@ import { PAGE_PROMPTS } from "@/lib/rod/pages";
 import { isBookReady, overallOf, partsOf, plural } from "@/lib/rod/progress";
 import { CoverSetup } from "@/components/rod/cover-setup";
 import { PlanSheet } from "@/components/rod/plan-sheet";
+import { TextToPagesSheet } from "@/components/rod/text-to-pages";
 import { ContentsSheet } from "@/components/rod/contents-sheet";
 import { downloadFamilyBook, downloadPrintBlock, downloadPrintCover } from "@/lib/rod/print-book";
 import { useRod } from "@/lib/rod/store";
@@ -26,6 +27,7 @@ export function BookScreen() {
   const [showTrash, setShowTrash] = useState(false);
   const [coverSetup, setCoverSetup] = useState(false);
   const [planning, setPlanning] = useState(false);
+  const [textToPages, setTextToPages] = useState(false);
   const [contents, setContents] = useState(false);
   const plan = useRod((state) => state.plan);
   const snapshot = { ...data, pages };
@@ -65,6 +67,9 @@ export function BookScreen() {
         </Button>
         <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setPlanning(true)}>
           <Sparkles className="size-4" /> Спланировать страницы списком
+        </Button>
+        <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setTextToPages(true)}>
+          <Sparkles className="size-4" /> Текст → страницы
         </Button>
         <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setCoverSetup(true)}>
           <Palette className="size-4" /> Обложка: корешок и задняя сторона
@@ -177,6 +182,7 @@ export function BookScreen() {
 
       {contents ? <ContentsSheet onClose={() => setContents(false)} onOpen={(pid) => { setContents(false); nav.go({ id: "editor", pageId: pid }); }} /> : null}
       {planning ? <PlanSheet onClose={() => setPlanning(false)} /> : null}
+      {textToPages ? <TextToPagesSheet onClose={() => setTextToPages(false)} /> : null}
       {coverSetup ? <CoverSetup onClose={() => setCoverSetup(false)} /> : null}
       {printing ? <PrintSheet pages={pages} meta={meta} onClose={() => setPrinting(false)} /> : null}
       {library ? <Library meta={meta} onClose={() => setLibrary(false)} onPick={(page) => { setLibrary(false); open(page); }} /> : null}
