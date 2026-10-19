@@ -84,7 +84,7 @@ function FamilyCard() {
       >
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-semibold text-ink">Пригласить родственников</span>
-          <span className="block text-sm text-muted">Пусть расскажут свои истории и пришлют фото. Уроки им не видны.</span>
+          <span className="block text-sm text-muted">Пусть расскажут свои истории и пришлют фото. Им покажем бесплатный урок.</span>
         </span>
         {waiting > 0 ? <span className="grid min-w-7 place-items-center rounded-full bg-rose-deep px-2 py-1 text-xs font-semibold text-paper">{waiting}</span> : null}
       </button>

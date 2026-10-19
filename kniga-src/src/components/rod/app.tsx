@@ -114,7 +114,7 @@ export function RodApp() {
   }
 
   const screen = nav.screen;
-  const full = screen.id === "editor" || screen.id === "flip" || screen.id === "join";
+  const full = screen.id === "editor" || screen.id === "flip";
 
   return (
     <NavProvider value={nav}>

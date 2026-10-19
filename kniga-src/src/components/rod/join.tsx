@@ -3,6 +3,7 @@ import { Camera, Check } from "lucide-react";
 import { toast } from "sonner";
 import { RELATIONS, SITUATIONS } from "@/lib/rod/content";
 import { compressPhoto, roomInfo, sendToRoom } from "@/lib/rod/family";
+import { useRod } from "@/lib/rod/store";
 import { Button, Field, useNav } from "@/components/rod/chrome";
 import { cn } from "@/lib/cn";
 
@@ -44,7 +45,7 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
     }
   };
 
-  const box = "mx-auto min-h-dvh w-full max-w-lg px-5 pb-12 pt-[max(1.5rem,env(safe-area-inset-top))]";
+  const box = "mx-auto w-full max-w-lg pb-6";
   if (!info) return <div className={box}><p className="mt-20 text-center text-muted">Открываю приглашение…</p></div>;
   if (!info.ok) {
     return (
@@ -59,7 +60,7 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-ink">Книга рода</p>
       <h1 className="display-title mt-2 text-[2rem] leading-[1.1] text-ink">{info.name} приглашает вас помочь с семейной книгой</h1>
       <p className="mt-3 text-base leading-relaxed text-ink/80">
-        Расскажите то, что помните: случай из детства, как пахла бабушкина кухня, как познакомились родители. Можно прислать и старое фото. Достаточно пары слов. Ничего устанавливать и платить не нужно.
+        Расскажите то, что помните: случай из детства, как пахла бабушкина кухня, как познакомились родители. Можно прислать и старое фото. Достаточно пары слов. Ничего устанавливать и платить не нужно, чтобы помочь.
       </p>
 
       {sent > 0 ? (
@@ -148,6 +149,32 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
           .
         </p>
       </div>
+      <Promo />
     </div>
+  );
+}
+
+/** Родственник может сделать такую же книгу про свою семью: бесплатный урок и программа. */
+function Promo() {
+  const nav = useNav();
+  // Родственнику не нужно проходить знакомство, чтобы посмотреть урок: открываем приложение с настройками по умолчанию.
+  const enter = () => {
+    const state = useRod.getState();
+    if (!state.onboarded) state.finishOnboarding({ audience: "family", dedicatee: "", collector: "" });
+  };
+  return (
+    <section className="mt-10 rounded-3xl bg-[#14160f] p-6 text-paper">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">А вы хотите свою?</p>
+      <h2 className="display-title mt-2 text-[1.6rem] leading-tight">Книга Рода – это до слёз и смеха</h2>
+      <p className="mt-2 text-sm leading-relaxed text-paper/80">Такая же семейная книга про вашу семью: помощник задаёт вопросы, вы просто вспоминаете. Начните с бесплатного урока на 12 минут.</p>
+      <div className="mt-4 grid gap-2.5">
+        <Button variant="white" className="w-full" onClick={() => { enter(); nav.go({ id: "lesson", lessonId: "start" }); }}>
+          Смотреть бесплатный урок
+        </Button>
+        <Button variant="soft" className="w-full" onClick={() => { enter(); nav.tab({ id: "lessons" }); }}>
+          Посмотреть всю программу
+        </Button>
+      </div>
+    </section>
   );
 }

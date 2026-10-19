@@ -7,7 +7,7 @@ const MAX_PHOTO = 600000; // знаков data-URL, примерно 450 КБ
 const clean = (value, max) => String(value ?? "").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "").trim().slice(0, max);
 
 // POST /api/room-submit { room, invite, from:{name,relation}, kind:"story"|"answer"|"photo", title, question, text, photo }
-// Родственник присылает воспоминание, ответ на вопрос или фото. Уроки и книга владельца ему не показываются: приходит только во «Входящие» владельца.
+// Родственник присылает воспоминание, ответ на вопрос или фото. Присланное приходит только во «Входящие» владельца; книга и платные уроки владельца родственнику недоступны, ему показывают бесплатный урок и предложение купить программу.
 export default async function handler(req, res) {
   if (cors(req, res)) return;
   if (req.method !== "POST") return json(res, 405, { error: "method" });
