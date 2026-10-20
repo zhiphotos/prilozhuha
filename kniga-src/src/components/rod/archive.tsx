@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { API_BASE } from "@/lib/rod/config";
+import { serverStatus } from "@/lib/rod/server";
 import { fetchInbox } from "@/lib/rod/family";
 import { FamilySheet } from "@/components/rod/family-sheet";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
@@ -71,15 +71,19 @@ function FamilyCard() {
   const room = useRod((state) => state.room);
   const [open, setOpen] = useState(false);
   const [waiting, setWaiting] = useState(0);
+  const [live, setLive] = useState(false);
   useEffect(() => {
-    if (!room || !API_BASE) return;
+    void serverStatus().then((status) => setLive(status.rooms));
+  }, []);
+  useEffect(() => {
+    if (!room || !live) return;
     void fetchInbox().then((items) => setWaiting(items.length)).catch(() => undefined);
-  }, [room, open]);
+  }, [room, open, live]);
   return (
     <>
       <button
         type="button"
-        onClick={() => (API_BASE ? setOpen(true) : toast("Семейный доступ появится, когда подключится сервер приложения."))}
+        onClick={() => (live ? setOpen(true) : toast("Семейный доступ появится, когда подключится сервер приложения."))}
         className="glass flex min-h-16 w-full items-center gap-3 rounded-2xl px-4 py-3 text-left"
       >
         <span className="min-w-0 flex-1">

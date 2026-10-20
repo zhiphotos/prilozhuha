@@ -25,10 +25,10 @@ await new Promise((r) => gateway.listen(0, r));
 process.env.ALFA_BASE_URL = `http://127.0.0.1:${gateway.address().port}`;
 process.env.ALFA_API_USER = "test"; process.env.ALFA_API_PASSWORD = "test";
 process.env.ACCESS_SECRET = "s".repeat(40); process.env.APP_ORIGINS = "https://app.example";
-const checkout = (await import("./api/checkout.js")).default;
-const ret = (await import("./api/pay-return.js")).default;
-const claim = (await import("./api/claim.js")).default;
-const verify = (await import("./api/verify.js")).default;
+const checkout = (await import("./lib/routes/checkout.js")).default;
+const ret = (await import("./lib/routes/pay-return.js")).default;
+const claim = (await import("./lib/routes/claim.js")).default;
+const verify = (await import("./lib/routes/verify.js")).default;
 const run = (handler, { method = "POST", url = "/", body, headers = {} } = {}) => new Promise((resolve) => {
   const res = { statusCode: 200, headers: {}, setHeader(k, v) { this.headers[k.toLowerCase()] = v; }, end(t) { resolve({ status: this.statusCode, headers: this.headers, text: t }); } };
   handler({ method, url, body, headers: { host: "api.example", origin: "https://app.example", ...headers } }, res);

@@ -1,6 +1,6 @@
-import { bodyOf, cors, json } from "../lib/config.js";
-import { pairs, redis, redisConfigured } from "../lib/redis.js";
-import { getRoom, isOwner } from "../lib/room.js";
+import { bodyOf, cors, json } from "../config.js";
+import { pairs, redis, redisConfigured } from "../redis.js";
+import { getRoom, isOwner } from "../room.js";
 
 // POST /api/room-inbox { room, ownerKey }  – входящее от родственников (только владельцу)
 export default async function handler(req, res) {

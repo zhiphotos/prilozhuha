@@ -1,6 +1,6 @@
-import { accessUntil, orderState } from "../lib/alfa.js";
-import { bodyOf, cors, json } from "../lib/config.js";
-import { makeToken } from "../lib/token.js";
+import { accessUntil, orderState } from "../alfa.js";
+import { bodyOf, cors, json } from "../config.js";
+import { makeToken } from "../token.js";
 
 // POST /api/claim { order, email }  – вернуть доступ на другом устройстве по номеру заказа и почте из чека.
 export default async function handler(req, res) {

@@ -1,6 +1,6 @@
-import { cors, json } from "../lib/config.js";
-import { pushConfigured } from "../lib/push.js";
-import { redisConfigured } from "../lib/redis.js";
+import { cors, json } from "../config.js";
+import { pushConfigured } from "../push.js";
+import { redisConfigured } from "../redis.js";
 
 // GET /api/push-config  -> { enabled, publicKey }
 export default async function handler(req, res) {

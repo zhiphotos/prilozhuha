@@ -1,4 +1,4 @@
-import { bodyOf, cors, json } from "../lib/config.js";
+import { bodyOf, cors, json } from "../config.js";
 
 /**
  * POST /api/layout { text } -> { items: [{ kind: "heading"|"body"|"quote", text }] }

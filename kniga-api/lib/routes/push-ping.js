@@ -1,6 +1,6 @@
-import { bodyOf, cors, json } from "../lib/config.js";
-import { subId } from "../lib/push.js";
-import { redis, redisConfigured } from "../lib/redis.js";
+import { bodyOf, cors, json } from "../config.js";
+import { subId } from "../push.js";
+import { redis, redisConfigured } from "../redis.js";
 import { cleanStats } from "./push-subscribe.js";
 
 // POST /api/push-ping { endpoint, stats }  – человек открыл приложение: напоминание в этот день не нужно, статистика для выбора текста обновляется.

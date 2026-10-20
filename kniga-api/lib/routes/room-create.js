@@ -1,7 +1,7 @@
-import { bodyOf, cors, json } from "../lib/config.js";
-import { redis, redisConfigured } from "../lib/redis.js";
-import { newKey, newRoomId, limited, sha } from "../lib/room.js";
-import { readToken } from "../lib/token.js";
+import { bodyOf, cors, json } from "../config.js";
+import { redis, redisConfigured } from "../redis.js";
+import { newKey, newRoomId, limited, sha } from "../room.js";
+import { readToken } from "../token.js";
 
 // POST /api/room-create { name, token }  – создать общую комнату семьи. Пока оплата не подключена, доступна всем; потом REQUIRE_PAID=1 включает проверку платного токена.
 export default async function handler(req, res) {

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { layoutPages, parseStructure, type Item } from "@/lib/rod/auto-layout";
 import { API_BASE } from "@/lib/rod/config";
+import { serverStatus } from "@/lib/rod/server";
 import { useRod } from "@/lib/rod/store";
 
 const EXAMPLE = `Как мы с бабушкой пекли пироги
@@ -23,6 +24,10 @@ export function TextToPagesSheet({ onClose }: { onClose: () => void }) {
   const [aiItems, setAiItems] = useState<Item[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
+  const [aiLive, setAiLive] = useState(false);
+  useEffect(() => {
+    void serverStatus().then((status) => setAiLive(status.ai));
+  }, []);
 
   useEffect(() => {
     // Шрифты нужны для точного подсчёта строк.
@@ -65,7 +70,7 @@ export function TextToPagesSheet({ onClose }: { onClose: () => void }) {
         <button type="button" className="text-sm text-moss underline" onClick={() => { setText(EXAMPLE); setAiItems(null); }}>
           Вставить пример
         </button>
-        {API_BASE ? (
+        {aiLive ? (
           <Button variant="soft" disabled={busy || text.trim().length < 40} onClick={() => void withAi()}>
             {busy ? "ИИ думает…" : "Разметить с помощью ИИ"}
           </Button>
