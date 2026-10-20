@@ -1,4 +1,5 @@
 import { bodyOf, cors, json } from "../config.js";
+import { DEVICE_ERROR, claimDevice } from "../devices.js";
 import { redis, redisConfigured } from "../redis.js";
 import { makeToken } from "../token.js";
 
@@ -33,6 +34,7 @@ export default async function handler(req, res) {
     if (!until) return json(res, 403, { error: "На этой почте нет курса «Книга Рода». Нужна именно та почта, на которую открыт доступ." });
     if (until < Date.now()) return json(res, 403, { error: "Срок доступа закончился." });
     const uid = String(session.user?.id ?? "");
+    if (!(await claimDevice(`plat-${uid}`, bodyOf(req).deviceId))) return json(res, 403, { error: DEVICE_ERROR });
     // Запоминаем «ключ продления» на сервере: так при возврате денег и снятии доступа на платформе приложение закроется само.
     if (redisConfigured() && session.refresh_token) await redis("HSET", "kr:plat", uid, JSON.stringify({ rt: session.refresh_token, email: mail, at: Date.now() }));
     return json(res, 200, { token: makeToken({ order: `plat-${uid}`, until }), until, order: "platform" });

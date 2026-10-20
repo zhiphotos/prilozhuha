@@ -1,6 +1,7 @@
 import { orderState } from "../alfa.js";
 import { bodyOf, cors, json } from "../config.js";
 import { platformUntil } from "./platform-login.js";
+import { claimDevice } from "../devices.js";
 import { readToken } from "../token.js";
 
 // POST /api/verify { token }  – доступ ещё действует? (подпись, срок и то, что платёж не возвращён)

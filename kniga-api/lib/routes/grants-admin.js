@@ -1,4 +1,5 @@
 import { randomInt } from "node:crypto";
+import { resetDevices } from "../devices.js";
 import { bodyOf, cors, json } from "../config.js";
 import { pairs, redis, redisConfigured } from "../redis.js";
 
@@ -18,6 +19,12 @@ export default async function handler(req, res) {
   const list = Object.entries(all).map(([code, raw]) => ({ code, ...JSON.parse(raw) }));
   if (req.method === "GET") return json(res, 200, { grants: list });
   const body = bodyOf(req);
+  if (body.resetDevices) {
+    // освободить места: код (8 символов) или id пользователя платформы
+    const who = String(body.resetDevices);
+    await resetDevices(who.length === 8 ? `grant-${who.toUpperCase()}` : `plat-${who}`);
+    return json(res, 200, { ok: true });
+  }
   if (body.revoke) {
     await redis("HDEL", "kr:grants", String(body.revoke).toUpperCase());
     return json(res, 200, { ok: true });

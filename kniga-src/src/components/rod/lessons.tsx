@@ -337,12 +337,15 @@ function PaySheet({ onClose }: { onClose: () => void }) {
             return;
           }
           setBusy(true);
-          void redeemCode(code).then((ok) => {
+          void redeemCode(code).then((problem) => {
             setBusy(false);
-            if (ok) {
+            if (!problem) {
               toast("Программа открыта");
               onClose();
-            } else setWrong(true);
+            } else {
+              setWrong(true);
+              toast(problem, { duration: 8000 });
+            }
           });
         }}
       >
