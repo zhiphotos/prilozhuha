@@ -17,7 +17,10 @@ export default async function handler(req, res) {
   if (!redisConfigured()) return json(res, 503, { error: "not configured" });
   const all = pairs(await redis("HGETALL", "kr:grants"));
   const list = Object.entries(all).map(([code, raw]) => ({ code, ...JSON.parse(raw) }));
-  if (req.method === "GET") return json(res, 200, { grants: list });
+  if (req.method === "GET") {
+    const leads = Object.entries(pairs(await redis("HGETALL", "kr:leads"))).map(([email, raw]) => ({ email, ...JSON.parse(raw) }));
+    return json(res, 200, { grants: list, leads });
+  }
   const body = bodyOf(req);
   if (body.resetDevices) {
     // освободить места: код (8 символов) или id пользователя платформы
@@ -28,6 +31,18 @@ export default async function handler(req, res) {
   if (body.revoke) {
     await redis("HDEL", "kr:grants", String(body.revoke).toUpperCase());
     return json(res, 200, { ok: true });
+  }
+  if (body.testers) {
+    // тестерам: n личных кодов на days дней, без почты
+    const n = Math.min(100, Number(body.testers) || 0);
+    const days = Math.min(365, Number(body.days) || 14);
+    const codes = [];
+    for (let i = 0; i < n; i++) {
+      const code = makeCode();
+      await redis("HSET", "kr:grants", code, JSON.stringify({ at: Date.now(), days, note: String(body.note ?? "тестер") }));
+      codes.push(code);
+    }
+    return json(res, 200, { codes, days });
   }
   const out = [];
   for (const email of Array.isArray(body.emails) ? body.emails : []) {

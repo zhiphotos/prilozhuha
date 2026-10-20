@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   const raw = await redis("HGET", "kr:grants", code);
   if (!raw) return json(res, 404, { error: "Код не подошёл." });
   const given = JSON.parse(raw);
-  const until = Number(given.at || Date.now()) + GRANT_DAYS * 86400000;
+  const until = Number(given.at || Date.now()) + Number(given.days || GRANT_DAYS) * 86400000;
   if (until < Date.now()) return json(res, 404, { error: "Срок кода закончился." });
   if (!(await claimDevice(`grant-${code}`, bodyOf(req).deviceId))) return json(res, 403, { error: DEVICE_ERROR });
   return json(res, 200, { token: makeToken({ order: `grant-${code}`, until }), until, order: `grant-${code}` });

@@ -2,6 +2,7 @@
 import checkout from "./checkout.js";
 import claim from "./claim.js";
 import layout from "./layout.js";
+import lead from "./lead.js";
 import payReturn from "./pay-return.js";
 import platformLogin from "./platform-login.js";
 import pushConfig from "./push-config.js";
@@ -21,6 +22,7 @@ export const ROUTES = {
   checkout,
   claim,
   layout,
+  lead,
   "pay-return": payReturn,
   "platform-login": platformLogin,
   "push-config": pushConfig,
