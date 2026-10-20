@@ -3,6 +3,7 @@ import checkout from "./checkout.js";
 import claim from "./claim.js";
 import grantsAdmin from "./grants-admin.js";
 import layout from "./layout.js";
+import lead from "./lead.js";
 import payReturn from "./pay-return.js";
 import platformLogin from "./platform-login.js";
 import pushConfig from "./push-config.js";
@@ -24,6 +25,7 @@ export const ROUTES = {
   claim,
   "grants-admin": grantsAdmin,
   layout,
+  lead,
   "pay-return": payReturn,
   "platform-login": platformLogin,
   "push-config": pushConfig,

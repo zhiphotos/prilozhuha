@@ -8,7 +8,7 @@ import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
 import { INTRO_VIDEO, LESSON_VIDEO, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
 import { LegalLinks } from "@/components/rod/legal";
 import { serverStatus } from "@/lib/rod/server";
-import { claimAccess, platformLogin, redeemCode, startCheckout } from "@/lib/rod/pay";
+import { claimAccess, leaveLead, platformLogin, redeemCode, startCheckout } from "@/lib/rod/pay";
 import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
 import { Button, ScreenFrame, Sheet, TopBar, linkScreen, useNav } from "@/components/rod/chrome";
@@ -247,7 +247,9 @@ function PaySheet({ onClose }: { onClose: () => void }) {
   const [code, setCode] = useState("");
   const [wrong, setWrong] = useState(false);
   const [pEmail, setPEmail] = useState("");
-  const [pPass, setPPass] = useState("");  const [live, setLive] = useState(false);
+  const [pPass, setPPass] = useState("");
+  const [leadDone, setLeadDone] = useState(false);
+  const [live, setLive] = useState(false);
   useEffect(() => {
     void serverStatus().then((status) => setLive(status.pay));
   }, []);
@@ -323,7 +325,30 @@ function PaySheet({ onClose }: { onClose: () => void }) {
       ) : null}
 
       {!live ? (
-        <p className="mt-4 rounded-2xl bg-white/60 p-4 text-sm text-ink">Оплата картой скоро появится. Если у вас уже есть код доступа, введите его ниже.</p>
+        leadDone ? (
+          <p className="mt-4 rounded-2xl bg-white/60 p-4 text-sm text-ink">Спасибо! Мы напишем на эту почту, когда откроется покупка.</p>
+        ) : (
+          <form
+            className="mt-4 grid gap-3 rounded-2xl bg-white/60 p-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setBusy(true);
+              void leaveLead(email).then((problem) => {
+                setBusy(false);
+                if (problem) toast(problem, { duration: 6000 });
+                else setLeadDone(true);
+              });
+            }}
+          >
+            <p className="text-sm text-ink">Покупка откроется совсем скоро. Оставьте почту, и мы сразу напишем вам.</p>
+            <input className="field" type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@mail.ru" />
+            <label className="flex cursor-pointer items-start gap-3 text-sm leading-snug text-ink">
+              <input type="checkbox" className={check} checked={pd} onChange={(event) => setPd(event.target.checked)} />
+              <span>Я даю {doc("consent-pd", "согласие на обработку персональных данных")}</span>
+            </label>
+            <Button type="submit" disabled={busy || !validEmail || !pd}>{busy ? "Отправляю…" : "Сообщите мне"}</Button>
+          </form>
+        )
       ) : null}
 
       <form

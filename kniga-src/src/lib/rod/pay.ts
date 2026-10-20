@@ -51,6 +51,16 @@ export async function redeemCode(code: string): Promise<string | null> {
   }
 }
 
+/** «Сообщите, когда откроется покупка»: оставить почту (с согласием). */
+export async function leaveLead(email: string): Promise<string | null> {
+  try {
+    const answer = await post<{ ok?: boolean }>("/api/lead", { email: email.trim(), consent: true });
+    return answer.ok ? null : answer.error || "Не получилось отправить.";
+  } catch {
+    return "Не получилось отправить. Проверьте интернет.";
+  }
+}
+
 /** Один аккаунт: вход данными с платформы balanuca. Пароль уходит только на сервер и дальше в платформу. */
 export async function platformLogin(email: string, password: string): Promise<void> {
   const answer = await post<{ token?: string; until?: number; order?: string }>("/api/platform-login", { email: email.trim(), password });
