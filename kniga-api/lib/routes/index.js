@@ -1,6 +1,7 @@
 // Все адреса сервера в одном месте: на бесплатном Vercel можно не больше 12 функций, поэтому они собраны в одну (api/[...path].js).
 import checkout from "./checkout.js";
 import claim from "./claim.js";
+import grantsAdmin from "./grants-admin.js";
 import layout from "./layout.js";
 import payReturn from "./pay-return.js";
 import platformLogin from "./platform-login.js";
@@ -9,6 +10,7 @@ import pushPing from "./push-ping.js";
 import pushSubscribe from "./push-subscribe.js";
 import pushTick from "./push-tick.js";
 import pushUnsubscribe from "./push-unsubscribe.js";
+import redeem from "./redeem.js";
 import roomAck from "./room-ack.js";
 import roomCreate from "./room-create.js";
 import roomInbox from "./room-inbox.js";
@@ -20,6 +22,7 @@ import verify from "./verify.js";
 export const ROUTES = {
   checkout,
   claim,
+  "grants-admin": grantsAdmin,
   layout,
   "pay-return": payReturn,
   "platform-login": platformLogin,
@@ -28,6 +31,7 @@ export const ROUTES = {
   "push-subscribe": pushSubscribe,
   "push-tick": pushTick,
   "push-unsubscribe": pushUnsubscribe,
+  redeem,
   "room-ack": roomAck,
   "room-create": roomCreate,
   "room-inbox": roomInbox,
