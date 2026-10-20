@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { toast } from "sonner";
+import { serverStatus } from "@/lib/rod/server";
 import { DAY_CHOICES, disablePush, enablePush, pushPrefs, pushSupport } from "@/lib/rod/push";
 import { Button } from "@/components/rod/chrome";
 
@@ -10,7 +11,11 @@ const HOURS = [9, 12, 18, 19, 20, 21];
 export function RemindersCard() {
   const [prefs, setPrefs] = useState(pushPrefs);
   const [busy, setBusy] = useState(false);
-  const support = pushSupport();
+  const [live, setLive] = useState(false);
+  useEffect(() => {
+    void serverStatus().then((status) => setLive(status.push));
+  }, []);
+  const support = live ? pushSupport() : "no-server";
   const days = DAY_CHOICES.find((choice) => choice.days.join() === prefs.days.join()) ?? DAY_CHOICES[0];
 
   const run = async (job: () => Promise<void>, ok: string) => {

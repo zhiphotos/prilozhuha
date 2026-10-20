@@ -1,6 +1,6 @@
-import { orderState } from "../lib/alfa.js";
-import { bodyOf, cors, json } from "../lib/config.js";
-import { readToken } from "../lib/token.js";
+import { orderState } from "../alfa.js";
+import { bodyOf, cors, json } from "../config.js";
+import { readToken } from "../token.js";
 
 // POST /api/verify { token }  – доступ ещё действует? (подпись, срок и то, что платёж не возвращён)
 export default async function handler(req, res) {

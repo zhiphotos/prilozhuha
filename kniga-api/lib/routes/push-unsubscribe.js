@@ -1,6 +1,6 @@
-import { bodyOf, cors, json } from "../lib/config.js";
-import { subId } from "../lib/push.js";
-import { redis, redisConfigured } from "../lib/redis.js";
+import { bodyOf, cors, json } from "../config.js";
+import { subId } from "../push.js";
+import { redis, redisConfigured } from "../redis.js";
 
 // POST /api/push-unsubscribe { endpoint }  – человек выключил напоминания: стираем всё, что про него хранили.
 export default async function handler(req, res) {

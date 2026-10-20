@@ -1,6 +1,6 @@
-import { bodyOf, cors, json } from "../lib/config.js";
-import { redis, redisConfigured } from "../lib/redis.js";
-import { getRoom, isOwner, newKey, sha } from "../lib/room.js";
+import { bodyOf, cors, json } from "../config.js";
+import { redis, redisConfigured } from "../redis.js";
+import { getRoom, isOwner, newKey, sha } from "../room.js";
 
 // POST /api/room-ack { room, ownerKey, ids }  – удалить принятое из входящих.
 // POST /api/room-ack { room, ownerKey, rotate: true } – выпустить новую ссылку-приглашение (старая перестанет работать).

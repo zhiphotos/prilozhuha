@@ -1,5 +1,5 @@
-import { alfaConfigured, createCheckout } from "../lib/alfa.js";
-import { bodyOf, cors, isAllowedApp, json } from "../lib/config.js";
+import { alfaConfigured, createCheckout } from "../alfa.js";
+import { bodyOf, cors, isAllowedApp, json } from "../config.js";
 
 // POST /api/checkout { email, app }  ->  { url }  – адрес платёжной страницы Альфа-Банка
 export default async function handler(req, res) {

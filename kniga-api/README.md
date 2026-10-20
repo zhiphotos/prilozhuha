@@ -62,7 +62,7 @@
 
 Им нужно хранилище и ключи. Ничего из этого нельзя класть в git.
 
-1. **Upstash Redis** (бесплатного тарифа хватит): создать базу, скопировать REST URL и токен в переменные `UPSTASH_REDIS_REST_URL` и `UPSTASH_REDIS_REST_TOKEN`.
+1. **Upstash Redis** (бесплатного тарифа хватит). Проще всего в Vercel: проект `kniga-roda-api` → Storage → Create Database → Upstash Redis → Free. Vercel сам добавит ключи (`KV_REST_API_URL` и `KV_REST_API_TOKEN`), сервер их понимает. Можно и вручную: `UPSTASH_REDIS_REST_URL` и `UPSTASH_REDIS_REST_TOKEN`. После подключения нажмите Redeploy.
 2. **Ключи VAPID** для пушей: `npm install`, затем `node generate-vapid.mjs`. Публичный и приватный ключи вписать в `VAPID_PUBLIC_KEY` и `VAPID_PRIVATE_KEY` (и по желанию `VAPID_SUBJECT=mailto:darinazizina@gmail.com`).
 3. **Планировщик раз в час.** Vercel на бесплатном тарифе умеет cron только раз в сутки, поэтому используйте cron-job.org (бесплатно) или QStash: запрос `GET https://<ваш-проект>.vercel.app/api/push-tick?key=<CRON_SECRET>` каждый час. `CRON_SECRET` – длинная случайная строка в переменных Vercel.
 4. Когда включите оплату, поставьте `REQUIRE_PAID=1`: тогда ссылку для родственников сможет создать только тот, у кого открыта программа.
@@ -71,5 +71,7 @@
 - Приложение спрашивает у сервера публичный ключ (`/api/push-config`), подписывает телефон и отправляет подписку (`/api/push-subscribe`). Время, дни недели и часовой пояс хранятся вместе с подпиской.
 - Каждый час `/api/push-tick` проходит по подпискам: кому сейчас выбранный час и день, кто сегодня уже не получал напоминание и не открывал приложение, тому уходит одно сообщение из `lib/push-messages.js`. Мёртвые подписки стираются сами.
 - Семейная комната: `room-create` (создать), `room-info` (кто приглашает), `room-submit` (родственник присылает), `room-inbox` и `room-ack` (владелец забирает и убирает). Ключи хранятся в виде хешей, фото до 450 КБ, не больше 200 входящих и 40 отправок с одного адреса в сутки.
+
+Сервер уже создан и работает: `https://kniga-roda-api.vercel.app` (проект `kniga-roda-api`, команда Reality). Ключи VAPID, ACCESS_SECRET, CRON_SECRET и APP_ORIGINS в нём уже стоят. Что подключено, видно по `/api/status`.
 
 Проверка без внешних сервисов: `node test-family.mjs` (25 проверок) и `node dev-server.mjs` для запуска всех функций у себя на компьютере (порт 3000, данные в памяти).

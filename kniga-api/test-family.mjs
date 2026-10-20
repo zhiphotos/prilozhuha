@@ -2,7 +2,7 @@
 process.env.MEMORY_STORE = "1"; process.env.PUSH_DRY_RUN = "1";
 process.env.VAPID_PUBLIC_KEY = "pub"; process.env.VAPID_PRIVATE_KEY = "priv";
 process.env.CRON_SECRET = "c".repeat(20); process.env.APP_ORIGINS = "https://app.example"; process.env.ACCESS_SECRET = "s".repeat(40);
-const load = async (n) => (await import(`./api/${n}.js`)).default;
+const load = async (n) => (await import(`./lib/routes/${n}.js`)).default;
 const run = (handler, { method = "POST", url = "/", body, headers = {} } = {}) => new Promise((resolve) => {
   const res = { statusCode: 200, headers: {}, setHeader(k, v) { this.headers[k.toLowerCase()] = v; }, end(t) { resolve({ status: this.statusCode, json: t ? JSON.parse(t) : null }); } };
   handler({ method, url, body, headers: { host: "api.example", origin: "https://app.example", ...headers }, socket: { remoteAddress: "1.2.3.4" } }, res);
