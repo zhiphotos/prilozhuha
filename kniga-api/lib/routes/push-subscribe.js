@@ -1,6 +1,6 @@
-import { bodyOf, cors, isAllowedApp, json } from "../lib/config.js";
-import { subId, validSubscription } from "../lib/push.js";
-import { redis, redisConfigured } from "../lib/redis.js";
+import { bodyOf, cors, isAllowedApp, json } from "../config.js";
+import { subId, validSubscription } from "../push.js";
+import { redis, redisConfigured } from "../redis.js";
 
 const clampInt = (value, min, max, fallback) => {
   const n = Math.round(Number(value));

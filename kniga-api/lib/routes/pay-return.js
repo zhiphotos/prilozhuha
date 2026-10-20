@@ -1,6 +1,6 @@
-import { accessUntil, orderState } from "../lib/alfa.js";
-import { isAllowedApp } from "../lib/config.js";
-import { makeToken } from "../lib/token.js";
+import { accessUntil, orderState } from "../alfa.js";
+import { isAllowedApp } from "../config.js";
+import { makeToken } from "../token.js";
 
 // Банк возвращает сюда после оплаты (?orderId=…&to=<адрес приложения>). Проверяем оплату в банке и отправляем человека обратно в приложение с токеном.
 export default async function handler(req, res) {

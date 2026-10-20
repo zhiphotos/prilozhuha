@@ -24,9 +24,13 @@ function memory(args) {
   }
 }
 
+// Подключение через Vercel Marketplace кладёт ключи под именами KV_REST_API_*, ручное под UPSTASH_REDIS_REST_*: принимаем оба.
+const restUrl = () => process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const restToken = () => process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+
 export async function redis(...args) {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url = restUrl();
+  const token = restToken();
   if (process.env.MEMORY_STORE === "1") return memory(args);
   if (!url || !token) throw new Error("redis not configured");
   const res = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(args.map(String)) });
@@ -35,7 +39,7 @@ export async function redis(...args) {
   return data.result;
 }
 
-export const redisConfigured = () => process.env.MEMORY_STORE === "1" || Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+export const redisConfigured = () => process.env.MEMORY_STORE === "1" || Boolean(restUrl() && restToken());
 
 /** HGETALL → объект. */
 export const pairs = (flat) => {

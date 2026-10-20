@@ -5,8 +5,9 @@ import { toast } from "sonner";
 import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson, type Lesson } from "@/lib/rod/content";
 import { PITCH, PROGRAM_PERKS } from "@/lib/rod/lesson-pitch";
 import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
-import { API_BASE, INTRO_VIDEO, LESSON_VIDEO, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
+import { INTRO_VIDEO, LESSON_VIDEO, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
 import { LegalLinks } from "@/components/rod/legal";
+import { serverStatus } from "@/lib/rod/server";
 import { claimAccess, startCheckout } from "@/lib/rod/pay";
 import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
@@ -245,6 +246,10 @@ function PaySheet({ onClose }: { onClose: () => void }) {
   const [order, setOrder] = useState("");
   const [code, setCode] = useState("");
   const [wrong, setWrong] = useState(false);
+  const [live, setLive] = useState(false);
+  useEffect(() => {
+    void serverStatus().then((status) => setLive(status.pay));
+  }, []);
   const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
   const doc = (id: string, label: string) => (
     <button type="button" className="inline text-left font-semibold underline" onClick={() => { onClose(); nav.go({ id: "legal", doc: id }); }}>
@@ -280,7 +285,7 @@ function PaySheet({ onClose }: { onClose: () => void }) {
       <PriceTag />
       <p className="mt-2 text-sm text-muted">Шесть уроков с видео, ИИ-помощник и шаблоны, полный шаблон книги на 100 страниц, материалы для печати. Оплата разовая, без автоматических списаний.</p>
 
-      {API_BASE && mode === "buy" ? (
+      {live && mode === "buy" ? (
         <form className="mt-4 grid gap-3" onSubmit={(event) => { event.preventDefault(); if (validEmail && terms && pd) void pay(); }}>
           <div>
             <label className="block text-sm font-medium text-ink" htmlFor="pay-email">Почта для чека</label>
@@ -306,7 +311,7 @@ function PaySheet({ onClose }: { onClose: () => void }) {
         </form>
       ) : null}
 
-      {API_BASE && mode === "restore" ? (
+      {live && mode === "restore" ? (
         <form className="mt-4 grid gap-3" onSubmit={(event) => { event.preventDefault(); void restore(); }}>
           <p className="text-sm text-muted">Номер заказа и почту можно найти в чеке или в письме банка.</p>
           <input className="field" value={order} onChange={(event) => setOrder(event.target.value)} placeholder="Номер заказа, например kr-abc123-1a2b3c4d" autoComplete="off" />
@@ -316,7 +321,7 @@ function PaySheet({ onClose }: { onClose: () => void }) {
         </form>
       ) : null}
 
-      {!API_BASE ? (
+      {!live ? (
         <p className="mt-4 rounded-2xl bg-white/60 p-4 text-sm text-ink">Оплата картой скоро появится. Если у вас уже есть код доступа, введите его ниже.</p>
       ) : null}
 

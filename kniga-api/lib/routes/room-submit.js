@@ -1,6 +1,6 @@
-import { bodyOf, cors, json } from "../lib/config.js";
-import { redis, redisConfigured } from "../lib/redis.js";
-import { getRoom, isInvited, limited, newKey } from "../lib/room.js";
+import { bodyOf, cors, json } from "../config.js";
+import { redis, redisConfigured } from "../redis.js";
+import { getRoom, isInvited, limited, newKey } from "../room.js";
 
 const MAX_TEXT = 6000;
 const MAX_PHOTO = 600000; // знаков data-URL, примерно 450 КБ

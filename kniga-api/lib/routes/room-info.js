@@ -1,6 +1,6 @@
-import { bodyOf, cors, json } from "../lib/config.js";
-import { redisConfigured } from "../lib/redis.js";
-import { getRoom, isInvited } from "../lib/room.js";
+import { bodyOf, cors, json } from "../config.js";
+import { redisConfigured } from "../redis.js";
+import { getRoom, isInvited } from "../room.js";
 
 // POST /api/room-info { room, invite }  – кто приглашает (для страницы приглашения)
 export default async function handler(req, res) {

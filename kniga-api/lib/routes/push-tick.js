@@ -1,7 +1,7 @@
-import { cors, json } from "../lib/config.js";
-import { pickMessage } from "../lib/push-messages.js";
-import { pushConfigured, setupWebPush } from "../lib/push.js";
-import { pairs, redis, redisConfigured } from "../lib/redis.js";
+import { cors, json } from "../config.js";
+import { pickMessage } from "../push-messages.js";
+import { pushConfigured, setupWebPush } from "../push.js";
+import { pairs, redis, redisConfigured } from "../redis.js";
 
 /**
  * Раз в час вызывается внешним планировщиком (cron-job.org, QStash и т. п.):
