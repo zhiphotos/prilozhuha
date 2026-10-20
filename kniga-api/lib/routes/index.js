@@ -3,6 +3,7 @@ import checkout from "./checkout.js";
 import claim from "./claim.js";
 import layout from "./layout.js";
 import payReturn from "./pay-return.js";
+import platformLogin from "./platform-login.js";
 import pushConfig from "./push-config.js";
 import pushPing from "./push-ping.js";
 import pushSubscribe from "./push-subscribe.js";
@@ -21,6 +22,7 @@ export const ROUTES = {
   claim,
   layout,
   "pay-return": payReturn,
+  "platform-login": platformLogin,
   "push-config": pushConfig,
   "push-ping": pushPing,
   "push-subscribe": pushSubscribe,

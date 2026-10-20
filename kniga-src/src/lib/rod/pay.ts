@@ -25,6 +25,25 @@ export async function claimAccess(order: string, email: string): Promise<void> {
   useRod.getState().grantAccess({ token: answer.token, until: answer.until, order: order.trim() });
 }
 
+/** Личный код действующей ученицы: сервер проверяет его и выдаёт подписанный доступ. */
+export async function redeemCode(code: string): Promise<boolean> {
+  try {
+    const answer = await post<{ token?: string; until?: number; order?: string }>("/api/redeem", { code });
+    if (!answer.token || !answer.until) return false;
+    useRod.getState().grantAccess({ token: answer.token, until: answer.until, order: answer.order ?? "grant" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Один аккаунт: вход данными с платформы balanuca. Пароль уходит только на сервер и дальше в платформу. */
+export async function platformLogin(email: string, password: string): Promise<void> {
+  const answer = await post<{ token?: string; until?: number; order?: string }>("/api/platform-login", { email: email.trim(), password });
+  if (!answer.token || !answer.until) throw new Error(answer.error || "Не получилось войти.");
+  useRod.getState().grantAccess({ token: answer.token, until: answer.until, order: answer.order ?? "platform" });
+}
+
 /** Банк вернул человека в приложение: забираем токен из адреса и открываем программу. */
 export function handlePaymentReturn(): void {
   const params = new URLSearchParams(window.location.search);
