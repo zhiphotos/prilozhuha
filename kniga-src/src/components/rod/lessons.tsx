@@ -8,7 +8,7 @@ import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
 import { INTRO_VIDEO, LESSON_VIDEO, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
 import { LegalLinks } from "@/components/rod/legal";
 import { serverStatus } from "@/lib/rod/server";
-import { claimAccess, startCheckout } from "@/lib/rod/pay";
+import { claimAccess, platformLogin, redeemCode, startCheckout } from "@/lib/rod/pay";
 import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
 import { Button, ScreenFrame, Sheet, TopBar, linkScreen, useNav } from "@/components/rod/chrome";
@@ -246,7 +246,8 @@ function PaySheet({ onClose }: { onClose: () => void }) {
   const [order, setOrder] = useState("");
   const [code, setCode] = useState("");
   const [wrong, setWrong] = useState(false);
-  const [live, setLive] = useState(false);
+  const [pEmail, setPEmail] = useState("");
+  const [pPass, setPPass] = useState("");  const [live, setLive] = useState(false);
   useEffect(() => {
     void serverStatus().then((status) => setLive(status.pay));
   }, []);
@@ -333,7 +334,16 @@ function PaySheet({ onClose }: { onClose: () => void }) {
             openProgram();
             toast("Программа открыта");
             onClose();
-          } else setWrong(true);
+            return;
+          }
+          setBusy(true);
+          void redeemCode(code).then((ok) => {
+            setBusy(false);
+            if (ok) {
+              toast("Программа открыта");
+              onClose();
+            } else setWrong(true);
+          });
         }}
       >
         <label className="block text-sm font-medium text-ink" htmlFor="access-code">
@@ -341,11 +351,31 @@ function PaySheet({ onClose }: { onClose: () => void }) {
         </label>
         <div className="mt-1.5 flex gap-2">
           <input id="access-code" className="field uppercase" value={code} onChange={(event) => { setCode(event.target.value); setWrong(false); }} placeholder="Введите код" autoComplete="off" />
-          <Button type="submit" disabled={!code.trim()}>
+          <Button type="submit" disabled={!code.trim() || busy}>
             Открыть
           </Button>
         </div>
         {wrong ? <p className="mt-2 text-sm text-rose-deep">Код не подошёл. Проверьте буквы или напишите Дарине.</p> : null}
+      </form>
+
+      <form
+        className="mt-6 grid gap-2 border-t border-ink/10 pt-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setBusy(true);
+          void platformLogin(pEmail, pPass)
+            .then(() => {
+              toast("Программа открыта");
+              onClose();
+            })
+            .catch((error) => toast(error instanceof Error ? error.message : "Не получилось войти.", { duration: 6000 }))
+            .finally(() => setBusy(false));
+        }}
+      >
+        <p className="text-sm font-medium text-ink">Учились на платформе balanuca? Войдите тем же аккаунтом</p>
+        <input className="field" type="email" autoComplete="email" value={pEmail} onChange={(event) => setPEmail(event.target.value)} placeholder="Почта с платформы" />
+        <input className="field" type="password" autoComplete="current-password" value={pPass} onChange={(event) => setPPass(event.target.value)} placeholder="Пароль" />
+        <Button type="submit" disabled={busy || !pEmail.trim() || !pPass}>{busy ? "Проверяю…" : "Войти"}</Button>
       </form>
     </Sheet>
   );
