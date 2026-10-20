@@ -3,8 +3,22 @@ import { API_BASE } from "@/lib/rod/config";
 import { LEGAL_VERSION } from "@/lib/rod/legal-docs";
 import { useRod } from "@/lib/rod/store";
 
+/** Устройство узнаём по случайному номеру, который лежит только в этом браузере: так сервер считает два устройства на один доступ. */
+function deviceId(): string {
+  try {
+    let id = localStorage.getItem("kr-device");
+    if (!id) {
+      id = (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^0-9a-z-]/gi, "");
+      localStorage.setItem("kr-device", id);
+    }
+    return id;
+  } catch {
+    return "";
+  }
+}
+
 const post = async <T,>(path: string, body: unknown): Promise<T & { error?: string }> => {
-  const response = await fetch(`${API_BASE}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const response = await fetch(`${API_BASE}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(body as object), deviceId: deviceId() }) });
   return (await response.json().catch(() => ({ error: "Сервер не ответил." }))) as T & { error?: string };
 };
 
@@ -26,14 +40,14 @@ export async function claimAccess(order: string, email: string): Promise<void> {
 }
 
 /** Личный код действующей ученицы: сервер проверяет его и выдаёт подписанный доступ. */
-export async function redeemCode(code: string): Promise<boolean> {
+export async function redeemCode(code: string): Promise<string | null> {
   try {
     const answer = await post<{ token?: string; until?: number; order?: string }>("/api/redeem", { code });
-    if (!answer.token || !answer.until) return false;
+    if (!answer.token || !answer.until) return answer.error || "Код не подошёл.";
     useRod.getState().grantAccess({ token: answer.token, until: answer.until, order: answer.order ?? "grant" });
-    return true;
+    return null;
   } catch {
-    return false;
+    return "Не получилось проверить код. Проверьте интернет.";
   }
 }
 
@@ -82,8 +96,11 @@ export async function verifyAccess(): Promise<void> {
   }
   if (!API_BASE) return;
   try {
-    const answer = await post<{ valid?: boolean }>("/api/verify", { token: access.token });
-    if (answer.valid === false) revokeAccess();
+    const answer = await post<{ valid?: boolean; reason?: string }>("/api/verify", { token: access.token });
+    if (answer.valid === false) {
+      revokeAccess();
+      if (answer.reason === "devices") toast("Этот доступ уже открыт на двух других устройствах. Напишите Дарине, она освободит место.", { duration: 10000 });
+    }
   } catch {
     /* без сети доступ сохраняется */
   }
