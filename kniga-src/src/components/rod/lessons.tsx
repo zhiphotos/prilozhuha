@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { ArrowRight, Check, ChevronLeft, ExternalLink, FileText, Lock, Play, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson, type Lesson } from "@/lib/rod/content";
-import { PITCH, PROGRAM_PERKS } from "@/lib/rod/lesson-pitch";
+import { FREE_NOTE, PITCH, PROGRAM_PERKS, PROGRAM_SOON } from "@/lib/rod/lesson-pitch";
 import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
 import { INTRO_VIDEO, LESSON_VIDEO, PAY_URL, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
 import { LegalLinks } from "@/components/rod/legal";
@@ -246,6 +246,38 @@ function LessonVideo({ lessonId, flat = false }: { lessonId: string; flat?: bool
   );
 }
 
+/** Что откроется после покупки: список по пунктам, как страница Кики+. */
+function IncludesList({ dark = false }: { dark?: boolean }) {
+  const strong = dark ? "text-paper" : "text-ink";
+  const soft = dark ? "text-paper/75" : "text-muted";
+  return (
+    <div className={dark ? "mt-4" : "mt-4 rounded-2xl bg-white/60 p-4"}>
+      <p className={cn("text-[11px] font-semibold uppercase tracking-[0.16em]", dark ? "text-[#c9ae74]" : "text-muted")}>Что откроется после покупки</p>
+      <ul className="mt-3 grid gap-2.5">
+        {PROGRAM_PERKS.map((perk) => (
+          <li key={perk.title} className="flex gap-3 text-sm">
+            <Check className={cn("mt-0.5 size-4 shrink-0", dark ? "text-[#c9ae74]" : "text-moss")} />
+            <span>
+              <span className={cn("font-semibold", strong)}>{perk.title}. </span>
+              <span className={soft}>{perk.text}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className={cn("mt-4 text-[11px] font-semibold uppercase tracking-[0.16em]", dark ? "text-[#c9ae74]" : "text-muted")}>Скоро в программе</p>
+      <ul className={cn("mt-2 grid gap-1.5 text-sm", soft)}>
+        {PROGRAM_SOON.map((item) => (
+          <li key={item} className="flex gap-3">
+            <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-current opacity-60" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+      <p className={cn("mt-4 text-xs", soft)}>{FREE_NOTE}</p>
+    </div>
+  );
+}
+
 function PaySheet({ onClose }: { onClose: () => void }) {
   const nav = useNav();
   const openProgram = useRod((state) => state.openProgram);
@@ -299,6 +331,7 @@ function PaySheet({ onClose }: { onClose: () => void }) {
     <Sheet title="Программа «Книга рода»" onClose={onClose}>
       <PriceTag />
       <p className="mt-2 text-sm text-muted">Шесть уроков с видео, ИИ-помощник и шаблоны, полный шаблон книги на 100 страниц, материалы для печати. Оплата разовая, без автоматических списаний.</p>
+      <IncludesList />
 
       {live && mode === "buy" ? (
         <form className="mt-4 grid gap-3" onSubmit={(event) => { event.preventDefault(); if (validEmail && terms && pd) void pay(); }}>
@@ -636,18 +669,7 @@ function LockedLesson({ lesson, onBack, onBuy, onNext, onMore, widget = false }:
         ) : null}
         <img src={asset("course/site/materials.jpg")} alt="Материалы программы" className="mt-8 block w-full" draggable={false} />
         <div className="px-5 pt-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">И ещё вся программа</p>
-          <ul className="mt-3 grid gap-2.5">
-            {PROGRAM_PERKS.map((perk) => (
-              <li key={perk.title} className="flex gap-3 text-sm">
-                <Check className="mt-0.5 size-4 shrink-0 text-[#c9ae74]" />
-                <span>
-                  <span className="font-semibold text-paper">{perk.title}. </span>
-                  <span className="text-paper/75">{perk.text}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
+          <IncludesList dark />
           <div className="mt-6 rounded-2xl bg-paper p-5 text-ink">
             <PriceTag />
             <p className="mt-1 text-sm text-muted">Все уроки и полный доступ в приложение. Одна покупка, не по одному уроку.</p>
