@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson, type Lesson } from "@/lib/rod/content";
 import { PITCH, PROGRAM_PERKS } from "@/lib/rod/lesson-pitch";
 import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
-import { INTRO_VIDEO, LESSON_VIDEO, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
+import { INTRO_VIDEO, LESSON_VIDEO, PAY_URL, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
 import { LegalLinks } from "@/components/rod/legal";
 import { serverStatus } from "@/lib/rod/server";
 import { claimAccess, leaveLead, platformLogin, redeemCode, startCheckout } from "@/lib/rod/pay";
@@ -336,7 +336,21 @@ function PaySheet({ onClose }: { onClose: () => void }) {
         </form>
       ) : null}
 
-      {!live ? (
+      {!live && PAY_URL ? (
+        <div className="mt-4 grid gap-2">
+          <a
+            href={PAY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-moss px-4 py-3 text-center font-semibold text-paper no-underline"
+          >
+            Оплатить через Tribute
+          </a>
+          <p className="text-xs text-muted">После оплаты мы откроем доступ.</p>
+        </div>
+      ) : null}
+
+      {!live && !PAY_URL ? (
         leadDone ? (
           <p className="mt-4 rounded-2xl bg-white/60 p-4 text-sm text-ink">Спасибо! Мы напишем на эту почту, когда откроется покупка.</p>
         ) : (
