@@ -38,6 +38,18 @@ export function LessonsScreen() {
         <h1 className="display-title mt-1 text-[2rem] leading-[1.1] text-paper">Книга рода</h1>
       </div>
       <p className="max-w-xl text-paper/70">Начните с бесплатного урока. Если зацепит, дальше целая программа: видео, ИИ-помощник и материалы для печати.</p>
+      <a
+        href="https://balanuca.vercel.app/learn"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-[#c9ae74]/40 bg-[#c9ae74]/10 px-4 py-3 text-paper no-underline"
+      >
+        <span>
+          <span className="block text-sm font-semibold">Смотреть платформу обучения Дарины</span>
+          <span className="block text-xs text-paper/60">Уроки, курсы и вход в свой кабинет</span>
+        </span>
+        <span aria-hidden="true" className="text-lg text-[#c9ae74]">→</span>
+      </a>
       {LESSONS.filter((lesson) => lesson.free).map((lesson) => {
         const passed = done.includes(lesson.id);
         return (
