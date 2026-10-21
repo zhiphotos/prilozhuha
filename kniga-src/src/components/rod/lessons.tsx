@@ -346,7 +346,7 @@ function PaySheet({ onClose }: { onClose: () => void }) {
           >
             Оплатить через Tribute
           </a>
-          <p className="text-xs text-muted">После оплаты мы откроем доступ.</p>
+          <p className="text-xs text-muted">Это временное решение: после оплаты Дарина откроет доступ вручную.</p>
         </div>
       ) : null}
 

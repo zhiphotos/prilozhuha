@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Download, FilePlus2 } from "lucide-react";
+import { Download, FilePlus2, Heart, HeartCrack } from "lucide-react";
 import { toast } from "sonner";
-import { familyLevels } from "@/lib/rod/family-tree";
+import { familyLevels, spousePairs } from "@/lib/rod/family-tree";
 import { mediaDataUrl, saveMedia } from "@/lib/rod/media";
 import { maidenAllowed } from "@/lib/rod/person";
 import { PAGE_H } from "@/lib/rod/ink";
@@ -11,6 +11,7 @@ import { Button, Sheet, useNav } from "@/components/rod/chrome";
 import { PersonAvatar, PersonEditor, lookOf } from "@/components/rod/person-fields";
 
 type Line = { x1: number; y1: number; x2: number; y2: number };
+type Link = { x: number; y: number; x1: number; x2: number; status: "married" | "divorced" | "partners" };
 
 function lifeYears(person: Person): string {
   return [person.birthYear, person.deathYear].filter((part) => part?.trim()).join(" – ");
@@ -26,6 +27,7 @@ export function TreePane() {
   const box = useRef<HTMLDivElement>(null);
   const cards = useRef(new Map<string, HTMLElement>());
   const [lines, setLines] = useState<Line[]>([]);
+  const [links, setLinks] = useState<Link[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const opened = people.find((person) => person.id === openId) ?? null;
@@ -46,6 +48,18 @@ export function TreePane() {
         }
       }
       setLines(next);
+      const pairs: Link[] = [];
+      for (const [a, b] of spousePairs(people)) {
+        const ra = cards.current.get(a.id)?.getBoundingClientRect();
+        const rb = cards.current.get(b.id)?.getBoundingClientRect();
+        if (!ra || !rb) continue;
+        const [left, right] = ra.left <= rb.left ? [ra, rb] : [rb, ra];
+        const y = left.top + left.height / 2 - base.top;
+        const x1 = left.right - base.left;
+        const x2 = right.left - base.left;
+        pairs.push({ x: (x1 + x2) / 2, y, x1, x2, status: a.spouseStatus ?? b.spouseStatus ?? "married" });
+      }
+      setLinks(pairs);
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -75,6 +89,28 @@ export function TreePane() {
       ctx.moveTo(line.x1, line.y1);
       ctx.bezierCurveTo(line.x1, (line.y1 + line.y2) / 2, line.x2, (line.y1 + line.y2) / 2, line.x2, line.y2);
       ctx.stroke();
+    }
+    for (const link of links) {
+      ctx.strokeStyle = link.status === "divorced" ? "rgba(92,87,76,0.6)" : "rgba(110,42,68,0.7)";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash(link.status === "partners" ? [4, 3] : []);
+      ctx.beginPath();
+      ctx.moveTo(link.x1, link.y);
+      ctx.lineTo(link.x2, link.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = link.status === "divorced" ? "#7a746a" : "#6e2a44";
+      ctx.font = "16px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(link.status === "partners" ? "♡" : "♥", link.x, link.y);
+      if (link.status === "divorced") {
+        ctx.strokeStyle = "#7a746a";
+        ctx.beginPath();
+        ctx.moveTo(link.x - 6, link.y - 6);
+        ctx.lineTo(link.x + 6, link.y + 6);
+        ctx.stroke();
+      }
     }
     for (const person of people) {
       const el = cards.current.get(person.id);
@@ -210,7 +246,7 @@ export function TreePane() {
   return (
     <div>
       <p className="mb-3 text-sm text-muted">
-        {linked ? "Линии ведут от родителей к детям. Нажмите на человека, чтобы открыть его карточку." : "Пока родители не указаны, люди стоят по тому, кем приходятся. Откройте человека и выберите, чей он ребёнок."}
+        {linked ? "Линии ведут от родителей к детям, сердечки соединяют пары. Двигайте древо пальцем в любую сторону, нажмите на человека, чтобы открыть его карточку." : "Пока родители не указаны, люди стоят по тому, кем приходятся. Откройте человека и выберите, чей он ребёнок."}
       </p>
       <div className="mb-4 flex flex-wrap gap-2">
         <Button variant="soft" disabled={busy} onClick={() => void save()}>
@@ -220,15 +256,25 @@ export function TreePane() {
           <FilePlus2 className="size-4" /> Поставить в книгу
         </Button>
       </div>
-      <div className="overflow-x-auto pb-2">
-        <div ref={box} className="relative mx-auto grid w-fit min-w-full gap-10 p-1">
+      <div className="max-h-[72vh] overflow-auto overscroll-contain pb-2" style={{ touchAction: "pan-x pan-y" }}>
+        <div ref={box} className="relative grid w-max min-w-full gap-10 p-1">
           <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden>
             {lines.map((line, i) => (
               <path key={i} d={`M${line.x1},${line.y1} C${line.x1},${(line.y1 + line.y2) / 2} ${line.x2},${(line.y1 + line.y2) / 2} ${line.x2},${line.y2}`} fill="none" stroke="#3f4a22" strokeOpacity="0.55" strokeWidth="1.5" />
             ))}
           </svg>
+          {links.map((link, i) => (
+            <span
+              key={`s${i}`}
+              className="pointer-events-none absolute z-10 grid size-6 place-items-center rounded-full bg-white/90 shadow-sm"
+              style={{ left: link.x, top: link.y, transform: "translate(-50%, -50%)", color: link.status === "divorced" ? "#7a746a" : "#6e2a44" }}
+              title={link.status === "divorced" ? "Развелись" : link.status === "partners" ? "Живут вместе" : "В браке"}
+            >
+              {link.status === "divorced" ? <HeartCrack className="size-4" /> : <Heart className="size-4" fill={link.status === "married" ? "currentColor" : "none"} />}
+            </span>
+          ))}
           {rows.map((row, index) => (
-            <div key={index} className="relative flex flex-wrap justify-center gap-3">
+            <div key={index} className="relative flex flex-nowrap justify-center gap-4">
               {row.map((person) => {
                 const look = lookOf(person);
                 return (

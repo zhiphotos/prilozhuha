@@ -124,6 +124,25 @@ export function PersonFields({ value, onChange, others }: { value: PersonDraft; 
         </Field>
       ) : null}
       {others.length ? (
+        <Field label="Супруг или супруга" hint="Пара встанет в древе в одном ряду.">
+          <select className="field" value={value.spouse ?? ""} onChange={(event) => onChange({ spouse: event.target.value || undefined })}>
+            <option value="">Не выбрано</option>
+            {others.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name} ({item.relation})
+              </option>
+            ))}
+          </select>
+          {value.spouse ? (
+            <select className="field mt-2" value={value.spouseStatus ?? "married"} onChange={(event) => onChange({ spouseStatus: event.target.value as "married" | "divorced" | "partners" })}>
+              <option value="married">В браке</option>
+              <option value="divorced">Развелись</option>
+              <option value="partners">Живут вместе</option>
+            </select>
+          ) : null}
+        </Field>
+      ) : null}
+      {others.length ? (
         <Field label="Чей ребёнок" hint="Родители нужны для древа.">
           <div className="grid grid-cols-2 gap-2">
             {[0, 1].map((slot) => (

@@ -11,6 +11,10 @@ export type Person = {
   deathYear?: string;
   /** Родители (id людей из этого же списка): по ним строится схема семьи. */
   parents?: string[];
+  /** Супруг или супруга (id из этого же списка): пара встаёт в один ряд рядом друг с другом. */
+  spouse?: string;
+  /** Статус пары: в браке, развелись, живут вместе без брака. */
+  spouseStatus?: "married" | "divorced" | "partners";
   /** Имя, отчество и фамилия по отдельности; `name` собирается из них. */
   firstName?: string;
   patronymic?: string;

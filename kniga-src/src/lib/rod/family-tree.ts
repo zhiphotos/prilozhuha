@@ -10,26 +10,84 @@ function baseLevel(relation: string): number {
   return 3;
 }
 
-/** Ряды людей сверху вниз (старшие выше). Если указаны родители, ребёнок всегда ниже родителя. */
+/** Пары супругов (обе стороны), только если оба человека есть в списке. */
+export function spousePairs(people: Person[]): [Person, Person][] {
+  const byId = new Map(people.map((person) => [person.id, person]));
+  const seen = new Set<string>();
+  const out: [Person, Person][] = [];
+  for (const person of people) {
+    const other = person.spouse ? byId.get(person.spouse) : undefined;
+    if (!other || other.id === person.id) continue;
+    const key = [person.id, other.id].sort().join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push([person, other]);
+  }
+  for (const person of people) {
+    const mate = people.find((item) => item.spouse === person.id);
+    if (!mate || mate.id === person.id) continue;
+    const key = [person.id, mate.id].sort().join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push([mate, person]);
+  }
+  return out;
+}
+
+/**
+ * Ряды людей сверху вниз (старшие выше). Если указаны родители, ребёнок всегда ниже родителя.
+ * Супруги стоят в одном ряду и рядом друг с другом.
+ */
 export function familyLevels(people: Person[]): Person[][] {
   const byId = new Map(people.map((person) => [person.id, person]));
+  const mate = new Map<string, string>();
+  for (const [a, b] of spousePairs(people)) {
+    mate.set(a.id, b.id);
+    mate.set(b.id, a.id);
+  }
+  const limit = people.length + 2;
   const level = new Map<string, number>();
-  const visiting = new Set<string>();
-  const levelOf = (person: Person): number => {
-    const known = level.get(person.id);
-    if (known !== undefined) return known;
-    if (visiting.has(person.id)) return baseLevel(person.relation);
-    visiting.add(person.id);
-    const parents = (person.parents ?? []).map((id) => byId.get(id)).filter((p): p is Person => Boolean(p));
-    const value = parents.length ? Math.max(...parents.map(levelOf)) + 1 : baseLevel(person.relation);
-    visiting.delete(person.id);
-    level.set(person.id, value);
-    return value;
-  };
+  for (const person of people) {
+    const hasParents = (person.parents ?? []).some((id) => byId.has(id));
+    level.set(person.id, hasParents ? 0 : baseLevel(person.relation));
+  }
+  for (let round = 0; round < 60; round++) {
+    let changed = false;
+    for (const person of people) {
+      let value = level.get(person.id) ?? 0;
+      const parents = (person.parents ?? []).map((id) => byId.get(id)).filter((p): p is Person => Boolean(p));
+      if (parents.length) value = Math.max(value, Math.max(...parents.map((p) => level.get(p.id) ?? 0)) + 1);
+      const partner = mate.get(person.id);
+      if (partner) value = Math.max(value, level.get(partner) ?? 0);
+      value = Math.min(value, limit);
+      if (value > (level.get(person.id) ?? 0)) {
+        level.set(person.id, value);
+        changed = true;
+      }
+    }
+    if (!changed) break;
+  }
   const rows = new Map<number, Person[]>();
   for (const person of people) {
-    const l = levelOf(person);
+    const l = level.get(person.id) ?? 0;
     rows.set(l, [...(rows.get(l) ?? []), person]);
   }
-  return [...rows.entries()].sort((a, b) => a[0] - b[0]).map(([, list]) => list);
+  return [...rows.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, list]) => {
+      const seen = new Set<string>();
+      const ordered: Person[] = [];
+      for (const person of list) {
+        if (seen.has(person.id)) continue;
+        ordered.push(person);
+        seen.add(person.id);
+        const partner = mate.get(person.id);
+        const other = partner ? list.find((item) => item.id === partner) : undefined;
+        if (other && !seen.has(other.id)) {
+          ordered.push(other);
+          seen.add(other.id);
+        }
+      }
+      return ordered;
+    });
 }
