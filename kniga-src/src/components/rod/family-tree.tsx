@@ -10,7 +10,7 @@ import type { Person } from "@/lib/rod/types";
 import { Button, Sheet, useNav } from "@/components/rod/chrome";
 import { PersonAvatar, PersonEditor, lookOf } from "@/components/rod/person-fields";
 
-type Line = { x1: number; y1: number; x2: number; y2: number };
+type Line = { x1: number; y1: number; x2: number; y2: number; dashed?: boolean };
 
 function lifeYears(person: Person): string {
   return [person.birthYear, person.deathYear].filter((part) => part?.trim()).join(" – ");
@@ -43,6 +43,11 @@ export function TreePane() {
           const parent = cards.current.get(parentId)?.getBoundingClientRect();
           if (!parent) continue;
           next.push({ x1: parent.left + parent.width / 2 - base.left, y1: parent.bottom - base.top, x2: child.left + child.width / 2 - base.left, y2: child.top - base.top });
+        }
+        const mate = person.siblingOf ? cards.current.get(person.siblingOf)?.getBoundingClientRect() : undefined;
+        if (mate) {
+          const y = (child.top + child.bottom) / 2 - base.top;
+          next.push({ x1: mate.left + mate.width / 2 - base.left, y1: y, x2: child.left + child.width / 2 - base.left, y2: y, dashed: true });
         }
       }
       setLines(next);
@@ -224,7 +229,7 @@ export function TreePane() {
         <div ref={box} className="relative mx-auto grid w-fit min-w-full gap-10 p-1">
           <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden>
             {lines.map((line, i) => (
-              <path key={i} d={`M${line.x1},${line.y1} C${line.x1},${(line.y1 + line.y2) / 2} ${line.x2},${(line.y1 + line.y2) / 2} ${line.x2},${line.y2}`} fill="none" stroke="#3f4a22" strokeOpacity="0.55" strokeWidth="1.5" />
+              <path key={i} d={`M${line.x1},${line.y1} C${line.x1},${(line.y1 + line.y2) / 2} ${line.x2},${(line.y1 + line.y2) / 2} ${line.x2},${line.y2}`} fill="none" stroke="#3f4a22" strokeOpacity="0.55" strokeWidth="1.5" strokeDasharray={line.dashed ? "4 4" : undefined} />
             ))}
           </svg>
           {rows.map((row, index) => (

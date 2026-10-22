@@ -89,7 +89,7 @@ const TABS: { id: string; label: string; icon: typeof BookOpen; screen: Screen }
 
 export function tabKey(screen: Screen): string {
   if (screen.id === "lessons" || screen.id === "lesson") return "lessons";
-  if (screen.id === "cards" || screen.id === "deck") return "cards";
+  if (screen.id === "cards" || screen.id === "deck" || screen.id === "answers") return "cards";
   if (screen.id === "stories" || screen.id === "wizard" || screen.id === "story") return "stories";
   if (screen.id === "book" || screen.id === "editor" || screen.id === "flip") return "book";
   return "home";
@@ -174,11 +174,14 @@ export function Sheet({
 }) {
   const box = useRef<HTMLDivElement>(null);
   const downOnBackdrop = useRef(false);
+  /** onClose приходит новой функцией на каждый рендер: держим в ref, иначе эффект перезапускается и отнимает фокус у поля (на iPhone клавиатура сворачивается). */
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     const before = document.activeElement as HTMLElement | null;
     if (dim) box.current?.focus({ preventScroll: true });
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") closeRef.current();
       if (event.key === "Tab" && dim && box.current) {
         const items = Array.from(box.current.querySelectorAll<HTMLElement>("button,[href],input,textarea,select,[tabindex]:not([tabindex='-1'])")).filter((el) => !el.hasAttribute("disabled"));
         if (!items.length) return;
@@ -198,7 +201,7 @@ export function Sheet({
       window.removeEventListener("keydown", onKey);
       if (dim && before?.isConnected) before.focus({ preventScroll: true });
     };
-  }, [onClose, dim]);
+  }, [dim]);
   return createPortal(
     <div
       className={cn("fixed inset-0 z-[60] flex items-end justify-center p-2 sm:items-center sm:p-4", dim ? "bg-ink/30 backdrop-blur-[2px]" : "pointer-events-none")}

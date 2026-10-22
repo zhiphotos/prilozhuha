@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Toaster } from "sonner";
 import { ArchiveScreen } from "@/components/rod/archive";
 import { BookScreen } from "@/components/rod/book";
-import { CardsScreen, DeckScreen } from "@/components/rod/cards";
+import { AnswersScreen, CardsScreen, DeckScreen } from "@/components/rod/cards";
 import { Dock, NavProvider, SideNav, type Nav } from "@/components/rod/chrome";
 import { EditorScreen } from "@/components/rod/editor";
 import { handlePaymentReturn, verifyAccess } from "@/lib/rod/pay";
@@ -154,6 +154,8 @@ function ScreenView({ screen }: { screen: Screen }) {
       return <LessonScreen lessonId={screen.lessonId} />;
     case "cards":
       return <CardsScreen />;
+    case "answers":
+      return <AnswersScreen />;
     case "deck":
       return <DeckScreen situationId={screen.situationId} />;
     case "stories":

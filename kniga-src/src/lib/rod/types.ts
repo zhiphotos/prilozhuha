@@ -11,6 +11,8 @@ export type Person = {
   deathYear?: string;
   /** Родители (id людей из этого же списка): по ним строится схема семьи. */
   parents?: string[];
+  /** Брат или сестра кого-то из списка (id): встаёт в тот же ряд схемы. */
+  siblingOf?: string;
   /** Имя, отчество и фамилия по отдельности; `name` собирается из них. */
   firstName?: string;
   patronymic?: string;
@@ -229,6 +231,7 @@ export type Screen =
   | { id: "lesson"; lessonId: string }
   | { id: "cards" }
   | { id: "deck"; situationId: string }
+  | { id: "answers" }
   | { id: "stories" }
   | { id: "wizard"; templateId: string }
   | { id: "story"; storyId: string }

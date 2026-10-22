@@ -28,27 +28,43 @@ const numberOf = (id: string) => String(Math.max(0, SITUATIONS.findIndex((item) 
 export function CardsScreen() {
   const nav = useNav();
   const notes = useRod((state) => state.notes);
-  const removeNote = useRod((state) => state.removeNote);
-  const addPage = useRod((state) => state.addPage);
+  const addPage =useRod((state) => state.addPage);
   const words = notes.reduce((sum, note) => sum + note.answer.trim().split(/\s+/).filter(Boolean).length, 0);
   const play = SITUATIONS.filter((item) => item.play);
   const talks = SITUATIONS.filter((item) => !item.play);
 
   const harvest = () => {
-    // Каждая колода – своя страница: вопрос карточкой, ответ рукописным.
+    // Каждая колода – своя страница (или несколько): вопрос карточкой, ответ рукописным. Ничего не отбрасываем.
     const groups = new Map<string, typeof notes>();
-    notes.slice(0, 40).forEach((note) => groups.set(note.situationTitle, [...(groups.get(note.situationTitle) ?? []), note]));
+    [...notes].reverse().forEach((note) => groups.set(note.situationTitle, [...(groups.get(note.situationTitle) ?? []), note]));
     let first: string | null = null;
     groups.forEach((list, title) => {
-      const blocks: PageBlock[] = [{ id: crypto.randomUUID(), type: "text", x: 8, y: 5, w: 84, text: title, font: "script", size: "lg" }];
-      let y = 16;
-      list.slice(0, 4).forEach((note, i) => {
-        blocks.push({ id: crypto.randomUUID(), type: "text", x: 8, y, w: 60, text: note.question, font: "sans", size: "sm", look: "card", rotate: i % 2 ? 1 : -1 });
-        blocks.push({ id: crypto.randomUUID(), type: "text", x: 12, y: y + 8, w: 80, text: note.answer, font: "script", size: "md" });
-        y += 20;
+      const chunks: (typeof notes)[] = [];
+      let cur: typeof notes = [];
+      let len = 0;
+      list.forEach((note) => {
+        const size = note.answer.length + note.question.length;
+        if (cur.length && (cur.length >= 4 || len + size > 900)) {
+          chunks.push(cur);
+          cur = [];
+          len = 0;
+        }
+        cur.push(note);
+        len += size;
       });
-      const id = addPage({ title, kind: "page", paper: "lined", strokes: [], blocks });
-      first ??= id;
+      if (cur.length) chunks.push(cur);
+      chunks.forEach((chunk, part) => {
+        const pageTitle = chunks.length > 1 ? `${title} ${part + 1}` : title;
+        const blocks: PageBlock[] = [{ id: crypto.randomUUID(), type: "text", x: 8, y: 5, w: 84, text: pageTitle, font: "script", size: "lg" }];
+        let y = 16;
+        chunk.forEach((note, i) => {
+          blocks.push({ id: crypto.randomUUID(), type: "text", x: 8, y, w: 60, text: note.question, font: "sans", size: "sm", look: "card", rotate: i % 2 ? 1 : -1 });
+          blocks.push({ id: crypto.randomUUID(), type: "text", x: 12, y: y + 8, w: 80, text: note.answer, font: "script", size: "md" });
+          y += 8 + Math.max(12, Math.ceil(note.answer.length / 38) * 4.5);
+        });
+        const id = addPage({ title: pageTitle, kind: "page", paper: "lined", strokes: [], blocks });
+        first ??= id;
+      });
     });
     toast(groups.size > 1 ? "Из ответов собрались страницы книги" : "Страница из ответов готова");
     if (first) nav.go({ id: "editor", pageId: first });
@@ -95,21 +111,10 @@ export function CardsScreen() {
       </ul>
 
       {notes.length > 0 ? (
-        <section className="mt-9">
-          <h2 className="display-title text-[1.35rem] text-ink">Последние ответы</h2>
-          <ul className="mt-3 grid gap-2">
-            {notes.slice(0, 5).map((note) => (
-              <li key={note.id} className="glass rounded-2xl p-4">
-                <p className="text-sm text-gold-ink">{note.situationTitle}</p>
-                <p className="mt-1 font-medium text-ink">{note.question}</p>
-                <p className="mt-2 text-sm text-muted">{note.answer}</p>
-                <button type="button" className="mt-2 text-sm text-muted underline" onClick={() => removeNote(note.id)}>
-                  Удалить
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <button type="button" onClick={() => nav.go({ id: "answers" })} className="glass mt-9 block w-full rounded-2xl p-5 text-left">
+          <span className="display-title block text-[1.25rem] text-ink">Папки с ответами</span>
+          <span className="mt-1 block text-sm text-muted">Всё, что записано, обычным текстом, по колодам. {notes.length} {answersLabel(notes.length)}.</span>
+        </button>
       ) : null}
     </ScreenFrame>
   );
@@ -321,7 +326,7 @@ export function DeckScreen({ situationId }: { situationId: string }) {
                   </div>
                   {previous ? <span className="relative mt-2 w-fit rounded-full bg-sage-soft px-3 py-1 text-xs font-semibold text-moss">Уже отвечено</span> : null}
                   <h2 className="relative mt-3 pr-16 text-[1.7rem] font-semibold leading-[1.15] text-ink sm:text-[2rem]">{question}</h2>
-                  {previous ? <p className="relative mt-2 line-clamp-2 text-sm text-muted">Было: {previous.answer}</p> : null}
+                  {previous ? <p className="relative mt-2 max-h-40 overflow-auto whitespace-pre-wrap text-sm text-muted">Было: {previous.answer}</p> : null}
                   <div className="mt-auto">
                     <p className="hand mb-1 text-[1.25rem] leading-none text-gold-ink">запишите так, как сказали</p>
                     <textarea
@@ -403,4 +408,78 @@ function answersLabel(count: number) {
   if (n10 === 1 && n100 !== 11) return "ответ";
   if (n10 >= 2 && n10 <= 4 && (n100 < 10 || n100 >= 20)) return "ответа";
   return "ответов";
+}
+
+
+/** Все ответы по всем колодам: папки, внутри обычный текст целиком. */
+export function AnswersScreen() {
+  const nav = useNav();
+  const notes = useRod((state) => state.notes);
+  const removeNote = useRod((state) => state.removeNote);
+  const [folder, setFolder] = useState<string | null>(null);
+  const groups = new Map<string, typeof notes>();
+  [...notes].reverse().forEach((note) => groups.set(note.situationTitle, [...(groups.get(note.situationTitle) ?? []), note]));
+  const textOf = (titles: string[]) =>
+    titles.map((title) => `${title}\n\n${(groups.get(title) ?? []).map((note) => `${note.question}\n${note.answer}`).join("\n\n")}`).join("\n\n\n");
+  const current = folder && groups.has(folder) ? folder : null;
+  const shown = current ? [current] : Array.from(groups.keys());
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(textOf(shown));
+      toast("Скопировано");
+    } catch {
+      save();
+    }
+  };
+  const save = () => {
+    const url = URL.createObjectURL(new Blob([textOf(shown)], { type: "text/plain;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = current ? `${current}.txt` : "vse-otvety-kniga-roda.txt";
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+  };
+  return (
+    <ScreenFrame>
+      <TopBar title={current ?? "Папки с ответами"} onBack={current ? () => setFolder(null) : nav.back} />
+      {groups.size === 0 ? <p className="mt-6 text-muted">Пока ни одного ответа.</p> : null}
+      {!current && groups.size > 0 ? (
+        <ul className="mt-4 grid gap-3">
+          {Array.from(groups.entries()).map(([title, list]) => (
+            <li key={title}>
+              <button type="button" onClick={() => setFolder(title)} className="glass flex w-full items-center justify-between gap-3 rounded-2xl p-4 text-left">
+                <span className="font-medium text-ink">📁 {title}</span>
+                <span className="text-sm text-muted">{list.length} {answersLabel(list.length)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {groups.size > 0 ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button onClick={copy}>{current ? "Скопировать папку" : "Скопировать всё"}</Button>
+          <Button onClick={save}>Скачать файлом</Button>
+        </div>
+      ) : null}
+      {current ? (
+        <ul className="mt-5 grid gap-5">
+          {(groups.get(current) ?? []).map((note) => (
+            <li key={note.id}>
+              <p className="font-medium text-ink">{note.question}</p>
+              <p className="mt-1 whitespace-pre-wrap text-ink/85">{note.answer}</p>
+              <button
+                type="button"
+                className="mt-2 text-sm text-muted underline"
+                onClick={() => {
+                  if (window.confirm("Удалить этот ответ насовсем?")) removeNote(note.id);
+                }}
+              >
+                Удалить
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </ScreenFrame>
+  );
 }
