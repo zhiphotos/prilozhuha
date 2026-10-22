@@ -148,6 +148,18 @@ export function PersonFields({ value, onChange, others }: { value: PersonDraft; 
           </div>
         </Field>
       ) : null}
+      {others.length ? (
+        <Field label="Брат или сестра" hint="Например, брат дедушки: выберите дедушку. Встанет рядом, в тот же ряд.">
+          <select className="field" value={value.siblingOf ?? ""} onChange={(event) => onChange({ siblingOf: event.target.value || undefined })}>
+            <option value="">Не указано</option>
+            {others.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name} ({item.relation})
+              </option>
+            ))}
+          </select>
+        </Field>
+      ) : null}
       <Field label="Комментарий">
         <textarea className="field min-h-20" value={value.notes} onChange={(event) => onChange({ notes: event.target.value })} placeholder="Фраза, привычка, чего не знаете" />
       </Field>

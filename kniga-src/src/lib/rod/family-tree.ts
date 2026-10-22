@@ -21,7 +21,8 @@ export function familyLevels(people: Person[]): Person[][] {
     if (visiting.has(person.id)) return baseLevel(person.relation);
     visiting.add(person.id);
     const parents = (person.parents ?? []).map((id) => byId.get(id)).filter((p): p is Person => Boolean(p));
-    const value = parents.length ? Math.max(...parents.map(levelOf)) + 1 : baseLevel(person.relation);
+    const sibling = person.siblingOf ? byId.get(person.siblingOf) : undefined;
+    const value = parents.length ? Math.max(...parents.map(levelOf)) + 1 : sibling ? levelOf(sibling) : baseLevel(person.relation);
     visiting.delete(person.id);
     level.set(person.id, value);
     return value;
