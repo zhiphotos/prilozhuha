@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, ShoppingBag, Sparkles } from "lucide-react";
+import { ChevronDown, Play, ShoppingBag, Sparkles } from "lucide-react";
 import { PROGRAM_PERKS } from "@/lib/rod/lesson-pitch";
 import { Button, useNav } from "@/components/rod/chrome";
 import { PaySheet } from "@/components/rod/lessons";
@@ -7,15 +7,14 @@ import { PaySheet } from "@/components/rod/lessons";
 const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
 const perk = (title: string) => PROGRAM_PERKS.find((item) => item.title === title)?.text ?? "";
 
-type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; play?: boolean };
+type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; video?: { src: string; poster: string } };
 
 const SLIDES: Slide[] = [
   {
     kicker: "Видео-уроки",
     title: "Вы не остаётесь с книгой один на один",
-    text: "В каждом уроке Дарина по шагам показывает, как собирается книга рода. Смотрите с телефона, ставьте на паузу и делайте вместе с ней.",
-    image: "course/site/free.jpg",
-    play: true,
+    text: "Все уроки записаны атмосферно, как тихий разговор за чаем. Проходить их удобно прямо в приложении: смотрите с телефона, ставьте на паузу и делайте вместе с Дариной шаг за шагом.",
+    video: { src: "course/site/lesson-preview.mp4", poster: "course/site/lesson-preview.jpg" },
   },
   {
     kicker: "Шесть уроков",
@@ -78,12 +77,63 @@ const COMING = [
   "Синхронизация книги между вашими устройствами",
 ];
 
+/** Превью урока: нажали и играет сразу, без звука; повторное нажатие ставит на паузу, листание в сторону тоже. */
+function PreviewVideo({ src, poster }: { src: string; poster: string }) {
+  const video = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    const el = video.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry && entry.intersectionRatio < 0.5) el.pause();
+      },
+      { threshold: [0, 0.5, 1] },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const toggle = () => {
+    const el = video.current;
+    if (!el) return;
+    if (el.paused) void el.play().catch(() => setPlaying(false));
+    else el.pause();
+  };
+
+  return (
+    <button type="button" onClick={toggle} aria-label={playing ? "Поставить на паузу" : "Смотреть превью урока"} className="relative block size-full">
+      <video
+        ref={video}
+        src={asset(src)}
+        poster={asset(poster)}
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        className="size-full object-cover"
+      />
+      {!playing ? (
+        <span className="absolute inset-0 grid place-items-center">
+          <span className="grid size-14 place-items-center rounded-full bg-black/55 text-[#e6cf9c] ring-1 ring-[#c9ae74]/60 backdrop-blur-sm">
+            <Play className="ml-0.5 size-6 fill-current" />
+          </span>
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
 /** Что откроется после покупки: листается пальцем внутри блока, страницы приложения не переключает. */
 export function UnlockCarousel() {
   const nav = useNav();
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   const [pay, setPay] = useState(false);
+  const [soon, setSoon] = useState(false);
 
   useEffect(() => {
     const el = track.current;
@@ -122,7 +172,9 @@ export function UnlockCarousel() {
             style={{ background: "#0d0c0a" }}
           >
             <div className="relative aspect-[4/3] w-full bg-black">
-              {slide.grid ? (
+              {slide.video ? (
+                <PreviewVideo src={slide.video.src} poster={slide.video.poster} />
+              ) : slide.grid ? (
                 <div className="grid size-full grid-cols-3 grid-rows-2 gap-1 p-1">
                   {slide.grid.map((src, n) => (
                     <img key={src} src={asset(src)} alt={`Урок ${n + 1}`} loading="lazy" draggable={false} className="size-full rounded-lg object-cover" />
@@ -131,13 +183,6 @@ export function UnlockCarousel() {
               ) : (
                 <img src={asset(slide.image ?? "")} alt="" loading="lazy" draggable={false} className="size-full object-cover" />
               )}
-              {slide.play ? (
-                <span className="absolute bottom-3 right-3">
-                  <span className="grid size-12 place-items-center rounded-full bg-black/55 text-[#e6cf9c] ring-1 ring-[#c9ae74]/60 backdrop-blur-sm">
-                    <Play className="ml-0.5 size-5 fill-current" />
-                  </span>
-                </span>
-              ) : null}
             </div>
             <div className="flex flex-1 flex-col p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">{slide.kicker}</p>
@@ -162,21 +207,29 @@ export function UnlockCarousel() {
         Посмотреть уроки
       </Button>
 
-      <details className="glass mt-5 rounded-2xl p-4">
-        <summary className="flex cursor-pointer items-center gap-2 text-ink">
+      <div className="glass mt-5 rounded-2xl p-4">
+        <button type="button" aria-expanded={soon} onClick={() => setSoon((value) => !value)} className="flex w-full items-center gap-2 text-left text-ink">
           <Sparkles className="size-4 shrink-0 text-rose-deep" />
-          <span className="font-semibold">Скоро в приложении: {COMING.length} новых функций</span>
-        </summary>
-        <ul className="mt-3 grid gap-2 text-sm text-ink/85">
-          {COMING.map((item) => (
-            <li key={item} className="flex gap-2">
-              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#c9ae74]" />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 rounded-xl bg-white/60 p-3 text-xs text-ink/75">Это то, что мы планируем. Позже за такие функции может появиться отдельная оплата раз в месяц, до 300 ₽.</p>
-      </details>
+          <span className="flex-1 font-semibold">Скоро в приложении: {COMING.length} новых функций</span>
+          <span className="flex items-center gap-1 text-xs font-medium text-muted">
+            {soon ? "Свернуть" : "Развернуть"}
+            <ChevronDown className={soon ? "size-4 rotate-180 transition-transform" : "size-4 transition-transform"} />
+          </span>
+        </button>
+        {soon ? (
+          <>
+            <ul className="mt-3 grid gap-2 text-sm text-ink/85">
+              {COMING.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#c9ae74]" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 rounded-xl bg-white/60 p-3 text-xs text-ink/75">Это то, что мы планируем. Позже за такие функции может появиться отдельная оплата раз в месяц, до 300 ₽.</p>
+          </>
+        ) : null}
+      </div>
       {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
     </section>
   );
