@@ -1,70 +1,75 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Play, ShoppingBag, Sparkles } from "lucide-react";
-import { PROGRAM_PERKS } from "@/lib/rod/lesson-pitch";
 import { Button, useNav } from "@/components/rod/chrome";
 import { PaySheet } from "@/components/rod/lessons";
 
 const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
-const perk = (title: string) => PROGRAM_PERKS.find((item) => item.title === title)?.text ?? "";
 
-type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; video?: { src: string; poster: string } };
+type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; video?: { src: string; poster: string }; price?: boolean; buy?: boolean };
 
 const SLIDES: Slide[] = [
   {
-    kicker: "Видео-уроки",
-    title: "Вы не остаётесь с книгой один на один",
-    text: "Все уроки записаны атмосферно, как тихий разговор за чаем. Проходить их удобно прямо в приложении: смотрите с телефона, ставьте на паузу и делайте вместе с Дариной шаг за шагом.",
+    kicker: "Первый урок",
+    title: "Послушайте, как звучит программа",
+    text: "Уроки записаны спокойно, как разговор за чаем. Нажмите на видео и посмотрите первую минуту: сразу станет понятно, ваше ли это.",
     video: { src: "course/site/lesson-preview.mp4", poster: "course/site/lesson-preview.jpg" },
   },
   {
     kicker: "Шесть уроков",
-    title: "Путь от первого вопроса до готовой книги",
-    text: "Достаём то, что семья уже помнит, собираем первые страницы, оживляем старые фото, идём в архивы и верстаем книгу, которую можно держать в руках.",
+    title: "Шесть шагов от первого вопроса до книги",
+    text: "Сначала достаём то, что семья уже помнит. Потом выбираем стиль, оживляем старые фото, идём в архивы и верстаем. Каждый урок можно смотреть с телефона.",
     grid: [1, 2, 3, 4, 5, 6].map((n) => `course/site/lesson${n}.jpg`),
   },
   {
     kicker: "ИИ-помощник",
-    title: "Помощник, который задаёт вопросы за вас",
-    text: perk("Личный семейный исследователь"),
+    title: "О роде известно немного? Начните с вопросов",
+    text: "ИИ-генеалог ведёт глубокое интервью: задаёт вопрос за вопросом и превращает ваши ответы в текст. В первом уроке из этого рождается предисловие вашей книги.",
     image: "course/site/extra2.jpg",
   },
   {
     kicker: "Материалы",
-    title: "Готовые промпты, вопросы и шаблоны",
-    text: "150 готовых промптов: копируете, вставляете и получаете результат. Тетрадь на 300 вопросов для родственников, архивные базы и шаблоны для оформления и печати.",
+    title: "Запросы и вопросы уже готовы",
+    text: "150 готовых промптов: копируете и вставляете. Тетрадь на 300 вопросов, которую можно распечатать и дать бабушке или маме. Архивные базы для поиска предков.",
     image: "course/site/materials.jpg",
   },
   {
-    kicker: "Приложение",
-    title: "Вся работа над книгой в одном месте",
-    text: "Семейное древо, колоды вопросов с записью голоса, архив фото и историй, редактор страниц, листалка и печать. Всё хранится у вас в телефоне.",
-    image: "course/site/extra4.jpg",
-  },
-  {
     kicker: "Шаблон книги",
-    title: "Не придётся начинать с белого листа",
-    text: "Готовая книга на 100 страниц: одна ветка рода по главам, и на каждой странице подсказка, что туда внести.",
+    title: "У книги уже есть каркас",
+    text: "Шаблон на 100 страниц: одна ветка рода по главам, и на каждой странице подсказка, что сюда внести. Пустого листа перед вами не будет.",
     image: "course/site/extra1.jpg",
   },
   {
+    kicker: "Приложение",
+    title: "Страницы собираются в одном месте",
+    text: "Древо, колоды вопросов с записью голоса, архив, редактор страниц, листалка и печать работают вместе. Фото, голоса и готовые страницы лежат в одном приложении. В шестом уроке есть и простая альтернатива InDesign.",
+    image: "course/site/extra4.jpg",
+  },
+  {
+    kicker: "Свой темп",
+    title: "У вас год и спокойный план",
+    text: "Во втором уроке вы расписываете работу над книгой на год, а смотреть уроки можно в любой вечер. Доступ к урокам открыт на год.",
+    image: "course/site/lesson2.jpg",
+  },
+  {
     kicker: "Сообщество",
-    title: "Рядом те, кто делает то же самое",
-    text: "Живой чат с Дариной и участницами: идеи, находки, поддержка. Доступ к чату навсегда.",
+    title: "Рядом те, кто идёт тем же путём",
+    text: "Живой чат с Дариной и участницами: идеи, находки, поддержка. Доступ к чату остаётся с вами навсегда.",
     image: "course/site/review1.jpg",
   },
   {
-    kicker: "Что получится",
-    title: "Настоящая книга, которую приятно держать в руках",
-    text: "Первая свёрстанная страница, подготовка к печати и глава ваших мемуаров. Книгу можно подарить детям, внукам, всему роду.",
+    kicker: "Результат",
+    title: "Книга, которую приятно держать в руках",
+    text: "К концу программы у вас первая свёрстанная страница, подготовка к печати и первая глава ваших воспоминаний. Такую книгу можно подарить детям, внукам и всему роду.",
     image: "course/site/extra3.jpg",
   },
-];
-
-
-const HELPS = [
-  { worry: "Если вы пока ничего не знаете о своём роде", text: "ИИ-генеалог подскажет, с чего начать, а поиск по архивам с планом поиска поможет шаг за шагом искать записи о предках. Расшифровка фамилии даст первую ниточку для разговора с родными." },
-  { worry: "Если оформлять и дизайнить вам непривычно", text: "ИИ оформит тексты глав и заполнит страницы, а готовые шаблоны разных книг, в том числе свадебной, избавят от пустого листа. Текст сам обойдёт фото, так что страницы будут выглядеть аккуратно." },
-  { worry: "Если страшно не довести книгу до конца", text: "ИИ знает историю вашей семьи и подсказывает, что добавить дальше. Родственники смогут работать над книгой вместе с вами, а личная мандала прогресса для сторис покажет, как страницы складываются в книгу." },
+  {
+    kicker: "Цена",
+    title: "Уроки и приложение за 2 026 ₽",
+    text: "Единоразовая плата 2 026 ₽ вместо 4 000 ₽. Уроки открываются сразу после оплаты. Новые функции появятся позже: часть останется с вами навсегда, часть подключается по подписке.",
+    image: "course/site/extra6.jpg",
+    price: true,
+    buy: true,
+  },
 ];
 
 /** Что планируется: функции, которые позже могут стать платными. */
@@ -163,8 +168,8 @@ export function UnlockCarousel() {
   return (
     <section className="mb-6" aria-label="Что откроется после покупки">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">Программа «Книга рода»</p>
-      <h2 className="mt-1 text-[1.3rem] font-semibold leading-tight text-ink">Мини-уроки и полный доступ к приложению</h2>
-      <p className="mt-1 text-sm text-ink/70">Единоразовая плата, и открывается всё. Листайте, чтобы увидеть, что вы получите.</p>
+      <h2 className="mt-1 text-[1.3rem] font-semibold leading-tight text-ink">Мини-уроки и полный доступ в приложение</h2>
+      <p className="mt-1 text-sm text-ink/70">Единоразовая плата, и открывается всё: шесть видео-уроков и приложение для вашей книги. Листайте и смотрите, что внутри.</p>
       <div
         ref={track}
         className="-mx-5 mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -172,7 +177,7 @@ export function UnlockCarousel() {
       >
         {SLIDES.map((slide, i) => (
           <article
-            key={slide.kicker}
+            key={`${slide.kicker}-${i}`}
             aria-roledescription="слайд"
             aria-label={`${i + 1} из ${SLIDES.length}`}
             className={`flex w-[84%] max-w-sm shrink-0 snap-center flex-col overflow-hidden rounded-[1.75rem] text-paper shadow-md ring-1 ring-[#c9ae74]/35 transition-opacity duration-300 motion-reduce:transition-none ${i === index ? "opacity-100" : "opacity-80"}`}
@@ -193,11 +198,22 @@ export function UnlockCarousel() {
               ) : (
                 <img src={asset(slide.image ?? "")} alt="" loading="lazy" draggable={false} className="size-full object-cover" />
               )}
+              {slide.price ? (
+                <span className="pointer-events-none absolute right-3 top-3 rounded-2xl bg-black/65 px-3 py-2 text-right ring-1 ring-[#c9ae74]/50 backdrop-blur-sm">
+                  <span className="block text-2xl font-semibold leading-none text-[#e6cf9c]">2 026 ₽</span>
+                  <span className="mt-1 block text-xs text-paper/60 line-through">4 000 ₽</span>
+                </span>
+              ) : null}
             </div>
             <div className="flex flex-1 flex-col border-t border-[#c9ae74]/40 p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">{slide.kicker}</p>
               <h3 className="mt-1 text-[1.2rem] font-semibold leading-tight">{slide.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-paper/85">{slide.text}</p>
+              {slide.buy ? (
+                <Button className="mt-4 w-full" onClick={() => setPay(true)}>
+                  <ShoppingBag className="size-4" /> Купить мини-уроки и полный доступ
+                </Button>
+              ) : null}
               <div className="mt-auto flex items-center gap-2 pt-5" aria-hidden="true">
                 <span className="h-px flex-1 bg-[#c9ae74]/30" />
                 <span className="size-1.5 rotate-45 bg-[#c9ae74]/70" />
@@ -209,22 +225,10 @@ export function UnlockCarousel() {
       </div>
       <div className="flex justify-center" role="tablist" aria-label="Слайды">
         {SLIDES.map((slide, i) => (
-          <button key={slide.kicker} type="button" role="tab" aria-selected={i === index} aria-label={`Слайд ${i + 1}`} onClick={() => go(i)} className="grid h-11 w-7 place-items-center">
+          <button key={`${slide.kicker}-${i}`} type="button" role="tab" aria-selected={i === index} aria-label={`Слайд ${i + 1}`} onClick={() => go(i)} className="grid h-11 w-7 place-items-center">
             <span className={i === index ? "h-2 w-5 rounded-full bg-[#3f4a22]" : "size-2 rounded-full bg-ink/25"} />
           </button>
         ))}
-      </div>
-      <div className="mt-4 rounded-3xl bg-[#f6f2e9]/80 p-5 ring-1 ring-ink/10">
-        <h3 className="text-[1.15rem] font-semibold leading-tight text-ink">Что будет рядом, когда откроются новые функции</h3>
-        <ul className="mt-3 grid gap-4">
-          {HELPS.map((item) => (
-            <li key={item.worry}>
-              <p className="text-sm font-semibold text-ink">{item.worry}</p>
-              <p className="mt-1 text-sm leading-relaxed text-ink/80">{item.text}</p>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-4 text-sm text-ink/80">Мини-уроки открываются сразу за 2 026 ₽. Новые функции появятся позже: часть останется с вами навсегда, часть подключается по подписке.</p>
       </div>
       <p className="mt-2 text-center text-xs text-ink/65">Единоразовая плата. Уроки открываются сразу после оплаты, смотреть можно с телефона. Доступ к урокам на год, к чату навсегда.</p>
       <Button className="mt-3 w-full" onClick={() => setPay(true)}>
