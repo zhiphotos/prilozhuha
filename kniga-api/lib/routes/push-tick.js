@@ -1,4 +1,4 @@
-import { cors, json } from "../config.js";
+import { cors, cronAuthorized, json } from "../config.js";
 import { pickMessage } from "../push-messages.js";
 import { runDueBroadcasts } from "../broadcast.js";
 import { pushConfigured, setupWebPush } from "../push.js";
@@ -13,8 +13,7 @@ import { pairs, redis, redisConfigured } from "../redis.js";
 export default async function handler(req, res) {
   if (cors(req, res)) return;
   const url = new URL(req.url, `https://${req.headers.host}`);
-  const key = url.searchParams.get("key") || String(req.headers["x-cron-key"] || "");
-  if (!process.env.CRON_SECRET || key !== process.env.CRON_SECRET) return json(res, 401, { error: "no" });
+  if (!cronAuthorized(req, url)) return json(res, 401, { error: "no" });
   if (!redisConfigured() || (!pushConfigured() && process.env.PUSH_DRY_RUN !== "1")) return json(res, 503, { error: "not configured" });
   const dry = process.env.PUSH_DRY_RUN === "1";
   const now = Date.now();
