@@ -1,5 +1,6 @@
 import { cors, json } from "../config.js";
 import { pickMessage } from "../push-messages.js";
+import { runDueBroadcasts } from "../broadcast.js";
 import { pushConfigured, setupWebPush } from "../push.js";
 import { pairs, redis, redisConfigured } from "../redis.js";
 
@@ -60,5 +61,6 @@ export default async function handler(req, res) {
     }
   });
   for (let i = 0; i < jobs.length; i += 25) await Promise.allSettled(jobs.slice(i, i + 25));
+  result.broadcasts = await runDueBroadcasts(now).catch(() => []);
   return json(res, 200, result);
 }
