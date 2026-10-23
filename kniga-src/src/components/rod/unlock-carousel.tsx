@@ -1,63 +1,81 @@
 import { useEffect, useRef, useState } from "react";
-import { Archive, Bot, GraduationCap, Layers, LibraryBig, ShoppingBag, MessageCircleQuestion, Users, Wand2, type LucideIcon } from "lucide-react";
-import { PITCH, PROGRAM_PERKS } from "@/lib/rod/lesson-pitch";
+import { Play, ShoppingBag, Sparkles } from "lucide-react";
+import { PROGRAM_PERKS } from "@/lib/rod/lesson-pitch";
 import { Button, useNav } from "@/components/rod/chrome";
 import { PaySheet } from "@/components/rod/lessons";
 
-type Slide = { icon: LucideIcon; kicker: string; title: string; text: string; list?: string[] };
-
+const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
 const perk = (title: string) => PROGRAM_PERKS.find((item) => item.title === title)?.text ?? "";
+
+type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; play?: boolean };
 
 const SLIDES: Slide[] = [
   {
-    icon: GraduationCap,
+    kicker: "Видео-уроки",
+    title: "Вы не остаётесь с книгой один на один",
+    text: "В каждом уроке Дарина по шагам показывает, как собирается книга рода. Смотрите с телефона, ставьте на паузу и делайте вместе с ней.",
+    image: "course/site/free.jpg",
+    play: true,
+  },
+  {
     kicker: "Шесть уроков",
-    title: "От первых вопросов до книги в руках",
-    text: "Вы идёте по порядку, и на каждом шаге есть что сделать уже сегодня:",
-    list: ["l1", "l2", "l3", "l4", "l5", "l6"].map((id) => PITCH[id].hook),
+    title: "Путь от первого вопроса до готовой книги",
+    text: "Достаём то, что семья уже помнит, собираем первые страницы, оживляем старые фото, идём в архивы и верстаем книгу, которую можно держать в руках.",
+    grid: [1, 2, 3, 4, 5, 6].map((n) => `course/site/lesson${n}.jpg`),
   },
   {
-    icon: MessageCircleQuestion,
-    kicker: "300 вопросов",
-    title: "Родные сами расскажут то, что вы не успели спросить",
-    text: "Тетрадь на 300 вопросов можно распечатать и подарить бабушке, маме, тёте. А в приложении колоды вопросов помогают записать разговор голосом, пока человек рядом.",
-  },
-  {
-    icon: Bot,
-    kicker: "Личный исследователь",
+    kicker: "ИИ-помощник",
     title: "Помощник, который задаёт вопросы за вас",
     text: perk("Личный семейный исследователь"),
+    image: "course/site/extra2.jpg",
   },
   {
-    icon: Wand2,
-    kicker: "150 готовых промптов",
-    title: "Копируете, вставляете, получаете результат",
-    text: "Для интервью, текстов, стилей, оживления фото и поиска предков. Ничего не нужно придумывать самой.",
+    kicker: "Материалы",
+    title: "Готовые промпты, вопросы и шаблоны",
+    text: "150 готовых промптов: копируете, вставляете и получаете результат. Тетрадь на 300 вопросов для родственников, архивные базы и шаблоны для оформления и печати.",
+    image: "course/site/materials.jpg",
   },
   {
-    icon: Archive,
-    kicker: "Архивы и шаблоны",
-    title: "Всё, чтобы найти предков и красиво оформить книгу",
-    text: perk("Архивные базы и шаблоны"),
+    kicker: "Приложение",
+    title: "Вся работа над книгой в одном месте",
+    text: "Семейное древо, колоды вопросов с записью голоса, архив фото и историй, редактор страниц, листалка и печать. Всё хранится у вас в телефоне.",
+    image: "course/site/extra4.jpg",
   },
   {
-    icon: Layers,
     kicker: "Шаблон книги",
     title: "Не придётся начинать с белого листа",
     text: "Готовая книга на 100 страниц: одна ветка рода по главам, и на каждой странице подсказка, что туда внести.",
+    image: "course/site/extra1.jpg",
   },
   {
-    icon: Users,
-    kicker: "Своё сообщество",
+    kicker: "Сообщество",
     title: "Рядом те, кто делает то же самое",
-    text: perk("Чат с Дариной и участниками"),
+    text: "Живой чат с Дариной и участницами: идеи, находки, поддержка. Доступ к чату навсегда.",
+    image: "course/site/review1.jpg",
   },
   {
-    icon: LibraryBig,
     kicker: "Что получится",
     title: "Настоящая книга, которую приятно держать в руках",
-    text: PITCH.l6.result + " Её можно подарить детям, внукам, всему роду.",
+    text: "Первая свёрстанная страница, подготовка к печати и глава ваших мемуаров. Книгу можно подарить детям, внукам, всему роду.",
+    image: "course/site/extra3.jpg",
   },
+];
+
+/** Что планируется: функции, которые позже могут стать платными. */
+const COMING = [
+  "Шаблоны для разных книг, в том числе свадебная книга для печати",
+  "ИИ-генеалог прямо в приложении",
+  "Расчёт по дате рождения и мандале, как в уроках",
+  "Поиск по архивам: где искать и пошаговый план",
+  "Расшифровка фамилии с сохранением в книгу",
+  "ИИ знает историю вашей семьи и подсказывает, что искать дальше",
+  "ИИ оформляет тексты глав и заполняет страницы",
+  "Текст обтекает фото, стикеры и вставки по контуру",
+  "Сканер детских рисунков и арт-бук по годам с забавными фразами ребёнка",
+  "Новые стили оформления семейного древа",
+  "Личная мандала прогресса: один лепесток это одна готовая страница, ею можно поделиться в сторис",
+  "Совместный доступ для родственников",
+  "Синхронизация книги между вашими устройствами",
 ];
 
 /** Что откроется после покупки: листается пальцем внутри блока, страницы приложения не переключает. */
@@ -95,35 +113,39 @@ export function UnlockCarousel() {
         className="-mx-5 mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={{ overscrollBehaviorX: "contain", touchAction: "pan-x pan-y", WebkitOverflowScrolling: "touch" }}
       >
-        {SLIDES.map((slide, i) => {
-          const Icon = slide.icon;
-          return (
-            <article
-              key={slide.kicker}
-              aria-roledescription="слайд"
-              aria-label={`${i + 1} из ${SLIDES.length}`}
-              className="relative flex min-h-[19rem] w-[82%] max-w-sm shrink-0 snap-center flex-col rounded-3xl p-5 text-paper shadow-sm"
-              style={{ background: "linear-gradient(160deg,#47552a 0%,#2a3219 100%)" }}
-            >
-              <span className="grid size-10 place-items-center rounded-full bg-white/10 text-[#c9ae74]">
-                <Icon className="size-5" />
-              </span>
-              <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">{slide.kicker}</p>
-              <h3 className="mt-1 text-[1.25rem] font-semibold leading-tight">{slide.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-paper/85">{slide.text}</p>
-              {slide.list ? (
-                <ol className="mt-3 grid gap-1.5 text-sm text-paper/90">
-                  {slide.list.map((item, n) => (
-                    <li key={item} className="flex gap-2">
-                      <span className="w-4 shrink-0 tabular-nums text-[#c9ae74]">{n + 1}</span>
-                      <span>{item}</span>
-                    </li>
+        {SLIDES.map((slide, i) => (
+          <article
+            key={slide.kicker}
+            aria-roledescription="слайд"
+            aria-label={`${i + 1} из ${SLIDES.length}`}
+            className="flex w-[84%] max-w-sm shrink-0 snap-center flex-col overflow-hidden rounded-3xl text-paper shadow-sm ring-1 ring-[#c9ae74]/25"
+            style={{ background: "#0d0c0a" }}
+          >
+            <div className="relative aspect-[4/3] w-full bg-black">
+              {slide.grid ? (
+                <div className="grid size-full grid-cols-3 grid-rows-2 gap-1 p-1">
+                  {slide.grid.map((src, n) => (
+                    <img key={src} src={asset(src)} alt={`Урок ${n + 1}`} loading="lazy" draggable={false} className="size-full rounded-lg object-cover" />
                   ))}
-                </ol>
+                </div>
+              ) : (
+                <img src={asset(slide.image ?? "")} alt="" loading="lazy" draggable={false} className="size-full object-cover" />
+              )}
+              {slide.play ? (
+                <span className="absolute bottom-3 right-3">
+                  <span className="grid size-12 place-items-center rounded-full bg-black/55 text-[#e6cf9c] ring-1 ring-[#c9ae74]/60 backdrop-blur-sm">
+                    <Play className="ml-0.5 size-5 fill-current" />
+                  </span>
+                </span>
               ) : null}
-            </article>
-          );
-        })}
+            </div>
+            <div className="flex flex-1 flex-col p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">{slide.kicker}</p>
+              <h3 className="mt-1 text-[1.2rem] font-semibold leading-tight">{slide.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-paper/80">{slide.text}</p>
+            </div>
+          </article>
+        ))}
       </div>
       <div className="mt-1 flex justify-center gap-1.5" role="tablist" aria-label="Слайды">
         {SLIDES.map((slide, i) => (
@@ -139,6 +161,22 @@ export function UnlockCarousel() {
       <Button variant="white" className="mt-2 w-full" onClick={() => nav.tab({ id: "lessons" })}>
         Посмотреть уроки
       </Button>
+
+      <details className="glass mt-5 rounded-2xl p-4">
+        <summary className="flex cursor-pointer items-center gap-2 text-ink">
+          <Sparkles className="size-4 shrink-0 text-rose-deep" />
+          <span className="font-semibold">Скоро в приложении: {COMING.length} новых функций</span>
+        </summary>
+        <ul className="mt-3 grid gap-2 text-sm text-ink/85">
+          {COMING.map((item) => (
+            <li key={item} className="flex gap-2">
+              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#c9ae74]" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 rounded-xl bg-white/60 p-3 text-xs text-ink/75">Это то, что мы планируем. Позже за такие функции может появиться отдельная оплата раз в месяц, до 300 ₽.</p>
+      </details>
       {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
     </section>
   );
