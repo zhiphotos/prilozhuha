@@ -168,10 +168,13 @@ export function UnlockCarousel() {
             key={slide.kicker}
             aria-roledescription="слайд"
             aria-label={`${i + 1} из ${SLIDES.length}`}
-            className="flex w-[84%] max-w-sm shrink-0 snap-center flex-col overflow-hidden rounded-3xl text-paper shadow-sm ring-1 ring-[#c9ae74]/25"
-            style={{ background: "#0d0c0a" }}
+            className={`flex w-[84%] max-w-sm shrink-0 snap-center flex-col overflow-hidden rounded-[1.75rem] text-paper shadow-md ring-1 ring-[#c9ae74]/35 transition-opacity duration-300 motion-reduce:transition-none ${i === index ? "opacity-100" : "opacity-80"}`}
+            style={{ background: "linear-gradient(180deg,#0d0c0a 0%,#1a1d0e 55%,#3f4a22 160%)" }}
           >
             <div className="relative aspect-[4/3] w-full bg-black">
+              <span className="pointer-events-none absolute left-3 top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 font-mono text-[11px] tracking-[0.14em] text-[#e6cf9c] ring-1 ring-[#c9ae74]/40">
+                {String(i + 1).padStart(2, "0")} / {String(SLIDES.length).padStart(2, "0")}
+              </span>
               {slide.video ? (
                 <PreviewVideo src={slide.video.src} poster={slide.video.poster} />
               ) : slide.grid ? (
@@ -184,18 +187,23 @@ export function UnlockCarousel() {
                 <img src={asset(slide.image ?? "")} alt="" loading="lazy" draggable={false} className="size-full object-cover" />
               )}
             </div>
-            <div className="flex flex-1 flex-col p-5">
+            <div className="flex flex-1 flex-col border-t border-[#c9ae74]/40 p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">{slide.kicker}</p>
               <h3 className="mt-1 text-[1.2rem] font-semibold leading-tight">{slide.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-paper/80">{slide.text}</p>
+              <p className="mt-2 text-sm leading-relaxed text-paper/85">{slide.text}</p>
+              <div className="mt-auto flex items-center gap-2 pt-5" aria-hidden="true">
+                <span className="h-px flex-1 bg-[#c9ae74]/30" />
+                <span className="size-1.5 rotate-45 bg-[#c9ae74]/70" />
+                <span className="h-px w-6 bg-[#c9ae74]/30" />
+              </div>
             </div>
           </article>
         ))}
       </div>
-      <div className="mt-1 flex justify-center gap-1.5" role="tablist" aria-label="Слайды">
+      <div className="flex justify-center" role="tablist" aria-label="Слайды">
         {SLIDES.map((slide, i) => (
-          <button key={slide.kicker} type="button" role="tab" aria-selected={i === index} aria-label={`Слайд ${i + 1}`} onClick={() => go(i)} className="grid size-6 place-items-center">
-            <span className={i === index ? "h-2 w-5 rounded-full bg-moss" : "size-2 rounded-full bg-ink/25"} />
+          <button key={slide.kicker} type="button" role="tab" aria-selected={i === index} aria-label={`Слайд ${i + 1}`} onClick={() => go(i)} className="grid h-11 w-7 place-items-center">
+            <span className={i === index ? "h-2 w-5 rounded-full bg-[#3f4a22]" : "size-2 rounded-full bg-ink/25"} />
           </button>
         ))}
       </div>
@@ -208,7 +216,7 @@ export function UnlockCarousel() {
       </Button>
 
       <div className="glass mt-5 rounded-2xl p-4">
-        <button type="button" aria-expanded={soon} onClick={() => setSoon((value) => !value)} className="flex w-full items-center gap-2 text-left text-ink">
+        <button type="button" aria-expanded={soon} onClick={() => setSoon((value) => !value)} className="flex min-h-11 w-full items-center gap-2 text-left text-ink">
           <Sparkles className="size-4 shrink-0 text-rose-deep" />
           <span className="flex-1 font-semibold">Скоро в приложении: {COMING.length} платных функций</span>
           <span className="flex items-center gap-1 text-xs font-medium text-muted">
