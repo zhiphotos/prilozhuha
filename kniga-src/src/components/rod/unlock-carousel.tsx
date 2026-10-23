@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Play, ShoppingBag, Sparkles } from "lucide-react";
+import { ChevronDown, Play, ShoppingBag, Sparkles, X } from "lucide-react";
 import { Button, useNav } from "@/components/rod/chrome";
 import { PaySheet } from "@/components/rod/lessons";
 
 const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
 
-type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; video?: { src: string; poster: string }; price?: boolean; buy?: boolean };
+type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; video?: { src: string; poster: string }; price?: boolean; buy?: boolean; pos?: string; reviews?: boolean };
 
 const SLIDES: Slide[] = [
   {
@@ -24,7 +24,8 @@ const SLIDES: Slide[] = [
     kicker: "ИИ-помощник",
     title: "О роде известно немного? Начните с вопросов",
     text: "ИИ-генеалог ведёт глубокое интервью: задаёт вопрос за вопросом и превращает ваши ответы в текст. В первом уроке из этого рождается предисловие вашей книги.",
-    image: "course/site/extra2.jpg",
+    image: "course/site/memoirs-granny.jpg",
+    pos: "50% 22%",
   },
   {
     kicker: "Материалы",
@@ -55,18 +56,20 @@ const SLIDES: Slide[] = [
     title: "Рядом те, кто идёт тем же путём",
     text: "Живой чат с Дариной и участницами: идеи, находки, поддержка. Доступ к чату остаётся с вами навсегда.",
     image: "course/site/review1.jpg",
+    reviews: true,
   },
   {
     kicker: "Результат",
     title: "Книга, которую приятно держать в руках",
     text: "К концу программы у вас первая свёрстанная страница, подготовка к печати и первая глава ваших воспоминаний. Такую книгу можно подарить детям, внукам и всему роду.",
-    image: "course/site/extra3.jpg",
+    image: "course/site/memoirs-book.jpg",
   },
   {
     kicker: "Цена",
     title: "Уроки и приложение за 2 026 ₽",
     text: "Единоразовая плата 2 026 ₽ вместо 4 000 ₽. Уроки открываются сразу после оплаты. Новые функции появятся позже: часть останется с вами навсегда, часть подключается по подписке.",
-    image: "course/site/extra6.jpg",
+    image: "course/site/memoirs-daria.jpg",
+    pos: "50% 20%",
     price: true,
     buy: true,
   },
@@ -139,6 +142,34 @@ function PreviewVideo({ src, poster }: { src: string; poster: string }) {
   );
 }
 
+/** Отзывы участниц крупно: листаются вниз, закрываются нажатием на фон или крестиком. */
+function ReviewsPopup({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-[70] flex flex-col bg-black/95" role="dialog" aria-modal="true" aria-label="Отзывы участниц" onClick={onClose}>
+      <div className="flex items-center justify-between p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <p className="pl-1 text-sm font-semibold text-[#e6cf9c]">Что пишут участницы</p>
+        <button type="button" aria-label="Закрыть" className="grid size-11 place-items-center rounded-full bg-paper/15 text-paper" onClick={onClose}>
+          <X className="size-5" />
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto grid max-w-md gap-4" onClick={(event) => event.stopPropagation()}>
+          {[1, 2, 3].map((n) => (
+            <img key={n} src={asset(`course/site/review${n}.jpg`)} alt={`Отзыв участницы ${n}`} loading="lazy" draggable={false} className="w-full rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Что откроется после покупки: листается пальцем внутри блока, страницы приложения не переключает. */
 export function UnlockCarousel() {
   const nav = useNav();
@@ -146,6 +177,7 @@ export function UnlockCarousel() {
   const [index, setIndex] = useState(0);
   const [pay, setPay] = useState(false);
   const [soon, setSoon] = useState(false);
+  const [reviews, setReviews] = useState(false);
 
   useEffect(() => {
     const el = track.current;
@@ -196,8 +228,13 @@ export function UnlockCarousel() {
                   ))}
                 </div>
               ) : (
-                <img src={asset(slide.image ?? "")} alt="" loading="lazy" draggable={false} className="size-full object-cover" />
+                <img src={asset(slide.image ?? "")} alt="" loading="lazy" draggable={false} className="size-full object-cover" style={slide.pos ? { objectPosition: slide.pos } : undefined} />
               )}
+              {slide.reviews ? (
+                <button type="button" onClick={() => setReviews(true)} aria-label="Читать отзывы" className="absolute inset-0 z-[5]">
+                  <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-3 py-1.5 text-xs font-semibold text-[#e6cf9c] ring-1 ring-[#c9ae74]/50">Нажмите, чтобы прочитать</span>
+                </button>
+              ) : null}
               {slide.price ? (
                 <span className="pointer-events-none absolute right-3 top-3 rounded-2xl bg-black/65 px-3 py-2 text-right ring-1 ring-[#c9ae74]/50 backdrop-blur-sm">
                   <span className="block text-2xl font-semibold leading-none text-[#e6cf9c]">2 026 ₽</span>
@@ -262,6 +299,7 @@ export function UnlockCarousel() {
         ) : null}
       </div>
       {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
+      {reviews ? <ReviewsPopup onClose={() => setReviews(false)} /> : null}
     </section>
   );
 }
