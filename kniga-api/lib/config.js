@@ -54,3 +54,12 @@ export function bodyOf(req) {
     return {};
   }
 }
+
+/** Ключ планировщика: в адресе (?key=), в заголовке x-cron-key или как «Authorization: Bearer …» (так вызывает Vercel Cron). */
+export function cronAuthorized(req, url) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
+  const bearer = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+  const key = url.searchParams.get("key") || String(req.headers["x-cron-key"] || "") || bearer;
+  return key === secret;
+}

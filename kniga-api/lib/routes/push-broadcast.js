@@ -1,4 +1,4 @@
-import { cors, json } from "../config.js";
+import { cors, cronAuthorized, json } from "../config.js";
 import { runBroadcast } from "../broadcast.js";
 import { pushConfigured } from "../push.js";
 import { redis, redisConfigured } from "../redis.js";
@@ -16,8 +16,7 @@ export default async function handler(req, res) {
   if (cors(req, res)) return;
   const url = new URL(req.url, `https://${req.headers.host}`);
   const q = url.searchParams;
-  const key = q.get("key") || String(req.headers["x-cron-key"] || "");
-  if (!process.env.CRON_SECRET || key !== process.env.CRON_SECRET) return json(res, 401, { error: "no" });
+  if (!cronAuthorized(req, url)) return json(res, 401, { error: "no" });
   if (!redisConfigured() || !pushConfigured()) return json(res, 503, { error: "not configured" });
   const id = (q.get("id") || "").replace(/[^\w-]/g, "").slice(0, 60);
   const title = (q.get("title") || "Книга рода").slice(0, 80);
