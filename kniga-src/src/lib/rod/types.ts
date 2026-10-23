@@ -13,6 +13,10 @@ export type Person = {
   parents?: string[];
   /** Брат или сестра кого-то из списка (id): встаёт в тот же ряд схемы. */
   siblingOf?: string;
+  /** Супруг или супруга (id из этого же списка): пара встаёт в один ряд рядом друг с другом. */
+  spouse?: string;
+  /** Статус пары: в браке, развелись, живут вместе без брака. */
+  spouseStatus?: "married" | "divorced" | "partners";
   /** Имя, отчество и фамилия по отдельности; `name` собирается из них. */
   firstName?: string;
   patronymic?: string;

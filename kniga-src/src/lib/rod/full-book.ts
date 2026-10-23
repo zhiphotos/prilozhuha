@@ -2,12 +2,12 @@
 // Открывается только тем, у кого открыта программа (оплата или код доступа).
 import type { BookPage, PageBlock, PaperKind, PhotoFrame } from "@/lib/rod/types";
 
-type Kind = "text" | "photo" | "person" | "tree" | "timeline" | "map" | "list" | "doc" | "compare" | "recipe" | "letter";
+export type Kind = "text" | "photo" | "person" | "tree" | "timeline" | "map" | "list" | "doc" | "compare" | "recipe" | "letter";
 
-type Entry = { title: string; desc: string; kinds: Kind[] };
-type Chapter = { n: number; title: string; paper: PaperKind; pages: Entry[] };
+export type Entry = { title: string; desc: string; kinds: Kind[] };
+export type Chapter = { n: number; title: string; paper: PaperKind; pages: Entry[] };
 
-const e = (title: string, desc: string, ...kinds: Kind[]): Entry => ({ title, desc, kinds: kinds.length ? kinds : ["text"] });
+export const e = (title: string, desc: string, ...kinds: Kind[]): Entry => ({ title, desc, kinds: kinds.length ? kinds : ["text"] });
 
 export const FULL_BOOK: Chapter[] = [
   {
@@ -235,18 +235,25 @@ function blocksFor(kind: Kind, chapter: Chapter, entry: Entry, part: number): Pa
   }
 }
 
-/** 99 страниц после обложки – в порядке глав. */
-export function fullBookPages(): Omit<BookPage, "id">[] {
+/** Страницы любого шаблона по главам. `tag` попадает в promptId, по нему видно, что шаблон уже добавлен. */
+export function buildBookPages(chapters: Chapter[], tag: string): Omit<BookPage, "id">[] {
   const out: Omit<BookPage, "id">[] = [];
-  for (const chapter of FULL_BOOK) {
+  for (const chapter of chapters) {
     for (const entry of chapter.pages) {
       entry.kinds.forEach((kind, i) => {
         const title = entry.kinds.length > 1 ? `${entry.title} (${i + 1}/${entry.kinds.length})` : entry.title;
-        out.push({ title, kind: "page", paper: chapter.paper, promptId: `full:${chapter.n}:${entry.title}:${i}`, strokes: [], blocks: blocksFor(kind, chapter, entry, i + 1) });
+        out.push({ title, kind: "page", paper: chapter.paper, promptId: `${tag}:${chapter.n}:${entry.title}:${i}`, strokes: [], blocks: blocksFor(kind, chapter, entry, i + 1) });
       });
     }
   }
   return out;
+}
+
+export const countPages = (chapters: Chapter[]) => chapters.reduce((sum, chapter) => sum + chapter.pages.reduce((s, page) => s + page.kinds.length, 0), 0);
+
+/** 99 страниц после обложки – в порядке глав. */
+export function fullBookPages(): Omit<BookPage, "id">[] {
+  return buildBookPages(FULL_BOOK, "full");
 }
 
 export const FULL_BOOK_PAGES = FULL_BOOK.reduce((sum, chapter) => sum + chapter.pages.reduce((s, page) => s + page.kinds.length, 0), 0);
