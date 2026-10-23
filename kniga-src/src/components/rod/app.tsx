@@ -7,6 +7,7 @@ import { Dock, NavProvider, SideNav, type Nav } from "@/components/rod/chrome";
 import { EditorScreen } from "@/components/rod/editor";
 import { handlePaymentReturn, verifyAccess } from "@/lib/rod/pay";
 import { pingPush } from "@/lib/rod/push";
+import { startUpdateWatch } from "@/lib/rod/update";
 import { JoinScreen } from "@/components/rod/join";
 import { LegalScreen } from "@/components/rod/legal";
 import { FlipBookScreen } from "@/components/rod/flipbook";
@@ -50,6 +51,8 @@ export function RodApp() {
   const [stack, setStack] = useState<Screen[]>(() => initialStack());
   const stackRef = useRef(stack);
   stackRef.current = stack;
+
+  useEffect(() => startUpdateWatch(), []);
 
   useEffect(() => {
     let alive = true;
