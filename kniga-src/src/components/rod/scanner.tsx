@@ -86,6 +86,23 @@ export function Scanner({ onDone, onClose }: { onDone: (ref: string, mode: ScanM
             <Button variant="soft" disabled={busy} onClick={() => gallery.current?.click()}>
               <Images className="size-4" /> Выбрать снимок
             </Button>
+            <div className="mt-2 rounded-2xl border border-paper/20 bg-paper/10 p-3 text-left text-sm leading-snug text-paper/85">
+              <p className="font-semibold text-paper">Для лучшего скана старых фото</p>
+              <p className="mt-1">
+                Отсканируйте их в приложении Google: оно убирает блики и ровняет края. Потом нажмите «Выбрать снимок» и добавьте готовое фото сюда, как в архив. Все фото хранятся только у вас на телефоне.
+              </p>
+              <p className="mt-2">
+                <a className="font-semibold text-[#c9ae74] underline" href="https://apps.apple.com/ru/app/photoscan-by-google-photos/id1165525994" target="_blank" rel="noopener noreferrer">
+                  iPhone: Фотосканер от Google Фото
+                </a>
+              </p>
+              <p className="mt-1">
+                <a className="font-semibold text-[#c9ae74] underline" href="https://play.google.com/store/apps/details?id=com.google.android.apps.docs" target="_blank" rel="noopener noreferrer">
+                  Android: Google Диск
+                </a>{" "}
+                (кнопка «+» → «Сканировать»)
+              </p>
+            </div>
           </div>
         </div>
       ) : (

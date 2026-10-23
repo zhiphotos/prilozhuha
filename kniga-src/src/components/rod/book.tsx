@@ -3,7 +3,8 @@ import { ArrowLeftRight, BookOpen, Copy, GripHorizontal, Undo2, Lock, ChevronLef
 import { toast } from "sonner";
 import { Button, ScreenFrame, Sheet, TopBar, useNav } from "@/components/rod/chrome";
 import { PageSheet } from "@/components/rod/page-view";
-import { FULL_BOOK, FULL_BOOK_PAGES, fullBookPages } from "@/lib/rod/full-book";
+import { FULL_BOOK, FULL_BOOK_PAGES, fullBookPages, type Chapter } from "@/lib/rod/full-book";
+import { LOVE_BOOK, LOVE_BOOK_PAGES, loveBookPages } from "@/lib/rod/love-book";
 import { blankPage, coverPage, pageFromPhoto, pageFromPrompt, pageFromStory } from "@/lib/rod/layouts";
 import { PAGE_PROMPTS } from "@/lib/rod/pages";
 import { isBookReady, overallOf, partsOf, plural } from "@/lib/rod/progress";
@@ -90,7 +91,8 @@ export function BookScreen() {
         </button>
       ) : null}
 
-      <FullTemplate pages={pages} meta={meta} />
+      <FullTemplate pages={pages} meta={meta} tpl={FULL_SPEC} />
+      <FullTemplate pages={pages} meta={meta} tpl={LOVE_SPEC} />
 
       <PageGrid pages={pages} meta={meta} onOpen={(id) => nav.go({ id: "editor", pageId: id })} onAdd={() => setLibrary(true)} />
 
@@ -618,26 +620,56 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
   );
 }
 
-/** Полный шаблон на 100 страниц – только для тех, у кого открыта программа. */
-function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: string; collector: string } }) {
+type TemplateSpec = {
+  tag: string;
+  label: string;
+  title: string;
+  intro: string;
+  chapters: Chapter[];
+  total: number;
+  build: () => Omit<BookPage, "id">[];
+};
+
+const FULL_SPEC: TemplateSpec = {
+  tag: "full",
+  label: "Для участников программы",
+  title: "Полный шаблон Книги рода · 100 страниц",
+  intro: "Одна ветка рода по главам: дома, любовь, судьбы, кухня, находки и наследие. На каждой странице подсказка, что туда внести.",
+  chapters: FULL_BOOK,
+  total: FULL_BOOK_PAGES,
+  build: fullBookPages,
+};
+
+const LOVE_SPEC: TemplateSpec = {
+  tag: "love",
+  label: "Для участников программы",
+  title: `Мемуары любви · ${LOVE_BOOK_PAGES} страниц`,
+  intro: "История одной пары по главам: как всё началось, первые шаги, жизнь вместе, большой шаг, семья и любовь в мелочах. На каждой странице подсказка, что сюда написать и какую фотографию поставить.",
+  chapters: LOVE_BOOK,
+  total: LOVE_BOOK_PAGES,
+  build: loveBookPages,
+};
+
+/** Готовый шаблон книги – только для тех, у кого открыта программа. */
+function FullTemplate({ pages, meta, tpl }: { pages: BookPage[]; meta: { dedicatee: string; collector: string }; tpl: TemplateSpec }) {
   const nav = useNav();
   const open = useRod((state) => state.programOpen);
   const addPage = useRod((state) => state.addPage);
   const placePage = useRod((state) => state.placePage);
   const [ask, setAsk] = useState(false);
-  const added = pages.some((page) => page.promptId?.startsWith("full:"));
+  const added = pages.some((page) => page.promptId?.startsWith(`${tpl.tag}:`));
 
   const add = () => {
     if (!pages.some((page) => page.kind === "cover")) placePage(addPage(coverPage(meta)), 0);
-    fullBookPages().forEach((page) => addPage(page));
+    tpl.build().forEach((page) => addPage(page));
     setAsk(false);
-    toast(`В книгу добавлено ${FULL_BOOK_PAGES} страниц по главам`);
+    toast(`В книгу добавлено ${tpl.total} страниц по главам`);
   };
 
   if (!open) return <UnlockCarousel />;
 
   let start = 2;
-  const chapters = FULL_BOOK.map((chapter) => {
+  const chapters = tpl.chapters.map((chapter) => {
     const count = chapter.pages.reduce((sum, page) => sum + page.kinds.length, 0);
     const range = `${start}–${start + count - 1}`;
     start += count;
@@ -648,8 +680,8 @@ function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: s
     <section className={cn("mb-6 rounded-2xl p-5", open ? "aurora" : "glass")}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">Для участников программы</p>
-          <h2 className="mt-1 text-[1.3rem] font-semibold leading-tight text-ink">Полный шаблон Книги рода · 100 страниц</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">{tpl.label}</p>
+          <h2 className="mt-1 text-[1.3rem] font-semibold leading-tight text-ink">{tpl.title}</h2>
         </div>
         {!open ? (
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/80 text-rose-deep">
@@ -657,7 +689,7 @@ function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: s
           </span>
         ) : null}
       </div>
-      <p className="mt-2 text-sm text-ink/70">Одна ветка рода по главам: дома, любовь, судьбы, кухня, находки и наследие. На каждой странице подсказка, что туда внести.</p>
+      <p className="mt-2 text-sm text-ink/70">{tpl.intro}</p>
       <ol className="mt-3 grid gap-1 text-sm text-ink">
         {chapters.map((chapter) => (
           <li key={chapter.n} className="flex gap-2">
@@ -673,7 +705,7 @@ function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: s
           <p className="mt-4 text-sm font-medium text-ink">Шаблон уже в книге – листайте и заполняйте страницы.</p>
         ) : ask ? (
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button onClick={add}>Да, добавить {FULL_BOOK_PAGES} страниц</Button>
+            <Button onClick={add}>Да, добавить {tpl.total} страниц</Button>
             <Button variant="white" onClick={() => setAsk(false)}>
               Отмена
             </Button>
