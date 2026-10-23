@@ -60,6 +60,13 @@ const SLIDES: Slide[] = [
   },
 ];
 
+
+const HELPS = [
+  { worry: "Если вы пока ничего не знаете о своём роде", text: "ИИ-генеалог подскажет, с чего начать, а поиск по архивам с планом поиска поможет шаг за шагом искать записи о предках. Расшифровка фамилии даст первую ниточку для разговора с родными." },
+  { worry: "Если оформлять и дизайнить вам непривычно", text: "ИИ оформит тексты глав и заполнит страницы, а готовые шаблоны разных книг, в том числе свадебной, избавят от пустого листа. Текст сам обойдёт фото, так что страницы будут выглядеть аккуратно." },
+  { worry: "Если страшно не довести книгу до конца", text: "ИИ знает историю вашей семьи и подсказывает, что добавить дальше. Родственники смогут работать над книгой вместе с вами, а личная мандала прогресса для сторис покажет, как страницы складываются в книгу." },
+];
+
 /** Что планируется: функции, которые позже могут стать платными. */
 const COMING = [
   "Шаблоны для разных книг, в том числе свадебная книга для печати",
@@ -207,6 +214,18 @@ export function UnlockCarousel() {
           </button>
         ))}
       </div>
+      <div className="mt-4 rounded-3xl bg-[#f6f2e9]/80 p-5 ring-1 ring-ink/10">
+        <h3 className="text-[1.15rem] font-semibold leading-tight text-ink">Что будет рядом, когда откроются новые функции</h3>
+        <ul className="mt-3 grid gap-4">
+          {HELPS.map((item) => (
+            <li key={item.worry}>
+              <p className="text-sm font-semibold text-ink">{item.worry}</p>
+              <p className="mt-1 text-sm leading-relaxed text-ink/80">{item.text}</p>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-sm text-ink/80">Мини-уроки открываются сразу за 2 026 ₽. Новые функции появятся позже: часть останется с вами навсегда, часть подключается по подписке.</p>
+      </div>
       <p className="mt-2 text-center text-xs text-ink/65">Единоразовая плата. Уроки открываются сразу после оплаты, смотреть можно с телефона. Доступ к урокам на год, к чату навсегда.</p>
       <Button className="mt-3 w-full" onClick={() => setPay(true)}>
         <ShoppingBag className="size-4" /> Купить мини-уроки и полный доступ
@@ -218,7 +237,7 @@ export function UnlockCarousel() {
       <div className="glass mt-5 rounded-2xl p-4">
         <button type="button" aria-expanded={soon} onClick={() => setSoon((value) => !value)} className="flex min-h-11 w-full items-center gap-2 text-left text-ink">
           <Sparkles className="size-4 shrink-0 text-rose-deep" />
-          <span className="flex-1 font-semibold">Скоро в приложении: {COMING.length} платных функций</span>
+          <span className="flex-1 font-semibold">Скоро в приложении: {COMING.length} новых функций</span>
           <span className="flex items-center gap-1 text-xs font-medium text-muted">
             {soon ? "Свернуть" : "Развернуть"}
             <ChevronDown className={soon ? "size-4 rotate-180 transition-transform" : "size-4 transition-transform"} />
@@ -234,7 +253,7 @@ export function UnlockCarousel() {
                 </li>
               ))}
             </ul>
-            <p className="mt-3 rounded-xl bg-white/60 p-3 text-xs text-ink/75">Доступ к платным функциям откроется по подписке на «Книгу рода». Мы планируем, что она будет стоить до 300 ₽ в месяц.</p>
+            <p className="mt-3 rounded-xl bg-white/60 p-3 text-xs text-ink/75">Часть этих функций останется с вами навсегда после покупки мини-курса, а часть откроется по ежемесячной подписке на «Книгу рода», мы планируем до 300 ₽ в месяц. Какие функции подключать, вы сможете выбирать по ситуации.</p>
           </>
         ) : null}
       </div>
