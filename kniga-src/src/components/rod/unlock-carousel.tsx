@@ -210,7 +210,7 @@ export function UnlockCarousel() {
       <div className="glass mt-5 rounded-2xl p-4">
         <button type="button" aria-expanded={soon} onClick={() => setSoon((value) => !value)} className="flex w-full items-center gap-2 text-left text-ink">
           <Sparkles className="size-4 shrink-0 text-rose-deep" />
-          <span className="flex-1 font-semibold">Скоро в приложении: {COMING.length} новых функций</span>
+          <span className="flex-1 font-semibold">Скоро в приложении: {COMING.length} платных функций</span>
           <span className="flex items-center gap-1 text-xs font-medium text-muted">
             {soon ? "Свернуть" : "Развернуть"}
             <ChevronDown className={soon ? "size-4 rotate-180 transition-transform" : "size-4 transition-transform"} />
@@ -226,7 +226,7 @@ export function UnlockCarousel() {
                 </li>
               ))}
             </ul>
-            <p className="mt-3 rounded-xl bg-white/60 p-3 text-xs text-ink/75">Это то, что мы планируем. Позже за такие функции может появиться отдельная оплата раз в месяц, до 300 ₽.</p>
+            <p className="mt-3 rounded-xl bg-white/60 p-3 text-xs text-ink/75">Доступ к платным функциям откроется по подписке на «Книгу рода». Мы планируем, что она будет стоить до 300 ₽ в месяц.</p>
           </>
         ) : null}
       </div>
