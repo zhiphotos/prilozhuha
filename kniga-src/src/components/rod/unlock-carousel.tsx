@@ -179,7 +179,7 @@ export function UnlockCarousel() {
             style={{ background: "linear-gradient(180deg,#0d0c0a 0%,#1a1d0e 55%,#3f4a22 160%)" }}
           >
             <div className="relative aspect-[4/3] w-full bg-black">
-              <span className="pointer-events-none absolute left-3 top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 font-mono text-[11px] tracking-[0.14em] text-[#e6cf9c] ring-1 ring-[#c9ae74]/40">
+              <span className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-full bg-black/60 px-2.5 py-1 font-mono text-[11px] tracking-[0.14em] text-[#e6cf9c] ring-1 ring-[#c9ae74]/40">
                 {String(i + 1).padStart(2, "0")} / {String(SLIDES.length).padStart(2, "0")}
               </span>
               {slide.video ? (
