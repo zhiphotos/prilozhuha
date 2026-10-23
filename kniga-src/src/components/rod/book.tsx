@@ -10,6 +10,7 @@ import { isBookReady, overallOf, partsOf, plural } from "@/lib/rod/progress";
 import { CoverSetup } from "@/components/rod/cover-setup";
 import { PlanSheet } from "@/components/rod/plan-sheet";
 import { TextToPagesSheet } from "@/components/rod/text-to-pages";
+import { UnlockCarousel } from "@/components/rod/unlock-carousel";
 import { ContentsSheet } from "@/components/rod/contents-sheet";
 import { downloadFamilyBook, downloadPrintBlock, downloadPrintCover } from "@/lib/rod/print-book";
 import { useRod } from "@/lib/rod/store";
@@ -632,6 +633,8 @@ function FullTemplate({ pages, meta }: { pages: BookPage[]; meta: { dedicatee: s
     setAsk(false);
     toast(`В книгу добавлено ${FULL_BOOK_PAGES} страниц по главам`);
   };
+
+  if (!open) return <UnlockCarousel />;
 
   let start = 2;
   const chapters = FULL_BOOK.map((chapter) => {

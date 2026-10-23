@@ -234,7 +234,7 @@ function LessonVideo({ lessonId, flat = false }: { lessonId: string; flat?: bool
   );
 }
 
-function PaySheet({ onClose }: { onClose: () => void }) {
+export function PaySheet({ onClose }: { onClose: () => void }) {
   const nav = useNav();
   const openProgram = useRod((state) => state.openProgram);
   const [mode, setMode] = useState<"buy" | "restore">("buy");
