@@ -19,6 +19,7 @@ import roomInbox from "./room-inbox.js";
 import roomInfo from "./room-info.js";
 import roomSubmit from "./room-submit.js";
 import status from "./status.js";
+import sync from "./sync.js";
 import verify from "./verify.js";
 
 export const ROUTES = {
@@ -42,5 +43,6 @@ export const ROUTES = {
   "room-info": roomInfo,
   "room-submit": roomSubmit,
   status,
+  sync,
   verify,
 };

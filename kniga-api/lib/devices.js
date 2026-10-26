@@ -1,12 +1,12 @@
 import { redis, redisConfigured } from "./redis.js";
 
-/** Ограничение по устройствам снято (решение Дарины 2026-10-26): оплаченный доступ работает на любом числе устройств. Чтобы вернуть, поставьте число, например 3. */
-export const DEVICE_LIMIT = Infinity;
+/** Один оплаченный доступ работает не больше чем на 3 устройствах (решение Дарины 2026-10-26: лимит 3 и синхронизация). Бесконечность отключает лимит. */
+export const DEVICE_LIMIT = 3;
 const IDLE_DAYS = 30; // устройство, которым не пользовались месяц, освобождает место само
 
 const key = (identity) => `kr:dev:${identity}`;
 
-/** Занять место для устройства. false: уже заняты оба места другими устройствами. Без идентификатора устройства (старое приложение) пропускаем. */
+/** Занять место для устройства. false: уже заняты все места другими устройствами. Без идентификатора устройства (старое приложение) пропускаем. */
 export async function claimDevice(identity, deviceId) {
   if (!deviceId || !redisConfigured() || DEVICE_LIMIT === Infinity) return true;
   const id = String(deviceId).slice(0, 64);
@@ -26,4 +26,4 @@ export async function claimDevice(identity, deviceId) {
 }
 
 export const resetDevices = (identity) => redis("DEL", key(identity));
-export const DEVICE_ERROR = "Этот доступ уже открыт на двух устройствах. Напишите Дарине, она освободит место.";
+export const DEVICE_ERROR = "Этот доступ уже открыт на трёх устройствах. Напишите Дарине, она освободит место.";
