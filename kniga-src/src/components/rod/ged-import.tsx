@@ -19,6 +19,7 @@ export function GedImportButton() {
   const [table, setTable] = useState<ImportedPerson[] | null>(null);
   const [selfKey, setSelfKey] = useState("");
   const [busy, setBusy] = useState(false);
+  const [chooser, setChooser] = useState(false);
   const people = useRod((s) => s.people);
 
   const preview = useMemo(() => {
@@ -92,9 +93,23 @@ export function GedImportButton() {
   return (
     <>
       <input ref={input} type="file" accept=".ged,.csv,.tsv,.txt,.xml,.atdb,text/plain,text/csv,text/xml" className="sr-only" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
-      <button type="button" className="chip pointer-events-auto" onClick={() => input.current?.click()}>
+      <button type="button" className="chip pointer-events-auto" onClick={() => setChooser(true)}>
         Из файла
       </button>
+      {chooser ? (
+        <Sheet title="Загрузить древо из файла" onClose={() => setChooser(false)}>
+          <div className="grid gap-3">
+            <p className="text-sm text-muted">Бесплатно. Подойдут такие файлы:</p>
+            <ul className="grid gap-2 text-sm text-ink">
+              <li><b>.ged</b> (GEDCOM): обычный обмен между программами. Его сохраняют «Древо Жизни», FamilyTree, Gramps, MyHeritage, Ancestry, Familysearch и другие.</li>
+              <li><b>.xml</b> из «Древа Жизни» (genery.com): Файл, Экспорт, формат XML.</li>
+              <li><b>.csv</b>: таблица из Excel или Google Таблиц (Файл, Скачать или Сохранить как, CSV). Колонки: Фамилия, Имя, Отчество, Год рождения, Год смерти, Пол, Кем приходится, Отец, Мать, Супруг.</li>
+            </ul>
+            <p className="text-xs text-muted">Файл с расширением .atdb (база «Древа Жизни») открыть нельзя: сохраните из программы XML.</p>
+            <Button onClick={() => { setChooser(false); input.current?.click(); }}>Выбрать файл</Button>
+          </div>
+        </Sheet>
+      ) : null}
       {tree || table ? (
         <Sheet title="Загрузка древа из файла" onClose={() => { setTree(null); setTable(null); }}>
           <div className="grid gap-3">
