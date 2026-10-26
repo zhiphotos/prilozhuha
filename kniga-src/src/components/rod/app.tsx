@@ -17,7 +17,7 @@ import { LessonScreen, LessonsScreen } from "@/components/rod/lessons";
 import { AppTour } from "@/components/rod/tour";
 import { Onboarding } from "@/components/rod/onboarding";
 import { PhotoNewScreen } from "@/components/rod/photo";
-import { StoriesScreen, StoryScreen, WizardScreen } from "@/components/rod/stories";
+import { FreeStoryScreen, StoriesScreen, StoryScreen, WizardScreen } from "@/components/rod/stories";
 import { SurnameScreen } from "@/components/rod/surname";
 import { afterHydrate } from "@/lib/rod/boot";
 import { useRod } from "@/lib/rod/store";
@@ -169,6 +169,8 @@ function ScreenView({ screen }: { screen: Screen }) {
       return <WizardScreen templateId={screen.templateId} />;
     case "story":
       return <StoryScreen storyId={screen.storyId} />;
+    case "free":
+      return <FreeStoryScreen />;
     case "archive":
       return <ArchiveScreen tab={screen.tab} />;
     case "photo-new":

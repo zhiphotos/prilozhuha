@@ -1,9 +1,12 @@
+import { toast } from "sonner";
 import { Fragment, useMemo, useState } from "react";
 import { Cut } from "@/components/rod/botanica";
 import { STORY_TEMPLATES, findTemplate } from "@/lib/rod/content";
 import { composeStory } from "@/lib/rod/narrative";
 import { useRod } from "@/lib/rod/store";
-import { pageFromStory } from "@/lib/rod/layouts";
+import { pageFromStory, pagesFromStoryPhotos } from "@/lib/rod/layouts";
+import { Attachments } from "@/components/rod/attachments";
+import type { Attachment } from "@/lib/rod/types";
 import { DictateButton } from "@/components/rod/dictate-button";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
 
@@ -21,6 +24,17 @@ export function StoriesScreen() {
       <p className="max-w-xl text-muted">
         Нажмите шаблон. Приложение задаст несколько вопросов и соберёт черновик. Его можно поправить перед сохранением – это уже готовая страница вашей книги.
       </p>
+      <button
+        type="button"
+        onClick={() => nav.go({ id: "free" })}
+        className="glass mt-4 flex w-full items-center justify-between gap-3 rounded-3xl px-4 py-4 text-left"
+      >
+        <span>
+          <span className="block font-medium text-ink">Вольная история</span>
+          <span className="block text-sm text-muted">Без темы и вопросов: пишете как хотите, можно приложить фото</span>
+        </span>
+        <span className="shrink-0 text-xl text-rose-deep">+</span>
+      </button>
       {stories.length > 0 ? (
         <ul className="mt-5 grid gap-2">
           {stories.map((story) => (
@@ -28,6 +42,7 @@ export function StoriesScreen() {
               <button type="button" className="min-w-0 text-left" onClick={() => nav.go({ id: "story", storyId: story.id })}>
                 <p className="font-sans text-lg font-semibold text-ink">{story.title}</p>
                 <p className="mt-1 line-clamp-2 text-sm text-muted">{story.narrative}</p>
+                {story.attachments?.length ? <p className="mt-1 text-xs text-muted">Вложений: {story.attachments.length}</p> : null}
               </button>
               <button type="button" className="shrink-0 text-sm text-muted underline" onClick={() => removeStory(story.id)}>
                 Удалить
@@ -164,11 +179,53 @@ export function WizardScreen({ templateId }: { templateId: string }) {
   );
 }
 
+export function FreeStoryScreen() {
+  const nav = useNav();
+  const addStory = useRod((state) => state.addStory);
+  const [title, setTitle] = useState("");
+  const [text, setText] = useState("");
+  const [files, setFiles] = useState<Attachment[]>([]);
+  return (
+    <ScreenFrame>
+      <TopBar title="Вольная история" kicker="Без темы" onBack={nav.back} />
+      <div className="grid gap-4">
+        <Field label="Название" hint="Можно оставить пустым.">
+          <input className="field" value={title} onChange={(event) => setTitle(event.target.value)} />
+        </Field>
+        <Field label="История">
+          <textarea className="field min-h-64" value={text} placeholder="Пишите как хотите" onChange={(event) => setText(event.target.value)} />
+          <DictateButton className="mt-2" value={text} onChange={setText} />
+        </Field>
+        <Attachments items={files} onChange={setFiles} />
+        <div className="flex flex-wrap gap-2">
+          <Button
+            disabled={!text.trim() && !files.length}
+            onClick={() => {
+              const id = addStory({
+                templateId: "free",
+                title: title.trim() || text.trim().split(/\n/)[0].slice(0, 40) || "Моя история",
+                answers: {},
+                narrative: text.trim(),
+                attachments: files,
+              });
+              nav.replace({ id: "story", storyId: id });
+            }}
+          >
+            Сохранить в книгу
+          </Button>
+        </div>
+      </div>
+    </ScreenFrame>
+  );
+}
+
 export function StoryScreen({ storyId }: { storyId: string }) {
   const nav = useNav();
   const story = useRod((state) => state.stories.find((item) => item.id === storyId));
   const addPage = useRod((state) => state.addPage);
+  const updateStory = useRod((state) => state.updateStory);
   const inBook = useRod((state) => state.pages.find((page) => page.promptId === `story:${storyId}`));
+  const photosInBook = useRod((state) => state.pages.some((page) => page.promptId?.startsWith(`story:${storyId}:photos`)));
   if (!story) {
     return (
       <ScreenFrame>
@@ -176,10 +233,17 @@ export function StoryScreen({ storyId }: { storyId: string }) {
       </ScreenFrame>
     );
   }
+  const images = (story.attachments ?? []).filter((item) => item.kind === "image");
+  const addPhotoPages = () => {
+    const pages = pagesFromStoryPhotos(story.title, images.map((item) => ({ src: item.ref, caption: "" })));
+    pages.forEach((page, index) => addPage({ ...page, promptId: `story:${story.id}:photos:${index}` }));
+    toast(`В книгу добавлено страниц с фото: ${pages.length}`);
+  };
   return (
     <ScreenFrame>
       <TopBar title={story.title} kicker="Глава" onBack={nav.back} />
       <article className="glass whitespace-pre-wrap rounded-4xl p-6 font-sans text-[17px] leading-relaxed text-ink">{story.narrative}</article>
+      <Attachments items={story.attachments ?? []} onChange={(next) => updateStory(story.id, { attachments: next })} />
       <div className="mt-4 flex flex-wrap gap-2">
         {inBook ? (
           <Button variant="soft" onClick={() => nav.go({ id: "editor", pageId: inBook.id })}>
@@ -195,6 +259,11 @@ export function StoryScreen({ storyId }: { storyId: string }) {
             Поставить в книгу
           </Button>
         )}
+        {images.length && !photosInBook ? (
+          <Button variant="soft" onClick={addPhotoPages}>
+            Добавить фото в книгу ({images.length})
+          </Button>
+        ) : null}
       </div>
     </ScreenFrame>
   );

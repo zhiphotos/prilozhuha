@@ -90,7 +90,7 @@ const TABS: { id: string; label: string; icon: typeof BookOpen; screen: Screen }
 export function tabKey(screen: Screen): string {
   if (screen.id === "lessons" || screen.id === "lesson") return "lessons";
   if (screen.id === "cards" || screen.id === "deck" || screen.id === "answers") return "cards";
-  if (screen.id === "stories" || screen.id === "wizard" || screen.id === "story") return "stories";
+  if (screen.id === "stories" || screen.id === "wizard" || screen.id === "story" || screen.id === "free") return "stories";
   if (screen.id === "book" || screen.id === "editor" || screen.id === "flip") return "book";
   return "home";
 }

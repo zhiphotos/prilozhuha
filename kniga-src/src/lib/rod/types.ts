@@ -49,8 +49,17 @@ export type FamilyPhoto = {
   personId: string;
 };
 
+/** Фото или файл, прикреплённый к истории (ref на медиа). */
+export type Attachment = {
+  id: string;
+  ref: string;
+  name: string;
+  kind: "image" | "file";
+};
+
 export type Story = {
   id: string;
+  attachments?: Attachment[];
   templateId: string;
   title: string;
   answers: Record<string, string>;
@@ -244,6 +253,7 @@ export type Screen =
   | { id: "stories" }
   | { id: "wizard"; templateId: string }
   | { id: "story"; storyId: string }
+  | { id: "free" }
   | { id: "archive"; tab: ArchiveTab }
   | { id: "photo-new" }
   | { id: "surname" }
