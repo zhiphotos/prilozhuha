@@ -21,7 +21,7 @@ export function TransferCard({ hasData }: { hasData: boolean }) {
       .finally(() => setBusy(false));
   };
   return (
-    <section className="glass mt-6 rounded-2xl p-5" aria-label="Перенос книги на другое устройство">
+    <section data-tour="transfer" className="glass mt-6 rounded-2xl p-5" aria-label="Перенос книги на другое устройство">
       <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
         <Smartphone className="size-3.5" /> Для участников программы
       </h2>
