@@ -150,7 +150,7 @@ function TreeScreen() {
           setFitReq((n) => n + 1);
         }}
       />
-      <header className={`pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-wrap items-start justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] ${roster ? "dock-left" : ""} ${selectedId || unionOpen ? "dock-right" : ""}`}>
+      <header className={`pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-wrap items-start gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] ${roster ? "dock-left" : ""} ${selectedId || unionOpen ? "dock-right" : ""}`}>
         <button type="button" className="chip pointer-events-auto" aria-label="Назад в архив" onClick={() => nav.replace({ id: "archive", tab: "people" })}>
           <ChevronLeft className="size-5" />
         </button>
@@ -158,7 +158,7 @@ function TreeScreen() {
           <p className="truncate font-serif text-2xl leading-none sm:text-3xl">Книга Рода</p>
           <p className="mt-1 truncate text-sm text-fg-soft">{focus ? displayName(focus) : "Пустое древо"}</p>
         </div>
-        <div className="pointer-events-auto flex shrink-0 gap-2">
+        <div className="pointer-events-auto flex w-full flex-wrap gap-2">
           <button type="button" className="chip !bg-gold !text-ink" onClick={openAdd}>
             <Plus className="size-5" />
             Добавить
@@ -184,7 +184,7 @@ function TreeScreen() {
               {busy ? "…" : "Лист"}
             </button>
             {sheetPick && style === "work" && (
-              <div className="absolute top-12 right-0 z-30 grid w-36 gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg">
+              <div className="absolute top-12 right-0 z-30 grid w-36 max-w-[calc(100vw-1.5rem)] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg">
                 <button type="button" className="min-h-11 rounded-xl bg-white px-3 text-sm font-semibold text-ink" onClick={() => void save("white")}>
                   Белый фон
                 </button>

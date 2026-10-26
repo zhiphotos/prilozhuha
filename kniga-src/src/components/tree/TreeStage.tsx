@@ -385,12 +385,10 @@ export function TreeStage(props: Props) {
             })}
         </div>
       </div>
-      {hint && (
-        <p className="pointer-events-none absolute bottom-40 left-1/2 z-20 max-w-[92%] -translate-x-1/2 rounded-full bg-chip px-4 py-2 text-center text-sm text-chip-fg">
-          Тяните карту · щипок отдаляет и приближает
-        </p>
-      )}
       <div className="absolute inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-20 flex flex-col items-center gap-2 px-2 sm:px-3">
+        {hint && (
+          <p className="pointer-events-none max-w-full rounded-full bg-chip px-4 py-1.5 text-center text-xs text-chip-fg">Тяните карту · щипок отдаляет и приближает</p>
+        )}
         <div className="flex max-w-full flex-wrap items-center justify-center gap-1 rounded-full border border-chip-line bg-chip p-1 backdrop-blur-md" role="group" aria-label="Направление древа">
           <button type="button" aria-pressed={flow === "down"} className={`min-h-11 rounded-full px-3 text-sm font-semibold ${flow === "down" ? "bg-gold text-ink" : "text-chip-fg"}`} onClick={() => onFlow("down")}>
             Сверху вниз
@@ -399,28 +397,30 @@ export function TreeStage(props: Props) {
             Снизу вверх
           </button>
         </div>
-        <div className="flex max-w-full flex-wrap items-center justify-center gap-1 rounded-full border border-chip-line bg-chip p-1 backdrop-blur-md">
+        <div className="flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto rounded-full border border-chip-line bg-chip p-1 backdrop-blur-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {(["work", "carved", "cameo", "gzhel", "boheme", "taiga"] as const).map((id) => (
-            <button key={id} type="button" aria-pressed={style === id} className={`min-h-11 rounded-full px-3 text-sm font-semibold ${style === id ? "bg-gold text-ink" : "text-chip-fg"}`} onClick={() => onStyle(id)}>
+            <button key={id} type="button" aria-pressed={style === id} className={`min-h-11 shrink-0 rounded-full px-3 text-sm font-semibold ${style === id ? "bg-gold text-ink" : "text-chip-fg"} ${stylesLocked && id !== "work" ? "opacity-80" : ""}`} onClick={() => onStyle(id)}>
               {stylesLocked && id !== "work" ? "🔒 " : ""}{id === "work" ? "Схема" : id === "carved" ? "Древо" : id === "cameo" ? "Камея" : id === "gzhel" ? "Гжель" : id === "boheme" ? "Богема" : "Тайга"}
             </button>
           ))}
-          <span className="mx-1 hidden h-6 w-px bg-chip-line sm:inline" />
+          <span className="mx-1 inline h-6 w-px shrink-0 bg-chip-line" />
           {([2, 3, 4, null] as const).map((value) => {
             const on = radius === value;
             return (
-              <button key={value ?? "all"} type="button" aria-pressed={on} className={`min-h-11 min-w-11 rounded-full px-3 text-sm font-semibold ${on ? "bg-gold text-ink" : "text-chip-fg"}`} onClick={() => onRadius(value)}>
+              <button key={value ?? "all"} type="button" aria-pressed={on} className={`min-h-11 min-w-11 shrink-0 rounded-full px-3 text-sm font-semibold ${on ? "bg-gold text-ink" : "text-chip-fg"}`} onClick={() => onRadius(value)}>
                 {value == null ? "Все" : value}
               </button>
             );
           })}
-          <button type="button" className="grid size-11 place-items-center rounded-full text-chip-fg" aria-label="Отдалить" onClick={() => zoomBy(0.85)}>
-            <Minus className="size-4" />
-          </button>
-          <button type="button" className="grid size-11 place-items-center rounded-full text-chip-fg" aria-label="Приблизить" onClick={() => zoomBy(1.18)}>
-            <Plus className="size-4" />
-          </button>
         </div>
+      </div>
+      <div className="absolute right-2 bottom-36 z-20 flex flex-col gap-2">
+        <button type="button" className="grid size-11 place-items-center rounded-full border border-chip-line bg-chip text-chip-fg backdrop-blur-md" aria-label="Приблизить" onClick={() => zoomBy(1.18)}>
+          <Plus className="size-4" />
+        </button>
+        <button type="button" className="grid size-11 place-items-center rounded-full border border-chip-line bg-chip text-chip-fg backdrop-blur-md" aria-label="Отдалить" onClick={() => zoomBy(0.85)}>
+          <Minus className="size-4" />
+        </button>
       </div>
     </>
   );
