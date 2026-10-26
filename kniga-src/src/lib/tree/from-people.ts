@@ -38,10 +38,13 @@ const STATUS: Record<string, UnionStatus> = { married: "married", divorced: "div
  * Ссылки `parents`, `siblingOf`, `spouse` главнее вывода по слову «кем приходится».
  */
 export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
-  const out: Person[] = [
-    { id: SELF_ID, firstName: selfName, patronymic: "", lastName: "", gender: "u", birthYear: "", deathYear: "", photo: "", note: "" },
-  ];
-  const known = new Set<string>([SELF_ID]);
+  // Если в списке есть запись «я», центром древа становится она сама, а запасное «Я» не создаётся (иначе человек двоится).
+  const selfRec = people.find((p) => roleOf(p.relation) === "self");
+  const selfId = selfRec?.id ?? SELF_ID;
+  const out: Person[] = selfRec
+    ? []
+    : [{ id: SELF_ID, firstName: selfName, patronymic: "", lastName: "", gender: "u", birthYear: "", deathYear: "", photo: "", note: "" }];
+  const known = new Set<string>([selfId]);
   for (const p of people) {
     const role = roleOf(p.relation);
     const t = p.name.trim().split(/\s+/).filter(Boolean);
@@ -99,13 +102,14 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
   const needParents = people.some((p) => roleOf(p.relation) === "sibling" && !p.parents?.length && !p.siblingOf);
 
   // Родители «меня»: мама и папа (если хоть один указан или нужны братья).
-  if (mom || dad || needParents || people.some((p) => roleOf(p.relation) === "grand" || roleOf(p.relation) === "uncle")) {
-    const m = mom ?? (dad || needParents ? ghost("mother", SELF_ID) : undefined);
-    const f = dad ?? (mom || needParents ? ghost("father", SELF_ID) : undefined);
+  const selfHasParents = Boolean(selfRec?.parents?.some((id) => known.has(id) && id !== selfId));
+  if (!selfHasParents && (mom || dad || needParents || people.some((p) => roleOf(p.relation) === "grand" || roleOf(p.relation) === "uncle"))) {
+    const m = mom ?? (dad || needParents ? ghost("mother", selfId) : undefined);
+    const f = dad ?? (mom || needParents ? ghost("father", selfId) : undefined);
     const pair = [f, m].filter((x): x is string => Boolean(x));
-    if (pair.length) addChild(pair, SELF_ID);
+    if (pair.length) addChild(pair, selfId);
   }
-  const parentOfSelf = unions.find((u) => u.childIds.includes(SELF_ID));
+  const parentOfSelf = unions.find((u) => u.childIds.includes(selfId));
   const lineParent = (line?: "mom" | "dad"): string | undefined =>
     line === "mom" ? (parentOfSelf?.partnerIds.find((id) => byId.get(id)?.gender === "f") ?? mom)
       : line === "dad" ? (parentOfSelf?.partnerIds.find((id) => byId.get(id)?.gender === "m") ?? dad)
@@ -142,7 +146,7 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     }
     if (role === "sibling" && parentOfSelf) addChild(parentOfSelf.partnerIds, p.id);
     else if (role === "child") {
-      const spouse = p.parents?.length ? [] : [SELF_ID];
+      const spouse = p.parents?.length ? [] : [selfId];
       addChild(spouse, p.id);
     } else if (role === "uncle") {
       const g = lineGrandUnion(p.line);
@@ -165,12 +169,12 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     if (p.unionTo) u.endYear = p.unionTo;
   }
   const spouseOfSelf = people.find((p) => roleOf(p.relation) === "spouse");
-  if (spouseOfSelf && !unions.some((u) => u.partnerIds.includes(spouseOfSelf.id))) unionFor([SELF_ID, spouseOfSelf.id]);
+  if (spouseOfSelf && !unions.some((u) => u.partnerIds.includes(spouseOfSelf.id))) unionFor([selfId, spouseOfSelf.id]);
   // Дети, у которых есть супруг «меня», уходят в общий союз.
   if (spouseOfSelf) {
-    const solo = unions.find((u) => u.partnerIds.length === 1 && u.partnerIds[0] === SELF_ID);
-    const pair = unions.find((u) => u.partnerIds.includes(SELF_ID) && u.partnerIds.includes(spouseOfSelf.id));
+    const solo = unions.find((u) => u.partnerIds.length === 1 && u.partnerIds[0] === selfId);
+    const pair = unions.find((u) => u.partnerIds.includes(selfId) && u.partnerIds.includes(spouseOfSelf.id));
     if (solo && pair) { pair.childIds.push(...solo.childIds); unions.splice(unions.indexOf(solo), 1); }
   }
-  return { people: out, unions, focusId: SELF_ID };
+  return { people: out, unions, focusId: selfId };
 }
