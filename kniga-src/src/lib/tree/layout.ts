@@ -208,6 +208,20 @@ export function layoutTree(people: Person[], unions: Union[], focusId: string, f
       const mid = parents.reduce((sum, id) => sum + (pos.get(id) ?? 0), 0) / parents.length;
       for (const child of union.childIds) if (gen.get(child) === level) childTarget.set(child, mid);
     }
+    // Пара встаёт так, чтобы родители каждого из супругов были над «своим» супругом: линии не перекрещиваются.
+    for (const block of blocks) {
+      if (block.ids.length > 1 && block.ids.every((id) => childTarget.has(id))) {
+        block.ids = block.ids.slice().sort((a, b) => (childTarget.get(a) ?? 0) - (childTarget.get(b) ?? 0));
+        block.rel = new Map(block.ids.map((id, i) => [id, i * gap] as [string, number]));
+      }
+    }
+    // Пара встаёт так, чтобы родители каждого из супругов были над «своим» супругом: линии не перекрещиваются.
+    for (const block of blocks) {
+      if (block.ids.length > 1 && block.ids.every((id) => childTarget.has(id))) {
+        block.ids = block.ids.slice().sort((a, b) => (childTarget.get(a) ?? 0) - (childTarget.get(b) ?? 0));
+        block.rel = new Map(block.ids.map((id, i) => [id, i * gap] as [string, number]));
+      }
+    }
     placeBlocks(blocks, (ids) => {
       const anchored = ids.filter((id) => childTarget.has(id));
       if (!anchored.length) return null;
