@@ -62,6 +62,10 @@ export function InstallSheet({ onClose, first = false }: { onClose: () => void; 
               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-moss text-sm font-semibold text-paper">1</span>
               <span>Откройте эту страницу в Chrome и нажмите три точки <span aria-hidden>⋮</span> справа вверху.</span>
             </li>
+            <li className="flex items-start gap-3 text-sm text-muted">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full border border-ink/20 text-sm">!</span>
+              <span>Если кнопка установки ничего не делает, выключите VPN и попробуйте снова.</span>
+            </li>
             <li className="flex items-start gap-3">
               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-moss text-sm font-semibold text-paper">2</span>
               <span>Выберите «Установить приложение» или «Добавить на главный экран».</span>

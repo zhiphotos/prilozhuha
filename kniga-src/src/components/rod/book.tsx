@@ -142,6 +142,7 @@ export function BookScreen() {
         </div>
       </section>
 
+      {data.programOpen ? (
       <section className={cn("mt-4 rounded-2xl p-5", ready ? "aurora" : "glass")}>
         <h2 className="text-lg font-semibold text-ink">
           {ready ? "Ты собрал(а) материал для первой Книги рода" : "Когда страниц станет больше"}
@@ -155,6 +156,7 @@ export function BookScreen() {
           Программа «Книга рода»
         </Button>
       </section>
+      ) : null}
 
       {trash.length > 0 ? (
         <section className="mt-4">

@@ -11,7 +11,7 @@ export function roleOf(relation: string): Role {
   if (/^(я|сам|сама)$/.test(r)) return "self";
   if (/^(мам|мат)/.test(r)) return "mother";
   if (/^(пап|отец|отц)/.test(r)) return "father";
-  if (/^пра(бабуш|дед)/.test(r)) return "greatgrand";
+  if (/^(пра)+(бабуш|дед)/.test(r) || /^предок/.test(r)) return "greatgrand";
   if (/^(бабуш|дед)/.test(r)) return "grand";
   if (/^(дяд|тёт|тет)/.test(r)) return "uncle";
   if (/^(брат|сестр|двоюрод)/.test(r)) return "sibling";
