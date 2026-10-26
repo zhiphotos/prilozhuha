@@ -9,6 +9,7 @@ import { PersonDrawer } from "@/components/tree/PersonDrawer";
 import { TreeStage } from "@/components/tree/TreeStage";
 import { StylePreview } from "@/components/tree/StylePreview";
 import { GedImportButton } from "@/components/rod/ged-import";
+import { PrintTree } from "@/components/tree/PrintTree";
 import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { layoutTree, sliceByRadius } from "@/lib/tree/layout";
 import { layoutCameo } from "@/lib/tree/cameo";
@@ -29,6 +30,7 @@ function TreeScreen() {
   const rodPeople = useRod((state) => state.people);
   const [pay, setPay] = useState(false);
   const [preview, setPreview] = useState<TreeStyle | null>(null);
+  const [printing, setPrinting] = useState(false);
   useEffect(() => warmPhotos(), [rodPeople]);
   const people = useTree((s) => s.people);
   const unions = useTree((s) => s.unions);
@@ -163,6 +165,7 @@ function TreeScreen() {
           <button type="button" className="chip" aria-label="Список рода" onClick={() => setRoster(!roster)}>
             <Users className="size-5" />
           </button>
+          <button type="button" className="chip pointer-events-auto" onClick={() => setPrinting(true)}>PDF</button>
           <GedImportButton />
           <button type="button" className="chip" aria-label="Тема" onClick={() => setTheme(theme === "night" ? "paper" : "night")}>
             {theme === "night" ? <Sun className="size-5" /> : <Moon className="size-5" />}
@@ -226,6 +229,7 @@ function TreeScreen() {
           onClose={() => setPreview(null)}
         />
       ) : null}
+      {printing ? <PrintTree style={style} data={{ people, unions, focusId }} flow={flow} onClose={() => setPrinting(false)} /> : null}
       {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
     </main>
   );
