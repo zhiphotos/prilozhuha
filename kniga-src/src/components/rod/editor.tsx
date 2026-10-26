@@ -1662,10 +1662,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             setSizePx={(v) => updatePen({ sizes: { ...pen.sizes, [pen.brush]: v } })}
             eraserPx={pen.eraser}
             setEraserPx={(v) => updatePen({ eraser: v })}
-            holdShapes={pen.hold}
-            setHoldShapes={(v) => updatePen({ hold: v })}
-            autoShapes={pen.auto}
-            setAutoShapes={(v) => updatePen({ auto: v })}
+            onAddShape={(shape) => {
+              stickSound();
+              const box = defaultShapeBox(shape);
+              addBlock({ id: id(), type: "shape", shape, x: 50 - box.w / 2, y: 40 - box.h / 2, w: box.w, h: box.h });
+              setTool("hand");
+            }}
             straight={straight}
             setStraight={setStraight}
             eraseHint={selectedBlock ? "Стирает только выбранный элемент" : "Стирает то, что под пером"}

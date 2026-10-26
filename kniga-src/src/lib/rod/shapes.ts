@@ -5,9 +5,9 @@ import type { PageBlock, ShapeKind } from "@/lib/rod/types";
 export type ShapeBlock = Extract<PageBlock, { type: "shape" }>;
 
 export const SHAPES: { id: ShapeKind; label: string; stroked: boolean }[] = [
-  { id: "rect", label: "Квадрат", stroked: false },
+  { id: "rect", label: "Квадрат / прямоугольник", stroked: false },
   { id: "round", label: "Скруглённый", stroked: false },
-  { id: "ellipse", label: "Круг", stroked: false },
+  { id: "ellipse", label: "Круг / овал", stroked: false },
   { id: "triangle", label: "Треугольник", stroked: false },
   { id: "diamond", label: "Ромб", stroked: false },
   { id: "star", label: "Звезда", stroked: false },
