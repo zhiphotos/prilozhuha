@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { bumpUsage, searchesLeft, type SearchUsage } from "@/lib/rod/search-limit";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import { applyFormat } from "@/lib/rod/book-format";
@@ -39,6 +40,8 @@ type RodState = {
   pages: BookPage[];
   trash: TrashedPage[];
   programOpen: boolean;
+  /** Счётчик поисков предков по архивам за месяц (лимит 10). */
+  searchUsage?: SearchUsage;
   /** Оплаченный доступ: подписанный токен от сервера. В копию книги не попадает, чтобы файлом нельзя было открыть программу другим. */
   access: { token: string; until: number; order: string } | null;
   /** Семейная комната: ссылка для родственников и ключ владельца (в копию книги не попадает). */
@@ -99,6 +102,8 @@ type RodState = {
   restorePage: (id: string) => void;
   purgeTrash: () => void;
   openProgram: () => void;
+  /** Списывает один поиск предков; false, если месячный лимит исчерпан. */
+  spendSearch: () => boolean;
   setRoom: (room: { id: string; ownerKey: string; inviteKey: string; name: string } | null) => void;
   grantAccess: (access: { token: string; until: number; order: string }) => void;
   revokeAccess: () => void;
@@ -445,6 +450,11 @@ export const useRod = create<RodState>()(
         }),
       purgeTrash: () => set({ trash: [] }),
       openProgram: () => set({ programOpen: true }),
+      spendSearch: () => {
+        if (searchesLeft(get().searchUsage) <= 0) return false;
+        set({ searchUsage: bumpUsage(get().searchUsage) });
+        return true;
+      },
       setRoom: (room) => set({ room }),
       grantAccess: (access) => set({ access, programOpen: true }),
       revokeAccess: () => set({ access: null, programOpen: false }),

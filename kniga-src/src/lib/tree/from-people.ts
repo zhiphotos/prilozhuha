@@ -44,11 +44,16 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
   const known = new Set<string>([SELF_ID]);
   for (const p of people) {
     const role = roleOf(p.relation);
+    const t = p.name.trim().split(/\s+/).filter(Boolean);
+    const hasParts = p.firstName !== undefined || p.patronymic !== undefined || p.lastName !== undefined;
+    const first = hasParts ? (p.firstName ?? "") : (t[0] ?? "");
+    const middle = hasParts ? (p.patronymic ?? "") : t.length > 2 ? t.slice(1, -1).join(" ") : "";
+    const last = hasParts ? (p.lastName ?? "") : t.length > 1 ? (t[t.length - 1] ?? "") : "";
     out.push({
       id: p.id,
-      firstName: p.firstName?.trim() || p.name.trim().split(/\s+/)[0] || p.name,
-      patronymic: p.patronymic?.trim() ?? "",
-      lastName: p.lastName?.trim() || p.maidenName?.trim() || "",
+      firstName: first.trim() || p.name.trim(),
+      patronymic: middle.trim(),
+      lastName: last.trim() || p.maidenName?.trim() || "",
       gender: genderOf(p, role),
       birthYear: p.birthYear ?? "",
       deathYear: p.deathYear ?? "",
@@ -110,8 +115,21 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     if (!parent) return undefined;
     const grands = people.filter((p) => roleOf(p.relation) === "grand" && p.line === line).map((p) => p.id);
     if (!grands.length) return undefined;
-    addChild(grands.slice(0, 2), parent);
-    return grands.slice(0, 2);
+    const pair = grands.slice(0, 2);
+    if (pair.length === 1) {
+      // Один из двоих известен: рядом ставим пустое место, чтобы пара и линия читались.
+      const known = byId.get(pair[0]!);
+      const id = `__grand_${line}_${known?.gender === "f" ? "m" : "f"}`;
+      if (!byId.has(id)) {
+        const f = known?.gender === "f";
+        const g: Person = { id, firstName: f ? "Дедушка" : "Бабушка", patronymic: "", lastName: "", gender: f ? "m" : "f", birthYear: "", deathYear: "", photo: "", note: "" };
+        out.push(g);
+        byId.set(id, g);
+      }
+      pair.push(id);
+    }
+    addChild(pair, parent);
+    return pair;
   };
 
   for (const p of people) {
@@ -143,6 +161,8 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     if (!p.spouse || !known.has(p.spouse)) continue;
     const u = unionFor([p.id, p.spouse]);
     u.status = STATUS[p.spouseStatus ?? "married"] ?? "married";
+    if (p.unionFrom) u.startYear = p.unionFrom;
+    if (p.unionTo) u.endYear = p.unionTo;
   }
   const spouseOfSelf = people.find((p) => roleOf(p.relation) === "spouse");
   if (spouseOfSelf && !unions.some((u) => u.partnerIds.includes(spouseOfSelf.id))) unionFor([SELF_ID, spouseOfSelf.id]);

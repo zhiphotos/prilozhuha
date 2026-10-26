@@ -62,7 +62,7 @@ const ustinya = data.people.find((p) => p.firstName === "Устинья")!;
 const deepKin = kinship(data.people, data.unions, "self", ustinya.id);
 assert(deepKin.card === "Прапрапрапрабабушка (6)", deepKin.card);
 
-let sibs = buildStarter({ self: { firstName: "Анна", gender: "f", birthYear: "1992" } });
+const sibs = buildStarter({ self: { firstName: "Анна", gender: "f", birthYear: "1992" } });
 const brother = addPerson(sibs, "self", "brother", {
   firstName: "Илья",
   patronymic: "",

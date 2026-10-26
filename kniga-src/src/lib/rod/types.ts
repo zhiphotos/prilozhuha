@@ -17,6 +17,9 @@ export type Person = {
   spouse?: string;
   /** Статус пары: в браке, развелись, живут вместе без брака. */
   spouseStatus?: "married" | "divorced" | "partners";
+  /** Годы союза (для древа), хранятся у одного из супругов. */
+  unionFrom?: string;
+  unionTo?: string;
   /** Имя, отчество и фамилия по отдельности; `name` собирается из них. */
   firstName?: string;
   patronymic?: string;

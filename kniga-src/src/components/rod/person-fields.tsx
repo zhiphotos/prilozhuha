@@ -8,6 +8,7 @@ import { composeName, genderOf, maidenAllowed, partsOf } from "@/lib/rod/person"
 import { useRod } from "@/lib/rod/store";
 import type { Person } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
+import { roleOf } from "@/lib/tree/from-people";
 import { Field } from "@/components/rod/chrome";
 
 export type PersonDraft = Omit<Person, "id">;
@@ -110,6 +111,22 @@ export function PersonFields({ value, onChange, others }: { value: PersonDraft; 
           </div>
         </Field>
       </div>
+      {["grand", "greatgrand", "uncle"].includes(roleOf(value.relation)) ? (
+        <Field label="С какой стороны" hint="Нужно для древа: чьи это родители, мамины или папины.">
+          <div className="flex gap-2">
+            {(
+              [
+                ["mom", "По маме"],
+                ["dad", "По папе"],
+              ] as const
+            ).map(([id, label]) => (
+              <button key={id} type="button" aria-pressed={value.line === id} onClick={() => onChange({ line: value.line === id ? undefined : id })} className={cn("min-h-11 flex-1 rounded-xl border px-3 text-sm font-semibold", value.line === id ? "border-moss bg-moss text-paper" : "border-ink/15 bg-white/70 text-ink")}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </Field>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Год рождения" hint="Появится на ленте. Можно примерно.">
           <input className="field" value={value.birthYear} onChange={(event) => onChange({ birthYear: event.target.value })} placeholder="1948" />

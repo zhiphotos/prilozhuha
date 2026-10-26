@@ -14,8 +14,8 @@ test("люди встают на нужные линии", () => {
   ]);
   const parentsOf = (id: string) => data.unions.find((u) => u.childIds.includes(id))?.partnerIds ?? [];
   assert.deepEqual([...parentsOf(SELF_ID)].sort(), ["f", "m"]);
-  assert.deepEqual(parentsOf("m"), ["gm"]);
-  assert.deepEqual(parentsOf("f"), ["gd"]);
-  assert.deepEqual(parentsOf("u"), ["gm"]);
+  assert.ok(parentsOf("m").includes("gm"));
+  assert.ok(parentsOf("f").includes("gd") && parentsOf("f").length === 2);
+  assert.ok(parentsOf("u").includes("gm"));
   assert.ok(layoutTree(data.people, data.unions, data.focusId).nodes.length >= 6);
 });
