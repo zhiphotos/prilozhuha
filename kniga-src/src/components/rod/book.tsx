@@ -666,7 +666,8 @@ function FullTemplate({ pages, meta, tpl }: { pages: BookPage[]; meta: { dedicat
     toast(`В книгу добавлено ${tpl.total} страниц по главам`);
   };
 
-  if (!open) return <UnlockCarousel />;
+  // Рекламная карусель одна на книгу: рисуем её только в первом шаблоне, во втором ничего.
+  if (!open) return tpl === FULL_SPEC ? <UnlockCarousel /> : null;
 
   let start = 2;
   const chapters = tpl.chapters.map((chapter) => {

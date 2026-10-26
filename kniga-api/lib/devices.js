@@ -1,13 +1,14 @@
 import { redis, redisConfigured } from "./redis.js";
 
-export const DEVICE_LIMIT = 2;
+/** Ограничение по устройствам снято (решение Дарины 2026-10-26): оплаченный доступ работает на любом числе устройств. Чтобы вернуть, поставьте число, например 3. */
+export const DEVICE_LIMIT = Infinity;
 const IDLE_DAYS = 30; // устройство, которым не пользовались месяц, освобождает место само
 
 const key = (identity) => `kr:dev:${identity}`;
 
 /** Занять место для устройства. false: уже заняты оба места другими устройствами. Без идентификатора устройства (старое приложение) пропускаем. */
 export async function claimDevice(identity, deviceId) {
-  if (!deviceId || !redisConfigured()) return true;
+  if (!deviceId || !redisConfigured() || DEVICE_LIMIT === Infinity) return true;
   const id = String(deviceId).slice(0, 64);
   const now = Date.now();
   const all = (await redis("HGETALL", key(identity))) ?? [];
