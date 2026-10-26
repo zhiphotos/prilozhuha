@@ -12,6 +12,7 @@ import { CoverSetup } from "@/components/rod/cover-setup";
 import { PlanSheet } from "@/components/rod/plan-sheet";
 import { TextToPagesSheet } from "@/components/rod/text-to-pages";
 import { UnlockCarousel } from "@/components/rod/unlock-carousel";
+import { Hint } from "@/components/rod/hint";
 import { ContentsSheet } from "@/components/rod/contents-sheet";
 import { downloadFamilyBook, downloadPrintBlock, downloadPrintCover } from "@/lib/rod/print-book";
 import { useRod } from "@/lib/rod/store";
@@ -61,9 +62,11 @@ export function BookScreen() {
         <Button className="col-span-2 min-h-12 sm:col-span-1" disabled={pages.length === 0} onClick={() => nav.go({ id: "flip" })}>
           <BookOpen className="size-4" /> Листать книгу
         </Button>
-        <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" disabled={pages.length === 0} onClick={() => setPrinting(true)}>
-          <Printer className="size-4" /> Формат и печать
-        </Button>
+        <Hint id="book-print">
+          <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" disabled={pages.length === 0} onClick={() => setPrinting(true)}>
+            <Printer className="size-4" /> Формат и печать
+          </Button>
+        </Hint>
         <Button className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setContents(true)}>
           <BookOpen className="size-4" /> Содержание{plan.length ? ` · ${plan.filter((c) => c.done).length} из ${plan.length}` : ""}
         </Button>

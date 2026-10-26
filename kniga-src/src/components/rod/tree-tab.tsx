@@ -9,6 +9,7 @@ import { PersonDrawer } from "@/components/tree/PersonDrawer";
 import { TreeStage } from "@/components/tree/TreeStage";
 import { StylePreview } from "@/components/tree/StylePreview";
 import { GedImportButton } from "@/components/rod/ged-import";
+import { Hint } from "@/components/rod/hint";
 import { PrintTree } from "@/components/tree/PrintTree";
 import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { layoutTree, sliceByRadius } from "@/lib/tree/layout";
@@ -165,8 +166,8 @@ function TreeScreen() {
           <button type="button" className="chip" aria-label="Список рода" onClick={() => setRoster(!roster)}>
             <Users className="size-5" />
           </button>
-          <button type="button" className="chip pointer-events-auto" onClick={() => setPrinting(true)}>PDF</button>
-          <GedImportButton />
+          <Hint id="tree-pdf"><button type="button" className="chip pointer-events-auto" onClick={() => setPrinting(true)}>PDF</button></Hint>
+          <Hint id="tree-ged"><GedImportButton /></Hint>
           <button type="button" className="chip" aria-label="Тема" onClick={() => setTheme(theme === "night" ? "paper" : "night")}>
             {theme === "night" ? <Sun className="size-5" /> : <Moon className="size-5" />}
           </button>
