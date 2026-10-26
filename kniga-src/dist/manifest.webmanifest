@@ -1,0 +1,13 @@
+{
+  "name": "Книга рода",
+  "short_name": "Книга рода",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#e7e1d3",
+  "theme_color": "#e7e1d3",
+  "icons": [
+    { "src": "icons/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

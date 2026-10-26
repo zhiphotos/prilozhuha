@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Camera, X } from "lucide-react";
 import { toast } from "sonner";
 import { RELATIONS } from "@/lib/rod/content";
@@ -10,6 +10,7 @@ import type { Person } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
 import { roleOf } from "@/lib/tree/from-people";
 import { Field } from "@/components/rod/chrome";
+import { CircleCrop } from "@/components/rod/circle-crop";
 
 export type PersonDraft = Omit<Person, "id">;
 
@@ -46,14 +47,25 @@ export function PersonFields({ value, onChange, others }: { value: PersonDraft; 
     onChange({ ...next, name: composeName(next) });
   };
   const gender = genderOf(value);
+  const [cropping, setCropping] = useState<File | null>(null);
   const pickPhoto = (source: File | undefined) => {
     if (!source) return;
-    void importImage(source)
-      .then((photo) => onChange({ photo }))
-      .catch(() => toast("Фото не открылось"));
+    setCropping(source);
   };
   return (
     <div className="grid gap-3">
+      {cropping ? (
+        <CircleCrop
+          file={cropping}
+          onCancel={() => setCropping(null)}
+          onDone={(out) => {
+            setCropping(null);
+            void importImage(out)
+              .then((photo) => onChange({ photo }))
+              .catch(() => toast("Фото не открылось"));
+          }}
+        />
+      ) : null}
       <div className="flex items-center gap-3">
         <PersonAvatar person={{ ...value, name: value.name || "?" }} size={64} />
         <div className="flex flex-wrap gap-2">
