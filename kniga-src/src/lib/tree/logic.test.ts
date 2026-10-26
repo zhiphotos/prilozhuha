@@ -113,3 +113,22 @@ assert(f.gen === v.gen - 1, "father sits one row above");
 assert(Math.abs(f.x - v.x) < 360, `father not above viktor ${Math.abs(f.x - v.x)}`);
 
 console.log("ok", layout.nodes.length, Math.round(layout.width), "x", Math.round(layout.height));
+
+// Пара встаёт под своими родителями: если родители жены левее, то и жена левее мужа (линии не перекрещиваются).
+{
+  const person = (id: string, gender: "m" | "f", birth: string): Person => ({ id, firstName: id, patronymic: "", lastName: "", gender, birthYear: birth, deathYear: "", photo: "", note: "" });
+  const people = [
+    person("wf", "m", "1900"), person("wm", "f", "1901"),
+    person("hf", "m", "1905"), person("hm", "f", "1906"),
+    person("h", "m", "1930"), person("w", "f", "1931"),
+  ];
+  const unions = [
+    { id: "u1", partnerIds: ["wf", "wm"], childIds: ["w"], status: "married" as const, startYear: "", endYear: "" },
+    { id: "u2", partnerIds: ["hf", "hm"], childIds: ["h"], status: "married" as const, startYear: "", endYear: "" },
+    { id: "u3", partnerIds: ["h", "w"], childIds: [], status: "married" as const, startYear: "", endYear: "" },
+  ];
+  const layout = layoutTree(people, unions, "h");
+  const x = (id: string) => layout.nodes.find((n) => n.id === id)!.x;
+  const wifeParentsLeft = (x("wf") + x("wm")) / 2 < (x("hf") + x("hm")) / 2;
+  assert(wifeParentsLeft === x("w") < x("h"), "родители жены левее, а жена правее мужа: линии перекрещиваются");
+}
