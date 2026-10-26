@@ -336,18 +336,15 @@ export function PenBar({
   setSizePx,
   eraserPx,
   setEraserPx,
-  autoShapes,
-  setAutoShapes,
   straight,
   setStraight,
   onPipette,
   onDone,
   eraseHint,
-  holdShapes,
-  setHoldShapes,
+  onAddShape,
 }: {
-  holdShapes: boolean;
-  setHoldShapes: (v: boolean) => void;
+  /** Готовая фигура из списка: ставится на страницу блоком, её можно залить, оставить контуром и растянуть. */
+  onAddShape: (kind: ShapeKind) => void;
   eraseHint: string;
   tool: Tool;
   setTool: (tool: Tool) => void;
@@ -359,8 +356,6 @@ export function PenBar({
   setSizePx: (px: number) => void;
   eraserPx: number;
   setEraserPx: (px: number) => void;
-  autoShapes: boolean;
-  setAutoShapes: (v: boolean) => void;
   straight: boolean;
   setStraight: (v: boolean) => void;
   onPipette: () => void;
@@ -370,7 +365,7 @@ export function PenBar({
   const [menu, setMenu] = useState<null | "brush" | "shapes">(null);
   const current = BRUSHES.find((item) => item.id === brush) ?? BRUSHES[0];
   const hint = tool === "fill" ? "Нажмите внутрь замкнутого контура: он закрасится выбранным цветом" : erasing ? eraseHint : "";
-  const anyShape = holdShapes || autoShapes || straight;
+  const anyShape = straight;
   const pick = (action: () => void) => {
     action();
     setMenu(null);
@@ -389,21 +384,21 @@ export function PenBar({
         </div>
       ) : null}
       {menu === "shapes" ? (
-        <div className="absolute inset-x-0 bottom-full mb-2 grid gap-2 rounded-2xl bg-paper p-3 shadow-xl">
-          {(
-            [
-              ["Фигура по задержке", "Задержите перо на секунду: линия или круг выровняются", holdShapes, setHoldShapes],
-              ["Фигуры сразу", "Круг, квадрат, звезда, сердце выровняются сразу после рисования", autoShapes, setAutoShapes],
-              ["Только прямые", "Всё, что рисуете, будет прямой линией", straight, setStraight],
-            ] as const
-          ).map(([title, text, on, set]) => (
-            <button key={title} type="button" aria-pressed={on} onClick={() => set(!on)} className={cn("flex min-h-14 items-center gap-3 rounded-xl px-3 py-2 text-left", on ? "bg-night text-paper" : "bg-white text-ink")}>
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold">{title}</span>
-                <span className={cn("block text-xs leading-tight", on ? "text-paper/70" : "text-muted")}>{text}</span>
-              </span>
-            </button>
-          ))}
+        <div className="absolute inset-x-0 bottom-full mb-2 grid max-h-[50dvh] gap-2 overflow-y-auto rounded-2xl bg-paper p-3 shadow-xl">
+          <p className="px-1 text-xs text-muted">Выберите фигуру: она встанет на страницу. Её можно залить, оставить контуром и растянуть.</p>
+          <div className="grid grid-cols-3 gap-2">
+            {SHAPES.map((item) => (
+              <button key={item.id} type="button" onClick={() => pick(() => onAddShape(item.id as ShapeKind))} className="min-h-12 rounded-xl bg-white px-2 py-2 text-center text-sm font-semibold text-ink">
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <button type="button" aria-pressed={straight} onClick={() => setStraight(!straight)} className={cn("flex min-h-12 items-center gap-3 rounded-xl px-3 py-2 text-left", straight ? "bg-night text-paper" : "bg-white text-ink")}>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold">Только прямые линии</span>
+              <span className={cn("block text-xs leading-tight", straight ? "text-paper/70" : "text-muted")}>Всё, что рисуете пером, будет прямой линией</span>
+            </span>
+          </button>
         </div>
       ) : null}
       <div className="flex items-center gap-1.5">
@@ -416,7 +411,7 @@ export function PenBar({
         <Hint id="draw-fill"><BarBtn active={tool === "fill"} label="Нажмите внутрь замкнутого контура: он закрасится выбранным цветом" onClick={() => pick(() => setTool("fill"))}>
           <PaintBucket className="size-4" /> <span className="max-[400px]:hidden">Заливка</span>
         </BarBtn></Hint>
-        <Hint id="draw-shapes"><BarBtn active={anyShape || menu === "shapes"} label="Выравнивание линий и фигур" onClick={() => setMenu(menu === "shapes" ? null : "shapes")}>
+        <Hint id="draw-shapes"><BarBtn active={anyShape || menu === "shapes"} label="Фигуры: выбрать из списка" onClick={() => setMenu(menu === "shapes" ? null : "shapes")}>
           ◇ <span className="max-[400px]:hidden">Фигуры</span>
         </BarBtn></Hint>
         <span className="min-w-0 flex-1" />
