@@ -1750,7 +1750,19 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       </nav>
 
       <RotateHint />
-      <PinnedRefs refs={pinned} onUnpin={togglePin} />
+      <PinnedRefs
+        refs={pinned}
+        onUnpin={togglePin}
+        pipette={!!pipette}
+        onPick={(color) => {
+          const done = pipette;
+          setPipette(null);
+          if (done) {
+            done(color);
+            toast(`Цвет ${color} из подсказки`, { duration: 1800 });
+          }
+        }}
+      />
       <MoodBoard pinned={pinned} onPin={togglePin} open={mood} onToggle={() => setMood((v) => !v)} onPlace={(ref) => void placePhoto(ref, undefined, undefined, false)} />
 
       <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" onChange={(event) => { onFiles(event.target.files); event.target.value = ""; }} />
