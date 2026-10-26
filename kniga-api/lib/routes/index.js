@@ -18,6 +18,7 @@ import roomCreate from "./room-create.js";
 import roomInbox from "./room-inbox.js";
 import roomInfo from "./room-info.js";
 import roomSubmit from "./room-submit.js";
+import seek from "./seek.js";
 import status from "./status.js";
 import sync from "./sync.js";
 import verify from "./verify.js";
@@ -42,6 +43,7 @@ export const ROUTES = {
   "room-inbox": roomInbox,
   "room-info": roomInfo,
   "room-submit": roomSubmit,
+  seek,
   status,
   sync,
   verify,
