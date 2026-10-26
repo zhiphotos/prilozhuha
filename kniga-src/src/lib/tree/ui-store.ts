@@ -64,9 +64,9 @@ const KEY = "kniga-tree-ui";
 function readUi(): { theme: ThemeName; style: TreeStyle; banner: string; flow: TreeFlow } {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || "{}") as Partial<{ theme: ThemeName; banner: string; flow: TreeFlow }>;
-    return { theme: raw.theme === "night" ? "night" : "paper", style: "work", banner: typeof raw.banner === "string" ? raw.banner : "", flow: raw.flow === "up" ? "up" : "down" };
+    return { theme: raw.theme === "paper" ? "paper" : "night", style: "work", banner: typeof raw.banner === "string" ? raw.banner : "", flow: raw.flow === "up" ? "up" : "down" };
   } catch {
-    return { theme: "paper", style: "work", banner: "", flow: "down" };
+    return { theme: "night", style: "work", banner: "", flow: "down" };
   }
 }
 
