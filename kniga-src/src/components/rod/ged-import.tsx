@@ -7,6 +7,7 @@ import type { Person as RodPerson } from "@/lib/rod/types";
 import { gedToPeople, type ImportedPerson } from "@/lib/tree/gedImport.ts";
 import { parseGedcom } from "@/lib/tree/importTree.ts";
 import { parseTable } from "@/lib/tree/tableImport.ts";
+import { isAgelongXml, parseAgelongXml } from "@/lib/tree/agelongXml.ts";
 import type { TreeData } from "@/lib/tree/types.ts";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -30,7 +31,19 @@ export function GedImportButton() {
 
   const pick = (file: File | undefined) => {
     if (!file) return;
+    if (/\.atdb$/i.test(file.name)) {
+      toast("Это база программы «Древо Жизни». Сохраните из программы файл XML (Файл, Экспорт) и загрузите его.", { duration: 8000 });
+      return;
+    }
     void file.text().then((text) => {
+      if (isAgelongXml(text)) {
+        const r = parseAgelongXml(text);
+        if ("error" in r) return toast(r.error);
+        setTable(null);
+        setTree(r.tree);
+        setSelfKey(r.tree.focusId);
+        return;
+      }
       if (/\.(csv|tsv|txt)$/i.test(file.name) && !/^\s*0\s+HEAD/m.test(text)) {
         const r = parseTable(text);
         if ("error" in r) return toast(r.error);
@@ -78,7 +91,7 @@ export function GedImportButton() {
 
   return (
     <>
-      <input ref={input} type="file" accept=".ged,.csv,.tsv,.txt,text/plain,text/csv" className="sr-only" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
+      <input ref={input} type="file" accept=".ged,.csv,.tsv,.txt,.xml,.atdb,text/plain,text/csv,text/xml" className="sr-only" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
       <button type="button" className="chip pointer-events-auto" onClick={() => input.current?.click()}>
         Из файла
       </button>
