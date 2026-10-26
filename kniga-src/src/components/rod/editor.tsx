@@ -109,6 +109,9 @@ function savedStyle(): PhotoStyle {
   }
 }
 
+/** Фигуры от руки (распознавание по зажатию и «авто») отключены: фигуры только из списка «Фигуры». Код оставлен за флагом. */
+const ENABLE_SHAPE_SNAP = false;
+
 type PenPrefs = { brush: BrushKind; color: string; sizes: Record<BrushKind, number>; eraser: number; auto: boolean; hold: boolean };
 
 function savedPen(): PenPrefs {
@@ -904,7 +907,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         y0 = Math.min(y0, d.points[i + 1]);
         y1 = Math.max(y1, d.points[i + 1]);
       }
-      if (Math.hypot(x1 - x0, y1 - y0) < 12 || !pen.hold) return;
+      if (!ENABLE_SHAPE_SNAP || Math.hypot(x1 - x0, y1 - y0) < 12 || !pen.hold) return;
       const rec = recognizeShape(d.points);
       if (!rec) return;
       d.snapped = rec;
@@ -1015,7 +1018,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       if (straight && points.length >= 4) {
         points = lineOf(points[0], points[1], points[points.length - 2], points[points.length - 1]);
         pressure = undefined;
-      } else if (pen.auto && Math.hypot(Math.max(...points.filter((_, i) => i % 2 === 0)) - Math.min(...points.filter((_, i) => i % 2 === 0)), Math.max(...points.filter((_, i) => i % 2 === 1)) - Math.min(...points.filter((_, i) => i % 2 === 1))) >= 12) {
+      } else if (ENABLE_SHAPE_SNAP && pen.auto && Math.hypot(Math.max(...points.filter((_, i) => i % 2 === 0)) - Math.min(...points.filter((_, i) => i % 2 === 0)), Math.max(...points.filter((_, i) => i % 2 === 1)) - Math.min(...points.filter((_, i) => i % 2 === 1))) >= 12) {
         const rec = recognizeShape(points);
         if (rec) {
           points = rec.points;
@@ -1747,7 +1750,19 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       </nav>
 
       <RotateHint />
-      <PinnedRefs refs={pinned} onUnpin={togglePin} />
+      <PinnedRefs
+        refs={pinned}
+        onUnpin={togglePin}
+        pipette={!!pipette}
+        onPick={(color) => {
+          const done = pipette;
+          setPipette(null);
+          if (done) {
+            done(color);
+            toast(`Цвет ${color} из подсказки`, { duration: 1800 });
+          }
+        }}
+      />
       <MoodBoard pinned={pinned} onPin={togglePin} open={mood} onToggle={() => setMood((v) => !v)} onPlace={(ref) => void placePhoto(ref, undefined, undefined, false)} />
 
       <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" onChange={(event) => { onFiles(event.target.files); event.target.value = ""; }} />

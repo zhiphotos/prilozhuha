@@ -1,5 +1,8 @@
 @import "tailwindcss";
-
+@import "@fontsource/cormorant-garamond/cyrillic-500.css";
+@import "@fontsource/cormorant-garamond/cyrillic-600.css";
+@import "@fontsource/cormorant-garamond/latin-500.css";
+@import "@fontsource/cormorant-garamond/latin-600.css";
 @font-face {
   font-family: "Yauza";
   src: url("./assets/fonts/yauza.ttf") format("truetype");
@@ -690,3 +693,63 @@ body {
 }
 .bell-ring { transform-origin: 50% 14%; animation: bell-ring 3.6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .bell-ring { animation: none; } }
+
+/* ===== Древо (из рабочей папки Грока). Свои цвета названы так, чтобы не мешать остальному приложению. ===== */
+@theme {
+  --font-serif: "Cormorant Garamond", "Noto Serif", "Times New Roman", serif;
+  --color-canvas: #100e0c;
+  --color-fg: #f4efe4;
+  --color-fg-soft: #cbbba6;
+  --color-sheet: #f7f1e6;
+  --color-blood: #8eb6ff;
+  --color-divorce: #e0b15c;
+  --color-widow: #c9b6ea;
+  --color-role: #8d4e3a;
+  --color-chip: rgba(22, 18, 14, 0.78);
+  --color-chip-fg: #f4efe4;
+  --color-chip-line: rgba(244, 239, 228, 0.16);
+  --color-glow: rgba(196, 140, 70, 0.34);
+  --color-grid: rgba(244, 226, 196, 0.22);
+  --color-label: rgba(244, 226, 196, 0.72);
+  --color-ring: #f7f1e6;
+}
+.tree-root {
+  --color-gold: #e0b56a;
+  --color-rose: #f0a8c4;
+  --color-ink: #1c1612;
+  --color-muted: #7d7368;
+  --color-line: #e4d9c8;
+  font-family: var(--font-sans);
+}
+.tree-root[data-theme="paper"] {
+  --color-canvas: #f3eadc;
+  --color-fg: #1c1612;
+  --color-fg-soft: #5e5348;
+  --color-blood: #1e4f8f;
+  --color-rose: #9d3a5c;
+  --color-divorce: #8a6230;
+  --color-widow: #6d5488;
+  --color-chip: rgba(255, 250, 242, 0.9);
+  --color-chip-fg: #1c1612;
+  --color-chip-line: rgba(28, 22, 18, 0.12);
+  --color-glow: rgba(255, 248, 236, 0.2);
+  --color-grid: rgba(90, 60, 30, 0.16);
+  --color-label: rgba(60, 42, 28, 0.72);
+  --color-ring: #fffaf2;
+}
+.tree-root .chip { display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; min-height: 2.75rem; min-width: 2.75rem; padding-inline: 0.85rem; border-radius: 999px; background: var(--color-chip); color: var(--color-chip-fg); border: 1px solid var(--color-chip-line); backdrop-filter: blur(12px); font-family: var(--font-sans); font-size: 0.875rem; font-weight: 600; }
+.tree-root .chip:disabled { opacity: 0.45; }
+.tree-root .sheet { background: var(--color-sheet); color: var(--color-ink); box-shadow: 0 -24px 60px rgba(0, 0, 0, 0.35); font-family: var(--font-sans); }
+.tree-root .tree-viewport.is-carved { background-color: #f7f6f3; background-image: none; }
+.tree-root .tree-viewport.is-cameo { background-color: #000; background-image: none; }
+.tree-root .tree-viewport.is-gzhel { background-color: #fbfcfe; background-image: none; }
+.tree-root .tree-viewport.is-boheme { background-color: #1a2418; background-image: none; }
+.tree-root .tree-viewport.is-taiga { background-color: #142018; background-image: none; }
+.glass-plaque { border-radius: 18px; background: rgba(255, 255, 255, 0.42); border: 1px solid rgba(255, 255, 255, 0.72); box-shadow: 0 12px 32px rgba(40, 32, 20, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); }
+.glass-plaque-on { border-color: rgba(196, 154, 74, 0.85); box-shadow: 0 12px 32px rgba(40, 32, 20, 0.1), 0 0 0 1px rgba(196, 154, 74, 0.45); }
+.glass-photo { width: 46px; height: 54px; flex: none; border-radius: 12px; object-fit: cover; background: rgba(255, 255, 255, 0.55); box-shadow: 0 4px 12px rgba(30, 22, 12, 0.12); }
+.glass-photo.is-tiny { width: 28px; height: 36px; border-radius: 8px; }
+.tree-viewport { background-color: var(--color-canvas); background-image: radial-gradient(circle at 50% -8%, var(--color-glow), transparent 46%), radial-gradient(var(--color-grid) 1.1px, transparent 1.2px); background-size: auto, 22px 22px; touch-action: none; }
+.cam { transform-origin: 0 0; transition: transform 180ms ease; }
+.cam.is-gesturing { transition: none; }
+@media (prefers-reduced-motion: reduce) { .cam { transition: none; } }

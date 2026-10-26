@@ -30,6 +30,20 @@ export async function saveMedia(input: Blob | string): Promise<string> {
   return PREFIX + id;
 }
 
+/** Сохраняет картинку под уже известной ссылкой (синхронизация: на всех устройствах ссылки одинаковые). */
+export async function saveMediaAs(ref: string, dataUrl: string): Promise<void> {
+  if (!ref.startsWith(PREFIX)) return;
+  const blob = dataUrlToBlob(dataUrl);
+  const id = ref.slice(PREFIX.length);
+  await idbSet(MEDIA_STORE, id, blob);
+  urls.set(id, URL.createObjectURL(blob));
+}
+
+/** Есть ли картинка на этом устройстве. */
+export async function hasMedia(ref: string): Promise<boolean> {
+  return (await mediaBlob(ref)) != null;
+}
+
 /** Адрес, который можно поставить в <img src>. */
 export function resolveMedia(src: string): Promise<string> {
   if (!src) return Promise.resolve("");

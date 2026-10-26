@@ -10,7 +10,7 @@ import { EMPTY_PERSON, PersonAvatar, PersonEditor, PersonFields, type PersonDraf
 import { useRod } from "@/lib/rod/store";
 import type { ArchiveTab } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
-import { TreePane } from "@/components/rod/family-tree";
+import { TreeTab } from "@/components/rod/tree-tab";
 import { Cut } from "@/components/rod/botanica";
 import { MediaImg } from "@/components/rod/media-img";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
@@ -57,7 +57,7 @@ export function ArchiveScreen({ tab }: { tab: ArchiveTab }) {
       </div>
       <div className="mt-4">
         {tab === "people" ? <PeoplePane /> : null}
-        {tab === "tree" ? <TreePane /> : null}
+        {tab === "tree" ? <TreeTab /> : null}
         {tab === "time" ? <TimePane /> : null}
         {tab === "photos" ? <PhotosPane /> : null}
         {tab === "places" ? <PlacesPane /> : null}

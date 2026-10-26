@@ -9,7 +9,7 @@ import { platformUntil } from "./platform-login.js";
 //   kr-…   оплата в банке (срок, возврат денег)
 //   grant- личный код (пока Дарина его не отозвала)
 //   plat-  аккаунт платформы (курс не снят на платформе)
-// Везде не больше двух устройств на один доступ.
+// Везде не больше трёх устройств на один доступ.
 export default async function handler(req, res) {
   if (cors(req, res)) return;
   if (req.method !== "POST") return json(res, 405, { error: "method" });

@@ -11,6 +11,7 @@ import { startUpdateWatch } from "@/lib/rod/update";
 import { JoinScreen } from "@/components/rod/join";
 import { LegalScreen } from "@/components/rod/legal";
 import { FlipBookScreen } from "@/components/rod/flipbook";
+import { startAutoSync } from "@/lib/rod/sync";
 import { HomeScreen } from "@/components/rod/home";
 import { LessonScreen, LessonsScreen } from "@/components/rod/lessons";
 import { AppTour } from "@/components/rod/tour";
@@ -59,6 +60,7 @@ export function RodApp() {
     void Promise.resolve(useRod.persist.rehydrate()).finally(() => {
       if (!alive) return;
       afterHydrate();
+      startAutoSync();
       handlePaymentReturn();
       void verifyAccess();
       void pingPush();

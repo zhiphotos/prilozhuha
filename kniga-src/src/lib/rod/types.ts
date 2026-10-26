@@ -17,11 +17,16 @@ export type Person = {
   spouse?: string;
   /** Статус пары: в браке, развелись, живут вместе без брака. */
   spouseStatus?: "married" | "divorced" | "partners";
+  /** Годы союза (для древа), хранятся у одного из супругов. */
+  unionFrom?: string;
+  unionTo?: string;
   /** Имя, отчество и фамилия по отдельности; `name` собирается из них. */
   firstName?: string;
   patronymic?: string;
   lastName?: string;
   gender?: "m" | "f";
+  /** Линия предков и дядь/тёть: по маминой или папиной стороне (для нового древа). */
+  line?: "mom" | "dad";
   /** Фото человека (ссылка на хранилище), в древе показывается кружком. */
   photo?: string;
 };

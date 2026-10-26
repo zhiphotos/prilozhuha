@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Camera, X } from "lucide-react";
 import { toast } from "sonner";
 import { RELATIONS } from "@/lib/rod/content";
@@ -8,7 +8,9 @@ import { composeName, genderOf, maidenAllowed, partsOf } from "@/lib/rod/person"
 import { useRod } from "@/lib/rod/store";
 import type { Person } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
+import { roleOf } from "@/lib/tree/from-people";
 import { Field } from "@/components/rod/chrome";
+import { CircleCrop } from "@/components/rod/circle-crop";
 
 export type PersonDraft = Omit<Person, "id">;
 
@@ -45,14 +47,25 @@ export function PersonFields({ value, onChange, others }: { value: PersonDraft; 
     onChange({ ...next, name: composeName(next) });
   };
   const gender = genderOf(value);
+  const [cropping, setCropping] = useState<File | null>(null);
   const pickPhoto = (source: File | undefined) => {
     if (!source) return;
-    void importImage(source)
-      .then((photo) => onChange({ photo }))
-      .catch(() => toast("Фото не открылось"));
+    setCropping(source);
   };
   return (
     <div className="grid gap-3">
+      {cropping ? (
+        <CircleCrop
+          file={cropping}
+          onCancel={() => setCropping(null)}
+          onDone={(out) => {
+            setCropping(null);
+            void importImage(out)
+              .then((photo) => onChange({ photo }))
+              .catch(() => toast("Фото не открылось"));
+          }}
+        />
+      ) : null}
       <div className="flex items-center gap-3">
         <PersonAvatar person={{ ...value, name: value.name || "?" }} size={64} />
         <div className="flex flex-wrap gap-2">
@@ -110,6 +123,22 @@ export function PersonFields({ value, onChange, others }: { value: PersonDraft; 
           </div>
         </Field>
       </div>
+      {["grand", "greatgrand", "uncle"].includes(roleOf(value.relation)) ? (
+        <Field label="С какой стороны" hint="Нужно для древа: чьи это родители, мамины или папины.">
+          <div className="flex gap-2">
+            {(
+              [
+                ["mom", "По маме"],
+                ["dad", "По папе"],
+              ] as const
+            ).map(([id, label]) => (
+              <button key={id} type="button" aria-pressed={value.line === id} onClick={() => onChange({ line: value.line === id ? undefined : id })} className={cn("min-h-11 flex-1 rounded-xl border px-3 text-sm font-semibold", value.line === id ? "border-moss bg-moss text-paper" : "border-ink/15 bg-white/70 text-ink")}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </Field>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Год рождения" hint="Появится на ленте. Можно примерно.">
           <input className="field" value={value.birthYear} onChange={(event) => onChange({ birthYear: event.target.value })} placeholder="1948" />

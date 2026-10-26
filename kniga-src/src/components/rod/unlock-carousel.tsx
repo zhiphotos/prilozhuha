@@ -206,6 +206,10 @@ export function UnlockCarousel() {
         ref={track}
         className="-mx-5 mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={{ overscrollBehaviorX: "contain", touchAction: "pan-x pan-y", WebkitOverflowScrolling: "touch" }}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerMove={(e) => e.stopPropagation()}
       >
         {SLIDES.map((slide, i) => (
           <article

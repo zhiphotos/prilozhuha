@@ -4,7 +4,7 @@ import { LEGAL_VERSION } from "@/lib/rod/legal-docs";
 import { useRod } from "@/lib/rod/store";
 
 /** Устройство узнаём по случайному номеру, который лежит только в этом браузере: так сервер считает два устройства на один доступ. */
-function deviceId(): string {
+export function deviceId(): string {
   try {
     let id = localStorage.getItem("kr-device");
     if (!id) {
