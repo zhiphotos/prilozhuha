@@ -86,6 +86,7 @@ type RodState = {
   removePhoto: (id: string) => void;
   addStory: (input: Omit<Story, "id" | "createdAt">) => string;
   removeStory: (id: string) => void;
+  updateStory: (id: string, patch: Partial<Pick<Story, "title" | "narrative" | "attachments">>) => void;
   addEvent: (input: Omit<TimelineEvent, "id">) => void;
   removeEvent: (id: string) => void;
   addDocument: (input: Omit<FamilyDoc, "id">) => void;
@@ -319,6 +320,7 @@ export const useRod = create<RodState>()(
         return id;
       },
       removeStory: (id) => set((state) => ({ stories: state.stories.filter((story) => story.id !== id) })),
+      updateStory: (id, patch) => set((state) => ({ stories: state.stories.map((story) => (story.id === id ? { ...story, ...patch } : story)) })),
       addEvent: (input) => set((state) => ({ events: [{ ...input, id: uid() }, ...state.events] })),
       removeEvent: (id) => set((state) => ({ events: state.events.filter((event) => event.id !== id) })),
       addDocument: (input) => set((state) => ({ documents: [{ ...input, id: uid() }, ...state.documents] })),
