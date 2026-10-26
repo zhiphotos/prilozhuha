@@ -11,6 +11,12 @@ import { layoutTree } from "@/lib/tree/layout";
 import type { TreeStyle } from "@/lib/tree/styles";
 import type { TreeFlow } from "@/lib/tree/ui-store";
 
+/** Готовые образцы стилей (картинки от Дарины): показываем их вместо рисунка тестового древа. */
+const SAMPLE: Partial<Record<TreeStyle, string>> = {
+  cameo: "tree/preview/cameo.jpg",
+  taiga: "tree/preview/taiga.jpg",
+};
+
 const TITLE: Record<TreeStyle, string> = {
   work: "Схема",
   carved: "Древо",
@@ -36,8 +42,13 @@ export function StylePreview({ style, onPick, onOpen, onClose }: { style: TreeSt
   return (
     <Sheet title={`Так выглядит «${TITLE[style]}»`} onClose={onClose}>
       <div className="grid gap-3">
-        <p className="text-sm text-muted">Это пример на тестовом древе. Ваше древо не меняется. Выберите стиль, который нравится, и откройте его.</p>
-        <div className="tree-root relative h-[52dvh] min-h-[22rem] overflow-hidden rounded-2xl border border-line" data-theme="paper">
+        <p className="text-sm text-muted">Это пример оформления. Ваше древо не меняется. Выберите стиль, который нравится, и откройте его.</p>
+        {SAMPLE[style] ? (
+          <div className="max-h-[56dvh] overflow-auto rounded-2xl border border-line bg-black">
+            <img src={`${import.meta.env.BASE_URL}${SAMPLE[style]}`} alt={`Образец стиля «${TITLE[style]}»`} className="block w-full" draggable={false} />
+          </div>
+        ) : null}
+        <div className={`tree-root relative h-[52dvh] min-h-[22rem] overflow-hidden rounded-2xl border border-line${SAMPLE[style] ? " hidden" : ""}`} data-theme="paper">
           <TreeStage
             layout={layout}
             people={people}
