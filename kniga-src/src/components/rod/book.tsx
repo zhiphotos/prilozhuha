@@ -70,15 +70,21 @@ export function BookScreen() {
         <Button className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setContents(true)}>
           <BookOpen className="size-4" /> Содержание{plan.length ? ` · ${plan.filter((c) => c.done).length} из ${plan.length}` : ""}
         </Button>
-        <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setPlanning(true)}>
-          <Sparkles className="size-4" /> Спланировать страницы списком
-        </Button>
-        <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setTextToPages(true)}>
-          <Sparkles className="size-4" /> Текст → страницы
-        </Button>
-        <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setCoverSetup(true)}>
-          <Palette className="size-4" /> Обложка: корешок и задняя сторона
-        </Button>
+        <Hint id="book-plan">
+          <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setPlanning(true)}>
+            <Sparkles className="size-4" /> Спланировать страницы списком
+          </Button>
+        </Hint>
+        <Hint id="book-text-pages">
+          <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setTextToPages(true)}>
+            <Sparkles className="size-4" /> Текст → страницы
+          </Button>
+        </Hint>
+        <Hint id="book-cover">
+          <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setCoverSetup(true)}>
+            <Palette className="size-4" /> Обложка: корешок и задняя сторона
+          </Button>
+        </Hint>
       </div>
 
       {!hasCover ? (
