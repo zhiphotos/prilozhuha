@@ -59,11 +59,11 @@ export function BookScreen() {
       <TopBar kicker="Моя книга" title={name ? `Книга рода · ${name}` : "Книга рода"} />
 
       <div data-tour="book-actions" className="mb-5 grid grid-cols-2 gap-2 sm:flex">
-        <Button className="col-span-2 min-h-12 sm:col-span-1" disabled={pages.length === 0} onClick={() => nav.go({ id: "flip" })}>
+        <Button className="col-span-2 min-h-12 sm:col-span-1" onClick={() => (pages.length ? nav.go({ id: "flip" }) : toast("Сначала добавьте хотя бы одну страницу"))}>
           <BookOpen className="size-4" /> Листать книгу
         </Button>
         <Hint id="book-print">
-          <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" disabled={pages.length === 0} onClick={() => setPrinting(true)}>
+          <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => (pages.length ? setPrinting(true) : toast("Сначала добавьте хотя бы одну страницу"))}>
             <Printer className="size-4" /> Формат и печать
           </Button>
         </Hint>

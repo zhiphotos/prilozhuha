@@ -8,8 +8,8 @@ const LONG_PRESS_MS = 450;
 const HOVER_MS = 500;
 
 /**
- * Оборачивает кнопку: долгое нажатие (телефон) или наведение (компьютер) показывает окно «как это работает».
- * Обычное короткое нажатие работает как раньше.
+ * Оборачивает кнопку. Для закрытых платных функций – одно нажатие показывает окно с объяснением и кнопкой покупки.
+ * Для бесплатных – долгое нажатие (телефон) или наведение (компьютер); обычное нажатие работает как раньше.
  */
 export function Hint({ id, children }: { id: string; children: ReactNode }) {
   const hint = HINTS[id];
@@ -30,7 +30,18 @@ export function Hint({ id, children }: { id: string; children: ReactNode }) {
     <>
       <span
         className="contents"
-        onPointerDown={(e) => start(e.pointerType === "mouse" ? HOVER_MS : LONG_PRESS_MS)}
+        onClickCapture={(e) => {
+          // Платная функция закрыта: одно нажатие сразу открывает объяснение и покупку, действие не запускается.
+          if (hint.paid && !programOpen) {
+            e.stopPropagation();
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
+        onPointerDown={(e) => {
+          if (hint.paid && !programOpen) return;
+          start(e.pointerType === "mouse" ? HOVER_MS : LONG_PRESS_MS);
+        }}
         onPointerUp={cancel}
         onPointerLeave={cancel}
         onPointerCancel={cancel}
