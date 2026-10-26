@@ -196,6 +196,43 @@ export function pageFromStory(title: string, narrative: string): Omit<BookPage, 
   };
 }
 
+/** Страницы с фото из истории: по четыре снимка на лист, в рамках-полароидах. */
+export function pagesFromStoryPhotos(title: string, refs: { src: string; caption: string }[]): Omit<BookPage, "id">[] {
+  const slots = [
+    { x: 7, y: 13, rotate: -1.5 },
+    { x: 53, y: 15, rotate: 1.5 },
+    { x: 8, y: 52, rotate: 1 },
+    { x: 52, y: 51, rotate: -1 },
+  ];
+  const pages: Omit<BookPage, "id">[] = [];
+  for (let i = 0; i < refs.length; i += 4) {
+    const chunk = refs.slice(i, i + 4);
+    pages.push({
+      title: `${title}: фото`,
+      kind: "page",
+      paper: "kraft",
+      strokes: [],
+      blocks: [
+        text({ x: 8, y: 4, w: 84, text: pages.length ? `${title} (продолжение)` : title, font: "script", size: "md" }),
+        ...chunk.map((ref, k) => ({
+          id: id(),
+          type: "photo" as const,
+          x: slots[k].x,
+          y: slots[k].y,
+          w: 40,
+          h: 34,
+          src: ref.src,
+          caption: ref.caption,
+          frame: "polaroid" as const,
+          rotate: slots[k].rotate,
+        })),
+        sticker("tape", 40, 11, 20, -3),
+      ],
+    });
+  }
+  return pages;
+}
+
 /** Страница из оцифрованной фотографии с подписью. */
 export function pageFromPhoto(src: string, caption: string, detail: string): Omit<BookPage, "id"> {
   return {

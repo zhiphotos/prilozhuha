@@ -1,9 +1,10 @@
+import { toast } from "sonner";
 import { Fragment, useMemo, useState } from "react";
 import { Cut } from "@/components/rod/botanica";
 import { STORY_TEMPLATES, findTemplate } from "@/lib/rod/content";
 import { composeStory } from "@/lib/rod/narrative";
 import { useRod } from "@/lib/rod/store";
-import { pageFromStory } from "@/lib/rod/layouts";
+import { pageFromStory, pagesFromStoryPhotos } from "@/lib/rod/layouts";
 import { Attachments } from "@/components/rod/attachments";
 import type { Attachment } from "@/lib/rod/types";
 import { DictateButton } from "@/components/rod/dictate-button";
@@ -224,6 +225,7 @@ export function StoryScreen({ storyId }: { storyId: string }) {
   const addPage = useRod((state) => state.addPage);
   const updateStory = useRod((state) => state.updateStory);
   const inBook = useRod((state) => state.pages.find((page) => page.promptId === `story:${storyId}`));
+  const photosInBook = useRod((state) => state.pages.some((page) => page.promptId?.startsWith(`story:${storyId}:photos`)));
   if (!story) {
     return (
       <ScreenFrame>
@@ -231,6 +233,12 @@ export function StoryScreen({ storyId }: { storyId: string }) {
       </ScreenFrame>
     );
   }
+  const images = (story.attachments ?? []).filter((item) => item.kind === "image");
+  const addPhotoPages = () => {
+    const pages = pagesFromStoryPhotos(story.title, images.map((item) => ({ src: item.ref, caption: "" })));
+    pages.forEach((page, index) => addPage({ ...page, promptId: `story:${story.id}:photos:${index}` }));
+    toast(`В книгу добавлено страниц с фото: ${pages.length}`);
+  };
   return (
     <ScreenFrame>
       <TopBar title={story.title} kicker="Глава" onBack={nav.back} />
@@ -251,6 +259,11 @@ export function StoryScreen({ storyId }: { storyId: string }) {
             Поставить в книгу
           </Button>
         )}
+        {images.length && !photosInBook ? (
+          <Button variant="soft" onClick={addPhotoPages}>
+            Добавить фото в книгу ({images.length})
+          </Button>
+        ) : null}
       </div>
     </ScreenFrame>
   );

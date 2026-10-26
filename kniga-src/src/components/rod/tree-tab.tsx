@@ -10,6 +10,8 @@ import { TreeStage } from "@/components/tree/TreeStage";
 import { StylePreview } from "@/components/tree/StylePreview";
 import { GedImportButton } from "@/components/rod/ged-import";
 import { Hint } from "@/components/rod/hint";
+import { TreeSearch } from "@/components/tree/TreeSearch";
+import { searchPeople } from "@/lib/tree/search";
 import { PrintTree } from "@/components/tree/PrintTree";
 import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { layoutTree, sliceByRadius } from "@/lib/tree/layout";
@@ -168,6 +170,13 @@ function TreeScreen() {
             <Plus className="size-5" />
             Добавить
           </button>
+          <TreeSearch
+            onJump={(id) => {
+              setRoster(false);
+              selectPerson(id);
+              setCenterReq({ id, n: Date.now() });
+            }}
+          />
           <button type="button" className="chip" aria-label="Список рода" onClick={() => setRoster(!roster)}>
             <Users className="size-5" />
           </button>
@@ -279,7 +288,8 @@ function Roster({
   const layout = useMemo(() => layoutTree(people, unions, focusId), [people, unions, focusId]);
   const [query, setQuery] = useState("");
   const byId = new Map(people.map((p) => [p.id, p]));
-  const q = query.trim().toLowerCase();
+  const matched = useMemo(() => new Set(searchPeople(people, query, people.length).map((p) => p.id)), [people, query]);
+  const q = query.trim();
   return (
     <div className="absolute inset-x-0 bottom-0 z-30 flex justify-center md:p-4 lg:inset-y-0 lg:right-auto lg:left-0 lg:w-[380px] lg:justify-start">
       <section className="sheet flex max-h-[74dvh] w-full flex-col rounded-t-3xl md:max-w-xl md:rounded-3xl lg:max-h-none lg:h-full lg:max-w-none">
@@ -300,7 +310,7 @@ function Roster({
               .sort((a, b) => a.x - b.x)
               .map((n) => byId.get(n.id))
               .filter((p): p is NonNullable<typeof p> => Boolean(p))
-              .filter((p) => !q || `${p.firstName} ${p.patronymic} ${p.lastName}`.toLowerCase().includes(q));
+              .filter((p) => !q || matched.has(p.id));
             if (!row.length) return null;
             return (
               <div key={label.gen} className="mb-3">
