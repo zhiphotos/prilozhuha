@@ -1,3 +1,4 @@
+import { Hint } from "@/components/rod/hint";
 import { useEffect, useRef, useState } from "react";
 import {
   AlignCenter,
@@ -406,18 +407,18 @@ export function PenBar({
         </div>
       ) : null}
       <div className="flex items-center gap-1.5">
-        <BarBtn active={tool === "draw"} label="Выбрать кисть" onClick={() => setMenu(menu === "brush" ? null : "brush")}>
+        <Hint id="draw-brush"><BarBtn active={tool === "draw"} label="Выбрать кисть" onClick={() => setMenu(menu === "brush" ? null : "brush")}>
           <PenLine className="size-4" /> {current.label} ▾
-        </BarBtn>
-        <BarBtn active={erasing} label="Ластик" onClick={() => pick(() => setTool("erase"))}>
+        </BarBtn></Hint>
+        <Hint id="draw-erase"><BarBtn active={erasing} label="Ластик" onClick={() => pick(() => setTool("erase"))}>
           <Eraser className="size-4" /> <span className="max-[400px]:hidden">Ластик</span>
-        </BarBtn>
-        <BarBtn active={tool === "fill"} label="Нажмите внутрь замкнутого контура: он закрасится выбранным цветом" onClick={() => pick(() => setTool("fill"))}>
+        </BarBtn></Hint>
+        <Hint id="draw-fill"><BarBtn active={tool === "fill"} label="Нажмите внутрь замкнутого контура: он закрасится выбранным цветом" onClick={() => pick(() => setTool("fill"))}>
           <PaintBucket className="size-4" /> <span className="max-[400px]:hidden">Заливка</span>
-        </BarBtn>
-        <BarBtn active={anyShape || menu === "shapes"} label="Выравнивание линий и фигур" onClick={() => setMenu(menu === "shapes" ? null : "shapes")}>
+        </BarBtn></Hint>
+        <Hint id="draw-shapes"><BarBtn active={anyShape || menu === "shapes"} label="Выравнивание линий и фигур" onClick={() => setMenu(menu === "shapes" ? null : "shapes")}>
           ◇ <span className="max-[400px]:hidden">Фигуры</span>
-        </BarBtn>
+        </BarBtn></Hint>
         <span className="min-w-0 flex-1" />
         <Button className="min-h-11 shrink-0 px-5" onClick={onDone}>
           Готово
@@ -427,9 +428,9 @@ export function PenBar({
         <button type="button" aria-label="Цвет" onClick={onColor} className="size-11 shrink-0 rounded-full border-[3px] border-white shadow ring-1 ring-ink/20" style={{ background: erasing ? "#fff" : color }}>
           {erasing ? <Eraser className="m-auto size-4 text-ink/75" /> : null}
         </button>
-        <button type="button" aria-label="Пипетка: взять цвет со страницы" onClick={onPipette} className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-ink">
+        <Hint id="draw-pipette"><button type="button" aria-label="Пипетка: взять цвет со страницы" onClick={onPipette} className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-ink">
           <Pipette className="size-4" />
-        </button>
+        </button></Hint>
         <div className="min-w-0 flex-1">
           <Stepper label={erasing ? "Ластик" : "Кисть"} value={erasing ? eraserPx : sizePx} min={1} max={erasing ? 150 : 140} onChange={erasing ? setEraserPx : setSizePx} />
         </div>
