@@ -5,9 +5,9 @@ import { afterHydrate } from "@/lib/rod/boot";
 import { flushBook, useRod } from "@/lib/rod/store";
 import { isMediaRef, mediaDataUrl, saveMedia } from "@/lib/rod/media";
 
-const DATA_KEYS = ["onboarded", "audience", "dedicatee", "collector", "people", "places", "photos", "stories", "events", "documents", "notes", "pages", "trash", "doneLessons", "print", "moodboard", "back", "spine", "fonts", "userStickers", "plan"] as const;
+export const DATA_KEYS = ["onboarded", "audience", "dedicatee", "collector", "people", "places", "photos", "stories", "events", "documents", "notes", "pages", "trash", "doneLessons", "print", "moodboard", "back", "spine", "fonts", "userStickers", "plan"] as const;
 
-function collectRefs(value: unknown, into: Set<string>) {
+export function collectRefs(value: unknown, into: Set<string>) {
   if (typeof value === "string") {
     if (isMediaRef(value)) into.add(value);
     return;
@@ -107,6 +107,15 @@ export async function importBook(file: File): Promise<void> {
     if (dataUrl) map.set(ref, await saveMedia(dataUrl));
   }
   const data = replaceRefs(parsed.data, map) as Record<string, unknown>;
+  const defaults: Record<string, unknown> = { back: null, spine: { text: "", font: "script", size: 0 }, fonts: [], userStickers: [], plan: [] };
+  const clean = { ...defaults, ...Object.fromEntries(DATA_KEYS.filter((key) => key in data).map((key) => [key, data[key]])) };
+  useRod.setState(clean);
+  afterHydrate();
+  flushBook();
+}
+
+/** Применяет данные книги, где ссылки на фото уже настоящие (синхронизация): ничего не переименовывает. */
+export function applyBookData(data: Record<string, unknown>): void {
   const defaults: Record<string, unknown> = { back: null, spine: { text: "", font: "script", size: 0 }, fonts: [], userStickers: [], plan: [] };
   const clean = { ...defaults, ...Object.fromEntries(DATA_KEYS.filter((key) => key in data).map((key) => [key, data[key]])) };
   useRod.setState(clean);

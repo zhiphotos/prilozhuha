@@ -10,7 +10,7 @@
     "dev": "vite dev --host 0.0.0.0 --port 8080 -c vite.pages.config.ts",
     "build:pages": "OUT_DIR=../kr-k3nu7rmszt vite build -c vite.pages.config.ts",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/lib/rod/search-limit.test.ts src/lib/tree/*.test.ts src/lib/rod/print-book.test.ts src/lib/rod/sticker.test.ts src/lib/rod/download-progress.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/rod/sync-logic.test.ts src/lib/rod/search-limit.test.ts src/lib/tree/*.test.ts src/lib/rod/print-book.test.ts src/lib/rod/sticker.test.ts src/lib/rod/download-progress.test.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
