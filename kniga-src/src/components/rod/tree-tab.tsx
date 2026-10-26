@@ -7,6 +7,7 @@ import { useRod } from "@/lib/rod/store";
 import { AddPerson } from "@/components/tree/AddPerson";
 import { PersonDrawer } from "@/components/tree/PersonDrawer";
 import { TreeStage } from "@/components/tree/TreeStage";
+import { StylePreview } from "@/components/tree/StylePreview";
 import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { layoutTree, sliceByRadius } from "@/lib/tree/layout";
 import { layoutCameo } from "@/lib/tree/cameo";
@@ -26,6 +27,7 @@ function TreeScreen() {
   const programOpen = useRod((state) => state.programOpen);
   const rodPeople = useRod((state) => state.people);
   const [pay, setPay] = useState(false);
+  const [preview, setPreview] = useState<TreeStyle | null>(null);
   useEffect(() => warmPhotos(), [rodPeople]);
   const people = useTree((s) => s.people);
   const unions = useTree((s) => s.unions);
@@ -137,7 +139,7 @@ function TreeScreen() {
         stylesLocked={!programOpen}
         onStyle={(next: TreeStyle) => {
           if (next !== "work" && !programOpen) {
-            setPay(true);
+            setPreview(next);
             return;
           }
           setStyle(next);
@@ -211,6 +213,17 @@ function TreeScreen() {
           }}
         />
       )}
+      {preview ? (
+        <StylePreview
+          style={preview}
+          onPick={(next) => setPreview(next === "work" ? null : next)}
+          onOpen={() => {
+            setPreview(null);
+            setPay(true);
+          }}
+          onClose={() => setPreview(null)}
+        />
+      ) : null}
       {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
     </main>
   );
