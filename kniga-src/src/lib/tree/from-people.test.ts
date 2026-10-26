@@ -19,3 +19,18 @@ test("люди встают на нужные линии", () => {
   assert.ok(parentsOf("u").includes("gm"));
   assert.ok(layoutTree(data.people, data.unions, data.focusId).nodes.length >= 6);
 });
+
+test("запись «я» становится центром древа, без двойника", () => {
+  const data = treeFromPeople([
+    { ...base, id: "me", name: "Регина Богатурова", relation: "я", birthYear: "1998" },
+    { ...base, id: "m", name: "Зульфира Усачева", relation: "мама" },
+    { ...base, id: "f", name: "Алексей Усачев", relation: "папа" },
+    { ...base, id: "s", name: "Ляйсан Усачева", relation: "сестра" },
+  ]);
+  assert.equal(data.focusId, "me");
+  assert.ok(!data.people.some((p) => p.id === SELF_ID), "запасного «Я» быть не должно");
+  assert.equal(data.people.length, 4);
+  const parentsOf = (id: string) => data.unions.find((u) => u.childIds.includes(id))?.partnerIds ?? [];
+  assert.deepEqual([...parentsOf("me")].sort(), ["f", "m"]);
+  assert.deepEqual([...parentsOf("s")].sort(), ["f", "m"]);
+});
