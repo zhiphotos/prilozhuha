@@ -26,7 +26,7 @@ export type RawTree = {
   focusId?: string;
 };
 
-const MAX_PEOPLE = 400;
+const MAX_PEOPLE = 5000;
 
 function clean(value: unknown): string {
   return String(value ?? "").replace(/\s+/g, " ").trim();
