@@ -4,6 +4,7 @@ import { Copy, ExternalLink, X } from "lucide-react";
 import { buildCase, type Lead, type Seek } from "@/lib/tree/ancestorSearch";
 import { displayName } from "@/lib/tree/kinship";
 import { SEARCH_LIMIT } from "@/lib/rod/search-limit";
+import { askAiSeek } from "@/lib/rod/seek";
 import type { Person } from "@/lib/tree/types";
 
 const SEEKS: { id: Seek; label: string }[] = [
@@ -55,24 +56,38 @@ export function AncestorSearch({ person, left, onSpend, onPlant, onClose }: { pe
     onClose();
   };
 
+  const [busy, setBusy] = useState(false);
+
   const search = () => {
+    if (busy) return;
     if (!onSpend()) {
       setError(`В этом месяце все ${SEARCH_LIMIT} поисков уже использованы. Они вернутся в начале следующего месяца.`);
       return;
     }
     const first = plan.leads[0];
     const second = plan.leads[1];
+    const local = [
+      plan.question,
+      first ? `Сначала «${first.title}»: вставьте «${first.query}».` : "",
+      second ? `Дальше то же имя в «${second.title}».` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    // Сразу показываем наводки без ИИ, чтобы человек не ждал; ИИ уточнит порядок и пояснения.
     setError(null);
     setLeads(plan.leads);
-    setSummary(
-      [
-        plan.question,
-        first ? `Сначала «${first.title}»: вставьте «${first.query}».` : "",
-        second ? `Дальше то же имя в «${second.title}».` : "",
-      ]
-        .filter(Boolean)
-        .join(" "),
-    );
+    setSummary(local);
+    setBusy(true);
+    void askAiSeek({ question: plan.question, variants: plan.variants, place, leads: plan.leads })
+      .then((answer) => {
+        if (answer.ok) {
+          setSummary(answer.summary || local);
+          setLeads(answer.leads);
+        } else if (answer.limit) {
+          setError(answer.message);
+        }
+      })
+      .finally(() => setBusy(false));
   };
 
   const copy = async (text: string, id: string) => {
@@ -140,7 +155,7 @@ export function AncestorSearch({ person, left, onSpend, onPlant, onClose }: { pe
               search();
             }}
           >
-            Найти наводки
+            {busy ? "ИИ уточняет порядок…" : "Найти наводки"}
             <span className="ml-2 rounded-full bg-sheet px-2 py-0.5 text-sm text-ink">осталось {left} из {SEARCH_LIMIT}</span>
           </button>
           <p className="text-sm text-muted">Каждое нажатие «Найти наводки» считается за один поиск. В месяц доступно {SEARCH_LIMIT}.</p>
