@@ -57,12 +57,12 @@ export function BookScreen() {
     <ScreenFrame>
       <TopBar kicker="Моя книга" title={name ? `Книга рода · ${name}` : "Книга рода"} />
 
-      <div data-tour="book-actions" className="mb-5 grid grid-cols-[1fr_auto] gap-2 sm:flex">
-        <Button className="min-h-12" disabled={pages.length === 0} onClick={() => nav.go({ id: "flip" })}>
+      <div data-tour="book-actions" className="mb-5 grid grid-cols-2 gap-2 sm:flex">
+        <Button className="col-span-2 min-h-12 sm:col-span-1" disabled={pages.length === 0} onClick={() => nav.go({ id: "flip" })}>
           <BookOpen className="size-4" /> Листать книгу
         </Button>
-        <Button variant="soft" className="min-h-12" disabled={pages.length === 0} onClick={() => setPrinting(true)}>
-          <Printer className="size-4" /> Печать
+        <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" disabled={pages.length === 0} onClick={() => setPrinting(true)}>
+          <Printer className="size-4" /> Формат и печать
         </Button>
         <Button className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setContents(true)}>
           <BookOpen className="size-4" /> Содержание{plan.length ? ` · ${plan.filter((c) => c.done).length} из ${plan.length}` : ""}
@@ -260,7 +260,7 @@ function PrintSheet({ pages, meta, onClose }: { pages: BookPage[]; meta: { dedic
       .finally(() => setBusy(null));
   };
   return (
-    <Sheet title="Файл для типографии" onClose={onClose}>
+    <Sheet title="Формат и печать" onClose={onClose}>
       <p className="text-sm text-muted">Формат книги (ширина × высота страницы)</p>
       <div className="mt-2 grid grid-cols-2 gap-2">
         {BOOK_FORMATS.map((format) => {

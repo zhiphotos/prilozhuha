@@ -137,7 +137,7 @@ export function FlipBookCss({ pageId }: { pageId?: string }) {
   const printFile = () => {
     setSaving("Готовлю файл…");
     void downloadFamilyBook(pages, meta, (done, total) => setSaving(`Страница ${done + 1} из ${total}…`))
-      .then(() => toast("Просмотр книги сохранён. Файл для типографии – в «Книга» → «Печать»."))
+      .then(() => toast("Просмотр книги сохранён. Файл для типографии – в «Книга» → «Формат и печать»."))
       .catch(() => toast("Файл не собрался. Попробуйте ещё раз."))
       .finally(() => setSaving(null));
   };

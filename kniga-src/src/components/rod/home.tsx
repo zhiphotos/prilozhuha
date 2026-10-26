@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Button, Field, ScreenFrame, Sheet, lineStyle, useNav } from "@/components/rod/chrome";
 import { changedSinceBackup, exportBook, lastBackupAt } from "@/lib/rod/backup";
 import { InstallCard, InstallSheet } from "@/components/rod/install-hint";
+import { TransferCard } from "@/components/rod/transfer-card";
 import { ProjectsSheet } from "@/components/rod/projects-sheet";
 import { activeProjectId, listProjects } from "@/lib/rod/projects";
 
@@ -180,6 +181,7 @@ export function HomeScreen() {
 
       <RemindersCard />
       <BackupCard hasData={total > 0 || data.pages.length > 1} />
+      {data.programOpen ? <TransferCard hasData={total > 0 || data.pages.length > 1} /> : null}
       <InstallCard />
 
       <LegalLinks />
