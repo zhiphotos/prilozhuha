@@ -7,6 +7,7 @@ import type { Person as RodPerson } from "@/lib/rod/types";
 import { gedToPeople, type ImportedPerson } from "@/lib/tree/gedImport.ts";
 import { parseGedcom } from "@/lib/tree/importTree.ts";
 import { parseTable } from "@/lib/tree/tableImport.ts";
+import { isAgelongXml, parseAgelongXml } from "@/lib/tree/agelongXml.ts";
 import type { TreeData } from "@/lib/tree/types.ts";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -18,6 +19,7 @@ export function GedImportButton() {
   const [table, setTable] = useState<ImportedPerson[] | null>(null);
   const [selfKey, setSelfKey] = useState("");
   const [busy, setBusy] = useState(false);
+  const [chooser, setChooser] = useState(false);
   const people = useRod((s) => s.people);
 
   const preview = useMemo(() => {
@@ -30,7 +32,19 @@ export function GedImportButton() {
 
   const pick = (file: File | undefined) => {
     if (!file) return;
+    if (/\.atdb$/i.test(file.name)) {
+      toast("Это база программы «Древо Жизни». Сохраните из программы файл XML (Файл, Экспорт) и загрузите его.", { duration: 8000 });
+      return;
+    }
     void file.text().then((text) => {
+      if (isAgelongXml(text)) {
+        const r = parseAgelongXml(text);
+        if ("error" in r) return toast(r.error);
+        setTable(null);
+        setTree(r.tree);
+        setSelfKey(r.tree.focusId);
+        return;
+      }
       if (/\.(csv|tsv|txt)$/i.test(file.name) && !/^\s*0\s+HEAD/m.test(text)) {
         const r = parseTable(text);
         if ("error" in r) return toast(r.error);
@@ -78,10 +92,24 @@ export function GedImportButton() {
 
   return (
     <>
-      <input ref={input} type="file" accept=".ged,.csv,.tsv,.txt,text/plain,text/csv" className="sr-only" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
-      <button type="button" className="chip pointer-events-auto" onClick={() => input.current?.click()}>
+      <input ref={input} type="file" accept=".ged,.csv,.tsv,.txt,.xml,.atdb,text/plain,text/csv,text/xml" className="sr-only" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
+      <button type="button" className="chip pointer-events-auto" onClick={() => setChooser(true)}>
         Из файла
       </button>
+      {chooser ? (
+        <Sheet title="Загрузить древо из файла" onClose={() => setChooser(false)}>
+          <div className="grid gap-3">
+            <p className="text-sm text-muted">Бесплатно. Подойдут такие файлы:</p>
+            <ul className="grid gap-2 text-sm text-ink">
+              <li><b>.ged</b> (GEDCOM): обычный обмен между программами. Его сохраняют «Древо Жизни», FamilyTree, Gramps, MyHeritage, Ancestry, Familysearch и другие.</li>
+              <li><b>.xml</b> из «Древа Жизни» (genery.com): Файл, Экспорт, формат XML.</li>
+              <li><b>.csv</b>: таблица из Excel или Google Таблиц (Файл, Скачать или Сохранить как, CSV). Колонки: Фамилия, Имя, Отчество, Год рождения, Год смерти, Пол, Кем приходится, Отец, Мать, Супруг.</li>
+            </ul>
+            <p className="text-xs text-muted">Файл с расширением .atdb (база «Древа Жизни») открыть нельзя: сохраните из программы XML.</p>
+            <Button onClick={() => { setChooser(false); input.current?.click(); }}>Выбрать файл</Button>
+          </div>
+        </Sheet>
+      ) : null}
       {tree || table ? (
         <Sheet title="Загрузка древа из файла" onClose={() => { setTree(null); setTable(null); }}>
           <div className="grid gap-3">
