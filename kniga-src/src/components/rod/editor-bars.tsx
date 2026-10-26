@@ -112,7 +112,6 @@ export function FontChips({ value, onPick, onMore, sample }: { value: FontRef; o
 // ——— Панель ввода текста: двигается, ниже по умолчанию, пишет по всему экрану ———
 
 const PANEL_KEY = "kniga-textpanel-pos";
-const FULL_KEY = "kniga-textpanel-full";
 
 function savedPos(): { dx: number; dy: number } {
   try {
@@ -146,13 +145,9 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
   const latest = useRef(block.text);
   const [colors, setColors] = useState<null | "fg" | "bg">(null);
   const [pos, setPos] = useState(savedPos);
-  const [whole, setWhole] = useState(() => {
-    try {
-      return localStorage.getItem(FULL_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
+  // Режим «пером где угодно» закрывает весь экран невидимым полем, поэтому его не запоминаем:
+  // при каждом открытии текста он выключен, чтобы письмо стилусом не попадало в приложение целиком.
+  const [whole, setWhole] = useState(false);
   const [mic, setMic] = useState<string | null>(null);
   const [more, setMore] = useState(() => window.innerWidth >= 430);
   const dictation = useRef<Dictation | null>(null);
@@ -297,11 +292,6 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
           <BarBtn
             onClick={() => {
               setWhole(!whole);
-              try {
-                localStorage.setItem(FULL_KEY, whole ? "0" : "1");
-              } catch {
-                /* без запоминания */
-              }
             }}
             active={whole}
             label="Писать стилусом в любом месте экрана (мешает нажимать на страницу)"
