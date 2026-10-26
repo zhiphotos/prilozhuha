@@ -80,7 +80,7 @@ export function GedImportButton() {
     <>
       <input ref={input} type="file" accept=".ged,.csv,.tsv,.txt,text/plain,text/csv" className="sr-only" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
       <button type="button" className="chip pointer-events-auto" onClick={() => input.current?.click()}>
-        Загрузить из файла
+        Из файла
       </button>
       {tree || table ? (
         <Sheet title="Загрузка древа из файла" onClose={() => { setTree(null); setTable(null); }}>

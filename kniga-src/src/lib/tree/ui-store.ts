@@ -5,6 +5,7 @@ import { useRod } from "@/lib/rod/store";
 import type { Person as RodPerson } from "@/lib/rod/types";
 import type { UnionFacts } from "./fill.ts";
 import { SELF_ID, roleOf, treeFromPeople } from "./from-people.ts";
+import type { TreeScope } from "./scope.ts";
 import type { TreeStyle } from "./styles.ts";
 import type { Gender, Person, Union, UnionStatus } from "./types.ts";
 
@@ -40,6 +41,7 @@ type State = {
   style: TreeStyle;
   banner: string;
   flow: TreeFlow;
+  scope: TreeScope;
   selectedId: string | null;
   unionId: string | null;
   roster: boolean;
@@ -50,6 +52,7 @@ type State = {
   setStyle: (style: TreeStyle) => void;
   setBanner: (banner: string) => void;
   setFlow: (flow: TreeFlow) => void;
+  setScope: (scope: TreeScope) => void;
   setFocus: (id: string) => void;
   updatePerson: (id: string, draft: Draft) => void;
   setUnionStatus: (id: string, status: UnionStatus) => void;
@@ -61,18 +64,18 @@ type State = {
 
 const KEY = "kniga-tree-ui";
 
-function readUi(): { theme: ThemeName; style: TreeStyle; banner: string; flow: TreeFlow } {
+function readUi(): { theme: ThemeName; style: TreeStyle; banner: string; flow: TreeFlow; scope: TreeScope } {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) || "{}") as Partial<{ theme: ThemeName; banner: string; flow: TreeFlow }>;
-    return { theme: raw.theme === "paper" ? "paper" : "night", style: "work", banner: typeof raw.banner === "string" ? raw.banner : "", flow: raw.flow === "up" ? "up" : "down" };
+    const raw = JSON.parse(localStorage.getItem(KEY) || "{}") as Partial<{ theme: ThemeName; banner: string; flow: TreeFlow; scope: TreeScope }>;
+    return { theme: raw.theme === "paper" ? "paper" : "night", style: "work", banner: typeof raw.banner === "string" ? raw.banner : "", flow: raw.flow === "up" ? "up" : "down", scope: (["direct", "direct-sib-root", "direct-sib-all", "blood"] as const).find((x) => x === raw.scope) ?? "all" };
   } catch {
-    return { theme: "night", style: "work", banner: "", flow: "down" };
+    return { theme: "night", style: "work", banner: "", flow: "down", scope: "all" };
   }
 }
 
 function saveUi(s: State) {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ theme: s.theme, banner: s.banner, flow: s.flow }));
+    localStorage.setItem(KEY, JSON.stringify({ theme: s.theme, banner: s.banner, flow: s.flow, scope: s.scope }));
   } catch {
     /* оформление живёт до закрытия */
   }
@@ -164,6 +167,7 @@ export const useTree = create<State>((set, get) => {
     setStyle: (style) => set({ style }),
     setBanner: (banner) => { set({ banner }); persistUi(); },
     setFlow: (flow) => { set({ flow }); persistUi(); },
+    setScope: (scope) => { set({ scope }); persistUi(); },
     setFocus: (id) => set({ focusId: id }),
     updatePerson: (id, draft) => {
       void (async () => {

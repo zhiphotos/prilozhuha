@@ -13,6 +13,7 @@ import { Hint } from "@/components/rod/hint";
 import { PrintTree } from "@/components/tree/PrintTree";
 import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { layoutTree, sliceByRadius } from "@/lib/tree/layout";
+import { SCOPES, scopeFilter } from "@/lib/tree/scope";
 import { layoutCameo } from "@/lib/tree/cameo";
 import { layoutGzhel } from "@/lib/tree/gzhel";
 import { layoutBoheme } from "@/lib/tree/boheme";
@@ -55,7 +56,11 @@ function TreeScreen() {
   const [add, setAdd] = useState(false);
   const [sheetPick, setSheetPick] = useState(false);
   const [fitReq, setFitReq] = useState(0);
-  const view = useMemo(() => sliceByRadius(people, unions, focusId, radius), [people, unions, focusId, radius]);
+  const scope = useTree((s) => s.scope);
+  const setScope = useTree((s) => s.setScope);
+  const [scopeOpen, setScopeOpen] = useState(false);
+  const shown = useMemo(() => scopeFilter(people, unions, focusId, scope), [people, unions, focusId, scope]);
+  const view = useMemo(() => sliceByRadius(shown.people, shown.unions, focusId, radius), [shown, focusId, radius]);
   const layout = useMemo(() => layoutTree(view.people, view.unions, focusId, flow), [view, focusId, flow]);
   const poster = useMemo(() => (style === "carved" ? layoutPoster(view.people, view.unions, focusId, flow) : null), [style, view, focusId, flow]);
   const cameo = useMemo(() => (style === "cameo" ? layoutCameo(view.people, view.unions, focusId, flow) : null), [style, view, focusId, flow]);
@@ -76,7 +81,7 @@ function TreeScreen() {
     setBusy(true);
     setNote(null);
     try {
-      await exportPoster({ people, unions, focusId }, style, banner, paper, flow);
+      await exportPoster({ people: shown.people, unions: shown.unions, focusId }, style, banner, paper, flow);
       const saved =
         style === "work"
           ? paper === "black"
@@ -168,6 +173,31 @@ function TreeScreen() {
           </button>
           <Hint id="tree-pdf"><button type="button" className="chip pointer-events-auto" onClick={() => setPrinting(true)}>PDF</button></Hint>
           <Hint id="tree-ged"><GedImportButton /></Hint>
+          <div className="relative">
+            <button type="button" className="chip" aria-expanded={scopeOpen} onClick={() => setScopeOpen((v) => !v)}>
+              {scope === "all" ? "Показать" : "Показано"} ▾
+            </button>
+            {scopeOpen && (
+              <div className="absolute top-12 left-0 z-30 grid w-[min(20rem,calc(100vw-1.5rem))] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg backdrop-blur-md">
+                {SCOPES.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={scope === item.id}
+                    className={`rounded-xl px-3 py-2 text-left ${scope === item.id ? "bg-gold text-ink" : "text-chip-fg"}`}
+                    onClick={() => {
+                      setScope(item.id);
+                      setScopeOpen(false);
+                      setFitReq((n) => n + 1);
+                    }}
+                  >
+                    <span className="block text-sm font-semibold">{item.label}</span>
+                    <span className="block text-xs opacity-75">{item.hint}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button type="button" className="chip" aria-label="Тема" onClick={() => setTheme(theme === "night" ? "paper" : "night")}>
             {theme === "night" ? <Sun className="size-5" /> : <Moon className="size-5" />}
           </button>
@@ -230,7 +260,7 @@ function TreeScreen() {
           onClose={() => setPreview(null)}
         />
       ) : null}
-      {printing ? <PrintTree style={style} data={{ people, unions, focusId }} flow={flow} onClose={() => setPrinting(false)} /> : null}
+      {printing ? <PrintTree style={style} data={{ people: shown.people, unions: shown.unions, focusId }} flow={flow} onClose={() => setPrinting(false)} /> : null}
       {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
     </main>
   );
