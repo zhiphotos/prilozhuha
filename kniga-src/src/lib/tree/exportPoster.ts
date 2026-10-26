@@ -1,0 +1,422 @@
+import { displayName, kinship, yearsOf } from "./kinship.ts";
+import { layoutTree } from "./layout.ts";
+import { PLATE_GAP, PLATE_H, PLATE_W, PORTRAIT_R } from "./metrics.ts";
+import { layoutTaiga, TAIGA_FRAME, TAIGA_FRAMES } from "./taiga.ts";
+import { layoutBoheme, BOHEME_FRAME, BOHEME_FRAMES } from "./boheme.ts";
+import { layoutGzhel, GZHEL_FRAME, GZHEL_FRAMES } from "./gzhel.ts";
+import { layoutCameo, FRAME, FRAMES } from "./cameo.ts";
+import { layoutPoster } from "./poster.ts";
+import { type TreeStyle } from "./styles.ts";
+import type { TreeData, UnionStatus } from "./types.ts";
+
+const INK = "#1c1612";
+
+function lineColor(status: UnionStatus, dark: boolean): string {
+  if (dark) {
+    if (status === "divorced") return "#e0b15c";
+    if (status === "widowed") return "#c9b6ea";
+    if (status === "partner") return "#e0b56a";
+    return "#f0a8c4";
+  }
+  if (status === "divorced") return "#8a6230";
+  if (status === "widowed") return "#6d5488";
+  if (status === "partner") return "#e0b56a";
+  return "#9d3a5c";
+}
+
+function pillText(status: UnionStatus): string {
+  if (status === "divorced") return "РАЗВОД";
+  if (status === "widowed") return "ВДОВСТВО";
+  if (status === "partner") return "СОЮЗ";
+  return "БРАК";
+}
+
+async function loadImage(src: string): Promise<HTMLImageElement | null> {
+  if (!src) return null;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+function fitScale(width: number, height: number) {
+  let scale = 2;
+  while (scale > 0.4 && (width * scale > 4096 || height * scale > 4096 || width * height * scale * scale > 16_000_000)) scale *= 0.84;
+  return scale;
+}
+
+function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, width: number, height: number) {
+  const scale = Math.max(width / img.naturalWidth, height / img.naturalHeight);
+  const dw = img.naturalWidth * scale;
+  const dh = img.naturalHeight * scale;
+  ctx.drawImage(img, (width - dw) / 2, (height - dh) / 2, dw, dh);
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+}
+
+async function savePng(canvas: HTMLCanvasElement) {
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+  if (!blob) throw new Error("png");
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "kniga-roda.png";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function exportPoster(data: TreeData, style: TreeStyle = "work", banner = "", paper: "white" | "black" = "white", flow: "down" | "up" = "down"): Promise<void> {
+  await document.fonts.load('600 64px "Cormorant Garamond"');
+  await document.fonts.load('500 22px Manrope');
+  const titleOf = (fallback: string) => banner.trim() || fallback;
+  if (style === "taiga") return savePng(await renderTaiga(data, titleOf, flow));
+  if (style === "boheme") return savePng(await renderBoheme(data, titleOf, flow));
+  if (style === "gzhel") return savePng(await renderGzhel(data, titleOf, flow));
+  if (style === "cameo") return savePng(await renderCameo(data, titleOf, flow));
+  if (style === "carved") return savePng(await renderLiving(data, titleOf, flow));
+  await savePng(await renderWork(data, paper, flow));
+}
+
+async function renderWork(data: TreeData, paper: "white" | "black", flow: "down" | "up"): Promise<HTMLCanvasElement> {
+  const dark = paper === "black";
+  const tone = dark
+    ? { sheet: "#100e0c", blood: "#8eb6ff", plate: "#241c16", ink: "#f4efe4", role: "#e7b39a", muted: "#cbbba6", ring: "#f4efe4", pill: "#1a1612", empty: "#3a2e26", footer: "#f4efe4" }
+    : { sheet: "#fbf7f0", blood: "#1e4f8f", plate: "#f6f1e7", ink: "#1c1612", role: "#8d4e3a", muted: "#7d7368", ring: "#fffaf2", pill: "#fffaf2", empty: "#d7c3a4", footer: "#1c1612" };
+  const layout = layoutTree(data.people, data.unions, data.focusId, flow);
+  const footer = 120;
+  const scale = fitScale(layout.width, layout.height + footer);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(layout.width * scale);
+  canvas.height = Math.ceil((layout.height + footer) * scale);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas");
+  const people = new Map(data.people.map((p) => [p.id, p]));
+  const photos = new Map<string, HTMLImageElement | null>();
+  await Promise.all([...people.values()].map(async (p) => photos.set(p.id, await loadImage(p.photo))));
+  ctx.scale(scale, scale);
+  ctx.fillStyle = tone.sheet;
+  ctx.fillRect(0, 0, layout.width, layout.height + footer);
+  ctx.strokeStyle = tone.blood;
+  ctx.lineWidth = 2.6;
+  ctx.lineCap = "round";
+  for (const bus of layout.buses) {
+    const min = bus.xs[0];
+    const max = bus.xs[bus.xs.length - 1];
+    ctx.beginPath();
+    if (bus.fromX != null && bus.fromY != null && min != null && max != null) {
+      ctx.moveTo(bus.fromX, bus.fromY);
+      ctx.lineTo(bus.fromX, bus.busY);
+      ctx.lineTo(bus.fromX < min ? min : bus.fromX > max ? max : bus.fromX, bus.busY);
+    }
+    if (min != null && max != null && bus.xs.length > 1) {
+      ctx.moveTo(min, bus.busY);
+      ctx.lineTo(max, bus.busY);
+    }
+    for (const x of bus.xs) {
+      ctx.moveTo(x, bus.busY);
+      ctx.lineTo(x, bus.childTop);
+    }
+    ctx.stroke();
+  }
+  for (const link of layout.spouses) {
+    const color = lineColor(link.status, dark);
+    ctx.strokeStyle = color;
+    ctx.setLineDash(link.status === "divorced" ? [6, 7] : []);
+    ctx.beginPath();
+    const dir = Math.sign(link.x2 - link.x1) || 1;
+    ctx.moveTo(link.x1 + dir * (PORTRAIT_R + 2), link.y1);
+    ctx.lineTo(link.x2 - dir * (PORTRAIT_R + 2), link.y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const text = pillText(link.status);
+    const w = text.length > 7 ? 112 : 78;
+    const mx = (link.x1 + link.x2) / 2;
+    ctx.fillStyle = tone.pill;
+    roundRect(ctx, mx - w / 2, link.y1 - 12, w, 24, 12);
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.font = "700 10px Manrope, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, mx, link.y1);
+  }
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = dark ? "rgba(244,226,196,0.72)" : "rgba(60,42,28,0.72)";
+  ctx.font = "600 13px Manrope, sans-serif";
+  ctx.textAlign = "left";
+  for (const label of layout.labels) ctx.fillText(label.text, 18, label.y);
+  for (const node of layout.nodes) {
+    const person = people.get(node.id);
+    if (!person) continue;
+    const photo = photos.get(node.id);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, PORTRAIT_R, 0, Math.PI * 2);
+    ctx.clip();
+    if (photo) ctx.drawImage(photo, node.x - PORTRAIT_R, node.y - PORTRAIT_R, PORTRAIT_R * 2, PORTRAIT_R * 2);
+    else {
+      ctx.fillStyle = tone.empty;
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.strokeStyle = tone.ring;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, PORTRAIT_R, 0, Math.PI * 2);
+    ctx.stroke();
+    const top = node.y + PORTRAIT_R + PLATE_GAP;
+    ctx.fillStyle = tone.plate;
+    roundRect(ctx, node.x - PLATE_W / 2, top, PLATE_W, PLATE_H, 14);
+    ctx.fill();
+    ctx.fillStyle = tone.ink;
+    ctx.textAlign = "center";
+    ctx.font = '600 16px "Cormorant Garamond", serif';
+    ctx.fillText(displayName(person), node.x, top + 24);
+    ctx.fillStyle = tone.role;
+    ctx.font = "700 11px Manrope, sans-serif";
+    ctx.fillText(kinship(data.people, data.unions, data.focusId, person.id).card, node.x, top + 42);
+    ctx.fillStyle = tone.muted;
+    ctx.font = "11px Manrope, sans-serif";
+    ctx.fillText(yearsOf(person), node.x, top + 60);
+  }
+  paintFooter(ctx, canvas, layout.height, scale, tone.footer);
+  return canvas;
+}
+
+function paintFooter(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, sheetHeight: number, scale: number, color: string) {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = color;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `500 ${Math.round(22 * scale)}px "Cormorant Garamond", serif`;
+  ctx.fillText("Книга Рода", canvas.width / 2, sheetHeight * scale + 48 * scale);
+  ctx.restore();
+}
+
+async function renderLiving(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up"): Promise<HTMLCanvasElement> {
+  const poster = layoutPoster(data.people, data.unions, data.focusId, flow);
+  const footer = 88;
+  const scale = fitScale(poster.width, poster.height + footer);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(poster.width * scale);
+  canvas.height = Math.ceil((poster.height + footer) * scale);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas");
+  const people = new Map(data.people.map((p) => [p.id, p]));
+  const photos = new Map<string, HTMLImageElement | null>();
+  const bg = await loadImage("/tree/oak-white.jpg");
+  await Promise.all([...people.values()].map(async (p) => photos.set(p.id, await loadImage(p.photo))));
+  ctx.scale(scale, scale);
+  ctx.fillStyle = "#f7f6f3";
+  ctx.fillRect(0, 0, poster.width, poster.height + footer);
+  if (bg) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, poster.width, poster.height);
+    ctx.clip();
+    drawCover(ctx, bg, poster.width, poster.height);
+    ctx.restore();
+  }
+  ctx.strokeStyle = "rgba(55,48,40,0.38)";
+  ctx.lineWidth = 1.15;
+  for (const d of poster.links) ctx.stroke(new Path2D(d));
+  ctx.fillStyle = "rgba(255,255,255,0.82)";
+  ctx.font = '500 11px Manrope, sans-serif';
+  ctx.textAlign = "center";
+  ctx.fillText(titleOf(poster.title), poster.titleX, poster.titleY);
+  for (const node of poster.nodes) {
+    const person = people.get(node.id);
+    if (!person) continue;
+    const w = node.w;
+    const h = poster.cardH;
+    ctx.fillStyle = "rgba(255,255,255,0.72)";
+    roundRect(ctx, node.x - w / 2, node.y - h / 2, w, h, 16);
+    ctx.fill();
+    const photo = photos.get(node.id);
+    const pr = 18;
+    if (photo) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(node.x - w / 2 + 28, node.y, pr, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(photo, node.x - w / 2 + 28 - pr, node.y - pr, pr * 2, pr * 2);
+      ctx.restore();
+    }
+    ctx.fillStyle = "#171717";
+    ctx.font = '500 13px Manrope, sans-serif';
+    ctx.textAlign = "left";
+    ctx.fillText(displayName(person), node.x - w / 2 + 52, node.y - 6);
+    ctx.fillStyle = "#737373";
+    ctx.font = "11px Manrope, sans-serif";
+    ctx.fillText(yearsOf(person), node.x - w / 2 + 52, node.y + 10);
+  }
+  paintFooter(ctx, canvas, poster.height, scale, INK);
+  return canvas;
+}
+
+type FrameSpec = { src: string; hole: number };
+type Sheet = { width: number; height: number; nodes: { id: string; x: number; y: number }[]; vines: string[]; marks: { x: number; y: number; text: string }[]; title: string };
+
+async function renderFramed(
+  data: TreeData,
+  titleOf: (fallback: string) => string,
+  sheet: Sheet,
+  frames: readonly FrameSpec[],
+  size: number,
+  ink: string,
+  paper: string,
+  opts: { bg?: string; blur?: number; veil?: string; sprigs?: boolean } = {},
+): Promise<HTMLCanvasElement> {
+  const footer = 72;
+  const scale = fitScale(sheet.width, sheet.height + footer);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(sheet.width * scale);
+  canvas.height = Math.ceil((sheet.height + footer) * scale);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas");
+  const people = new Map(data.people.map((p) => [p.id, p]));
+  const loaded = await Promise.all(frames.map((frame) => loadImage(frame.src)));
+  const photos = new Map<string, HTMLImageElement | null>();
+  const bg = opts.bg ? await loadImage(opts.bg) : null;
+  const sprig = opts.sprigs ? await loadImage("/tree/boheme/sprig.png") : null;
+  await Promise.all([...people.values()].map(async (p) => photos.set(p.id, await loadImage(p.photo))));
+  ctx.fillStyle = paper;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.scale(scale, scale);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, sheet.width, sheet.height);
+  ctx.clip();
+  if (bg) {
+    if (opts.blur) ctx.filter = `blur(${opts.blur}px)`;
+    drawCover(ctx, bg, sheet.width, sheet.height);
+    ctx.filter = "none";
+  }
+  if (opts.veil) {
+    ctx.fillStyle = opts.veil;
+    ctx.fillRect(0, 0, sheet.width, sheet.height);
+  }
+  ctx.restore();
+  if (sprig) {
+    const s = 170;
+    ctx.drawImage(sprig, 0, 0, s, s);
+    ctx.save();
+    ctx.translate(sheet.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(sprig, 0, 0, s, s);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(0, sheet.height);
+    ctx.scale(1, -1);
+    ctx.drawImage(sprig, 0, 0, s, s);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(sheet.width, sheet.height);
+    ctx.scale(-1, -1);
+    ctx.drawImage(sprig, 0, 0, s, s);
+    ctx.restore();
+  }
+  ctx.fillStyle = ink;
+  ctx.textAlign = "center";
+  ctx.font = '34px "Cormorant Garamond", serif';
+  ctx.fillText(titleOf(sheet.title), sheet.width / 2, 48);
+  ctx.strokeStyle = ink;
+  ctx.globalAlpha = 0.8;
+  ctx.lineWidth = 1.15;
+  ctx.lineCap = "round";
+  for (const d of sheet.vines) ctx.stroke(new Path2D(d));
+  ctx.globalAlpha = 1;
+  ctx.font = 'italic 12px "Cormorant Garamond", serif';
+  for (const mark of sheet.marks) ctx.fillText(mark.text, mark.x, mark.y);
+  for (const node of sheet.nodes) {
+    const person = people.get(node.id);
+    if (!person) continue;
+    let n = 0;
+    for (const ch of person.id) n = (n + ch.charCodeAt(0)) % frames.length;
+    const spec = frames[n]!;
+    const photoR = size * spec.hole;
+    const photo = photos.get(node.id);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, photoR, 0, Math.PI * 2);
+    ctx.clip();
+    if (photo) ctx.drawImage(photo, node.x - photoR, node.y - photoR, photoR * 2, photoR * 2);
+    else {
+      ctx.fillStyle = "#3a332c";
+      ctx.fillRect(node.x - photoR, node.y - photoR, photoR * 2, photoR * 2);
+    }
+    ctx.restore();
+    const frame = loaded[n];
+    if (frame) ctx.drawImage(frame, node.x - size, node.y - size, size * 2, size * 2);
+    const role = kinship(data.people, data.unions, data.focusId, person.id).card;
+    const years = yearsOf(person);
+    const top = node.y + size + 4;
+    ctx.fillStyle = ink;
+    ctx.font = '15px "Cormorant Garamond", serif';
+    ctx.fillText(displayName(person), node.x, top + 16);
+    ctx.globalAlpha = 0.86;
+    ctx.font = '11px "Cormorant Garamond", serif';
+    ctx.fillText(role, node.x, top + 34);
+    if (years) {
+      ctx.globalAlpha = 0.72;
+      ctx.fillText(years, node.x, top + 50);
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  paintFooter(ctx, canvas, sheet.height, scale, ink === "#f4efe4" || ink === "#f4f7f2" || ink === "#f6f1e6" ? "#f4efe4" : INK);
+  return canvas;
+}
+
+async function renderCameo(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up") {
+  return renderFramed(data, titleOf, layoutCameo(data.people, data.unions, data.focusId, flow), FRAMES, FRAME, "#f4efe4", "#000");
+}
+
+async function renderGzhel(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up") {
+  const sheet = layoutGzhel(data.people, data.unions, data.focusId, flow);
+  const canvas = await renderFramed(data, titleOf, sheet, GZHEL_FRAMES, GZHEL_FRAME, "#163a78", "#fbfcfe");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return canvas;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const scale = canvas.width / sheet.width;
+  const frames = await Promise.all([1, 2, 4, 5].map((n) => loadImage(`/tree/gzhel/frame-${n}.png`)));
+  const tile = 92;
+  const inset = 16;
+  const spots = [
+    [inset, inset, frames[0]],
+    [sheet.width - inset - tile, inset, frames[1]],
+    [inset, sheet.height - inset - tile, frames[2]],
+    [sheet.width - inset - tile, sheet.height - inset - tile, frames[3]],
+  ] as const;
+  ctx.save();
+  ctx.scale(scale, scale);
+  for (const [x, y, img] of spots) if (img) ctx.drawImage(img, x, y, tile, tile);
+  ctx.restore();
+  return canvas;
+}
+
+async function renderBoheme(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up") {
+  return renderFramed(data, titleOf, layoutBoheme(data.people, data.unions, data.focusId, flow), BOHEME_FRAMES, BOHEME_FRAME, "#f6f1e6", "#1a2418", {
+    bg: "/tree/boheme/bg.jpg",
+    blur: 10,
+    veil: "rgba(16,22,14,0.42)",
+    sprigs: true,
+  });
+}
+
+async function renderTaiga(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up") {
+  return renderFramed(data, titleOf, layoutTaiga(data.people, data.unions, data.focusId, flow), TAIGA_FRAMES, TAIGA_FRAME, "#f4f7f2", "#142018", {
+    bg: "/tree/taiga/bg.jpg",
+    blur: 3,
+    veil: "rgba(14,22,18,0.35)",
+  });
+}
