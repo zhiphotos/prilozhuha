@@ -45,7 +45,8 @@ export function flowAround(
   const lines: WrapLine[] = [];
   const paragraphs = block.text.split("\n");
   let row = 0;
-  const free = (): { x: number; w: number } => {
+  // Свободные промежутки строки слева направо: если фото посередине, текст идёт по обе стороны от него.
+  const freeSpans = (): { x: number; w: number }[] => {
     const y0 = top + pad.y + row * lineH;
     let spans: [number, number][] = [[pad.x, pad.x + full]];
     for (const o of obstacles) {
@@ -62,8 +63,7 @@ export function flowAround(
       }
       spans = next;
     }
-    const best = spans.sort((p, q) => q[1] - q[0] - (p[1] - p[0]))[0];
-    return best ? { x: best[0], w: best[1] - best[0] } : { x: pad.x, w: 0 };
+    return spans.sort((p, q) => p[0] - q[0]).map(([a, b]) => ({ x: a, w: b - a }));
   };
   const place = (text: string, span: { x: number; w: number }) => {
     const width = measure(text);
@@ -80,18 +80,26 @@ export function flowAround(
     }
     let at = 0;
     while (at < words.length && guard++ < 4000) {
-      const span = free();
-      if (span.w < MIN_ROW && span.w < full) {
-        row += 1;
-        continue;
+      const all = freeSpans();
+      const usable = all.filter((span) => span.w >= MIN_ROW);
+      if (!usable.length) {
+        // Весь ряд занят: пропускаем. Если блок сам уже минимума, пишем в него как есть.
+        if (full >= MIN_ROW) {
+          row += 1;
+          continue;
+        }
+        usable.push({ x: pad.x, w: full });
       }
-      let line = words[at];
-      at += 1;
-      while (at < words.length && measure(`${line} ${words[at]}`) <= span.w) {
-        line = `${line} ${words[at]}`;
+      for (const span of usable) {
+        if (at >= words.length) break;
+        let line = words[at];
         at += 1;
+        while (at < words.length && measure(`${line} ${words[at]}`) <= span.w) {
+          line = `${line} ${words[at]}`;
+          at += 1;
+        }
+        place(line, span);
       }
-      place(line, span);
       row += 1;
     }
   }
