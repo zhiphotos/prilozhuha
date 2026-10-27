@@ -20,6 +20,7 @@ import {
   stickerUrl,
   textMetrics,
 } from "@/lib/rod/page-style";
+import { flowAround, obstaclesFor, preloadShapes } from "@/lib/rod/wrap-around";
 import { MM, buildJpegPdf, type PdfSheet } from "@/lib/rod/pdf";
 import type { PrintSetup } from "@/lib/rod/page-style";
 import { shapeParts, shapeStyle } from "@/lib/rod/shapes";
@@ -240,7 +241,7 @@ function rotateAround(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
   ctx.translate(-w / 2, -h / 2);
 }
 
-function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { type: "text" }>, dark = false) {
+function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { type: "text" }>, dark = false, siblings: PageBlock[] = []) {
   if (!block.text.trim()) return;
   const metrics = textMetrics(block.font, block.size, block.px);
   const pad = lookPad(block.look);
@@ -250,6 +251,20 @@ function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { ty
   ctx.font = `${fontWeight(block.font)} ${px}px ${fontFamily(block.font)}`;
   const boxW = (block.w / 100) * W;
   const innerW = boxW - pad.x * 2 * U;
+  if (block.wrap && block.look !== "card" && block.look !== "pill") {
+    // Текст обтекает фото и стикеры: те же строки, что на экране.
+    const around = flowAround(block, obstaclesFor(siblings, block), (text) => ctx.measureText(text).width / U, metrics.size * metrics.leading, pad);
+    const ax = (block.x / 100) * W;
+    const ay = (block.y / 100) * H;
+    ctx.save();
+    rotateAround(ctx, ax, ay, boxW, around.height * U, block.rotate ?? 0);
+    ctx.fillStyle = colors.fg;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    around.lines.forEach((line) => ctx.fillText(line.text, line.x * U, (line.y + metrics.size * metrics.leading / 2) * U));
+    ctx.restore();
+    return;
+  }
   const lines = wrap(ctx, block.text, innerW);
   const textW = Math.max(...lines.map((line) => ctx.measureText(line).width), 0);
   const bgW = block.look === "pill" ? Math.min(boxW, textW + pad.x * 2 * U) : boxW;
@@ -454,9 +469,10 @@ function paintStrokes(ctx: CanvasRenderingContext2D, page: BookPage) {
 }
 
 /** Рисует блок на отдельном слое, чтобы применить прозрачность, режим наложения и ластик (маску). */
-async function paintBlock(ctx: CanvasRenderingContext2D, block: PageBlock, dark: boolean) {
+async function paintBlock(ctx: CanvasRenderingContext2D, block: PageBlock, dark: boolean, siblings: PageBlock[] = []) {
+  if (block.type === "text" && block.wrap) await preloadShapes(siblings);
   const draw = async (target: CanvasRenderingContext2D) => {
-    if (block.type === "text") paintText(target, block, dark);
+    if (block.type === "text") paintText(target, block, dark, siblings);
     else if (block.type === "photo") await paintPhoto(target, block);
     else if (block.type === "sticker") await paintSticker(target, block);
     else if (block.type === "shape") paintShape(target, block);
@@ -519,7 +535,7 @@ export async function paintPage(page: BookPage, meta: CoverMeta, setup?: PrintSe
   if (page.kind === "cover" && !page.designed) await paintCover(ctx, meta);
   await loadFonts([...ghosts, ...page.blocks]);
   for (const block of ghosts) await paintBlock(ctx, block, isDark(page.bg));
-  for (const block of page.blocks) await paintBlock(ctx, block, isDark(page.bg));
+  for (const block of page.blocks) await paintBlock(ctx, block, isDark(page.bg), page.blocks);
   paintStrokes(ctx, page);
   return canvas;
 }

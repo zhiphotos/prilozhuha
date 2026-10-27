@@ -181,6 +181,8 @@ export type PageBlock =
       color?: string;
       bg?: string;
       align?: "left" | "center" | "right";
+      /** Текст обтекает фото и стикеры на странице. */
+      wrap?: boolean;
       placeholder?: string;
     } & Placed)
   | ({ id: string; type: "slot"; x: number; y: number; w: number; h: number; label: string; frame: PhotoFrame } & Placed)

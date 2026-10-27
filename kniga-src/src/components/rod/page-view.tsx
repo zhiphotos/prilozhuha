@@ -1,3 +1,5 @@
+import { wrapAroundLines } from "@/lib/rod/measure";
+import { useProfilesVersion } from "@/lib/rod/shape-profile";
 import { createContext, useContext, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { ImagePlus } from "lucide-react";
 import { isStampBrush, stampRaster } from "@/lib/rod/stamp-brush";
@@ -27,6 +29,8 @@ export type CoverMeta = { dedicatee: string; collector: string };
 
 /** Тёмная страница: текст и карточки по умолчанию светлые. */
 const DarkPage = createContext(false);
+/** Блоки страницы: текст с обтеканием смотрит, где лежат фото и стикеры. */
+export const PageBlocks = createContext<PageBlock[]>([]);
 
 /** Высота страницы в единицах ширины (для координат по вертикали). */
 export const PAGE_H = INK_PAGE_H;
@@ -89,15 +93,17 @@ export function PageSheet({
           <BlockArt block={block} />
         </PlacedBlock>
       ))}
-      {children ?? (
-        <>
-          {page.blocks.map((block) => (
-            <PlacedBlock key={block.id} block={block}>
-              <BlockArt block={block} editing={editing} />
-            </PlacedBlock>
-          ))}
-        </>
-      )}
+      <PageBlocks.Provider value={page.blocks}>
+        {children ?? (
+          <>
+            {page.blocks.map((block) => (
+              <PlacedBlock key={block.id} block={block}>
+                <BlockArt block={block} editing={editing} />
+              </PlacedBlock>
+            ))}
+          </>
+        )}
+      </PageBlocks.Provider>
       {hideStrokes || !page.strokes.length ? null : <InkLayer strokes={page.strokes} />}
     </div>
     </DarkPage.Provider>
@@ -319,7 +325,35 @@ export function TextArt({ block, editing }: { block: Extract<PageBlock, { type: 
   const dark = useContext(DarkPage);
   const colors = lookColors(block.look, block.color, block.bg, dark);
   const empty = !block.text.trim();
+  const siblings = useContext(PageBlocks);
+  const shapes = useProfilesVersion();
+  const around = useMemo(
+    () => (block.wrap && block.look !== "card" && block.look !== "pill" && !empty ? wrapAroundLines(block, siblings) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [block, siblings, empty, shapes],
+  );
   if (empty && !editing) return null;
+  if (around) {
+    return (
+      <div
+        style={{
+          position: "relative",
+          height: `${around.height}cqw`,
+          fontFamily: fontFamily(block.font),
+          fontWeight: fontWeight(block.font),
+          fontSize: `${metrics.size}cqw`,
+          lineHeight: metrics.leading,
+          color: colors.fg,
+        }}
+      >
+        {around.lines.map((line, i) => (
+          <span key={i} className="absolute whitespace-pre" style={{ left: `${line.x}cqw`, top: `${line.y}cqw` }}>
+            {line.text}
+          </span>
+        ))}
+      </div>
+    );
+  }
   return (
     <div
       style={{
