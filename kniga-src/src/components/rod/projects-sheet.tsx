@@ -5,6 +5,8 @@ import { Button, Sheet, useNav } from "@/components/rod/chrome";
 import { switchBook } from "@/lib/rod/boot";
 import { activeProjectId, addProjectMeta, listProjects, removeProjectMeta, renameProjectMeta } from "@/lib/rod/projects";
 import { dropProjectData } from "@/lib/rod/store";
+import { PaySheet } from "@/components/rod/lessons";
+import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
 
 /** Несколько книг в одном приложении: у каждой свои страницы, архив и обложка. */
@@ -17,6 +19,8 @@ export function ProjectsSheet({ onClose }: { onClose: () => void }) {
   const [collector, setCollector] = useState("");
   const [renaming, setRenaming] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const programOpen = useRod((state) => state.programOpen);
+  const [pay, setPay] = useState(false);
   const refresh = () => {
     setList(listProjects());
     setActive(activeProjectId());
@@ -40,6 +44,11 @@ export function ProjectsSheet({ onClose }: { onClose: () => void }) {
   };
 
   const create = async () => {
+    // Первая книга бесплатна, вторая и следующие (у каждой своё древо) открываются платным тарифом.
+    if (!programOpen && list.length >= 1) {
+      setPay(true);
+      return;
+    }
     const meta = addProjectMeta(name);
     setBusy(true);
     try {
@@ -106,15 +115,19 @@ export function ProjectsSheet({ onClose }: { onClose: () => void }) {
 
       <div className="mt-5 rounded-3xl bg-white/60 p-4">
         <p className="font-semibold text-ink">Новая книга</p>
+        {!programOpen && list.length >= 1 ? (
+          <p className="mt-1 text-sm text-muted">Первая книга бесплатна. Ещё одна книга со своим древом, страницами и архивом открывается платным тарифом: оплата единоразовая.</p>
+        ) : null}
         <div className="mt-2 grid gap-2">
           <input className="field" value={name} onChange={(event) => setName(event.target.value)} placeholder="Название, например: Книга бабушки" />
           <input className="field" value={dedicatee} onChange={(event) => setDedicatee(event.target.value)} placeholder="Для кого (появится на обложке)" />
           <input className="field" value={collector} onChange={(event) => setCollector(event.target.value)} placeholder="Ваше имя на обложке" />
         </div>
         <Button className="mt-3 w-full" disabled={busy} onClick={() => void create()}>
-          <Plus className="size-4" /> Создать и открыть
+          <Plus className="size-4" /> {!programOpen && list.length >= 1 ? "Открыть доступ" : "Создать и открыть"}
         </Button>
       </div>
+      {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
     </Sheet>
   );
 }

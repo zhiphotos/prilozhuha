@@ -62,6 +62,8 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
       deathYear: p.deathYear ?? "",
       photo: p.photo ?? "",
       note: p.notes ?? "",
+      side: p.treeSide,
+      rank: p.treeRank,
     });
     known.add(p.id);
   }

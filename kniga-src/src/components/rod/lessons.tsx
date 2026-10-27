@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { ArrowRight, Check, ChevronLeft, ExternalLink, FileText, Lock, Play, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson, type Lesson } from "@/lib/rod/content";
-import { FREE_NOTE, PITCH, PROGRAM_PERKS, PROGRAM_SOON } from "@/lib/rod/lesson-pitch";
+import { AI_NOTE, FREE_NOTE, PITCH, PROGRAM_PERKS, PROGRAM_SOON } from "@/lib/rod/lesson-pitch";
 import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
 import { INTRO_VIDEO, LESSON_VIDEO, PAY_URL, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
 import { LegalLinks } from "@/components/rod/legal";
@@ -273,6 +273,7 @@ function IncludesList({ dark = false }: { dark?: boolean }) {
           </li>
         ))}
       </ul>
+      <p className={cn("mt-2 text-xs font-semibold", dark ? "text-[#c9ae74]" : "text-ink")}>{AI_NOTE}</p>
       <p className={cn("mt-4 text-xs", soft)}>{FREE_NOTE}</p>
     </div>
   );
@@ -330,7 +331,7 @@ export function PaySheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Программа «Книга рода»" onClose={onClose}>
       <PriceTag />
-      <p className="mt-2 text-sm text-muted">Шесть уроков с видео, ИИ-помощник и шаблоны, полный шаблон книги на 100 страниц, материалы для печати. Оплата разовая, без автоматических списаний.</p>
+      <p className="mt-2 text-sm text-muted">Шесть уроков с видео, ИИ-помощник и шаблоны, полный шаблон книги на 100 страниц, материалы для печати. Платите один раз: единоразовая плата, приложение остаётся с вами навсегда, без автоматических списаний.</p>
       <IncludesList />
 
       {live && mode === "buy" ? (

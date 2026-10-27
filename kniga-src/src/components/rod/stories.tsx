@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { Fragment, useMemo, useState } from "react";
+import { Pencil } from "lucide-react";
 import { Cut } from "@/components/rod/botanica";
 import { STORY_TEMPLATES, findTemplate } from "@/lib/rod/content";
 import { composeStory } from "@/lib/rod/narrative";
@@ -20,21 +21,18 @@ export function StoriesScreen() {
 
   return (
     <ScreenFrame>
-      <TopBar kicker="Семейные истории" title="Расскажи историю" />
+      <TopBar
+        kicker="Семейные истории"
+        title="Расскажи историю"
+        action={
+          <button type="button" onClick={() => nav.go({ id: "free" })} className="glass grid size-11 shrink-0 place-items-center rounded-full text-ink" aria-label="Написать свою историю без темы" title="Написать свою историю без темы">
+            <Pencil className="size-5" />
+          </button>
+        }
+      />
       <p className="max-w-xl text-muted">
-        Нажмите шаблон. Приложение задаст несколько вопросов и соберёт черновик. Его можно поправить перед сохранением – это уже готовая страница вашей книги.
+        Нажмите шаблон. Приложение задаст несколько вопросов и соберёт черновик. Его можно поправить перед сохранением – это уже готовая страница вашей книги. Карандашом вверху можно написать свою историю без темы и вопросов, с фото.
       </p>
-      <button
-        type="button"
-        onClick={() => nav.go({ id: "free" })}
-        className="glass mt-4 flex w-full items-center justify-between gap-3 rounded-3xl px-4 py-4 text-left"
-      >
-        <span>
-          <span className="block font-medium text-ink">Вольная история</span>
-          <span className="block text-sm text-muted">Без темы и вопросов: пишете как хотите, можно приложить фото</span>
-        </span>
-        <span className="shrink-0 text-xl text-rose-deep">+</span>
-      </button>
       {stories.length > 0 ? (
         <ul className="mt-5 grid gap-2">
           {stories.map((story) => (
@@ -224,6 +222,10 @@ export function StoryScreen({ storyId }: { storyId: string }) {
   const story = useRod((state) => state.stories.find((item) => item.id === storyId));
   const addPage = useRod((state) => state.addPage);
   const updateStory = useRod((state) => state.updateStory);
+  const updatePage = useRod((state) => state.updatePage);
+  const [editing, setEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftText, setDraftText] = useState("");
   const inBook = useRod((state) => state.pages.find((page) => page.promptId === `story:${storyId}`));
   const photosInBook = useRod((state) => state.pages.some((page) => page.promptId?.startsWith(`story:${storyId}:photos`)));
   if (!story) {
@@ -239,10 +241,72 @@ export function StoryScreen({ storyId }: { storyId: string }) {
     pages.forEach((page, index) => addPage({ ...page, promptId: `story:${story.id}:photos:${index}` }));
     toast(`В книгу добавлено страниц с фото: ${pages.length}`);
   };
+  const startEdit = () => {
+    setDraftTitle(story.title);
+    setDraftText(story.narrative);
+    setEditing(true);
+  };
+  const saveEdit = () => {
+    const title = draftTitle.trim() || story.title;
+    const narrative = draftText.trim();
+    if (!narrative) return toast("Текст истории не может быть пустым");
+    updateStory(story.id, { title, narrative });
+    // Если история уже стоит в книге, обновляем тот же текст на странице, пока он не правился там руками.
+    let synced = false;
+    if (inBook && (title !== story.title || narrative !== story.narrative)) {
+      updatePage(inBook.id, (page) => ({
+        ...page,
+        title: title !== story.title && page.title === story.title ? title : page.title,
+        blocks: page.blocks.map((block) => {
+          if (block.type !== "text") return block;
+          if (block.text === story.narrative) {
+            synced = true;
+            return { ...block, text: narrative };
+          }
+          if (block.text === story.title) return { ...block, text: title };
+          return block;
+        }),
+      }));
+    }
+    setEditing(false);
+    toast(inBook ? (synced ? "Сохранено, страница в книге обновлена" : "Сохранено. Текст на странице книги вы правили вручную, поэтому она не менялась") : "Сохранено");
+  };
   return (
     <ScreenFrame>
       <TopBar title={story.title} kicker="Глава" onBack={nav.back} />
-      <article className="glass whitespace-pre-wrap rounded-4xl p-6 font-sans text-[17px] leading-relaxed text-ink">{story.narrative}</article>
+      {editing ? (
+        <div className="grid gap-4">
+          <Field label="Название главы">
+            <input className="field" value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
+          </Field>
+          <Field label="Текст истории" hint="Дописывайте, что вспомнили позже: изменения сохранятся в этой же истории.">
+            <textarea className="field min-h-72" value={draftText} onChange={(event) => setDraftText(event.target.value)} />
+            <DictateButton className="mt-2" value={draftText} onChange={setDraftText} />
+          </Field>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={saveEdit}>Сохранить</Button>
+            <Button variant="ghost" onClick={() => setEditing(false)}>
+              Отмена
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="relative">
+            <article className="glass whitespace-pre-wrap rounded-4xl p-6 pr-14 font-sans text-[17px] leading-relaxed text-ink">{story.narrative}</article>
+            {/* Карандаш на углу самого текста: сразу видно, что правится именно эта история. */}
+            <button
+              type="button"
+              onClick={startEdit}
+              className="absolute right-2 top-2 grid size-10 place-items-center rounded-full border border-ink/15 bg-paper text-ink shadow-sm"
+              aria-label="Править историю"
+              title="Править историю"
+            >
+              <Pencil className="size-[18px]" />
+            </button>
+          </div>
+        </>
+      )}
       <Attachments items={story.attachments ?? []} onChange={(next) => updateStory(story.id, { attachments: next })} />
       <div className="mt-4 flex flex-wrap gap-2">
         {inBook ? (

@@ -4,6 +4,8 @@ import { isMediaRef, resolveMedia, saveMedia } from "@/lib/rod/media";
 import { useRod } from "@/lib/rod/store";
 import type { Person as RodPerson } from "@/lib/rod/types";
 import type { UnionFacts } from "./fill.ts";
+import { flipSpouse, moveBranch, type Patch } from "./arrange.ts";
+import { setLayoutSpread } from "./layout.ts";
 import { SELF_ID, roleOf, treeFromPeople } from "./from-people.ts";
 import type { TreeScope } from "./scope.ts";
 import type { TreeStyle } from "./styles.ts";
@@ -42,6 +44,8 @@ type State = {
   banner: string;
   flow: TreeFlow;
   scope: TreeScope;
+  /** Насколько разводить ветки: 0 плотно, 1 шире, 2 ещё шире. */
+  spread: 0 | 1 | 2;
   selectedId: string | null;
   unionId: string | null;
   roster: boolean;
@@ -53,6 +57,11 @@ type State = {
   setBanner: (banner: string) => void;
   setFlow: (flow: TreeFlow) => void;
   setScope: (scope: TreeScope) => void;
+  setSpread: (spread: 0 | 1 | 2) => void;
+  /** Поменять человека и его супруга местами на схеме. */
+  flipSpouse: (id: string) => void;
+  /** Сдвинуть ветку человека влево или вправо среди веток своего ряда. */
+  moveBranch: (id: string, dir: -1 | 1) => void;
   setFocus: (id: string) => void;
   updatePerson: (id: string, draft: Draft) => void;
   setUnionStatus: (id: string, status: UnionStatus) => void;
@@ -64,18 +73,18 @@ type State = {
 
 const KEY = "kniga-tree-ui";
 
-function readUi(): { theme: ThemeName; style: TreeStyle; banner: string; flow: TreeFlow; scope: TreeScope } {
+function readUi(): { theme: ThemeName; style: TreeStyle; banner: string; flow: TreeFlow; scope: TreeScope; spread: 0 | 1 | 2 } {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) || "{}") as Partial<{ theme: ThemeName; banner: string; flow: TreeFlow; scope: TreeScope }>;
-    return { theme: raw.theme === "paper" ? "paper" : "night", style: "work", banner: typeof raw.banner === "string" ? raw.banner : "", flow: raw.flow === "up" ? "up" : "down", scope: (["direct", "direct-sib-root", "direct-sib-all", "blood"] as const).find((x) => x === raw.scope) ?? "all" };
+    const raw = JSON.parse(localStorage.getItem(KEY) || "{}") as Partial<{ theme: ThemeName; banner: string; flow: TreeFlow; scope: TreeScope; spread: number }>;
+    return { theme: raw.theme === "paper" ? "paper" : "night", style: "work", banner: typeof raw.banner === "string" ? raw.banner : "", flow: raw.flow === "up" ? "up" : "down", scope: (["direct", "direct-sib-root", "direct-sib-all", "blood"] as const).find((x) => x === raw.scope) ?? "all", spread: raw.spread === 1 || raw.spread === 2 ? raw.spread : 0 };
   } catch {
-    return { theme: "night", style: "work", banner: "", flow: "down", scope: "all" };
+    return { theme: "night", style: "work", banner: "", flow: "down", scope: "all", spread: 0 };
   }
 }
 
 function saveUi(s: State) {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ theme: s.theme, banner: s.banner, flow: s.flow, scope: s.scope }));
+    localStorage.setItem(KEY, JSON.stringify({ theme: s.theme, banner: s.banner, flow: s.flow, scope: s.scope, spread: s.spread }));
   } catch {
     /* оформление живёт до закрытия */
   }
@@ -138,8 +147,20 @@ function createPerson(draft: Draft, relation: string, extra: Partial<RodPerson>,
   return useRod.getState().people[0]!.id;
 }
 
+/** Записывает ручную расстановку в список людей: источник правды остаётся там. */
+function applyPatches(patches: Patch[]) {
+  for (const patch of patches) {
+    if (!realId(patch.id)) continue;
+    const change: Partial<RodPerson> = {};
+    if ("side" in patch) change.treeSide = patch.side ?? undefined;
+    if (patch.rank !== undefined) change.treeRank = patch.rank;
+    useRod.getState().updatePerson(patch.id, change);
+  }
+}
+
 export const useTree = create<State>((set, get) => {
   const ui = readUi();
+  setLayoutSpread(ui.spread);
   const initial = treeFromPeople(currentPeople());
   const persistUi = () => saveUi(get());
   const rebuild = () => {
@@ -168,6 +189,9 @@ export const useTree = create<State>((set, get) => {
     setBanner: (banner) => { set({ banner }); persistUi(); },
     setFlow: (flow) => { set({ flow }); persistUi(); },
     setScope: (scope) => { set({ scope }); persistUi(); },
+    setSpread: (spread) => { setLayoutSpread(spread); set({ spread }); persistUi(); },
+    flipSpouse: (id) => applyPatches(flipSpouse(get().people, get().unions, get().focusId, id)),
+    moveBranch: (id, dir) => applyPatches(moveBranch(get().people, get().unions, get().focusId, id, dir)),
     setFocus: (id) => set({ focusId: id }),
     updatePerson: (id, draft) => {
       void (async () => {

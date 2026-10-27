@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Play, ShoppingBag, Sparkles, X } from "lucide-react";
 import { Button, useNav } from "@/components/rod/chrome";
 import { PaySheet } from "@/components/rod/lessons";
+import { AI_NOTE } from "@/lib/rod/lesson-pitch";
 
 const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
 
@@ -42,7 +43,7 @@ const SLIDES: Slide[] = [
   {
     kicker: "Приложение",
     title: "Страницы собираются в одном месте",
-    text: "Древо, колоды вопросов с записью голоса, архив, редактор страниц, листалка и печать работают вместе. Фото, голоса и готовые страницы лежат в одном приложении. В шестом уроке есть и простая альтернатива InDesign.",
+    text: "Древо, колоды вопросов с записью голоса, архив, редактор страниц, листалка и печать работают вместе. Фото, голоса и готовые страницы лежат в одном приложении. В шестом уроке есть и простая альтернатива InDesign. Все эти функции приложения открываются после оплаты и остаются с вами навсегда.",
     image: "course/site/extra4.jpg",
   },
   {
@@ -67,7 +68,7 @@ const SLIDES: Slide[] = [
   {
     kicker: "Цена",
     title: "Уроки и приложение за 2 026 ₽",
-    text: "Единоразовая плата 2 026 ₽ вместо 4 000 ₽. Уроки открываются сразу после оплаты. Новые функции появятся позже: часть останется с вами навсегда, часть подключается по подписке.",
+    text: "Единоразовая плата 2 026 ₽ вместо 4 000 ₽: платите один раз, и все функции приложения, какие есть сейчас, открываются сразу и остаются навсегда. Уроки открываются после оплаты, доступ к урокам на год. ИИ-функции, когда появятся, оплачиваются отдельно. Остальные новые функции появятся позже: часть останется с вами навсегда, часть подключается по подписке.",
     image: "course/site/memoirs-daria.jpg",
     pos: "50% 20%",
     price: true,
@@ -201,7 +202,7 @@ export function UnlockCarousel() {
     <section className="mb-6" aria-label="Что откроется после покупки">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">Программа «Книга рода»</p>
       <h2 className="mt-1 text-[1.3rem] font-semibold leading-tight text-ink">Мини-уроки и полный доступ в приложение</h2>
-      <p className="mt-1 text-sm text-ink/70">Единоразовая плата, и открывается всё: шесть видео-уроков и приложение для вашей книги. Листайте и смотрите, что внутри.</p>
+      <p className="mt-1 text-sm text-ink/70">Платите один раз: все функции приложения открываются навсегда, и вы получаете шесть видео-уроков. Листайте и смотрите, что внутри.</p>
       <div
         ref={track}
         className="-mx-5 mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -271,7 +272,7 @@ export function UnlockCarousel() {
           </button>
         ))}
       </div>
-      <p className="mt-2 text-center text-xs text-ink/65">Единоразовая плата. Уроки открываются сразу после оплаты, смотреть можно с телефона. Доступ к урокам на год, к чату навсегда.</p>
+      <p className="mt-2 text-center text-xs text-ink/65">Единоразовая плата: все функции приложения открываются сразу после оплаты и остаются навсегда. Уроки можно смотреть с телефона, доступ к урокам на год.</p>
       <Button className="mt-3 w-full" onClick={() => setPay(true)}>
         <ShoppingBag className="size-4" /> Купить мини-уроки и полный доступ
       </Button>
@@ -298,7 +299,8 @@ export function UnlockCarousel() {
                 </li>
               ))}
             </ul>
-            <p className="mt-3 rounded-xl bg-white/60 p-3 text-xs text-ink/75">Часть этих функций останется с вами навсегда после покупки мини-курса, а часть откроется по ежемесячной подписке на «Книгу рода», мы планируем до 300 ₽ в месяц. Какие функции подключать, вы сможете выбирать по ситуации.</p>
+            <p className="mt-3 rounded-xl bg-white/60 p-3 text-xs font-semibold text-ink">{AI_NOTE}</p>
+            <p className="mt-2 rounded-xl bg-white/60 p-3 text-xs text-ink/75">Часть этих функций останется с вами навсегда после покупки мини-курса, а часть откроется по ежемесячной подписке на «Книгу рода», мы планируем до 300 ₽ в месяц. Какие функции подключать, вы сможете выбирать по ситуации.</p>
           </>
         ) : null}
       </div>
