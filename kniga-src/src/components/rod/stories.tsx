@@ -224,6 +224,10 @@ export function StoryScreen({ storyId }: { storyId: string }) {
   const story = useRod((state) => state.stories.find((item) => item.id === storyId));
   const addPage = useRod((state) => state.addPage);
   const updateStory = useRod((state) => state.updateStory);
+  const updatePage = useRod((state) => state.updatePage);
+  const [editing, setEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftText, setDraftText] = useState("");
   const inBook = useRod((state) => state.pages.find((page) => page.promptId === `story:${storyId}`));
   const photosInBook = useRod((state) => state.pages.some((page) => page.promptId?.startsWith(`story:${storyId}:photos`)));
   if (!story) {
@@ -239,10 +243,63 @@ export function StoryScreen({ storyId }: { storyId: string }) {
     pages.forEach((page, index) => addPage({ ...page, promptId: `story:${story.id}:photos:${index}` }));
     toast(`В книгу добавлено страниц с фото: ${pages.length}`);
   };
+  const startEdit = () => {
+    setDraftTitle(story.title);
+    setDraftText(story.narrative);
+    setEditing(true);
+  };
+  const saveEdit = () => {
+    const title = draftTitle.trim() || story.title;
+    const narrative = draftText.trim();
+    if (!narrative) return toast("Текст истории не может быть пустым");
+    updateStory(story.id, { title, narrative });
+    // Если история уже стоит в книге, обновляем тот же текст на странице, пока он не правился там руками.
+    let synced = false;
+    if (inBook && (title !== story.title || narrative !== story.narrative)) {
+      updatePage(inBook.id, (page) => ({
+        ...page,
+        title: title !== story.title && page.title === story.title ? title : page.title,
+        blocks: page.blocks.map((block) => {
+          if (block.type !== "text") return block;
+          if (block.text === story.narrative) {
+            synced = true;
+            return { ...block, text: narrative };
+          }
+          if (block.text === story.title) return { ...block, text: title };
+          return block;
+        }),
+      }));
+    }
+    setEditing(false);
+    toast(inBook ? (synced ? "Сохранено, страница в книге обновлена" : "Сохранено. Текст на странице книги вы правили вручную, поэтому она не менялась") : "Сохранено");
+  };
   return (
     <ScreenFrame>
       <TopBar title={story.title} kicker="Глава" onBack={nav.back} />
-      <article className="glass whitespace-pre-wrap rounded-4xl p-6 font-sans text-[17px] leading-relaxed text-ink">{story.narrative}</article>
+      {editing ? (
+        <div className="grid gap-4">
+          <Field label="Название главы">
+            <input className="field" value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
+          </Field>
+          <Field label="Текст истории" hint="Дописывайте, что вспомнили позже: изменения сохранятся в этой же истории.">
+            <textarea className="field min-h-72" value={draftText} onChange={(event) => setDraftText(event.target.value)} />
+            <DictateButton className="mt-2" value={draftText} onChange={setDraftText} />
+          </Field>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={saveEdit}>Сохранить</Button>
+            <Button variant="ghost" onClick={() => setEditing(false)}>
+              Отмена
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <article className="glass whitespace-pre-wrap rounded-4xl p-6 font-sans text-[17px] leading-relaxed text-ink">{story.narrative}</article>
+          <Button className="mt-3" variant="soft" onClick={startEdit}>
+            Править историю
+          </Button>
+        </>
+      )}
       <Attachments items={story.attachments ?? []} onChange={(next) => updateStory(story.id, { attachments: next })} />
       <div className="mt-4 flex flex-wrap gap-2">
         {inBook ? (
