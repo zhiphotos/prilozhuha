@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowRight, Check, ChevronLeft, ExternalLink, FileText, Lock, Play, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
@@ -736,50 +736,27 @@ function Reviews() {
   );
 }
 
-/** Видео без лишнего: своя обложка и кнопка, плеер YouTube появляется только после нажатия. */
-function CleanVideo({ url }: { url: string }) {
-  const id = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]{6,})/)?.[1];
-  const [playing, setPlaying] = useState(false);
-  const [poster, setPoster] = useState(id ? `https://i.ytimg.com/vi/${id}/maxresdefault.jpg` : "");
-  const frame = useRef<HTMLIFrameElement>(null);
-  // Когда видео досмотрели, YouTube сам предлагает чужие ролики. Ловим конец и возвращаем нашу обложку.
-  useEffect(() => {
-    if (!playing) return;
-    const onMessage = (event: MessageEvent) => {
-      if (event.source !== frame.current?.contentWindow) return;
-      try {
-        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-        if (data?.event === "onStateChange" && data.info === 0) setPlaying(false);
-        if (data?.event === "infoDelivery" && data.info?.playerState === 0) setPlaying(false);
-      } catch {
-        /* чужое сообщение */
-      }
-    };
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [playing]);
-  if (!id) return null;
+/** Бесплатный урок играет из файла самого приложения: без входа в YouTube и без чужих роликов. */
+function OwnVideo({ src, poster, fallbackUrl }: { src: string; poster: string; fallbackUrl: string }) {
+  const [failed, setFailed] = useState(false);
   return (
     <div className="relative aspect-video w-full overflow-hidden bg-black">
-      {playing ? (
-        <iframe
-          ref={frame}
-          src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&color=white&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
-          onLoad={() => frame.current?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: 1, channel: "widget" }), "*")}
-          title="Урок"
-          className="absolute inset-0 size-full"
-          allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-          allowFullScreen
-        />
+      {failed ? (
+        <div className="grid size-full place-items-center p-6 text-center text-paper">
+          <div>
+            <p className="text-sm">Видео не загрузилось. Проверьте интернет и попробуйте ещё раз.</p>
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              <Button variant="white" onClick={() => setFailed(false)}>
+                Ещё раз
+              </Button>
+              <a href={fallbackUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-full border border-paper/40 px-4 text-sm text-paper">
+                Открыть на YouTube
+              </a>
+            </div>
+          </div>
+        </div>
       ) : (
-        <button type="button" onClick={() => setPlaying(true)} aria-label="Смотреть урок" className="group absolute inset-0 block size-full">
-          <img src={poster} alt="" className="size-full object-cover" onLoad={(event) => { if (event.currentTarget.naturalWidth <= 120) setPoster(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`); }} onError={() => setPoster(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`)} />
-          <span className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10" />
-          <span className="absolute bottom-3 right-3 grid size-14 place-items-center rounded-full border border-paper/40 bg-paper/20 text-paper shadow-xl backdrop-blur-md transition group-active:scale-95">
-            <Play className="size-6 translate-x-0.5" />
-          </span>
-          <span className="absolute bottom-5 left-4 text-xs font-semibold uppercase tracking-[0.18em] text-paper/90">Смотреть · 12 минут</span>
-        </button>
+        <video src={src} poster={poster} controls playsInline preload="metadata" className="size-full" onError={() => setFailed(true)} />
       )}
     </div>
   );
@@ -796,7 +773,7 @@ function FreeLesson({ lesson, passed, onDone, onBack, onAll, onOpen }: { lesson:
         <p className="min-w-0 flex-1 truncate text-sm font-semibold text-paper/85">Бесплатный урок</p>
       </header>
       <div className="mx-auto max-w-2xl pb-[max(2rem,env(safe-area-inset-bottom))]">
-        <CleanVideo url={INTRO_VIDEO} />
+        <OwnVideo src={asset("course/site/free-lesson.mp4")} poster={asset("course/site/free-lesson.jpg")} fallbackUrl={INTRO_VIDEO} />
         <div className="px-5 pt-7">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#c9ae74]">12 минут · бесплатно</p>
           <h1 className="display-title mt-2 text-[2rem] leading-[1.05] text-paper">Книга Рода – это до слёз и смеха</h1>
