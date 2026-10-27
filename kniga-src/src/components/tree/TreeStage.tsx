@@ -5,7 +5,7 @@ import { GzhelView } from "@/components/tree/GzhelView";
 import { BohemeView } from "@/components/tree/BohemeView";
 import { TaigaView } from "@/components/tree/TaigaView";
 import { PosterView } from "@/components/tree/PosterView";
-import { displayName, isDeceased, kinship, yearsOf } from "@/lib/tree/kinship";
+import { fitName, isDeceased, kinship, yearsOf } from "@/lib/tree/kinship";
 import { MAX_ZOOM, MIN_ZOOM, PLATE_GAP, PLATE_H, PLATE_W, PORTRAIT_R } from "@/lib/tree/metrics";
 import type { CameoSheet } from "@/lib/tree/cameo";
 import { FRAME } from "@/lib/tree/cameo";
@@ -341,9 +341,14 @@ export function TreeStage(props: Props) {
                       </g>
                     )}
                     <rect x={node.x - PLATE_W / 2} y={top} width={PLATE_W} height={PLATE_H} rx={14} fill="#f6f1e7" />
-                    <text x={node.x} y={top + 22} textAnchor="middle" fill="var(--color-ink)" fontFamily="var(--font-serif)" fontSize={16} fontWeight={600}>
-                      {displayName(person)}
-                    </text>
+                    {(() => {
+                      const f = fitName(person, PLATE_W - 14, 16);
+                      return (
+                        <text x={node.x} y={top + 22} textAnchor="middle" fill="var(--color-ink)" fontFamily="var(--font-serif)" fontSize={f.size} fontWeight={600} textLength={f.textLength} lengthAdjust="spacingAndGlyphs">
+                          {f.text}
+                        </text>
+                      );
+                    })()}
                     <text x={node.x} y={top + 40} textAnchor="middle" fill="var(--color-role)" fontFamily="var(--font-sans)" fontSize={roleSize} fontWeight={700}>
                       {role}
                     </text>

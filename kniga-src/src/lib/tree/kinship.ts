@@ -323,6 +323,22 @@ export function displayName(person: Person, style: "card" | "full" = "card"): st
   return [person.firstName, person.lastName].filter(Boolean).join(" ") || "Без имени";
 }
 
+/** Полное ФИО (имя, отчество, фамилия) для подписи в древе. */
+export function fullName(person: Person): string {
+  return displayName(person, "full") || "Без имени";
+}
+
+/**
+ * Подгоняет полное ФИО под ширину подписи: сначала уменьшает шрифт (не меньше min),
+ * а если и так не влезает, подпись сжимается по ширине (textLength).
+ */
+export function fitName(person: Person, maxW: number, base: number, min = 9): { text: string; size: number; textLength?: number } {
+  const text = fullName(person);
+  const wide = (size: number) => text.length * size * 0.52;
+  const size = Math.max(min, Math.min(base, Math.floor((maxW / (text.length * 0.52)) * 10) / 10));
+  return wide(size) > maxW ? { text, size, textLength: maxW } : { text, size };
+}
+
 export function yearsOf(person: Person): string {
   const b = person.birthYear.trim();
   const d = person.deathYear.trim();

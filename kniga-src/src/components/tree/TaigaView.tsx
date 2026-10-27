@@ -1,6 +1,6 @@
 import { FramedFace } from "@/components/tree/FramedFace";
 import { SheetTitle } from "@/components/tree/SheetTitle";
-import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
+import { fitName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { TAIGA_FRAME, TAIGA_FRAMES, type TaigaSheet } from "@/lib/tree/taiga";
 import type { Person, Union } from "@/lib/tree/types";
 
@@ -37,9 +37,14 @@ export function TaigaView({ sheet, people, unions, focusId, selectedId }: { shee
           const top = node.y + TAIGA_FRAME + 4;
           return (
             <g key={node.id}>
-              <text x={node.x} y={top + 16} textAnchor="middle" fill={INK} fontFamily="var(--font-serif)" fontSize={15}>
-                {displayName(person)}
-              </text>
+              {(() => {
+                const f = fitName(person, 210, 15);
+                return (
+                  <text x={node.x} y={top + 16} textAnchor="middle" fill={INK} fontFamily="var(--font-serif)" fontSize={f.size} textLength={f.textLength} lengthAdjust="spacingAndGlyphs">
+                    {f.text}
+                  </text>
+                );
+              })()}
               <text x={node.x} y={top + 34} textAnchor="middle" fill={INK} opacity={0.86} fontFamily="var(--font-serif)" fontSize={11}>
                 {role}
               </text>
