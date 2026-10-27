@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { Fragment, useMemo, useState } from "react";
+import { Pencil } from "lucide-react";
 import { Cut } from "@/components/rod/botanica";
 import { STORY_TEMPLATES, findTemplate } from "@/lib/rod/content";
 import { composeStory } from "@/lib/rod/narrative";
@@ -20,21 +21,18 @@ export function StoriesScreen() {
 
   return (
     <ScreenFrame>
-      <TopBar kicker="Семейные истории" title="Расскажи историю" />
+      <TopBar
+        kicker="Семейные истории"
+        title="Расскажи историю"
+        action={
+          <button type="button" onClick={() => nav.go({ id: "free" })} className="glass grid size-11 shrink-0 place-items-center rounded-full text-ink" aria-label="Написать свою историю без темы" title="Написать свою историю без темы">
+            <Pencil className="size-5" />
+          </button>
+        }
+      />
       <p className="max-w-xl text-muted">
-        Нажмите шаблон. Приложение задаст несколько вопросов и соберёт черновик. Его можно поправить перед сохранением – это уже готовая страница вашей книги.
+        Нажмите шаблон. Приложение задаст несколько вопросов и соберёт черновик. Его можно поправить перед сохранением – это уже готовая страница вашей книги. Карандашом вверху можно написать свою историю без темы и вопросов, с фото.
       </p>
-      <button
-        type="button"
-        onClick={() => nav.go({ id: "free" })}
-        className="glass mt-4 flex w-full items-center justify-between gap-3 rounded-3xl px-4 py-4 text-left"
-      >
-        <span>
-          <span className="block font-medium text-ink">Вольная история</span>
-          <span className="block text-sm text-muted">Без темы и вопросов: пишете как хотите, можно приложить фото</span>
-        </span>
-        <span className="shrink-0 text-xl text-rose-deep">+</span>
-      </button>
       {stories.length > 0 ? (
         <ul className="mt-5 grid gap-2">
           {stories.map((story) => (
@@ -275,7 +273,18 @@ export function StoryScreen({ storyId }: { storyId: string }) {
   };
   return (
     <ScreenFrame>
-      <TopBar title={story.title} kicker="Глава" onBack={nav.back} />
+      <TopBar
+        title={story.title}
+        kicker="Глава"
+        onBack={nav.back}
+        action={
+          editing ? null : (
+            <button type="button" onClick={startEdit} className="glass grid size-11 shrink-0 place-items-center rounded-full text-ink" aria-label="Править историю" title="Править историю">
+              <Pencil className="size-5" />
+            </button>
+          )
+        }
+      />
       {editing ? (
         <div className="grid gap-4">
           <Field label="Название главы">
@@ -295,9 +304,6 @@ export function StoryScreen({ storyId }: { storyId: string }) {
       ) : (
         <>
           <article className="glass whitespace-pre-wrap rounded-4xl p-6 font-sans text-[17px] leading-relaxed text-ink">{story.narrative}</article>
-          <Button className="mt-3" variant="soft" onClick={startEdit}>
-            Править историю
-          </Button>
         </>
       )}
       <Attachments items={story.attachments ?? []} onChange={(next) => updateStory(story.id, { attachments: next })} />
