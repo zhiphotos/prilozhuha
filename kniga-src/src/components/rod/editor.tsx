@@ -1447,9 +1447,16 @@ export function EditorScreen({ pageId }: { pageId: string }) {
               <button type="button" className="whitespace-nowrap rounded-full px-3 py-1 tabular-nums md:pointer-events-none" aria-label="Все страницы: перейти к главе" onClick={() => setPanel("contents")}>
                 {index + 1} / {pages.length} <span className="text-moss underline md:hidden">все</span>
               </button>
-              <button type="button" className="grid size-11 place-items-center rounded-full disabled:opacity-30 max-md:hidden" disabled={index >= pages.length - 1} onClick={() => go(1)} aria-label="Следующая">
-                <ChevronRight className="size-4" />
-              </button>
+              {index >= pages.length - 1 ? (
+                // Последняя страница: вместо тусклой стрелки понятная кнопка, как идти дальше.
+                <button type="button" className="inline-flex min-h-9 items-center gap-1 rounded-full bg-moss px-3 text-xs font-semibold text-paper" onClick={addNextPage} aria-label="Добавить следующую страницу">
+                  <FilePlus className="size-3.5" /> Новая страница
+                </button>
+              ) : (
+                <button type="button" className="grid size-11 place-items-center rounded-full max-md:hidden" onClick={() => go(1)} aria-label="Следующая">
+                  <ChevronRight className="size-4" />
+                </button>
+              )}
             </div>
           )}
         </div>
