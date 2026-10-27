@@ -92,7 +92,7 @@ export function GedImportButton() {
 
   return (
     <>
-      <input ref={input} type="file" accept=".ged,.csv,.tsv,.txt,.xml,.atdb,text/plain,text/csv,text/xml" className="sr-only" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
+      <input ref={input} type="file" className="sr-only" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
       <button type="button" className="chip pointer-events-auto" onClick={() => setChooser(true)}>
         Из файла
       </button>

@@ -254,8 +254,11 @@ function inLawViaBlood(index: Index, focus: string, other: string): Kinship | nu
       } else if (rel.kind === "ancestor") {
         const who = genitiveAncestor(rel.title);
         title = g === "m" ? `${divorced ? "Бывший муж" : "Муж"} ${who}` : `${divorced ? "Бывшая жена" : "Жена"} ${who}`;
-      } else if (divorced) title = `Бывший супруг · ${rel.title}`;
-      else title = `Супруг · ${rel.title}`;
+      } else if (/^(Дядя|Тётя)/.test(rel.title) && g !== "u") {
+        // Жена дяди – тётя, муж тёти – дядя.
+        const aunt = g === "f";
+        title = divorced ? `${aunt ? "Бывшая жена" : "Бывший муж"} · ${rel.title}` : aunt ? (rel.title.startsWith("Дядя") ? "Тётя (жена дяди)" : "Тётя") : rel.title.startsWith("Тётя") ? "Дядя (муж тёти)" : "Дядя";
+      } else title = `${divorced ? (g === "f" ? "Бывшая супруга" : "Бывший супруг") : g === "f" ? "Супруга" : "Супруг"} · ${rel.title}`;
       return { kind: "inlaw", title, degree: rel.degree, card: title };
     }
   }
