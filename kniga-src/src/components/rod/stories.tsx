@@ -273,18 +273,7 @@ export function StoryScreen({ storyId }: { storyId: string }) {
   };
   return (
     <ScreenFrame>
-      <TopBar
-        title={story.title}
-        kicker="Глава"
-        onBack={nav.back}
-        action={
-          editing ? null : (
-            <button type="button" onClick={startEdit} className="glass grid size-11 shrink-0 place-items-center rounded-full text-ink" aria-label="Править историю" title="Править историю">
-              <Pencil className="size-5" />
-            </button>
-          )
-        }
-      />
+      <TopBar title={story.title} kicker="Глава" onBack={nav.back} />
       {editing ? (
         <div className="grid gap-4">
           <Field label="Название главы">
@@ -303,7 +292,19 @@ export function StoryScreen({ storyId }: { storyId: string }) {
         </div>
       ) : (
         <>
-          <article className="glass whitespace-pre-wrap rounded-4xl p-6 font-sans text-[17px] leading-relaxed text-ink">{story.narrative}</article>
+          <div className="relative">
+            <article className="glass whitespace-pre-wrap rounded-4xl p-6 pr-14 font-sans text-[17px] leading-relaxed text-ink">{story.narrative}</article>
+            {/* Карандаш на углу самого текста: сразу видно, что правится именно эта история. */}
+            <button
+              type="button"
+              onClick={startEdit}
+              className="absolute right-2 top-2 grid size-10 place-items-center rounded-full border border-ink/15 bg-paper text-ink shadow-sm"
+              aria-label="Править историю"
+              title="Править историю"
+            >
+              <Pencil className="size-[18px]" />
+            </button>
+          </div>
         </>
       )}
       <Attachments items={story.attachments ?? []} onChange={(next) => updateStory(story.id, { attachments: next })} />
