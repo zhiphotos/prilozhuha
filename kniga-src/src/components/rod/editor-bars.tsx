@@ -273,6 +273,11 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
               {align === "left" ? <AlignLeft className="size-4" /> : align === "center" ? <AlignCenter className="size-4" /> : <AlignRight className="size-4" />}
             </BarBtn>
           ))}
+          {block.look !== "card" && block.look !== "pill" ? (
+            <BarBtn label="Текст обтекает фото и стикеры" active={Boolean(block.wrap)} onClick={() => ops.patch({ wrap: !block.wrap } as Partial<PageBlock>)}>
+              Обтекание
+            </BarBtn>
+          ) : null}
           <BarBtn onClick={ops.centerH} label="По центру страницы">
             ↔ По ширине
           </BarBtn>
@@ -473,6 +478,11 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
               {align === "left" ? <AlignLeft className="size-4" /> : align === "center" ? <AlignCenter className="size-4" /> : <AlignRight className="size-4" />}
             </BarBtn>
           ))}
+          {block.look !== "card" && block.look !== "pill" ? (
+            <BarBtn label="Текст обтекает фото и стикеры" active={Boolean(block.wrap)} onClick={() => ops.patch({ wrap: !block.wrap } as Partial<PageBlock>)}>
+              Обтекание
+            </BarBtn>
+          ) : null}
         </>
       ) : null}
       {block.type === "photo" ? (

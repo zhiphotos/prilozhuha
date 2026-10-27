@@ -1,5 +1,6 @@
 // Измерение текста на странице: сколько строк займёт абзац. Единицы: % ширины страницы (как у шрифтов и штрихов).
 import { fontFamily, fontWeight, lookPad, textMetrics } from "@/lib/rod/page-style";
+import { flowAround, obstaclesFor } from "@/lib/rod/wrap-around";
 import type { PageBlock } from "@/lib/rod/types";
 
 type TextBlock = Extract<PageBlock, { type: "text" }>;
@@ -33,6 +34,16 @@ export function wrapLines(text: string, style: TextStyle): string[] {
     lines.push(line);
   }
   return lines;
+}
+
+/** Расчёт строк для текста, который обтекает фото и стикеры (экран; печать считает тем же flowAround). */
+export function wrapAroundLines(block: TextBlock, blocks: PageBlock[]) {
+  const context = canvas();
+  const metrics = textMetrics(block.font, block.size, block.px);
+  const pad = lookPad(block.look);
+  if (context) context.font = `${fontWeight(block.font)} ${metrics.size * 10}px ${fontFamily(block.font)}`;
+  const measure = (text: string) => (context ? context.measureText(text).width / 10 : text.length * metrics.size * 0.5);
+  return flowAround(block, obstaclesFor(blocks, block), measure, metrics.size * metrics.leading, pad);
 }
 
 /** Высота строки и внутренние поля в единицах ширины страницы. */
