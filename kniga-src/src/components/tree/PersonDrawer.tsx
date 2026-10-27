@@ -219,7 +219,7 @@ function FamilySheet({
       </div>
       <section className="flex flex-col gap-2">
         <p className="text-xs tracking-widest text-muted uppercase">Расположение на схеме</p>
-        <p className="text-sm text-muted">Схема раскладывает людей сама. Здесь можно выбрать порядок: поменять супругов местами или сдвинуть всю ветку левее или правее. Если ветки сплетаются, откройте «Показать» и разведите их шире.</p>
+        <p className="text-sm text-muted">Схема раскладывает людей сама. Здесь можно выбрать порядок: поменять супругов местами или сдвинуть всю ветку левее или правее. Если ветки сплетаются, откройте шестерёнку, затем «Расширенные», и разведите их шире.</p>
         <div className="grid grid-cols-2 gap-2">
           {family.marriages.length > 0 && (
             <button type="button" className="col-span-2 min-h-12 rounded-2xl border border-line bg-white px-3 text-sm font-semibold" onClick={() => flipSpouse(person.id)}>

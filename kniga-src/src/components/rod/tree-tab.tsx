@@ -205,7 +205,7 @@ function TreeScreen() {
                   setScopeOpen((v) => !v);
                 }}
               >
-                {scope === "all" ? "Показать" : "Показано"} ▾
+                Расширенные{scope === "all" && spread === 0 ? "" : " •"} ▾
               </button>
               {scopeOpen && (
                 <div style={{ left: -scopeShift }} className="absolute top-12 z-30 grid w-[min(20rem,calc(100vw-1.5rem))] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg backdrop-blur-md">
