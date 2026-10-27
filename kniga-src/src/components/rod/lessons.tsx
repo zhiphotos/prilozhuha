@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { ArrowRight, Check, ChevronLeft, ExternalLink, FileText, Lock, Play, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson, type Lesson } from "@/lib/rod/content";
+import { FAQ } from "@/lib/rod/faq";
 import { AI_NOTE, FREE_NOTE, PITCH, PROGRAM_PERKS, PROGRAM_SOON } from "@/lib/rod/lesson-pitch";
 import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
 import { INTRO_VIDEO, LESSON_VIDEO, PAY_URL, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
@@ -38,18 +39,6 @@ export function LessonsScreen() {
         <h1 className="display-title mt-1 text-[2rem] leading-[1.1] text-paper">Книга рода</h1>
       </div>
       <p className="max-w-xl text-paper/70">Начните с бесплатного урока. Если зацепит, дальше целая программа: видео, ИИ-помощник и материалы для печати.</p>
-      <a
-        href="https://balanuca.vercel.app/learn"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-[#c9ae74]/40 bg-[#c9ae74]/10 px-4 py-3 text-paper no-underline"
-      >
-        <span>
-          <span className="block text-sm font-semibold">Смотреть платформу обучения Дарины</span>
-          <span className="block text-xs text-paper/60">Уроки, курсы и вход в свой кабинет</span>
-        </span>
-        <span aria-hidden="true" className="text-lg text-[#c9ae74]">→</span>
-      </a>
       {LESSONS.filter((lesson) => lesson.free).map((lesson) => {
         const passed = done.includes(lesson.id);
         return (
@@ -109,7 +98,33 @@ export function LessonsScreen() {
       ) : (
         <p className="mt-4 text-sm text-[#c9ae74]">Программа открыта на этом устройстве.</p>
       )}
+      <a
+        href="https://balanuca.vercel.app/learn"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-[#c9ae74]/40 bg-[#c9ae74]/10 px-4 py-3 text-paper no-underline"
+      >
+        <span>
+          <span className="block text-sm font-semibold">Смотреть платформу обучения Дарины</span>
+          <span className="block text-xs text-paper/60">Уроки, курсы и вход в свой кабинет</span>
+        </span>
+        <span aria-hidden="true" className="text-lg text-[#c9ae74]">→</span>
+      </a>
       {peeked ? <LockedLesson widget lesson={peeked} onBack={() => setPeek(null)} onNext={setPeek} onBuy={() => setPay(true)} onMore={() => { setPeek(null); nav.go({ id: "lesson", lessonId: peeked.id }); }} /> : null}
+      <section className="mt-9" aria-label="Частые вопросы">
+        <h2 className="display-title text-[1.5rem] leading-tight text-paper">Вопросы и ответы</h2>
+        <div className="mt-3 grid gap-2">
+          {FAQ.map((item) => (
+            <details key={item.q} className="group rounded-2xl border border-paper/15 bg-paper/5">
+              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2 text-[15px] font-semibold text-paper">
+                {item.q}
+                <span aria-hidden className="shrink-0 text-[#c9ae74] transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="px-4 pb-4 text-sm leading-relaxed text-paper/75">{item.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
       <LegalLinks dark />
       {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
     </ScreenFrame>
