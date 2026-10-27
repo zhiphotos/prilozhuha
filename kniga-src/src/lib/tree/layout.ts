@@ -2,6 +2,13 @@ import { yearNum } from "./kinship.ts";
 import { H_GAP, PAD_X, PAD_Y, PLATE_GAP, PLATE_H, PLATE_W, PORTRAIT_R, ROOT_GAP, ROW_H, SPOUSE_DX } from "./metrics.ts";
 import type { ChildBus, GenLabel, Person, SpouseLink, TreeData, TreeLayout, Union } from "./types.ts";
 
+/** Насколько разводить ветки друг от друга: 0 плотно, 1 шире, 2 ещё шире. Выбирает пользователь. */
+let spread: 0 | 1 | 2 = 0;
+const SPREAD_EXTRA = [0, 90, 220] as const;
+export function setLayoutSpread(value: 0 | 1 | 2) {
+  spread = value;
+}
+
 type Graph = {
   people: Map<string, Person>;
   unions: Union[];
@@ -82,12 +89,32 @@ function marriageYear(g: Graph, a: string, b: string): number {
   return yearNum(union?.startYear) === 9999 ? yearNum(g.people.get(b)?.birthYear) : yearNum(union?.startYear);
 }
 
+/** Место ветки, которое выбрал пользователь; без выбора такие ветки идут по году рождения после выбранных. */
+function rankOf(g: Graph, ids: string[]): number {
+  let best = Infinity;
+  for (const id of ids) {
+    const rank = g.people.get(id)?.rank;
+    if (rank !== undefined && rank < best) best = rank;
+  }
+  return best;
+}
+
+function cmpRank(g: Graph, a: string[], b: string[]): number {
+  const ra = rankOf(g, a);
+  const rb = rankOf(g, b);
+  if (ra === rb) return 0;
+  return ra < rb ? -1 : 1;
+}
+
 function orderGroup(g: Graph, ids: string[]): string[] {
   if (ids.length <= 1) return ids;
   if (ids.length === 2) {
     const [a, b] = ids as [string, string];
     const pa = g.people.get(a);
     const pb = g.people.get(b);
+    // Явный выбор пользователя главнее пола и возраста.
+    if (pa?.side === "right" || pb?.side === "left") return [b, a];
+    if (pa?.side === "left" || pb?.side === "right") return [a, b];
     if (pa?.gender === "m" && pb?.gender !== "m") return [a, b];
     if (pb?.gender === "m" && pa?.gender !== "m") return [b, a];
     return byBirth(g, a, b) <= 0 ? [a, b] : [b, a];
@@ -150,7 +177,7 @@ export function layoutTree(people: Person[], unions: Union[], focusId: string, f
 
   const placeBlocks = (blocks: { ids: string[]; rel: Map<string, number> }[], anchorOf: (ids: string[]) => { id: string; target: number } | null) => {
     const ready = blocks.map((block) => ({ ...block, anchor: anchorOf(block.ids) }));
-    ready.sort((a, b) => (a.anchor?.target ?? 0) - (b.anchor?.target ?? 0) || byBirth(g, a.ids[0]!, b.ids[0]!));
+    ready.sort((a, b) => (a.anchor?.target ?? 0) - (b.anchor?.target ?? 0) || cmpRank(g, a.ids, b.ids) || byBirth(g, a.ids[0]!, b.ids[0]!));
     let cursor = Number.NEGATIVE_INFINITY;
     let index = 0;
     while (index < ready.length) {
@@ -183,7 +210,7 @@ export function layoutTree(people: Person[], unions: Union[], focusId: string, f
       }
       if (cursor !== Number.NEGATIVE_INFINITY && minLocal + shift < cursor) shift += cursor - (minLocal + shift);
       for (const [id, value] of local) pos.set(id, value + shift);
-      cursor = maxLocal + shift + gap;
+      cursor = maxLocal + shift + gap + SPREAD_EXTRA[spread];
       index = end;
     }
   };
@@ -191,13 +218,13 @@ export function layoutTree(people: Person[], unions: Union[], focusId: string, f
   levels.forEach((level, index) => {
     const blocks = blocksOf(level);
     if (index === 0) {
-      blocks.sort((a, b) => byBirth(g, a.ids[0]!, b.ids[0]!));
+      blocks.sort((a, b) => cmpRank(g, a.ids, b.ids) || byBirth(g, a.ids[0]!, b.ids[0]!));
       let cursor = 0;
       for (const block of blocks) {
         let maxRel = 0;
         for (const value of block.rel.values()) maxRel = Math.max(maxRel, value);
         for (const [id, value] of block.rel) pos.set(id, cursor + value);
-        cursor += maxRel + Math.max(gap, ROOT_GAP);
+        cursor += maxRel + Math.max(gap, ROOT_GAP) + SPREAD_EXTRA[spread];
       }
       return;
     }
@@ -210,14 +237,14 @@ export function layoutTree(people: Person[], unions: Union[], focusId: string, f
     }
     // Пара встаёт так, чтобы родители каждого из супругов были над «своим» супругом: линии не перекрещиваются.
     for (const block of blocks) {
-      if (block.ids.length > 1 && block.ids.every((id) => childTarget.has(id))) {
+      if (block.ids.length > 1 && block.ids.every((id) => childTarget.has(id)) && !block.ids.some((id) => g.people.get(id)?.side)) {
         block.ids = block.ids.slice().sort((a, b) => (childTarget.get(a) ?? 0) - (childTarget.get(b) ?? 0));
         block.rel = new Map(block.ids.map((id, i) => [id, i * gap] as [string, number]));
       }
     }
     // Пара встаёт так, чтобы родители каждого из супругов были над «своим» супругом: линии не перекрещиваются.
     for (const block of blocks) {
-      if (block.ids.length > 1 && block.ids.every((id) => childTarget.has(id))) {
+      if (block.ids.length > 1 && block.ids.every((id) => childTarget.has(id)) && !block.ids.some((id) => g.people.get(id)?.side)) {
         block.ids = block.ids.slice().sort((a, b) => (childTarget.get(a) ?? 0) - (childTarget.get(b) ?? 0));
         block.rel = new Map(block.ids.map((id, i) => [id, i * gap] as [string, number]));
       }

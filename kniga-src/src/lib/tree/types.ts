@@ -12,6 +12,10 @@ export type Person = {
   deathYear: string;
   photo: string;
   note: string;
+  /** Как человек стоит рядом с супругом: слева или справа (выбор пользователя). */
+  side?: "left" | "right";
+  /** Место ветки среди других в ряду слева направо (выбор пользователя). */
+  rank?: number;
 };
 
 export type Union = {

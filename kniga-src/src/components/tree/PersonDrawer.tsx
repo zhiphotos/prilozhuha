@@ -181,6 +181,8 @@ function FamilySheet({
   const setUnionStatus = useTree((s) => s.setUnionStatus);
   const setUnionYears = useTree((s) => s.setUnionYears);
   const selectPerson = useTree((s) => s.selectPerson);
+  const flipSpouse = useTree((s) => s.flipSpouse);
+  const moveBranch = useTree((s) => s.moveBranch);
   const [confirm, setConfirm] = useState(false);
 
   return (
@@ -215,6 +217,23 @@ function FamilySheet({
           Добавить брата или сестру
         </button>
       </div>
+      <section className="flex flex-col gap-2">
+        <p className="text-xs tracking-widest text-muted uppercase">Расположение на схеме</p>
+        <p className="text-sm text-muted">Схема раскладывает людей сама. Здесь можно выбрать порядок: поменять супругов местами или сдвинуть всю ветку левее или правее. Если ветки сплетаются, откройте «Показать» и разведите их шире.</p>
+        <div className="grid grid-cols-2 gap-2">
+          {family.marriages.length > 0 && (
+            <button type="button" className="col-span-2 min-h-12 rounded-2xl border border-line bg-white px-3 text-sm font-semibold" onClick={() => flipSpouse(person.id)}>
+              Поменять с супругом местами
+            </button>
+          )}
+          <button type="button" className="min-h-12 rounded-2xl border border-line bg-white px-3 text-sm font-semibold" onClick={() => moveBranch(person.id, -1)}>
+            ← Ветку левее
+          </button>
+          <button type="button" className="min-h-12 rounded-2xl border border-line bg-white px-3 text-sm font-semibold" onClick={() => moveBranch(person.id, 1)}>
+            Ветку правее →
+          </button>
+        </div>
+      </section>
       <section className="flex flex-col gap-2">
         <p className="text-xs tracking-widest text-muted uppercase">Родители</p>
         <div className="grid grid-cols-2 gap-2">

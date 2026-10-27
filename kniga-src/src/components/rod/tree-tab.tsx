@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft, Moon, Plus, Sun, Users } from "lucide-react";
 import { PaySheet } from "@/components/rod/lessons";
@@ -61,9 +61,14 @@ function TreeScreen() {
   const scope = useTree((s) => s.scope);
   const setScope = useTree((s) => s.setScope);
   const [scopeOpen, setScopeOpen] = useState(false);
+  const [scopeShift, setScopeShift] = useState(0);
+  const scopeBox = useRef<HTMLDivElement>(null);
   const shown = useMemo(() => scopeFilter(people, unions, focusId, scope), [people, unions, focusId, scope]);
   const view = useMemo(() => sliceByRadius(shown.people, shown.unions, focusId, radius), [shown, focusId, radius]);
-  const layout = useMemo(() => layoutTree(view.people, view.unions, focusId, flow), [view, focusId, flow]);
+  const spread = useTree((s) => s.spread);
+  const setSpread = useTree((s) => s.setSpread);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const layout = useMemo(() => layoutTree(view.people, view.unions, focusId, flow), [view, focusId, flow, spread]);
   const poster = useMemo(() => (style === "carved" ? layoutPoster(view.people, view.unions, focusId, flow) : null), [style, view, focusId, flow]);
   const cameo = useMemo(() => (style === "cameo" ? layoutCameo(view.people, view.unions, focusId, flow) : null), [style, view, focusId, flow]);
   const gzhel = useMemo(() => (style === "gzhel" ? layoutGzhel(view.people, view.unions, focusId, flow) : null), [style, view, focusId, flow]);
@@ -182,12 +187,22 @@ function TreeScreen() {
           </button>
           <Hint id="tree-pdf"><button type="button" className="chip pointer-events-auto" onClick={() => setPrinting(true)}>PDF</button></Hint>
           <Hint id="tree-ged"><GedImportButton /></Hint>
-          <div className="relative">
-            <button type="button" className="chip" aria-expanded={scopeOpen} onClick={() => setScopeOpen((v) => !v)}>
+          <div className="relative" ref={scopeBox}>
+            <button
+              type="button"
+              className="chip"
+              aria-expanded={scopeOpen}
+              onClick={() => {
+                // Меню шире экрана телефона: сдвигаем его влево, чтобы оно целиком помещалось.
+                const left = scopeBox.current?.getBoundingClientRect().left ?? 12;
+                setScopeShift(Math.max(0, left - 12));
+                setScopeOpen((v) => !v);
+              }}
+            >
               {scope === "all" ? "Показать" : "Показано"} ▾
             </button>
             {scopeOpen && (
-              <div className="absolute top-12 left-0 z-30 grid w-[min(20rem,calc(100vw-1.5rem))] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg backdrop-blur-md">
+              <div style={{ left: -scopeShift }} className="absolute top-12 z-30 grid w-[min(20rem,calc(100vw-1.5rem))] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg backdrop-blur-md">
                 {SCOPES.map((item) => (
                   <button
                     key={item.id}
@@ -204,6 +219,25 @@ function TreeScreen() {
                     <span className="block text-xs opacity-75">{item.hint}</span>
                   </button>
                 ))}
+                <div className="mt-1 border-t border-chip-line px-3 pt-2 pb-1">
+                  <p className="text-sm font-semibold text-chip-fg">Расстояние между ветками</p>
+                  <div className="mt-1 flex gap-1">
+                    {([[0, "Плотно"], [1, "Шире"], [2, "Ещё шире"]] as const).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={spread === value}
+                        className={`min-h-9 flex-1 rounded-xl px-2 text-xs font-semibold ${spread === value ? "bg-gold text-ink" : "text-chip-fg"}`}
+                        onClick={() => {
+                          setSpread(value);
+                          setFitReq((n) => n + 1);
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
