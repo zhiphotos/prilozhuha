@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowRight, Check, ChevronLeft, ExternalLink, FileText, Lock, Play, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
@@ -741,12 +741,31 @@ function CleanVideo({ url }: { url: string }) {
   const id = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]{6,})/)?.[1];
   const [playing, setPlaying] = useState(false);
   const [poster, setPoster] = useState(id ? `https://i.ytimg.com/vi/${id}/maxresdefault.jpg` : "");
+  const frame = useRef<HTMLIFrameElement>(null);
+  // Когда видео досмотрели, YouTube сам предлагает чужие ролики. Ловим конец и возвращаем нашу обложку.
+  useEffect(() => {
+    if (!playing) return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== frame.current?.contentWindow) return;
+      try {
+        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        if (data?.event === "onStateChange" && data.info === 0) setPlaying(false);
+        if (data?.event === "infoDelivery" && data.info?.playerState === 0) setPlaying(false);
+      } catch {
+        /* чужое сообщение */
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [playing]);
   if (!id) return null;
   return (
     <div className="relative aspect-video w-full overflow-hidden bg-black">
       {playing ? (
         <iframe
-          src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&color=white`}
+          ref={frame}
+          src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&color=white&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
+          onLoad={() => frame.current?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: 1, channel: "widget" }), "*")}
           title="Урок"
           className="absolute inset-0 size-full"
           allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
