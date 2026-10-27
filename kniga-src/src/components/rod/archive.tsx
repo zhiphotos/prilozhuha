@@ -223,35 +223,82 @@ function TimePane() {
   );
 }
 
+type PhotoView = "feed" | "grid";
+const VIEW_KEY = "kniga-photo-view";
+
+function savedView(): PhotoView {
+  try {
+    return localStorage.getItem(VIEW_KEY) === "grid" ? "grid" : "feed";
+  } catch {
+    return "feed";
+  }
+}
+
 function PhotosPane() {
   const nav = useNav();
   const photos = useRod((state) => state.photos);
   const removePhoto = useRod((state) => state.removePhoto);
   const [viewAt, setViewAt] = useState<number | null>(null);
+  const [view, setView] = useState<PhotoView>(savedView);
+  const choose = (next: PhotoView) => {
+    setView(next);
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      /* без хранилища вид просто не запомнится */
+    }
+  };
   return (
     <div className="grid gap-3">
       <Button onClick={() => nav.go({ id: "photo-new" })}>Оцифровать фотографию</Button>
       {photos.length === 0 ? <p className="text-sm text-muted">Достаточно подписать, кто на снимке. Одной старой фотографии уже хватит для главы.</p> : null}
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {photos.map((photo) => (
-          <li key={photo.id} className="glass overflow-hidden rounded-2xl">
-            <button type="button" className="block w-full" aria-label="Открыть фото" onClick={() => setViewAt(photos.indexOf(photo))}>
-              <MediaImg src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="block h-auto max-h-[70vh] min-h-24 w-full object-contain" />
+      {photos.length > 1 ? (
+        <div role="group" aria-label="Как показывать фото" className="glass flex w-fit gap-1 rounded-full p-1 text-sm">
+          {([["feed", "Лента"], ["grid", "Плитка"]] as const).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={view === id}
+              onClick={() => choose(id)}
+              className={`min-h-9 rounded-full px-4 font-medium ${view === id ? "bg-ink text-paper" : "text-ink"}`}
+            >
+              {label}
             </button>
-            <div className="p-4">
-              <p className="font-medium text-ink">{photo.who || "Без подписи"}</p>
-              <p className="text-sm text-muted">
-                {[photo.where, photo.year].filter(Boolean).join(" · ")}
-              </p>
-              {photo.what ? <p className="mt-2 text-sm text-ink">{photo.what}</p> : null}
-              {photo.photographer ? <p className="mt-1 text-sm text-muted">Снимал: {photo.photographer}</p> : null}
-              <button type="button" className="mt-2 text-sm text-muted underline" onClick={() => removePhoto(photo.id)}>
-                Удалить
+          ))}
+        </div>
+      ) : null}
+      {view === "grid" && photos.length > 1 ? (
+        <ul className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5">
+          {photos.map((photo, index) => (
+            <li key={photo.id}>
+              <button type="button" className="block aspect-square w-full overflow-hidden rounded-lg bg-ink/5" aria-label={photo.who || "Открыть фото"} onClick={() => setViewAt(index)}>
+                <MediaImg src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="size-full object-cover" />
               </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {photos.map((photo) => (
+            <li key={photo.id} className="glass overflow-hidden rounded-2xl">
+              <button type="button" className="block w-full" aria-label="Открыть фото" onClick={() => setViewAt(photos.indexOf(photo))}>
+                <MediaImg src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="block h-auto max-h-[70vh] min-h-24 w-full object-contain" />
+              </button>
+              <div className="p-4">
+                <p className="font-medium text-ink">{photo.who || "Без подписи"}</p>
+                <p className="text-sm text-muted">
+                  {[photo.where, photo.year].filter(Boolean).join(" · ")}
+                </p>
+                {photo.what ? <p className="mt-2 text-sm text-ink">{photo.what}</p> : null}
+                {photo.photographer ? <p className="mt-1 text-sm text-muted">Снимал: {photo.photographer}</p> : null}
+                <button type="button" className="mt-2 text-sm text-muted underline" onClick={() => removePhoto(photo.id)}>
+                  Удалить
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
       {viewAt !== null ? <PhotoViewer photos={photos} start={viewAt} onClose={() => setViewAt(null)} /> : null}
     </div>
   );
