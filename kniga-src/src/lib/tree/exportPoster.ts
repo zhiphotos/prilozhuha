@@ -1,4 +1,4 @@
-import { displayName, kinship, yearsOf } from "./kinship.ts";
+import { fullName, kinship, yearsOf } from "./kinship.ts";
 import { layoutTree } from "./layout.ts";
 import { PLATE_GAP, PLATE_H, PLATE_W, PORTRAIT_R } from "./metrics.ts";
 import { layoutTaiga, TAIGA_FRAME, TAIGA_FRAMES } from "./taiga.ts";
@@ -178,7 +178,7 @@ async function renderWork(data: TreeData, paper: "white" | "black", flow: "down"
     ctx.fillStyle = tone.ink;
     ctx.textAlign = "center";
     ctx.font = '600 16px "Cormorant Garamond", serif';
-    ctx.fillText(displayName(person), node.x, top + 24);
+    ctx.fillText(fullName(person), node.x, top + 24, PLATE_W - 14);
     ctx.fillStyle = tone.role;
     ctx.font = "700 11px Manrope, sans-serif";
     ctx.fillText(kinship(data.people, data.unions, data.focusId, person.id).card, node.x, top + 42);
@@ -253,7 +253,7 @@ async function renderLiving(data: TreeData, titleOf: (fallback: string) => strin
     ctx.fillStyle = "#171717";
     ctx.font = '500 13px Manrope, sans-serif';
     ctx.textAlign = "left";
-    ctx.fillText(displayName(person), node.x - w / 2 + 52, node.y - 6);
+    ctx.fillText(fullName(person), node.x - w / 2 + 52, node.y - 6, w - 60);
     ctx.fillStyle = "#737373";
     ctx.font = "11px Manrope, sans-serif";
     ctx.fillText(yearsOf(person), node.x - w / 2 + 52, node.y + 10);
@@ -362,7 +362,7 @@ async function renderFramed(
     const top = node.y + size + 4;
     ctx.fillStyle = ink;
     ctx.font = '15px "Cormorant Garamond", serif';
-    ctx.fillText(displayName(person), node.x, top + 16);
+    ctx.fillText(fullName(person), node.x, top + 16, 210);
     ctx.globalAlpha = 0.86;
     ctx.font = '11px "Cormorant Garamond", serif';
     ctx.fillText(role, node.x, top + 34);

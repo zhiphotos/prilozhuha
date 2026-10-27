@@ -1,5 +1,5 @@
 import { assignGenerations } from "./layout.ts";
-import { displayName, kinship, yearNum, yearsOf } from "./kinship.ts";
+import { fullName, kinship, yearNum, yearsOf } from "./kinship.ts";
 import type { Person, Union } from "./types.ts";
 
 export type PosterNode = { id: string; x: number; y: number; gen: number; w: number };
@@ -58,7 +58,7 @@ function yFracFor(index: number, count: number): number {
 }
 
 function cardWidthFor(person: Person, people: Person[], unions: Union[], focusId: string) {
-  const name = displayName(person);
+  const name = fullName(person);
   const role = kinship(people, unions, focusId, person.id).card;
   const years = yearsOf(person);
   const longest = Math.max(name.length, role.length, years ? years.length + 2 : 0);

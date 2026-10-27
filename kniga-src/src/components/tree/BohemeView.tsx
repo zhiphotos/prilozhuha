@@ -1,6 +1,6 @@
 import { FramedFace } from "@/components/tree/FramedFace";
 import { SheetTitle } from "@/components/tree/SheetTitle";
-import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
+import { fitName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { BOHEME_FRAME, BOHEME_FRAMES, type BohemeSheet } from "@/lib/tree/boheme";
 import type { Person, Union } from "@/lib/tree/types";
 
@@ -45,9 +45,14 @@ export function BohemeView({ sheet, people, unions, focusId, selectedId }: { she
           const years = yearsOf(person);
           return (
             <g key={node.id}>
-              <text x={node.x} y={top + 18} textAnchor="middle" fill={INK} fontFamily="var(--font-serif)" fontSize={16}>
-                {displayName(person)}
-              </text>
+              {(() => {
+                const f = fitName(person, 220, 16);
+                return (
+                  <text x={node.x} y={top + 18} textAnchor="middle" fill={INK} fontFamily="var(--font-serif)" fontSize={f.size} textLength={f.textLength} lengthAdjust="spacingAndGlyphs">
+                    {f.text}
+                  </text>
+                );
+              })()}
               <text x={node.x} y={top + 38} textAnchor="middle" fill={INK} opacity={0.82} fontFamily="var(--font-serif)" fontSize={12}>
                 {role}
               </text>

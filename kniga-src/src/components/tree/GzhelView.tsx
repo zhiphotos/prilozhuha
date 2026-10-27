@@ -1,6 +1,6 @@
 import { FramedFace } from "@/components/tree/FramedFace";
 import { SheetTitle } from "@/components/tree/SheetTitle";
-import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
+import { fitName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { GZHEL_FRAME, GZHEL_FRAMES, type GzhelSheet } from "@/lib/tree/gzhel";
 import type { Person, Union } from "@/lib/tree/types";
 
@@ -37,9 +37,14 @@ export function GzhelView({ sheet, people, unions, focusId, selectedId }: { shee
           const years = yearsOf(person);
           return (
             <g key={node.id}>
-              <text x={node.x} y={top + 18} textAnchor="middle" fill={INK} fontFamily="var(--font-serif)" fontSize={16}>
-                {displayName(person)}
-              </text>
+              {(() => {
+                const f = fitName(person, 210, 16);
+                return (
+                  <text x={node.x} y={top + 18} textAnchor="middle" fill={INK} fontFamily="var(--font-serif)" fontSize={f.size} textLength={f.textLength} lengthAdjust="spacingAndGlyphs">
+                    {f.text}
+                  </text>
+                );
+              })()}
               <text x={node.x} y={top + 36} textAnchor="middle" fill="#3d6eae" fontFamily="var(--font-serif)" fontSize={12}>
                 {role}
               </text>
