@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, Moon, Plus, Sun, Users } from "lucide-react";
+import { ChevronLeft, Moon, Plus, Settings, Sun, Users } from "lucide-react";
 import { PaySheet } from "@/components/rod/lessons";
 import { useNav } from "@/components/rod/chrome";
 import { useRod } from "@/lib/rod/store";
@@ -60,6 +60,7 @@ function TreeScreen() {
   const [fitReq, setFitReq] = useState(0);
   const scope = useTree((s) => s.scope);
   const setScope = useTree((s) => s.setScope);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [scopeOpen, setScopeOpen] = useState(false);
   const [scopeShift, setScopeShift] = useState(0);
   const scopeBox = useRef<HTMLDivElement>(null);
@@ -182,91 +183,98 @@ function TreeScreen() {
               setCenterReq({ id, n: Date.now() });
             }}
           />
-          <button type="button" className="chip" aria-label="Список рода" onClick={() => setRoster(!roster)}>
-            <Users className="size-5" />
+          <button type="button" className="chip" aria-label="Настройки древа" aria-expanded={toolsOpen} onClick={() => setToolsOpen((v) => !v)}>
+            <Settings className="size-5" />
           </button>
-          <Hint id="tree-pdf"><button type="button" className="chip pointer-events-auto" onClick={() => setPrinting(true)}>PDF</button></Hint>
-          <Hint id="tree-ged"><GedImportButton /></Hint>
-          <div className="relative" ref={scopeBox}>
-            <button
-              type="button"
-              className="chip"
-              aria-expanded={scopeOpen}
-              onClick={() => {
-                // Меню шире экрана телефона: сдвигаем его влево, чтобы оно целиком помещалось.
-                const left = scopeBox.current?.getBoundingClientRect().left ?? 12;
-                setScopeShift(Math.max(0, left - 12));
-                setScopeOpen((v) => !v);
-              }}
-            >
-              {scope === "all" ? "Показать" : "Показано"} ▾
+          {toolsOpen && (
+            <>
+            <button type="button" className="chip" aria-label="Список рода" onClick={() => setRoster(!roster)}>
+              <Users className="size-5" />
             </button>
-            {scopeOpen && (
-              <div style={{ left: -scopeShift }} className="absolute top-12 z-30 grid w-[min(20rem,calc(100vw-1.5rem))] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg backdrop-blur-md">
-                {SCOPES.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    aria-pressed={scope === item.id}
-                    className={`rounded-xl px-3 py-2 text-left ${scope === item.id ? "bg-gold text-ink" : "text-chip-fg"}`}
-                    onClick={() => {
-                      setScope(item.id);
-                      setScopeOpen(false);
-                      setFitReq((n) => n + 1);
-                    }}
-                  >
-                    <span className="block text-sm font-semibold">{item.label}</span>
-                    <span className="block text-xs opacity-75">{item.hint}</span>
-                  </button>
-                ))}
-                <div className="mt-1 border-t border-chip-line px-3 pt-2 pb-1">
-                  <p className="text-sm font-semibold text-chip-fg">Расстояние между ветками</p>
-                  <div className="mt-1 flex gap-1">
-                    {([[0, "Плотно"], [1, "Шире"], [2, "Ещё шире"]] as const).map(([value, label]) => (
-                      <button
-                        key={value}
-                        type="button"
-                        aria-pressed={spread === value}
-                        className={`min-h-9 flex-1 rounded-xl px-2 text-xs font-semibold ${spread === value ? "bg-gold text-ink" : "text-chip-fg"}`}
-                        onClick={() => {
-                          setSpread(value);
-                          setFitReq((n) => n + 1);
-                        }}
-                      >
-                        {label}
-                      </button>
-                    ))}
+            <Hint id="tree-pdf"><button type="button" className="chip pointer-events-auto" onClick={() => setPrinting(true)}>PDF</button></Hint>
+            <Hint id="tree-ged"><GedImportButton /></Hint>
+            <div className="relative" ref={scopeBox}>
+              <button
+                type="button"
+                className="chip"
+                aria-expanded={scopeOpen}
+                onClick={() => {
+                  // Меню шире экрана телефона: сдвигаем его влево, чтобы оно целиком помещалось.
+                  const left = scopeBox.current?.getBoundingClientRect().left ?? 12;
+                  setScopeShift(Math.max(0, left - 12));
+                  setScopeOpen((v) => !v);
+                }}
+              >
+                {scope === "all" ? "Показать" : "Показано"} ▾
+              </button>
+              {scopeOpen && (
+                <div style={{ left: -scopeShift }} className="absolute top-12 z-30 grid w-[min(20rem,calc(100vw-1.5rem))] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg backdrop-blur-md">
+                  {SCOPES.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      aria-pressed={scope === item.id}
+                      className={`rounded-xl px-3 py-2 text-left ${scope === item.id ? "bg-gold text-ink" : "text-chip-fg"}`}
+                      onClick={() => {
+                        setScope(item.id);
+                        setScopeOpen(false);
+                        setFitReq((n) => n + 1);
+                      }}
+                    >
+                      <span className="block text-sm font-semibold">{item.label}</span>
+                      <span className="block text-xs opacity-75">{item.hint}</span>
+                    </button>
+                  ))}
+                  <div className="mt-1 border-t border-chip-line px-3 pt-2 pb-1">
+                    <p className="text-sm font-semibold text-chip-fg">Расстояние между ветками</p>
+                    <div className="mt-1 flex gap-1">
+                      {([[0, "Плотно"], [1, "Шире"], [2, "Ещё шире"]] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          aria-pressed={spread === value}
+                          className={`min-h-9 flex-1 rounded-xl px-2 text-xs font-semibold ${spread === value ? "bg-gold text-ink" : "text-chip-fg"}`}
+                          onClick={() => {
+                            setSpread(value);
+                            setFitReq((n) => n + 1);
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-          <button type="button" className="chip" aria-label="Тема" onClick={() => setTheme(theme === "night" ? "paper" : "night")}>
-            {theme === "night" ? <Sun className="size-5" /> : <Moon className="size-5" />}
-          </button>
-          <div className="relative">
-            <button
-              type="button"
-              className="chip"
-              disabled={busy || people.length === 0}
-              onClick={() => {
-                if (style === "work") setSheetPick((open) => !open);
-                else void save();
-              }}
-            >
-              {busy ? "…" : "Лист"}
+              )}
+            </div>
+            <button type="button" className="chip" aria-label="Тема" onClick={() => setTheme(theme === "night" ? "paper" : "night")}>
+              {theme === "night" ? <Sun className="size-5" /> : <Moon className="size-5" />}
             </button>
-            {sheetPick && style === "work" && (
-              <div className="absolute top-12 right-0 z-30 grid w-36 max-w-[calc(100vw-1.5rem)] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg">
-                <button type="button" className="min-h-11 rounded-xl bg-white px-3 text-sm font-semibold text-ink" onClick={() => void save("white")}>
-                  Белый фон
-                </button>
-                <button type="button" className="min-h-11 rounded-xl bg-ink px-3 text-sm font-semibold text-sheet" onClick={() => void save("black")}>
-                  Чёрный фон
-                </button>
-              </div>
-            )}
-          </div>
+            <div className="relative">
+              <button
+                type="button"
+                className="chip"
+                disabled={busy || people.length === 0}
+                onClick={() => {
+                  if (style === "work") setSheetPick((open) => !open);
+                  else void save();
+                }}
+              >
+                {busy ? "…" : "Лист"}
+              </button>
+              {sheetPick && style === "work" && (
+                <div className="absolute top-12 right-0 z-30 grid w-36 max-w-[calc(100vw-1.5rem)] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg">
+                  <button type="button" className="min-h-11 rounded-xl bg-white px-3 text-sm font-semibold text-ink" onClick={() => void save("white")}>
+                    Белый фон
+                  </button>
+                  <button type="button" className="min-h-11 rounded-xl bg-ink px-3 text-sm font-semibold text-sheet" onClick={() => void save("black")}>
+                    Чёрный фон
+                  </button>
+                </div>
+              )}
+            </div>
+            </>
+          )}
         </div>
       </header>
       {note && <p className="absolute top-24 right-3 left-3 z-20 mx-auto max-w-md rounded-2xl bg-chip px-4 py-3 text-center text-sm text-chip-fg">{note}</p>}
