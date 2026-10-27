@@ -1,5 +1,6 @@
 import { remindBackup } from "@/lib/rod/backup";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { installScrollHelp } from "@/lib/rod/scroll-help";
 import { flushSync } from "react-dom";
 import {
   BookOpen,
@@ -146,6 +147,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const duplicatePage = useRod((state) => state.duplicatePage);
   const movePage = useRod((state) => state.movePage);
   const insertPage = useRod((state) => state.insertPage);
+
+  // Колёсико мыши листает ряды вбок, а новый ряд с продолжением слегка качается: подсказка для компьютера.
+  useEffect(() => {
+    const root = document.querySelector<HTMLElement>(".editor-root");
+    return root ? installScrollHelp(root) : undefined;
+  }, []);
   const addUserSticker = useRod((state) => state.addUserSticker);
   const dedicatee = useRod((state) => state.dedicatee);
   const collector = useRod((state) => state.collector);
