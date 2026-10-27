@@ -67,7 +67,7 @@ const SLIDES: Slide[] = [
   {
     kicker: "Цена",
     title: "Уроки и приложение за 2 026 ₽",
-    text: "Единоразовая плата 2 026 ₽ вместо 4 000 ₽. Уроки открываются сразу после оплаты. Новые функции появятся позже: часть останется с вами навсегда, часть подключается по подписке.",
+    text: "Единоразовая плата 2 026 ₽ вместо 4 000 ₽: платите один раз, доступ навсегда. Уроки открываются сразу после оплаты. Новые функции появятся позже: часть останется с вами навсегда, часть подключается по подписке.",
     image: "course/site/memoirs-daria.jpg",
     pos: "50% 20%",
     price: true,
@@ -201,7 +201,7 @@ export function UnlockCarousel() {
     <section className="mb-6" aria-label="Что откроется после покупки">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">Программа «Книга рода»</p>
       <h2 className="mt-1 text-[1.3rem] font-semibold leading-tight text-ink">Мини-уроки и полный доступ в приложение</h2>
-      <p className="mt-1 text-sm text-ink/70">Единоразовая плата, и открывается всё: шесть видео-уроков и приложение для вашей книги. Листайте и смотрите, что внутри.</p>
+      <p className="mt-1 text-sm text-ink/70">Платите один раз, доступ навсегда, и открывается всё: шесть видео-уроков и приложение для вашей книги. Листайте и смотрите, что внутри.</p>
       <div
         ref={track}
         className="-mx-5 mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -271,7 +271,7 @@ export function UnlockCarousel() {
           </button>
         ))}
       </div>
-      <p className="mt-2 text-center text-xs text-ink/65">Единоразовая плата. Уроки открываются сразу после оплаты, смотреть можно с телефона. Доступ к урокам на год, к чату навсегда.</p>
+      <p className="mt-2 text-center text-xs text-ink/65">Единоразовая плата, доступ навсегда. Уроки открываются сразу после оплаты, смотреть можно с телефона.</p>
       <Button className="mt-3 w-full" onClick={() => setPay(true)}>
         <ShoppingBag className="size-4" /> Купить мини-уроки и полный доступ
       </Button>
