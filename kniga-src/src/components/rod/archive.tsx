@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { serverStatus } from "@/lib/rod/server";
 import { fetchInbox } from "@/lib/rod/family";
 import { FamilySheet } from "@/components/rod/family-sheet";
@@ -235,7 +236,7 @@ function PhotosPane() {
         {photos.map((photo) => (
           <li key={photo.id} className="glass overflow-hidden rounded-2xl">
             <button type="button" className="block w-full" aria-label="Открыть фото" onClick={() => setViewAt(photos.indexOf(photo))}>
-              <MediaImg src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="aspect-[4/3] w-full object-cover" />
+              <MediaImg src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="block h-auto max-h-[70vh] min-h-24 w-full object-contain" />
             </button>
             <div className="p-4">
               <p className="font-medium text-ink">{photo.who || "Без подписи"}</p>
@@ -393,7 +394,8 @@ function PhotoViewer({ photos, start, onClose }: { photos: { id: string; dataUrl
   });
   const photo = photos[at];
   if (!photo) return null;
-  return (
+  // В body, а не внутри списка: иначе окно открывается посреди длинной страницы и до него надо промотать вниз.
+  return createPortal(
     <div
       className="fixed inset-0 z-[80] flex flex-col bg-night/95 text-paper"
       onTouchStart={(event) => (touch.current = event.touches[0]?.clientX ?? null)}
@@ -429,6 +431,7 @@ function PhotoViewer({ photos, start, onClose }: { photos: { id: string; dataUrl
         <p className="text-sm text-paper/70">{[photo.where, photo.year].filter(Boolean).join(" · ")}</p>
         {photo.what ? <p className="mt-1 text-sm text-paper/85">{photo.what}</p> : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

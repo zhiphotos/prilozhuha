@@ -75,9 +75,13 @@ function descendantTitle(dist: number, gender: Gender): string {
   return `Потомок (${dist})`;
 }
 
+/** Год из года или даты: «1989», «18.05.1989», «1989-05-18» и «18051989» (дата без точек: год последние четыре цифры). */
 export function yearNum(raw?: string): number {
-  const match = String(raw ?? "").match(/\d{4}/);
-  const year = match ? Number(match[0]) : NaN;
+  const text = String(raw ?? "");
+  const eight = text.match(/(?<!\d)\d{8}(?!\d)/);
+  const four = text.match(/(?<!\d)\d{4}(?!\d)/);
+  const found = eight ? eight[0].slice(4) : four?.[0];
+  const year = found ? Number(found) : NaN;
   return Number.isFinite(year) && year > 0 ? year : 9999;
 }
 

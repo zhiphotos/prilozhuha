@@ -175,7 +175,7 @@ export function AddPerson({
               </label>
               <label className="field">
                 Год рождения
-                <input inputMode="numeric" maxLength={4} value={birthYear} onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+                <input value={birthYear} placeholder="Год или дата, например 18.05.1989" onChange={(e) => setBirthYear(e.target.value.slice(0, 20))} />
               </label>
             </div>
           </div>
