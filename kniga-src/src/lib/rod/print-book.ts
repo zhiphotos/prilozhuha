@@ -20,7 +20,7 @@ import {
   stickerUrl,
   textMetrics,
 } from "@/lib/rod/page-style";
-import { flowAround, obstaclesFor } from "@/lib/rod/wrap-around";
+import { flowAround, obstaclesFor, preloadShapes } from "@/lib/rod/wrap-around";
 import { MM, buildJpegPdf, type PdfSheet } from "@/lib/rod/pdf";
 import type { PrintSetup } from "@/lib/rod/page-style";
 import { shapeParts, shapeStyle } from "@/lib/rod/shapes";
@@ -470,6 +470,7 @@ function paintStrokes(ctx: CanvasRenderingContext2D, page: BookPage) {
 
 /** Рисует блок на отдельном слое, чтобы применить прозрачность, режим наложения и ластик (маску). */
 async function paintBlock(ctx: CanvasRenderingContext2D, block: PageBlock, dark: boolean, siblings: PageBlock[] = []) {
+  if (block.type === "text" && block.wrap) await preloadShapes(siblings);
   const draw = async (target: CanvasRenderingContext2D) => {
     if (block.type === "text") paintText(target, block, dark, siblings);
     else if (block.type === "photo") await paintPhoto(target, block);

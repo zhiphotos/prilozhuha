@@ -1,12 +1,14 @@
 // Обтекание текста вокруг фото и стикеров. Всё в единицах ширины страницы (ширина = 100), как у блоков и шрифтов.
 // Один расчёт на экран и на печать: считаем, где в каждой строке свободно, и набираем слова только туда.
 import { PAGE_H } from "@/lib/rod/ink";
-import { stickerRatio } from "@/lib/rod/page-style";
+import { peekMedia, resolveMedia } from "@/lib/rod/media";
+import { stickerRatio, stickerUrl } from "@/lib/rod/page-style";
+import { loadProfile, profileOf, PROFILE_ROWS, type Profile } from "@/lib/rod/shape-profile";
 import type { PageBlock } from "@/lib/rod/types";
 
 type TextBlock = Extract<PageBlock, { type: "text" }>;
 
-export type Rect = { left: number; right: number; top: number; bottom: number };
+export type Rect = { left: number; right: number; top: number; bottom: number; /** Контур по прозрачности: полосы сверху вниз. Нет контура – обтекаем по рамке. */ shape?: Profile };
 export type WrapLine = { text: string; x: number; y: number; w: number };
 
 const GAP = 2.2; // отступ текста от фото и стикера
@@ -18,14 +20,35 @@ export function obstaclesFor(blocks: PageBlock[], self: PageBlock): Rect[] {
   for (const block of blocks) {
     if (block.id === self.id) continue;
     if (block.type === "photo") {
-      out.push({ left: block.x, right: block.x + block.w, top: (block.y * PAGE_H) / 100, bottom: ((block.y + block.h) * PAGE_H) / 100 });
+      const rect: Rect = { left: block.x, right: block.x + block.w, top: (block.y * PAGE_H) / 100, bottom: ((block.y + block.h) * PAGE_H) / 100 };
+      // Вырезанное фото-стикер обтекаем по контуру вырезки.
+      if (block.frame === "sticker" && block.cut) {
+        const url = peekMedia(block.cut);
+        if (url) rect.shape = profileOf(url) ?? undefined;
+        else void resolveMedia(block.cut).then((u) => loadProfile(u));
+        if (url && profileOf(url) === undefined) void loadProfile(url);
+      }
+      out.push(rect);
     } else if (block.type === "sticker" && block.kind !== "tape" && block.kind !== "tape-sage") {
       const w = block.w ?? 15;
       const top = (block.y * PAGE_H) / 100;
-      out.push({ left: block.x, right: block.x + w, top, bottom: top + w * stickerRatio(block.kind) });
+      const url = stickerUrl(block.kind);
+      const shape = profileOf(url);
+      if (shape === undefined) void loadProfile(url);
+      out.push({ left: block.x, right: block.x + w, top, bottom: top + w * stickerRatio(block.kind), shape: shape ?? undefined });
     }
   }
   return out;
+}
+
+/** Дожидается контуров стикеров и вырезанных фото (нужно печати: она рисует один раз и ждать потом нечем). */
+export async function preloadShapes(blocks: PageBlock[]): Promise<void> {
+  const jobs: Promise<unknown>[] = [];
+  for (const block of blocks) {
+    if (block.type === "sticker") jobs.push(loadProfile(stickerUrl(block.kind)));
+    else if (block.type === "photo" && block.frame === "sticker" && block.cut) jobs.push(resolveMedia(block.cut).then((url) => loadProfile(url)));
+  }
+  await Promise.all(jobs);
 }
 
 /**
@@ -51,8 +74,26 @@ export function flowAround(
     let spans: [number, number][] = [[pad.x, pad.x + full]];
     for (const o of obstacles) {
       if (o.bottom + GAP <= y0 || o.top - GAP >= y0 + lineH) continue;
-      const cutL = o.left - block.x - GAP;
-      const cutR = o.right - block.x + GAP;
+      let cutL = o.left - block.x - GAP;
+      let cutR = o.right - block.x + GAP;
+      if (o.shape) {
+        // По форме: берём, как далеко заходит непрозрачное в полосах, которые задевает эта строка.
+        const h = o.bottom - o.top;
+        const from = Math.max(0, Math.floor(((y0 - GAP - o.top) / h) * PROFILE_ROWS));
+        const to = Math.min(PROFILE_ROWS - 1, Math.floor(((y0 + lineH + GAP - o.top) / h) * PROFILE_ROWS));
+        let min = 1;
+        let max = 0;
+        for (let r = from; r <= to; r += 1) {
+          const row = o.shape[r];
+          if (!row) continue;
+          min = Math.min(min, row[0]);
+          max = Math.max(max, row[1]);
+        }
+        if (max <= min) continue;
+        const w = o.right - o.left;
+        cutL = o.left + min * w - block.x - GAP;
+        cutR = o.left + max * w - block.x + GAP;
+      }
       const next: [number, number][] = [];
       for (const [a, b] of spans) {
         if (cutR <= a || cutL >= b) next.push([a, b]);

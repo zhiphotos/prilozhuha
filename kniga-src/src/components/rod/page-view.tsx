@@ -1,4 +1,5 @@
 import { wrapAroundLines } from "@/lib/rod/measure";
+import { useProfilesVersion } from "@/lib/rod/shape-profile";
 import { createContext, useContext, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { ImagePlus } from "lucide-react";
 import { isStampBrush, stampRaster } from "@/lib/rod/stamp-brush";
@@ -325,9 +326,11 @@ export function TextArt({ block, editing }: { block: Extract<PageBlock, { type: 
   const colors = lookColors(block.look, block.color, block.bg, dark);
   const empty = !block.text.trim();
   const siblings = useContext(PageBlocks);
+  const shapes = useProfilesVersion();
   const around = useMemo(
     () => (block.wrap && block.look !== "card" && block.look !== "pill" && !empty ? wrapAroundLines(block, siblings) : null),
-    [block, siblings, empty],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [block, siblings, empty, shapes],
   );
   if (empty && !editing) return null;
   if (around) {
