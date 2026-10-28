@@ -331,26 +331,9 @@ function PlaceForm({ initial, submitLabel, onSubmit, onCancel }: { initial?: Pla
       <Field label="Что там было">
         <textarea className="field min-h-20" value={note} onChange={(event) => setNote(event.target.value)} />
       </Field>
-      {everyone.length ? (
-        <Field label="Кто здесь жил или бывал">
-          <div className="flex flex-wrap gap-2">
-            {everyone.map((person) => {
-              const on = who.includes(person.id);
-              return (
-                <button
-                  key={person.id}
-                  type="button"
-                  aria-pressed={on}
-                  className={`min-h-10 rounded-full border px-3 text-sm ${on ? "border-ink bg-ink text-paper" : "border-ink/20 bg-white/70 text-ink"}`}
-                  onClick={() => setWho((list) => (on ? list.filter((x) => x !== person.id) : [...list, person.id]))}
-                >
-                  {person.name || person.relation}
-                </button>
-              );
-            })}
-          </div>
-        </Field>
-      ) : null}
+      <Field label="Кто здесь жил или бывал">
+        <PeoplePicker value={who} onChange={setWho} people={everyone} />
+      </Field>
       <Attachments items={files} onChange={setFiles} title="Фото места" empty="Дом, двор, улица, как выглядело. Можно прикрепить несколько снимков." limitText="К одному месту" />
       <Button type="submit" disabled={!name.trim()}>
         {submitLabel}
@@ -368,7 +351,12 @@ function PlaceCard({ place }: { place: Place }) {
   const updatePlace = useRod((state) => state.updatePlace);
   const removePlace = useRod((state) => state.removePlace);
   const [editing, setEditing] = useState(false);
+  const [viewAt, setViewAt] = useState<number | null>(null);
   const everyone = useRod((state) => state.people);
+  // Фото места листаются на весь экран свайпом, как во вкладке «Фото»: подпись, название места и годы внизу.
+  const gallery = (place.attachments ?? [])
+    .filter((item) => item.kind === "image")
+    .map((item) => ({ id: item.id, dataUrl: item.ref, who: item.caption || item.name, where: place.name, year: place.years, what: item.caption ? item.name : "" }));
   const named = (place.peopleIds ?? []).map((id) => everyone.find((person) => person.id === id)?.name).filter((name): name is string => Boolean(name));
   if (editing) {
     return (
@@ -397,10 +385,11 @@ function PlaceCard({ place }: { place: Place }) {
       {place.attachments?.length ? (
         <ul className="mt-2 flex flex-wrap gap-2">
           {place.attachments.map((item) => (
-            <PlaceFile key={item.ref} item={item} />
+            <PlaceFile key={item.ref} item={item} onOpen={item.kind === "image" ? () => setViewAt(gallery.findIndex((photo) => photo.id === item.id)) : undefined} />
           ))}
         </ul>
       ) : null}
+      {viewAt !== null && gallery.length ? <PhotoViewer photos={gallery} start={viewAt} onClose={() => setViewAt(null)} /> : null}
       <div className="mt-2 flex gap-4 text-sm text-muted">
         <button type="button" className="underline" onClick={() => setEditing(true)}>
           Изменить
@@ -413,12 +402,50 @@ function PlaceCard({ place }: { place: Place }) {
   );
 }
 
-function PlaceFile({ item }: { item: Attachment }) {
+/** Выбор родственников из списка «Люди» (он же основа древа): отмеченные видны чипами, остальных ищут по имени и добавляют нажатием. */
+function PeoplePicker({ value, onChange, people }: { value: string[]; onChange: (next: string[]) => void; people: { id: string; name: string; relation: string }[] }) {
+  const [query, setQuery] = useState("");
+  const chosen = value.map((id) => people.find((person) => person.id === id)).filter((person): person is NonNullable<typeof person> => Boolean(person));
+  const q = query.trim().toLowerCase();
+  const matches = people.filter((person) => !value.includes(person.id) && (!q || `${person.name} ${person.relation}`.toLowerCase().includes(q))).slice(0, q ? 12 : 8);
+  if (!people.length) return <p className="text-sm text-muted">Пока в списке нет людей. Добавьте их во вкладке «Люди» или загрузите древо из файла, и тогда их можно будет отметить здесь.</p>;
+  return (
+    <div className="grid gap-2">
+      {chosen.length ? (
+        <div className="flex flex-wrap gap-2">
+          {chosen.map((person) => (
+            <button key={person.id} type="button" aria-label={`Убрать: ${person.name}`} className="min-h-10 rounded-full border border-ink bg-ink px-3 text-sm text-paper" onClick={() => onChange(value.filter((id) => id !== person.id))}>
+              {person.name || person.relation} ✕
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted">Пока никто не отмечен.</p>
+      )}
+      <input className="field" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Найти в списке (${people.length} человек)`} />
+      <ul className="grid max-h-56 gap-1 overflow-y-auto">
+        {matches.map((person) => (
+          <li key={person.id}>
+            <button type="button" className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-ink/15 bg-white/70 px-3 text-left text-sm text-ink" onClick={() => onChange([...value, person.id])}>
+              <span className="truncate">{person.name || "Без имени"}</span>
+              <span className="shrink-0 text-xs text-muted">{person.relation} · добавить</span>
+            </button>
+          </li>
+        ))}
+        {!matches.length && q ? <li className="px-1 text-sm text-muted">Никого не нашлось, проверьте написание.</li> : null}
+      </ul>
+    </div>
+  );
+}
+
+function PlaceFile({ item, onOpen }: { item: Attachment; onOpen?: () => void }) {
   const src = useMedia(item.kind === "image" ? item.ref : undefined);
   if (item.kind !== "image") return <li className="rounded-xl bg-ink/5 px-3 py-2 text-xs text-muted">{item.name}</li>;
   return (
     <li>
-      <img src={src} alt={item.name} className="h-24 w-24 rounded-xl object-cover" />
+      <button type="button" aria-label="Открыть фото на весь экран" className="block rounded-xl" onClick={onOpen}>
+        <img src={src} alt={item.caption || item.name} className="h-24 w-24 rounded-xl object-cover" />
+      </button>
     </li>
   );
 }
