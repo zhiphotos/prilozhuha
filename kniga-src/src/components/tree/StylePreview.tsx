@@ -62,6 +62,7 @@ export function StylePreview({ style, onPick, onOpen, onClose }: { style: TreeSt
             onSelectPerson={() => undefined}
             onSelectUnion={() => undefined}
             onClear={() => undefined}
+        onLocate={() => undefined}
             style={style}
             onStyle={onPick}
             stylesLocked={false}

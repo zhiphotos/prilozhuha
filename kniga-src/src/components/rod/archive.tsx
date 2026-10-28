@@ -3,13 +3,15 @@ import { createPortal } from "react-dom";
 import { serverStatus } from "@/lib/rod/server";
 import { fetchInbox } from "@/lib/rod/family";
 import { FamilySheet } from "@/components/rod/family-sheet";
-import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Plus, X } from "lucide-react";
+import { Attachments } from "@/components/rod/attachments";
+import { useMedia } from "@/lib/rod/media";
 import { toast } from "sonner";
 import { DOC_KINDS, EXAMPLE_TIMELINE } from "@/lib/rod/content";
 import { maidenAllowed, personEvents } from "@/lib/rod/person";
 import { EMPTY_PERSON, PersonAvatar, PersonEditor, PersonFields, type PersonDraft } from "@/components/rod/person-fields";
 import { useRod } from "@/lib/rod/store";
-import type { ArchiveTab } from "@/lib/rod/types";
+import type { ArchiveTab, Attachment, Place } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
 import { TreeTab } from "@/components/rod/tree-tab";
 import { Cut } from "@/components/rod/botanica";
@@ -304,51 +306,117 @@ function PhotosPane() {
   );
 }
 
+function PlaceForm({ initial, submitLabel, onSubmit, onCancel }: { initial?: Place; submitLabel: string; onSubmit: (value: Omit<Place, "id">) => void; onCancel?: () => void }) {
+  const [name, setName] = useState(initial?.name ?? "");
+  const [years, setYears] = useState(initial?.years ?? "");
+  const [note, setNote] = useState(initial?.note ?? "");
+  const [files, setFiles] = useState<Attachment[]>(initial?.attachments ?? []);
+  return (
+    <form
+      className="glass grid gap-3 rounded-2xl p-5"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!name.trim()) return;
+        onSubmit({ name: name.trim(), years: years.trim(), note: note.trim(), attachments: files });
+      }}
+    >
+      <Field label="Место">
+        <input className="field" value={name} onChange={(event) => setName(event.target.value)} placeholder="Дом, двор, город, дорога" />
+      </Field>
+      <Field label="Годы">
+        <input className="field" value={years} onChange={(event) => setYears(event.target.value)} placeholder="до 1978" />
+      </Field>
+      <Field label="Что там было">
+        <textarea className="field min-h-20" value={note} onChange={(event) => setNote(event.target.value)} />
+      </Field>
+      <Attachments items={files} onChange={setFiles} title="Фото места" empty="Дом, двор, улица, как выглядело. Можно прикрепить несколько снимков." limitText="К одному месту" />
+      <Button type="submit" disabled={!name.trim()}>
+        {submitLabel}
+      </Button>
+      {onCancel ? (
+        <button type="button" className="text-sm text-muted underline" onClick={onCancel}>
+          Отмена
+        </button>
+      ) : null}
+    </form>
+  );
+}
+
+function PlaceCard({ place }: { place: Place }) {
+  const updatePlace = useRod((state) => state.updatePlace);
+  const removePlace = useRod((state) => state.removePlace);
+  const [editing, setEditing] = useState(false);
+  if (editing) {
+    return (
+      <li>
+        <PlaceForm
+          initial={place}
+          submitLabel="Сохранить изменения"
+          onSubmit={(value) => {
+            updatePlace(place.id, value);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      </li>
+    );
+  }
+  return (
+    <li className="glass relative rounded-2xl p-4">
+      <button type="button" aria-label="Редактировать место" className="absolute right-3 top-3 grid size-9 place-items-center rounded-full text-muted hover:bg-ink/5" onClick={() => setEditing(true)}>
+        <Pencil className="size-4" aria-hidden />
+      </button>
+      <p className="pr-10 text-lg font-semibold text-ink">{place.name}</p>
+      {place.years ? <p className="text-sm text-rose-deep">{place.years}</p> : null}
+      {place.note ? <p className="mt-1 text-sm text-muted">{place.note}</p> : null}
+      {place.attachments?.length ? (
+        <ul className="mt-2 flex flex-wrap gap-2">
+          {place.attachments.map((item) => (
+            <PlaceFile key={item.ref} item={item} />
+          ))}
+        </ul>
+      ) : null}
+      <div className="mt-2 flex gap-4 text-sm text-muted">
+        <button type="button" className="underline" onClick={() => setEditing(true)}>
+          Изменить
+        </button>
+        <button type="button" className="underline" onClick={() => removePlace(place.id)}>
+          Удалить
+        </button>
+      </div>
+    </li>
+  );
+}
+
+function PlaceFile({ item }: { item: Attachment }) {
+  const src = useMedia(item.kind === "image" ? item.ref : undefined);
+  if (item.kind !== "image") return <li className="rounded-xl bg-ink/5 px-3 py-2 text-xs text-muted">{item.name}</li>;
+  return (
+    <li>
+      <img src={src} alt={item.name} className="h-24 w-24 rounded-xl object-cover" />
+    </li>
+  );
+}
+
 function PlacesPane() {
   const places = useRod((state) => state.places);
   const addPlace = useRod((state) => state.addPlace);
-  const removePlace = useRod((state) => state.removePlace);
-  const [name, setName] = useState("");
-  const [years, setYears] = useState("");
-  const [note, setNote] = useState("");
+  const [formKey, setFormKey] = useState(0);
   return (
     <div className="grid gap-3">
       <AddFold label="Добавить место" empty={places.length === 0}>
-      <form
-        className="glass grid gap-3 rounded-2xl p-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (!name.trim()) return;
-          addPlace({ name: name.trim(), years: years.trim(), note: note.trim() });
-          setName("");
-          setYears("");
-          setNote("");
-        }}
-      >
-        <Field label="Место">
-          <input className="field" value={name} onChange={(event) => setName(event.target.value)} placeholder="Дом, двор, город, дорога" />
-        </Field>
-        <Field label="Годы">
-          <input className="field" value={years} onChange={(event) => setYears(event.target.value)} placeholder="до 1978" />
-        </Field>
-        <Field label="Что там было">
-          <textarea className="field min-h-20" value={note} onChange={(event) => setNote(event.target.value)} />
-        </Field>
-        <Button type="submit" disabled={!name.trim()}>
-          Сохранить место
-        </Button>
-      </form>
+        <PlaceForm
+          key={formKey}
+          submitLabel="Сохранить место"
+          onSubmit={(value) => {
+            addPlace(value);
+            setFormKey((n) => n + 1);
+          }}
+        />
       </AddFold>
       <ul className="grid gap-2">
         {places.map((place) => (
-          <li key={place.id} className="glass rounded-2xl p-4">
-            <p className="text-lg font-semibold text-ink">{place.name}</p>
-            {place.years ? <p className="text-sm text-rose-deep">{place.years}</p> : null}
-            {place.note ? <p className="mt-1 text-sm text-muted">{place.note}</p> : null}
-            <button type="button" className="mt-2 text-sm text-muted underline" onClick={() => removePlace(place.id)}>
-              Удалить
-            </button>
-          </li>
+          <PlaceCard key={place.id} place={place} />
         ))}
       </ul>
     </div>

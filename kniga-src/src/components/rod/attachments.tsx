@@ -38,7 +38,7 @@ function Thumb({ item, onRemove }: { item: Attachment; onRemove: () => void }) {
 }
 
 /** Фото и файлы, прикреплённые к истории: видно, какие снимки к ней относятся. */
-export function Attachments({ items, onChange }: { items: Attachment[]; onChange: (next: Attachment[]) => void }) {
+export function Attachments({ items, onChange, title = "Фото и файлы к истории", empty = "Пока ничего. Прикрепите снимки, документы или записи, которые относятся к этой истории.", limitText = "К одной истории" }: { items: Attachment[]; onChange: (next: Attachment[]) => void; title?: string; empty?: string; limitText?: string }) {
   const input = useRef<HTMLInputElement>(null);
 
   const add = async (files: FileList | null) => {
@@ -46,7 +46,7 @@ export function Attachments({ items, onChange }: { items: Attachment[]; onChange
     let next = items;
     for (const file of Array.from(files)) {
       if (next.length >= MAX_ITEMS) {
-        toast(`К одной истории можно прикрепить до ${MAX_ITEMS} файлов`);
+        toast(`${limitText} можно прикрепить до ${MAX_ITEMS} файлов`);
         break;
       }
       try {
@@ -67,7 +67,7 @@ export function Attachments({ items, onChange }: { items: Attachment[]; onChange
 
   return (
     <section className="mt-4">
-      <h3 className="font-sans text-base font-semibold text-ink">Фото и файлы к истории</h3>
+      <h3 className="font-sans text-base font-semibold text-ink">{title}</h3>
       {items.length ? (
         <ul className="mt-2 flex flex-wrap gap-2">
           {items.map((item) => (
@@ -82,7 +82,7 @@ export function Attachments({ items, onChange }: { items: Attachment[]; onChange
           ))}
         </ul>
       ) : (
-        <p className="mt-1 text-sm text-muted">Пока ничего. Прикрепите снимки, документы или записи, которые относятся к этой истории.</p>
+        <p className="mt-1 text-sm text-muted">{empty}</p>
       )}
       <input ref={input} type="file" multiple className="hidden" onChange={(event) => void add(event.target.files)} />
       <button type="button" className="mt-3 rounded-full border border-ink/20 px-4 py-2 text-sm text-ink" onClick={() => input.current?.click()}>

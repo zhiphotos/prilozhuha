@@ -58,6 +58,12 @@ function TreeScreen() {
   const [add, setAdd] = useState(false);
   const [sheetPick, setSheetPick] = useState(false);
   const [fitReq, setFitReq] = useState(0);
+  // При входе в древо камера встаёт на «Вас»: большое древо иначе открывается на дальних предках.
+  useEffect(() => {
+    // Дважды: раскладка большого древа и фото подгружаются не сразу, и первая наводка может промахнуться.
+    const ids = [80, 700].map((ms) => window.setTimeout(() => setCenterReq({ id: useTree.getState().focusId, n: Date.now() }), ms));
+    return () => ids.forEach((id) => window.clearTimeout(id));
+  }, []);
   const scope = useTree((s) => s.scope);
   const setScope = useTree((s) => s.setScope);
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -138,6 +144,11 @@ function TreeScreen() {
         }}
         onSelectPerson={(id) => selectPerson(id)}
         onSelectUnion={(id) => selectUnion(id)}
+        onLocate={() => {
+          selectPerson(null);
+          selectUnion(null);
+          setCenterReq({ id: focusId, n: Date.now() });
+        }}
         onClear={() => {
           selectPerson(null);
           selectUnion(null);

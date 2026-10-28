@@ -81,6 +81,7 @@ type RodState = {
   updatePerson: (id: string, patch: Partial<Omit<Person, "id">>) => void;
   removePerson: (id: string) => void;
   addPlace: (input: Omit<Place, "id">) => void;
+  updatePlace: (id: string, patch: Partial<Omit<Place, "id">>) => void;
   removePlace: (id: string) => void;
   addPhoto: (input: Omit<FamilyPhoto, "id">) => boolean;
   removePhoto: (id: string) => void;
@@ -305,6 +306,7 @@ export const useRod = create<RodState>()(
           }),
         })),
       addPlace: (input) => set((state) => ({ places: [{ ...input, id: uid() }, ...state.places] })),
+      updatePlace: (id, patch) => set((state) => ({ places: state.places.map((place) => (place.id === id ? { ...place, ...patch } : place)) })),
       removePlace: (id) => set((state) => ({ places: state.places.filter((place) => place.id !== id) })),
       addPhoto: (input) => {
         if (get().photos.length >= 600) return false;

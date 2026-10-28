@@ -21,6 +21,10 @@ export type Person = {
   spouse?: string;
   /** Статус пары: в браке, развелись, живут вместе без брака. */
   spouseStatus?: "married" | "divorced" | "partners";
+  /** Остальные браки человека (у него может быть несколько супругов, `spouse` хранит один). */
+  moreSpouses?: { id: string; status?: "married" | "divorced" | "partners"; from?: string; to?: string }[];
+  /** Человек загружен из файла: связи берём только из ссылок, а не угадываем по слову «кем приходится». */
+  fromFile?: boolean;
   /** Годы союза (для древа), хранятся у одного из супругов. */
   unionFrom?: string;
   unionTo?: string;
@@ -40,6 +44,8 @@ export type Place = {
   name: string;
   years: string;
   note: string;
+  /** Фото дома, двора и других файлов, прикреплённых к месту. */
+  attachments?: Attachment[];
 };
 
 export type FamilyPhoto = {
