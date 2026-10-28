@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Minus, Plus } from "lucide-react";
+import { LocateFixed, Minus, Plus } from "lucide-react";
 import { CameoView } from "@/components/tree/CameoView";
 import { GzhelView } from "@/components/tree/GzhelView";
 import { BohemeView } from "@/components/tree/BohemeView";
@@ -20,6 +20,10 @@ import type { TreeFlow } from "@/lib/tree/ui-store";
 import { carvedBusPath, carvedPill, carvedSpousePath, CARVED_RX, CARVED_RY, motifs, type TreeStyle } from "@/lib/tree/styles";
 import type { Person, TreeLayout, Union, UnionStatus } from "@/lib/tree/types";
 
+/** Ниже этого масштаба карточки не читаются: тогда встаём на «Вас» в читаемом масштабе. */
+const UNREADABLE_ZOOM = 0.28;
+const READABLE_ZOOM = 0.6;
+
 type Cam = { x: number; y: number; k: number };
 
 type Props = {
@@ -35,6 +39,8 @@ type Props = {
   onSelectPerson: (id: string) => void;
   onSelectUnion: (id: string) => void;
   onClear: () => void;
+  /** Показать меня («Я») на схеме. */
+  onLocate: () => void;
   style: TreeStyle;
   onStyle: (style: TreeStyle) => void;
   /** Платные стили закрыты: по нажатию открывается покупка. */
@@ -114,7 +120,7 @@ function Leaf({ motif }: { motif: { x: number; y: number; r: number; rot: number
 }
 
 export function TreeStage(props: Props) {
-  const { layout, people, unions, focusId, selectedId, centerReq, fitReq, radius, onRadius, onSelectPerson, onSelectUnion, onClear, style, onStyle, stylesLocked, poster, cameo, gzhel, boheme, taiga, flow, onFlow } = props;
+  const { layout, people, unions, focusId, selectedId, centerReq, fitReq, radius, onRadius, onSelectPerson, onSelectUnion, onClear, onLocate, style, onStyle, stylesLocked, poster, cameo, gzhel, boheme, taiga, flow, onFlow } = props;
   const wrap = useRef<HTMLDivElement>(null);
   const [cam, setCam] = useState<Cam>({ x: 40, y: 40, k: 0.45 });
   const [gesturing, setGesturing] = useState(false);
@@ -139,6 +145,13 @@ export function TreeStage(props: Props) {
     if (!el || w < 1 || h < 1) return;
     const pad = 72;
     const k = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min((el.clientWidth - pad) / w, (el.clientHeight - pad) / h)));
+    // Большое древо целиком не читается (карточки мельче точки): встаём на «Вас» в читаемом масштабе, а всё древо остаётся под щипком и кнопкой «−».
+    const focusNode = layout.nodes.find((n) => n.id === focusId);
+    if (k < UNREADABLE_ZOOM && focusNode && style === "work") {
+      const kr = READABLE_ZOOM;
+      setCam({ k: kr, x: el.clientWidth / 2 - focusNode.x * kr, y: el.clientHeight / 2 - focusNode.y * kr });
+      return;
+    }
     setCam({ k, x: (el.clientWidth - w * k) / 2, y: (el.clientHeight - h * k) / 2 });
   };
 
@@ -155,7 +168,10 @@ export function TreeStage(props: Props) {
       (style === "carved" ? poster?.nodes : style === "cameo" ? cameo?.nodes : style === "gzhel" ? gzhel?.nodes : style === "boheme" ? boheme?.nodes : style === "taiga" ? taiga?.nodes : layout.nodes)?.find((n) => n.id === centerReq.id) ??
       layout.nodes.find((n) => n.id === centerReq.id);
     if (!spot) return;
-    setCam((c) => ({ ...c, x: el.clientWidth / 2 - spot.x * c.k, y: el.clientHeight / 2 - spot.y * c.k }));
+    setCam((c) => {
+      const k = Math.max(c.k, 0.5);
+      return { k, x: el.clientWidth / 2 - spot.x * k, y: el.clientHeight / 2 - spot.y * k };
+    });
   }, [centerReq, style, poster, cameo, gzhel, boheme, taiga, layout.nodes]);
 
   useEffect(() => {
@@ -420,6 +436,9 @@ export function TreeStage(props: Props) {
         </div>
       </div>
       <div className="absolute right-2 bottom-36 z-20 flex flex-col gap-2">
+        <button type="button" className="grid size-11 place-items-center rounded-full border border-gold bg-gold text-ink shadow-md" aria-label="Ко мне: показать меня на схеме" title="Ко мне" onClick={onLocate}>
+          <LocateFixed className="size-5" aria-hidden />
+        </button>
         <button type="button" className="grid size-11 place-items-center rounded-full border border-chip-line bg-chip text-chip-fg backdrop-blur-md" aria-label="Приблизить" onClick={() => zoomBy(1.18)}>
           <Plus className="size-4" />
         </button>

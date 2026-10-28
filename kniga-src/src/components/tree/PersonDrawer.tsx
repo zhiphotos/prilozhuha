@@ -1,3 +1,4 @@
+import { maskDate } from "@/lib/tree/date-input";
 import { useMemo, useState } from "react";
 import { AncestorGate } from "@/components/tree/AncestorGate";
 import { familyOf, inflectSurname } from "@/lib/tree/fill";
@@ -117,9 +118,9 @@ function PersonBody({ person, people, unions, focusId, onNewBook }: { person: Pe
           <input
             inputMode="numeric"
             maxLength={10}
-            placeholder="12.03.1891"
-            value={person.birthYear}
-            onChange={(e) => useTree.getState().updatePerson(person.id, { ...draftFrom(person), birthYear: e.target.value.replace(/[^\d.]/g, "").slice(0, 10) })}
+            placeholder="год или 12.03.1891"
+            value={maskDate(person.birthYear)}
+            onChange={(e) => useTree.getState().updatePerson(person.id, { ...draftFrom(person), birthYear: maskDate(e.target.value) })}
           />
         </label>
         <label className="field">
@@ -127,9 +128,9 @@ function PersonBody({ person, people, unions, focusId, onNewBook }: { person: Pe
           <input
             inputMode="numeric"
             maxLength={10}
-            placeholder="04.11.1968"
-            value={person.deathYear}
-            onChange={(e) => useTree.getState().updatePerson(person.id, { ...draftFrom(person), deathYear: e.target.value.replace(/[^\d.]/g, "").slice(0, 10) })}
+            placeholder="год или 04.11.1968"
+            value={maskDate(person.deathYear)}
+            onChange={(e) => useTree.getState().updatePerson(person.id, { ...draftFrom(person), deathYear: maskDate(e.target.value) })}
           />
         </label>
       </div>
@@ -552,11 +553,11 @@ function PersonForm({
         </label>
         <label className="field">
           Дата рождения
-          <input inputMode="numeric" maxLength={10} placeholder="12.03.1891" value={draft.birthYear} onChange={(e) => set({ birthYear: e.target.value.replace(/[^\d.]/g, "").slice(0, 10) })} />
+          <input inputMode="numeric" maxLength={10} placeholder="год или 12.03.1891" value={draft.birthYear} onChange={(e) => set({ birthYear: maskDate(e.target.value) })} />
         </label>
         <label className="field">
           Дата смерти
-          <input inputMode="numeric" maxLength={10} placeholder="04.11.1968" value={draft.deathYear} onChange={(e) => set({ deathYear: e.target.value.replace(/[^\d.]/g, "").slice(0, 10) })} />
+          <input inputMode="numeric" maxLength={10} placeholder="год или 04.11.1968" value={draft.deathYear} onChange={(e) => set({ deathYear: maskDate(e.target.value) })} />
         </label>
       </div>
       {!lockGender && (

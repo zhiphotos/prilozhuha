@@ -17,6 +17,8 @@ export type ImportedPerson = {
   spouseStatus?: "married" | "divorced" | "partners";
   unionFrom?: string;
   unionTo?: string;
+  /** Остальные браки: у человека бывает больше одного супруга. */
+  moreSpouses?: { key: string; status?: "married" | "divorced" | "partners"; from?: string; to?: string }[];
 };
 
 /**
@@ -25,21 +27,23 @@ export type ImportedPerson = {
  */
 export function gedToPeople(tree: TreeData, selfKey: string): ImportedPerson[] {
   const statusOf = (s: string): ImportedPerson["spouseStatus"] => (s === "divorced" ? "divorced" : s === "partner" ? "partners" : "married");
-  const spouseOf = new Map<string, { key: string; status: ImportedPerson["spouseStatus"]; from: string; to: string }>();
+  type Mate = { key: string; status: ImportedPerson["spouseStatus"]; from: string; to: string };
+  const matesOf = new Map<string, Mate[]>();
   const parentsOf = new Map<string, string[]>();
   for (const u of tree.unions) {
     if (u.partnerIds.length === 2) {
       const [a, b] = u.partnerIds as [string, string];
       const st = statusOf(u.status);
-      spouseOf.set(a, { key: b, status: st, from: u.startYear, to: u.endYear });
-      spouseOf.set(b, { key: a, status: st, from: u.startYear, to: u.endYear });
+      matesOf.set(a, [...(matesOf.get(a) ?? []), { key: b, status: st, from: u.startYear, to: u.endYear }]);
+      matesOf.set(b, [...(matesOf.get(b) ?? []), { key: a, status: st, from: u.startYear, to: u.endYear }]);
     }
     for (const c of u.childIds) parentsOf.set(c, [...(parentsOf.get(c) ?? []), ...u.partnerIds].slice(0, 2));
   }
   return tree.people.map((p) => {
     const k = kinship(tree.people, tree.unions, selfKey, p.id);
     const relation = p.id === selfKey ? "я" : k.title;
-    const sp = spouseOf.get(p.id);
+    const mates = matesOf.get(p.id) ?? [];
+    const sp = mates[0];
     return {
       key: p.id,
       firstName: p.firstName,
@@ -55,6 +59,7 @@ export function gedToPeople(tree: TreeData, selfKey: string): ImportedPerson[] {
       spouseStatus: sp?.status,
       unionFrom: sp?.from || undefined,
       unionTo: sp?.to || undefined,
+      moreSpouses: mates.length > 1 ? mates.slice(1).map((m) => ({ key: m.key, status: m.status, from: m.from || undefined, to: m.to || undefined })) : undefined,
     };
   });
 }

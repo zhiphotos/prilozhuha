@@ -163,8 +163,9 @@ const COUSIN = [
   "восьмиюродный",
 ];
 
-function cousinWord(steps: number): string {
-  return COUSIN[steps] ?? `${steps}-юродный`;
+function cousinWord(steps: number, female = false): string {
+  const word = COUSIN[steps] ?? `${steps}-юродный`;
+  return female ? word.replace(/ый$/, "ая").replace(/ой$/, "ая") : word;
 }
 
 function collateralTitle(index: Index, dFocus: number, dOther: number, other: string, half: boolean): string {
@@ -179,7 +180,7 @@ function collateralTitle(index: Index, dFocus: number, dOther: number, other: st
   if (dFocus === 1 && dOther === 3) return g === "f" ? "Внучатая племянница" : "Внучатый племянник";
   if (dFocus === 1 && dOther > 3) return g === "f" ? `Племянница (${dOther})` : `Племянник (${dOther})`;
   const near = Math.min(dFocus, dOther);
-  const word = cap(cousinWord(near));
+  const word = cap(cousinWord(near, g === "f"));
   if (dFocus === dOther) return g === "f" ? `${word} сестра` : `${word} брат`;
   if (dOther < dFocus) return g === "f" ? `${word} тётя` : `${word} дядя`;
   return g === "f" ? `${word} племянница` : `${word} племянник`;
@@ -250,7 +251,9 @@ function inLawViaBlood(index: Index, focus: string, other: string): Kinship | nu
       const rel = bloodRelation(index, focus, partner);
       if (!rel) continue;
       const divorced = union.status === "divorced";
-      const g = genderOf(index, other);
+      // Если пол человека не указан, его подсказывает супруг: жена дяди, муж тёти.
+      const pgender = genderOf(index, partner);
+      const g = genderOf(index, other) !== "u" ? genderOf(index, other) : pgender === "m" ? "f" : pgender === "f" ? "m" : "u";
       let title = "";
       if (rel.kind === "ancestor" && rel.degree === 1) title = g === "m" ? "Отчим" : "Мачеха";
       else if (rel.kind === "sibling" || (rel.kind === "descendant" && rel.degree === 1)) {
@@ -277,7 +280,9 @@ function inLawViaSpouse(index: Index, focus: string, other: string): Kinship | n
       if (partner === focus) continue;
       const rel = bloodRelation(index, partner, other);
       if (!rel) continue;
-      const fg = genderOf(index, focus);
+      // Пол «меня» в списке часто не указан: супруг подсказывает (у мужа жена, у жены муж).
+      const pg = genderOf(index, partner);
+      const fg = genderOf(index, focus) !== "u" ? genderOf(index, focus) : pg === "m" ? "f" : pg === "f" ? "m" : "u";
       const og = genderOf(index, other);
       const divorced = union.status === "divorced";
       let title = "";

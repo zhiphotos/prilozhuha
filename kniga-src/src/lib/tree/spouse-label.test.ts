@@ -21,3 +21,8 @@ test("жена дяди подписана как тётя, а не «Супру
 test("муж тёти подписан как дядя", () => {
   assert.equal(kinship(people, unions, "me", "auntHusb").card, "Дядя (муж тёти)");
 });
+
+test("пол не указан: жена дяди всё равно тётя", () => {
+  const noGender = people.map((x) => (x.id === "uncleWife" ? { ...x, gender: "u" as const } : x));
+  assert.equal(kinship(noGender, unions, "me", "uncleWife").card, "Тётя (жена дяди)");
+});

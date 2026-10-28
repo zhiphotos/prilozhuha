@@ -3,12 +3,18 @@ import type { Gender, Person, TreeData, Union, UnionStatus } from "./types.ts";
 
 export const SELF_ID = "__self";
 
-type Role = "self" | "mother" | "father" | "grand" | "greatgrand" | "uncle" | "sibling" | "child" | "grandchild" | "spouse" | "other";
+type Role = "self" | "spousesib" | "mother" | "father" | "grand" | "greatgrand" | "uncle" | "sibling" | "child" | "grandchild" | "spouse" | "other";
+
+/** «Брат мужа», «сестра жены», «родной брат супруга»: родной человек супруга, а не мой. */
+export function spouseSiblingWord(r: string): boolean {
+  return /(брат|сестр)\S*\s+(мужа|жены|супруг)/.test(r.trim().toLowerCase());
+}
 
 /** Роль человека по тексту «кем приходится». */
 export function roleOf(relation: string): Role {
   const r = relation.trim().toLowerCase();
   if (/^(я|сам|сама)$/.test(r)) return "self";
+  if (spouseSiblingWord(r)) return "spousesib";
   if (/^(мам|мат)/.test(r)) return "mother";
   if (/^(пап|отец|отц)/.test(r)) return "father";
   if (/^(пра)+(бабуш|дед)/.test(r) || /^предок/.test(r)) return "greatgrand";
@@ -24,6 +30,7 @@ export function roleOf(relation: string): Role {
 function genderOf(p: RodPerson, role: Role): Gender {
   if (p.gender) return p.gender;
   const r = p.relation.trim().toLowerCase();
+  if (role === "spousesib") return /сестр/.test(r.split(/\s+/).find((w) => /(брат|сестр)/.test(w)) ?? "") ? "f" : "m";
   if (/(мам|мат|бабуш|тёт|тет|сестр|дочь|дочк|внуч|жена)/.test(r)) return "f";
   if (/(пап|отец|дед|дяд|брат|сын|внук|муж)/.test(r)) return "m";
   void role;
@@ -101,7 +108,7 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
   const father = first("father");
   const mom = mother ?? undefined;
   const dad = father ?? undefined;
-  const needParents = people.some((p) => roleOf(p.relation) === "sibling" && !p.parents?.length && !p.siblingOf);
+  const needParents = people.some((p) => !p.fromFile && roleOf(p.relation) === "sibling" && !p.parents?.length && !p.siblingOf);
 
   // Родители «меня»: мама и папа (если хоть один указан или нужны братья).
   const selfHasParents = Boolean(selfRec?.parents?.some((id) => known.has(id) && id !== selfId));
@@ -140,12 +147,15 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
 
   for (const p of people) {
     const role = roleOf(p.relation);
-    const explicit = (p.parents ?? []).filter((id) => known.has(id) && id !== p.id);
+    // Брат или сестра не бывают моим ребёнком: если в «Чей ребёнок» выбран я, потомок или ещё брат, связь игнорируем (читаем по слову «кем приходится»).
+    const badKin = new Set<Role>(["self", "child", "grandchild", "sibling"]);
+    const explicit = (p.parents ?? []).filter((id) => known.has(id) && id !== p.id && !(!p.fromFile && role === "sibling" && badKin.has(roleOf(people.find((q) => q.id === id)?.relation ?? "")) ));
     if (explicit.length) { addChild(explicit.slice(0, 2), p.id); continue; }
     if (p.siblingOf && known.has(p.siblingOf)) {
       const other = unions.find((u) => u.childIds.includes(p.siblingOf!));
       if (other) { other.childIds.push(p.id); continue; }
     }
+    if (p.fromFile) continue;
     if (role === "sibling" && parentOfSelf) addChild(parentOfSelf.partnerIds, p.id);
     else if (role === "child") {
       const spouse = p.parents?.length ? [] : [selfId];
@@ -156,6 +166,21 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     }
   }
   for (const p of people) if (roleOf(p.relation) === "grand" || roleOf(p.relation) === "uncle") void lineGrandUnion(p.line);
+  // Братья и сёстры супруга: встают в ветку мужа или жены, рядом с ним (у супруга при необходимости появляются «Мама» и «Папа»).
+  const mateOfSelf = people.find((p) => !p.fromFile && roleOf(p.relation) === "spouse");
+  if (mateOfSelf) {
+    for (const p of people) {
+      if (roleOf(p.relation) !== "spousesib" || (p.parents ?? []).length || p.siblingOf) continue;
+      let parentUnion = unions.find((u) => u.childIds.includes(mateOfSelf.id));
+      if (!parentUnion) {
+        const m = ghost("mother", mateOfSelf.id);
+        const f = ghost("father", mateOfSelf.id);
+        addChild([f, m], mateOfSelf.id);
+        parentUnion = unions.find((u) => u.childIds.includes(mateOfSelf.id));
+      }
+      if (parentUnion && !unions.some((u) => u.childIds.includes(p.id))) parentUnion.childIds.push(p.id);
+    }
+  }
   // «Мама бабушки» и пр.: прабабушки/прадедушки привязываем к бабушке/дедушке своей линии.
   for (const line of ["mom", "dad"] as const) {
     const gg = people.filter((p) => roleOf(p.relation) === "greatgrand" && p.line === line);
@@ -170,7 +195,17 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     if (p.unionFrom) u.startYear = p.unionFrom;
     if (p.unionTo) u.endYear = p.unionTo;
   }
-  const spouseOfSelf = people.find((p) => roleOf(p.relation) === "spouse");
+  // Остальные браки (второй, третий супруг).
+  for (const p of people) {
+    for (const m of p.moreSpouses ?? []) {
+      if (!known.has(m.id)) continue;
+      const u = unionFor([p.id, m.id]);
+      u.status = STATUS[m.status ?? "married"] ?? "married";
+      if (m.from) u.startYear = m.from;
+      if (m.to) u.endYear = m.to;
+    }
+  }
+  const spouseOfSelf = people.find((p) => !p.fromFile && roleOf(p.relation) === "spouse") ?? people.find((p) => roleOf(p.relation) === "spouse" && p.spouse === selfId);
   if (spouseOfSelf && !unions.some((u) => u.partnerIds.includes(spouseOfSelf.id))) unionFor([selfId, spouseOfSelf.id]);
   // Дети, у которых есть супруг «меня», уходят в общий союз.
   if (spouseOfSelf) {
