@@ -9,6 +9,7 @@ type RawPerson = {
   birthYear?: string;
   deathYear?: string;
   note?: string;
+  maidenName?: string;
 };
 
 type RawUnion = {
@@ -36,6 +37,8 @@ function yearOf(value: unknown): string {
   const match = clean(value).match(/\b(1[5-9]\d{2}|20\d{2})\b/);
   return match?.[1] ?? "";
 }
+
+import { normalizeDate } from "./date-parse.ts";
 
 function genderOf(value: unknown): Gender {
   const v = clean(value).toLowerCase();
@@ -75,10 +78,11 @@ export function treeFromExtract(raw: RawTree): { tree: TreeData } | { error: str
       patronymic,
       lastName,
       gender: genderOf(item.gender),
-      birthYear: yearOf(item.birthYear),
-      deathYear: yearOf(item.deathYear),
+      birthYear: normalizeDate(item.birthYear),
+      deathYear: normalizeDate(item.deathYear),
       photo: "",
-      note: clean(item.note).slice(0, 280),
+      note: clean(item.note).slice(0, 6000),
+      maidenName: clean(item.maidenName) || undefined,
     });
   });
   if (!people.length) return { error: "В файле не нашлось ни одного человека" };
@@ -118,7 +122,7 @@ type GedNode = { tag: string; xref: string; value: string; children: GedNode[] }
 function gedRecords(text: string): GedNode[] {
   const roots: GedNode[] = [];
   const stack: { level: number; node: GedNode }[] = [];
-  for (const raw of text.replace(/^\uFEFF/, "").split(/\r?\n/)) {
+  for (const raw of text.replace(/^\uFEFF/, "").split(/\r\n|\r|\n/)) {
     const match = raw.match(/^(\d+)\s+(?:(@[^@]+@)\s+)?([A-Za-z0-9_]+)(?:\s(.*))?$/);
     if (!match) continue;
     const level = Number(match[1]);
@@ -127,7 +131,8 @@ function gedRecords(text: string): GedNode[] {
     while (stack.length && stack[stack.length - 1]!.level >= level) stack.pop();
     const parent = stack[stack.length - 1]?.node;
     if ((tag === "CONC" || tag === "CONT") && parent) {
-      parent.value += tag === "CONT" ? `\n${value}` : value;
+      const glue = tag === "CONT" || /[.!?)»"…]$/.test(parent.value) ? "\n" : "";
+      parent.value += glue + value;
       continue;
     }
     const node: GedNode = { tag, xref: (match[2] ?? "").replace(/@/g, ""), value, children: [] };
@@ -148,6 +153,66 @@ function eventYear(record: GedNode, tag: string): string {
   return yearOf(child(event, "DATE")?.value ?? event.value);
 }
 
+/** Полная дата события (день, месяц, год), если она есть в файле. */
+function eventDate(record: GedNode, tag: string): string {
+  const event = child(record, tag);
+  if (!event) return "";
+  return normalizeDate(child(event, "DATE")?.value ?? event.value);
+}
+
+/** Девичья фамилия: в GED у замужних в имени стоит фамилия мужа, а своя лежит в SURN. */
+function maidenOf(record: GedNode, married: string): string | undefined {
+  const nameNode = child(record, "NAME");
+  const surn = clean(nameNode ? child(nameNode, "SURN")?.value : "");
+  const marnm = clean(nameNode ? child(nameNode, "_MARNM")?.value : "");
+  if (surn && marnm && surn.toLowerCase() !== marnm.toLowerCase()) return surn;
+  if (surn && married && surn.toLowerCase() !== married.toLowerCase()) return surn;
+  return undefined;
+}
+
+const EVENT_TITLES: Record<string, string> = {
+  Burial: "Похоронен(а)",
+  Christening: "Крещение",
+  Education: "Образование",
+  MilitaryService: "Служба",
+  MilitaryAward: "Награда",
+};
+
+/** Всё, что есть о человеке кроме имени и дат: место рождения, жизнь, события и комментарии, одним текстом. */
+function biography(record: GedNode): string {
+  const lines: string[] = [];
+  const push = (label: string, ...parts: (string | undefined)[]) => {
+    const text = parts.map((x) => clean(x)).filter(Boolean).join(", ");
+    if (text) lines.push(label ? `${label}: ${text}` : text);
+  };
+  const birt = child(record, "BIRT");
+  if (birt) push("Место рождения", child(birt, "PLAC")?.value);
+  if (birt && child(birt, "NOTE")) push("", child(birt, "NOTE")?.value);
+  const deat = child(record, "DEAT");
+  if (deat) push("Место ухода", child(deat, "PLAC")?.value, child(deat, "CAUS")?.value);
+  for (const node of record.children) {
+    if (node.tag === "NOTE") push("", node.value);
+    else if (node.tag === "OCCU") push("Занятие", node.value, child(node, "NOTE")?.value);
+    else if (node.tag === "RESI") push("Жил(а)", child(node, "ADDR")?.value, child(node, "PLAC")?.value, child(node, "NOTE")?.value);
+    else if (node.tag === "EVEN") {
+      const type = clean(child(node, "TYPE")?.value);
+      const body = [node.value, child(node, "NOTE")?.value];
+      if (type === "Marriage" || type === "Divorce") continue;
+      if (type === "Comment" || !type) push("", ...body);
+      else push(EVENT_TITLES[type] ?? type, child(node, "DATE")?.value, child(node, "PLAC")?.value, ...body);
+    }
+  }
+  return lines.join("\n").slice(0, 6000);
+}
+
+/** Дата брака или развода: бывает в MARR/DIV, а бывает в событии EVEN с типом Marriage/Divorce. */
+function famDate(record: GedNode, tag: string, type: string): string {
+  const direct = eventDate(record, tag);
+  if (direct) return direct;
+  const even = record.children.find((item) => item.tag === "EVEN" && clean(child(item, "TYPE")?.value) === type);
+  return even ? normalizeDate(child(even, "DATE")?.value ?? "") : "";
+}
+
 function splitGedName(value: string): { firstName: string; patronymic: string; lastName: string } {
   const match = value.match(/^(.*?)(?:\/([^/]*)\/)?\s*$/);
   const given = clean(match?.[1]).split(" ").filter(Boolean);
@@ -166,22 +231,23 @@ export function parseGedcom(text: string): { tree: TreeData } | { error: string 
         id: record.xref,
         ...name,
         gender: sex,
-        birthYear: eventYear(record, "BIRT"),
-        deathYear: eventYear(record, "DEAT"),
-        note: clean(child(record, "NOTE")?.value).slice(0, 280),
+        birthYear: eventDate(record, "BIRT"),
+        deathYear: eventDate(record, "DEAT"),
+        note: biography(record),
+        maidenName: maidenOf(record, name.lastName),
       });
     }
     if (record.tag === "FAM" && record.xref) {
       const partners = [child(record, "HUSB")?.value, child(record, "WIFE")?.value].map((id) => clean(id).replace(/@/g, "")).filter(Boolean);
       const kids = record.children.filter((item) => item.tag === "CHIL").map((item) => item.value.replace(/@/g, ""));
-      const divorced = record.children.some((item) => item.tag === "DIV");
+      const divorced = record.children.some((item) => item.tag === "DIV" || (item.tag === "EVEN" && clean(child(item, "TYPE")?.value) === "Divorce"));
       unions.push({
         id: record.xref,
         partnerIds: partners,
         childIds: kids,
         status: divorced ? "divorced" : "married",
-        startYear: eventYear(record, "MARR"),
-        endYear: eventYear(record, "DIV"),
+        startYear: famDate(record, "MARR", "Marriage"),
+        endYear: famDate(record, "DIV", "Divorce"),
       });
     }
   }

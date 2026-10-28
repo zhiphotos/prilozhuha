@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import { LocateFixed, Minus, Plus } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { LocateFixed, Minus, Plus, Users } from "lucide-react";
 import { CameoView } from "@/components/tree/CameoView";
 import { GzhelView } from "@/components/tree/GzhelView";
 import { BohemeView } from "@/components/tree/BohemeView";
 import { TaigaView } from "@/components/tree/TaigaView";
 import { PosterView } from "@/components/tree/PosterView";
-import { fitName, isDeceased, kinship, yearsOf } from "@/lib/tree/kinship";
+import { fitText, isDeceased, kinship, nameLines, yearsOf } from "@/lib/tree/kinship";
 import { MAX_ZOOM, MIN_ZOOM, PLATE_GAP, PLATE_H, PLATE_W, PORTRAIT_R } from "@/lib/tree/metrics";
 import type { CameoSheet } from "@/lib/tree/cameo";
 import { FRAME } from "@/lib/tree/cameo";
@@ -41,6 +41,8 @@ type Props = {
   onClear: () => void;
   /** Показать меня («Я») на схеме. */
   onLocate: () => void;
+  /** Показать выбранного человека на схеме. */
+  onJump: (id: string) => void;
   style: TreeStyle;
   onStyle: (style: TreeStyle) => void;
   /** Платные стили закрыты: по нажатию открывается покупка. */
@@ -120,7 +122,21 @@ function Leaf({ motif }: { motif: { x: number; y: number; r: number; rot: number
 }
 
 export function TreeStage(props: Props) {
-  const { layout, people, unions, focusId, selectedId, centerReq, fitReq, radius, onRadius, onSelectPerson, onSelectUnion, onClear, onLocate, style, onStyle, stylesLocked, poster, cameo, gzhel, boheme, taiga, flow, onFlow } = props;
+  // Сводные братья и сёстры: у родителя несколько союзов с детьми, детей от следующих союзов ведём пунктиром.
+  const halfUnions = useMemo(() => {
+    const seen = new Map<string, number>();
+    const out = new Set<string>();
+    for (const u of props.unions) {
+      if (!u.childIds.length) continue;
+      for (const id of u.partnerIds) {
+        const count = (seen.get(id) ?? 0) + 1;
+        seen.set(id, count);
+        if (count > 1) out.add(u.id);
+      }
+    }
+    return out;
+  }, [props.unions]);
+  const { layout, people, unions, focusId, selectedId, centerReq, fitReq, radius, onRadius, onSelectPerson, onSelectUnion, onClear, onLocate, onJump, style, onStyle, stylesLocked, poster, cameo, gzhel, boheme, taiga, flow, onFlow } = props;
   const wrap = useRef<HTMLDivElement>(null);
   const [cam, setCam] = useState<Cam>({ x: 40, y: 40, k: 0.45 });
   const [gesturing, setGesturing] = useState(false);
@@ -130,6 +146,28 @@ export function TreeStage(props: Props) {
   const drag = useRef<{ x: number; y: number; cx: number; cy: number; moved: boolean } | null>(null);
   const pinch = useRef<{ dist: number; k: number } | null>(null);
   const byId = new Map(people.map((p) => [p.id, p]));
+  const [kinOpen, setKinOpen] = useState(false);
+  // Родители, бабушки и дедушки: быстрый переход, когда в большом древе они далеко от «Я».
+  const nearAncestors = (() => {
+    const out: { id: string; title: string }[] = [];
+    const seen = new Set<string>();
+    let level = [focusId];
+    for (let depth = 1; depth <= 2; depth++) {
+      const next: string[] = [];
+      for (const id of level) {
+        const u = unions.find((x) => x.childIds.includes(id) && x.partnerIds.length > 0);
+        for (const parent of u?.partnerIds ?? []) {
+          if (seen.has(parent) || !byId.has(parent)) continue;
+          seen.add(parent);
+          next.push(parent);
+          const person = byId.get(parent)!;
+          out.push({ id: parent, title: `${kinship(people, unions, focusId, parent).card}: ${[person.firstName, person.lastName].filter(Boolean).join(" ")}` });
+        }
+      }
+      level = next;
+    }
+    return out;
+  })();
 
   const sheet = (() => {
     if (style === "taiga" && taiga) return { w: taiga.width, h: taiga.height };
@@ -320,7 +358,7 @@ export function TreeStage(props: Props) {
             <svg width={layout.width} height={layout.height} role="img" aria-label="Родословное древо">
               <g fill="none" stroke="var(--color-blood)" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
                 {layout.buses.map((bus) => (
-                  <path key={bus.unionId} d={style === "carved" ? carvedBusPath(bus) : busPath(bus)} />
+                  <path key={bus.unionId} d={style === "carved" ? carvedBusPath(bus) : busPath(bus)} strokeDasharray={halfUnions.has(bus.unionId) ? "7 6" : undefined} />
                 ))}
               </g>
               {layout.spouses.map((link) => (
@@ -358,17 +396,26 @@ export function TreeStage(props: Props) {
                     )}
                     <rect x={node.x - PLATE_W / 2} y={top} width={PLATE_W} height={PLATE_H} rx={14} fill="#f6f1e7" />
                     {(() => {
-                      const f = fitName(person, PLATE_W - 14, 16);
+                      const lines = nameLines(person);
+                      const a = fitText(lines.top, PLATE_W - 14, 15);
+                      const b = lines.bottom ? fitText(lines.bottom, PLATE_W - 14, 12.5, 8.5) : null;
                       return (
-                        <text x={node.x} y={top + 22} textAnchor="middle" fill="var(--color-ink)" fontFamily="var(--font-serif)" fontSize={f.size} fontWeight={600} textLength={f.textLength} lengthAdjust="spacingAndGlyphs">
-                          {f.text}
-                        </text>
+                        <>
+                          <text x={node.x} y={top + 18} textAnchor="middle" fill="var(--color-ink)" fontFamily="var(--font-serif)" fontSize={a.size} fontWeight={700} textLength={a.textLength} lengthAdjust="spacingAndGlyphs">
+                            {a.text}
+                          </text>
+                          {b ? (
+                            <text x={node.x} y={top + 33} textAnchor="middle" fill="var(--color-ink)" fontFamily="var(--font-serif)" fontSize={b.size} textLength={b.textLength} lengthAdjust="spacingAndGlyphs">
+                              {b.text}
+                            </text>
+                          ) : null}
+                        </>
                       );
                     })()}
-                    <text x={node.x} y={top + 40} textAnchor="middle" fill="var(--color-role)" fontFamily="var(--font-sans)" fontSize={roleSize} fontWeight={700}>
+                    <text x={node.x} y={top + 49} textAnchor="middle" fill="var(--color-role)" fontFamily="var(--font-sans)" fontSize={roleSize - 0.5} fontWeight={700}>
                       {role}
                     </text>
-                    <text x={node.x} y={top + 58} textAnchor="middle" fill="var(--color-muted)" fontFamily="var(--font-sans)" fontSize={11}>
+                    <text x={node.x} y={top + 64} textAnchor="middle" fill="var(--color-muted)" fontFamily="var(--font-sans)" fontSize={10}>
                       {yearsOf(person)}
                     </text>
                   </g>
@@ -435,7 +482,29 @@ export function TreeStage(props: Props) {
           })}
         </div>
       </div>
+      {kinOpen && nearAncestors.length > 0 && (
+        <div className="absolute right-16 bottom-48 z-30 grid max-h-[50vh] w-[min(18rem,calc(100vw-5rem))] gap-1 overflow-y-auto rounded-2xl border border-chip-line bg-chip p-1 shadow-lg backdrop-blur-md">
+          {nearAncestors.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className="rounded-xl px-3 py-2 text-left text-sm text-chip-fg hover:bg-gold hover:text-ink"
+              onClick={() => {
+                setKinOpen(false);
+                onJump(item.id);
+              }}
+            >
+              {item.title}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="absolute right-2 bottom-36 z-20 flex flex-col gap-2">
+        {nearAncestors.length > 0 && (
+          <button type="button" className="grid size-11 place-items-center rounded-full border border-chip-line bg-chip text-chip-fg shadow-md backdrop-blur-md" aria-label="Мои родители, бабушки и дедушки" title="Родители, бабушки и дедушки" aria-expanded={kinOpen} onClick={() => setKinOpen((v) => !v)}>
+            <Users className="size-5" aria-hidden />
+          </button>
+        )}
         <button type="button" className="grid size-11 place-items-center rounded-full border border-gold bg-gold text-ink shadow-md" aria-label="Ко мне: показать меня на схеме" title="Ко мне" onClick={onLocate}>
           <LocateFixed className="size-5" aria-hidden />
         </button>

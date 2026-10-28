@@ -63,6 +63,7 @@ export function StylePreview({ style, onPick, onOpen, onClose }: { style: TreeSt
             onSelectUnion={() => undefined}
             onClear={() => undefined}
         onLocate={() => undefined}
+        onJump={() => undefined}
             style={style}
             onStyle={onPick}
             stylesLocked={false}

@@ -4,8 +4,8 @@ import type { CustomFontEntry } from "@/lib/rod/types";
 
 const loaded = new Set<string>();
 
-/** Шрифты, которые идут в комплекте с приложением. «Почерк бабушки» её собственный; в нём нет «!», «?», «-» и латиницы, их дорисует обычный шрифт. */
-export const BUILTIN_FONTS = [{ id: "babushka", name: "Почерк бабушки", file: "fonts/pocherk-babushki.ttf" }] as const;
+/** Шрифты, которые идут в комплекте с приложением. «Почерк бабушки» её собственный; знаки препинания (. , ! ? : ; - – — « » " ( ) … № + = /) дорисованы в её манере, латиницы в нём нет, её дорисует обычный шрифт. */
+export const BUILTIN_FONTS = [{ id: "babushka", name: "Почерк бабушки", file: "fonts/pocherk-babushki.ttf?v=2" }] as const;
 
 export async function registerBuiltinFonts(): Promise<void> {
   if (typeof document === "undefined") return;

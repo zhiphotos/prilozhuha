@@ -1,3 +1,4 @@
+import { normalizeDate } from "./date-parse.ts";
 import type { ImportedPerson } from "./gedImport.ts";
 
 /** Разбор таблицы (CSV из Excel или Google Таблиц) в людей. Колонки находим по названию, порядок любой. */
@@ -34,7 +35,7 @@ function splitLine(line: string, sep: string): string[] {
   return out;
 }
 
-const year = (v: string) => (v.match(/\d{4}/)?.[0] ?? "");
+const year = (v: string) => normalizeDate(v);
 const full = (p: { lastName: string; firstName: string; patronymic: string }) => [p.lastName, p.firstName, p.patronymic].filter(Boolean).join(" ").toLowerCase().replace(/\s+/g, " ");
 const genderOf = (v: string, relation: string): "m" | "f" | undefined => {
   const t = `${v} ${relation}`.toLowerCase();

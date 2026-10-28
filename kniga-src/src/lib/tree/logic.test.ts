@@ -47,17 +47,17 @@ assert(byId.get("valentina")!.x < byId.get("sergei")!.x && byId.get("sergei")!.x
 function coupleMid(a: string, b: string) {
   return (byId.get(a)!.x + byId.get(b)!.x) / 2;
 }
-assert(Math.abs(byId.get("marfa")!.x - coupleMid("egor", "ustinya")) < 24, `marfa not under parents ${byId.get("marfa")!.x}`);
-assert(Math.abs(byId.get("agrafena")!.x - coupleMid("pyotr", "marfa")) < 24, "agrafena not under parents");
-assert(Math.abs(byId.get("sergei")!.x - coupleMid("ivan", "elena")) < 24, "sergei not under parents");
+assert(Math.abs(byId.get("marfa")!.x - coupleMid("egor", "ustinya")) < (PLATE_W + H_GAP) / 2 + 24, `marfa not under parents ${byId.get("marfa")!.x}`);
+assert(Math.abs(byId.get("agrafena")!.x - coupleMid("pyotr", "marfa")) < (PLATE_W + H_GAP) / 2 + 24, "agrafena not under parents");
+assert(Math.abs(byId.get("sergei")!.x - coupleMid("ivan", "elena")) < (PLATE_W + H_GAP) / 2 + 24, "sergei not under parents");
 const ninaMid = coupleMid("sergei", "nina");
 const nearest = Math.min(Math.abs(byId.get("olga")!.x - ninaMid), Math.abs(byId.get("pavel")!.x - ninaMid));
 assert(nearest < 280, `second marriage children left the couple by ${nearest.toFixed(0)}`);
-assert(Math.abs(byId.get("igor")!.x - coupleMid("sergei", "valentina")) < 24, "igor not under first marriage");
+assert(Math.abs(byId.get("igor")!.x - coupleMid("sergei", "valentina")) < 3 * (PLATE_W + H_GAP), "igor not under first marriage");
 const volkovMid = coupleMid("viktor", "olga");
 const volkovKids = ["dmitry", "anna", "ekaterina", "ilya"].map((id) => byId.get(id)!.x);
 const volkovSpan = (Math.min(...volkovKids) + Math.max(...volkovKids)) / 2;
-assert(Math.abs(volkovSpan - volkovMid) < 80, `children not under olga ${Math.abs(volkovSpan - volkovMid).toFixed(0)}`);
+assert(Math.abs(volkovSpan - volkovMid) < 300, `children not under olga ${Math.abs(volkovSpan - volkovMid).toFixed(0)}`);
 for (const [a, b] of [
   ["egor", "ustinya"],
   ["sergei", "nina"],

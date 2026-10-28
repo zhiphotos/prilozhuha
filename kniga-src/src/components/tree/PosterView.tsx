@@ -1,4 +1,4 @@
-import { fullName, kinship, yearsOf } from "@/lib/tree/kinship";
+import { kinship, nameLines, yearsOf } from "@/lib/tree/kinship";
 import type { PosterSheet } from "@/lib/tree/poster";
 import type { Person, Union } from "@/lib/tree/types";
 
@@ -39,6 +39,7 @@ export function PosterView({ poster, people, unions, focusId, selectedId }: { po
         const on = node.id === selectedId || node.id === focusId;
         const years = yearsOf(person);
         const role = kinship(people, unions, focusId, person.id).card;
+        const lines = nameLines(person);
         const w = node.w;
         return (
           <div
@@ -48,7 +49,8 @@ export function PosterView({ poster, people, unions, focusId, selectedId }: { po
           >
             {person.photo ? <img src={person.photo} alt="" className={w < 150 ? "glass-photo is-tiny" : "glass-photo"} /> : <span className={`grid place-items-center text-sm text-neutral-500 ${w < 150 ? "glass-photo is-tiny" : "glass-photo"}`}>{(person.firstName[0] ?? "").toUpperCase()}</span>}
             <span className="min-w-0 flex-1">
-              <span className="block whitespace-nowrap text-[13px] font-medium leading-tight tracking-tight text-neutral-900">{fullName(person)}</span>
+              <span className="block whitespace-nowrap text-[13px] font-medium leading-tight tracking-tight text-neutral-900">{lines.top}</span>
+              {lines.bottom && <span className="block whitespace-nowrap text-[11.5px] leading-tight text-neutral-800">{lines.bottom}</span>}
               {years && <span className="mt-0.5 block whitespace-nowrap text-[11px] text-neutral-500">({years})</span>}
               <span className="mt-0.5 block whitespace-nowrap text-[11px] text-neutral-500">{role}</span>
             </span>

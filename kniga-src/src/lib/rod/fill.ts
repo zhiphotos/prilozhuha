@@ -2,7 +2,7 @@
 // Цвет хранится в самом рисунке (`fill` у блока «ink») и лежит под его линиями: фигуру с заливкой можно двигать,
 // сжимать, поворачивать, дублировать и стирать, как фото.
 import { floodRegion, paintPixels } from "@/lib/draw-kit/flood.js";
-import { inkColor } from "@/lib/rod/ink";
+import { PAGE_H, inkColor } from "@/lib/rod/ink";
 import { mediaDataUrl, saveMedia } from "@/lib/rod/media";
 import { PAGE_RATIO } from "@/lib/rod/page-style";
 import { paintStrokeList } from "@/lib/rod/print-book";
@@ -27,7 +27,7 @@ export function drawWalls(page: BookPage, w: number, h: number): CanvasRendering
   for (const block of page.blocks) {
     if (block.type !== "ink") continue;
     ctx.save();
-    ctx.setTransform(blockMatrix(block, w, h, block.ow, block.oh));
+    ctx.setTransform(blockMatrix(block, w, h, block.ow, (block.oh * PAGE_H) / 100));
     paintStrokeList(ctx, block.strokes);
     ctx.restore();
   }

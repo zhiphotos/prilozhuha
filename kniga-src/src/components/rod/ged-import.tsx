@@ -6,6 +6,7 @@ import { yearNum } from "@/lib/tree/kinship.ts";
 import { useRod } from "@/lib/rod/store";
 import type { Person as RodPerson } from "@/lib/rod/types";
 import { gedToPeople, type ImportedPerson } from "@/lib/tree/gedImport.ts";
+import { decodeText } from "@/lib/tree/decode.ts";
 import { parseGedcom } from "@/lib/tree/importTree.ts";
 import { parseTable } from "@/lib/tree/tableImport.ts";
 import { isAgelongXml, parseAgelongXml } from "@/lib/tree/agelongXml.ts";
@@ -104,7 +105,8 @@ export function GedImportButton() {
       toast("Это база программы «Древо Жизни». Сохраните из программы файл XML (Файл, Экспорт) и загрузите его.", { duration: 8000 });
       return;
     }
-    void file.text().then((text) => {
+    void file.arrayBuffer().then((raw) => {
+      const text = decodeText(raw);
       if (isAgelongXml(text)) {
         const r = parseAgelongXml(text);
         if ("error" in r) return toast(r.error);
@@ -165,10 +167,12 @@ export function GedImportButton() {
     const selfImported = preview.list.find((p) => p.relation === "я");
     const selfId = selfImported ? keyToId.get(selfImported.key) : undefined;
     if (selfId) useTree.getState().setFocus(selfId);
+    // В большом древе «Все родственники» слишком широкое: сначала показываем вашу линию с братьями и сёстрами, остальное – в «Расширенных».
+    if (selfId && preview.list.length > 80 && useTree.getState().scope === "all") useTree.getState().setScope("direct-sib-root");
     setBusy(false);
     setTree(null);
     setTable(null);
-    toast(`Добавлено людей: ${fix.length}. Уже были в списке и обновлены: ${updated.size}. Древо обновлено.`);
+    toast(`Добавлено людей: ${fix.length}. Уже были в списке и обновлены: ${updated.size}. Древо обновлено.${preview.list.length > 80 ? " Показала вашу линию; всех родственников можно включить в «Расширенных»." : ""}`, { duration: 8000 });
   };
 
   return (
@@ -242,7 +246,7 @@ function toRod(p: ImportedPerson, id: string, keyToId: Map<string, string>): Rod
     relation: p.relation,
     birthYear: p.birthYear,
     deathYear: p.deathYear,
-    maidenName: "",
+    maidenName: p.maidenName ?? "",
     notes: p.notes,
     gender: p.gender,
     fromFile: true,

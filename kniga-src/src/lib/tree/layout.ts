@@ -4,6 +4,10 @@ import type { ChildBus, GenLabel, Person, SpouseLink, TreeData, TreeLayout, Unio
 
 /** Насколько разводить ветки друг от друга: 0 плотно, 1 шире, 2 ещё шире. Выбирает пользователь. */
 let spread: 0 | 1 | 2 = 0;
+const STRAIGHT_SPINE = false;
+/** Проверено замером на её GED: оба приёма не улучшают, а ухудшают раскладку (длиннее линии, нарушается порядок по возрасту). Оставлены выключенными. */
+const PULL_EDGE = false;
+const PARENTS_FIRST = false;
 const SPREAD_EXTRA = [0, 90, 220] as const;
 export function setLayoutSpread(value: 0 | 1 | 2) {
   spread = value;
@@ -151,6 +155,60 @@ function spouseGroups(g: Graph, ids: string[]): string[][] {
   return groups;
 }
 
+/**
+ * Прямая линия «стержень»: от выбранного человека вверх по самой глубокой ветке предков
+ * и вниз по самой многочисленной ветке потомков. Её ставим строго по вертикали,
+ * остальные родственники расходятся по бокам.
+ */
+function spineOf(g: Graph, focusId: string): Map<string, string> {
+  const up = new Map<string, number>();
+  const depthUp = (id: string, seen = new Set<string>()): number => {
+    if (up.has(id)) return up.get(id)!;
+    if (seen.has(id)) return 0;
+    seen.add(id);
+    let best = 0;
+    for (const parent of g.parentOf.get(id) ?? []) best = Math.max(best, 1 + depthUp(parent, seen));
+    up.set(id, best);
+    return best;
+  };
+  const down = new Map<string, number>();
+  const kidsOf = (id: string) => [...new Set((g.marriagesOf.get(id) ?? []).flatMap((u) => u.childIds))];
+  const sizeDown = (id: string, seen = new Set<string>()): number => {
+    if (down.has(id)) return down.get(id)!;
+    if (seen.has(id)) return 0;
+    seen.add(id);
+    let sum = 0;
+    for (const kid of kidsOf(id)) sum += 1 + sizeDown(kid, seen);
+    down.set(id, sum);
+    return sum;
+  };
+  // result: человек -> его соседний по стержню «родитель» (тот, над кем он стоит)
+  const spineParent = new Map<string, string>();
+  let cur = focusId;
+  for (let guard = 0; guard < 400; guard++) {
+    const parents = (g.parentOf.get(cur) ?? []).slice().sort((a, b) => {
+      const d = depthUp(b) - depthUp(a);
+      if (d) return d;
+      const ma = g.people.get(a)?.gender === "m" ? 0 : 1;
+      const mb = g.people.get(b)?.gender === "m" ? 0 : 1;
+      return ma - mb;
+    });
+    const next = parents[0];
+    if (!next || spineParent.has(next) || next === focusId) break;
+    spineParent.set(cur, next);
+    cur = next;
+  }
+  cur = focusId;
+  for (let guard = 0; guard < 400; guard++) {
+    const kids = kidsOf(cur).slice().sort((a, b) => sizeDown(b) - sizeDown(a) || byBirth(g, a, b));
+    const next = kids[0];
+    if (!next || spineParent.has(next) || next === focusId) break;
+    spineParent.set(next, cur);
+    cur = next;
+  }
+  return spineParent;
+}
+
 function rowLabel(delta: number): string {
   if (delta === 0) return "Вы и ваши";
   const n = Math.abs(delta);
@@ -165,6 +223,7 @@ export function layoutTree(people: Person[], unions: Union[], focusId: string, f
   const levels = [...new Set([...gen.values()])].sort((a, b) => a - b);
   const pos = new Map<string, number>();
   const gap = PLATE_W + H_GAP;
+  const spineParent = spineOf(g, focusId);
 
   const blocksOf = (level: number) => {
     const ids = people.filter((p) => gen.get(p.id) === level).map((p) => p.id);
@@ -177,7 +236,7 @@ export function layoutTree(people: Person[], unions: Union[], focusId: string, f
 
   const placeBlocks = (blocks: { ids: string[]; rel: Map<string, number> }[], anchorOf: (ids: string[]) => { id: string; target: number } | null) => {
     const ready = blocks.map((block) => ({ ...block, anchor: anchorOf(block.ids) }));
-    ready.sort((a, b) => (a.anchor?.target ?? 0) - (b.anchor?.target ?? 0) || cmpRank(g, a.ids, b.ids) || byBirth(g, a.ids[0]!, b.ids[0]!));
+    ready.sort((a, b) => (a.anchor?.target ?? 0) - (b.anchor?.target ?? 0) || cmpRank(g, a.ids, b.ids) || byBirth(g, a.anchor?.id ?? a.ids[0]!, b.anchor?.id ?? b.ids[0]!));
     let cursor = Number.NEGATIVE_INFINITY;
     let index = 0;
     while (index < ready.length) {
@@ -212,6 +271,29 @@ export function layoutTree(people: Person[], unions: Union[], focusId: string, f
       for (const [id, value] of local) pos.set(id, value + shift);
       cursor = maxLocal + shift + gap + SPREAD_EXTRA[spread];
       index = end;
+    }
+  };
+
+  const alignSpine = (level: number) => {
+    // Стержень стоит строго над своим предком: если ряд сдвинул его, раздвигаем остальных в стороны.
+    for (const person of people) {
+      if (gen.get(person.id) !== level) continue;
+      const sp = spineParent.get(person.id);
+      if (sp === undefined || !pos.has(sp)) continue;
+      const want = pos.get(sp)!;
+      const have = pos.get(person.id)!;
+      const d = have - want;
+      if (Math.abs(d) < 0.5) continue;
+      // Пара стержня двигается вместе: супруги не отрываются друг от друга.
+      const group = new Set<string>([person.id]);
+      for (const union of g.marriagesOf.get(person.id) ?? []) for (const mate of union.partnerIds) if (gen.get(mate) === level) group.add(mate);
+      for (const other of people) {
+        if (gen.get(other.id) !== level) continue;
+        const x = pos.get(other.id)!;
+        if (group.has(other.id)) pos.set(other.id, x - d);
+        else if (d > 0 && x < have) pos.set(other.id, x - d);
+        else if (d < 0 && x > have) pos.set(other.id, x - d);
+      }
     }
   };
 
@@ -256,7 +338,161 @@ export function layoutTree(people: Person[], unions: Union[], focusId: string, f
       const target = anchored.reduce((sum, item) => sum + (childTarget.get(item) ?? 0), 0) / anchored.length;
       return { id, target };
     });
+    if (STRAIGHT_SPINE) alignSpine(level);
   });
+
+  // Подтягиваем семьи друг к другу: ряды по очереди тянутся к родителям и детям, ветки одной семьи держатся рядом.
+  const kidsOfPerson = (id: string) => [...new Set((g.marriagesOf.get(id) ?? []).flatMap((u) => u.childIds))];
+  const sibCount = (id: string) => Math.max(0, ...(g.parentOf.get(id) ?? []).map((par) => kidsOfPerson(par).length));
+  const depthMemo = new Map<string, number>();
+  const ancestry = (id: string, seen = new Set<string>()): number => {
+    if (depthMemo.has(id)) return depthMemo.get(id)!;
+    if (seen.has(id)) return 0;
+    seen.add(id);
+    let best = 0;
+    for (const parent of g.parentOf.get(id) ?? []) best = Math.max(best, 1 + ancestry(parent, seen));
+    depthMemo.set(id, best);
+    return best;
+  };
+  const refineLevel = (level: number, parentsFirst = false) => {
+    const ids = people.filter((p) => gen.get(p.id) === level && pos.has(p.id)).map((p) => p.id);
+    if (ids.length < 2) return;
+    const blocks = spouseGroups(g, ids).map((members) => {
+      const sorted = members.slice().sort((a, b) => pos.get(a)! - pos.get(b)!);
+      const base = pos.get(sorted[0]!)!;
+      return { ids: sorted, rel: sorted.map((id) => pos.get(id)! - base), base };
+    });
+    const clusterKey = (block: (typeof blocks)[number], index: number) => {
+      let best: string | null = null;
+      let bestCount = -1;
+      for (const id of block.ids) {
+        const parents = g.parentOf.get(id) ?? [];
+        if (!parents.length) continue;
+        const count = ancestry(id) * 10000 + sibCount(id);
+        if (count > bestCount) {
+          bestCount = count;
+          best = parents.slice().sort().join("+");
+        }
+      }
+      return best ?? `solo${index}`;
+    };
+    const keyMember = (block: (typeof blocks)[number]) => {
+      let best: string | null = null;
+      let bestCount = -1;
+      for (const id of block.ids) {
+        if (!(g.parentOf.get(id) ?? []).length) continue;
+        const count = ancestry(id) * 10000 + sibCount(id);
+        if (count > bestCount) {
+          bestCount = count;
+          best = id;
+        }
+      }
+      return best;
+    };
+    const wish = (id: string): number | null => {
+      const parents = (g.parentOf.get(id) ?? []).filter((q) => pos.has(q) && gen.get(q) === level - 1);
+      const kids = kidsOfPerson(id).filter((q) => pos.has(q) && gen.get(q) === level + 1);
+      const values: number[] = [];
+      if (parents.length) values.push(parents.reduce((sum, q) => sum + pos.get(q)!, 0) / parents.length);
+      if (parentsFirst && values.length) return values[0]!;
+      if (kids.length) values.push(kids.reduce((sum, q) => sum + pos.get(q)!, 0) / kids.length);
+      return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
+    };
+    const clusters = new Map<string, { key: string; blocks: typeof blocks; locals: number[]; width: number; shift: number }>();
+    blocks.forEach((block, index) => {
+      const key = clusterKey(block, index);
+      const entry = clusters.get(key) ?? { key, blocks: [], locals: [], width: 0, shift: 0 };
+      entry.blocks.push(block);
+      clusters.set(key, entry);
+    });
+    const sep = gap + SPREAD_EXTRA[spread];
+    const list = [...clusters.values()];
+    for (const cluster of list) {
+      cluster.blocks.sort((a, b) => {
+        const ka = keyMember(a);
+        const kb = keyMember(b);
+        if (ka && kb) {
+          const ra = cmpRank(g, [ka], [kb]);
+          if (ra) return ra;
+          const ya = yearNum(g.people.get(ka)?.birthYear);
+          const yb = yearNum(g.people.get(kb)?.birthYear);
+          if (ya !== 9999 && yb !== 9999 && ya !== yb) return ya - yb;
+        }
+        return a.base - b.base;
+      });
+      // Если у супруга в этой семье родители стоят далеко в стороне, пара встаёт с края, обращённого к ним: семьи супругов оказываются рядом.
+      if (PULL_EDGE && cluster.blocks.length > 2) {
+        const centre = cluster.blocks.reduce((sum, b) => sum + b.base, 0) / cluster.blocks.length;
+        const pull = (block: (typeof blocks)[number]): number | null => {
+          const xs: number[] = [];
+          for (const id of block.ids) {
+            const parents = (g.parentOf.get(id) ?? []).filter((q) => pos.has(q) && gen.get(q) === level - 1);
+            if (!parents.length || parents.slice().sort().join("+") === cluster.key) continue;
+            xs.push(parents.reduce((sum, q) => sum + pos.get(q)!, 0) / parents.length);
+          }
+          return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+        };
+        const lefts: { b: (typeof blocks)[number]; x: number }[] = [];
+        const rights: { b: (typeof blocks)[number]; x: number }[] = [];
+        const middle: (typeof blocks)[number][] = [];
+        for (const block of cluster.blocks) {
+          const x = pull(block);
+          if (x !== null && x - centre > 2 * gap) rights.push({ b: block, x });
+          else if (x !== null && centre - x > 2 * gap) lefts.push({ b: block, x });
+          else middle.push(block);
+        }
+        if (lefts.length || rights.length) {
+          lefts.sort((a, b) => a.x - b.x);
+          rights.sort((a, b) => a.x - b.x);
+          cluster.blocks = [...lefts.map((i) => i.b), ...middle, ...rights.map((i) => i.b)];
+        }
+      }
+      let cursor = 0;
+      const diffs: number[] = [];
+      for (const block of cluster.blocks) {
+        cluster.locals.push(cursor);
+        block.ids.forEach((id, i) => {
+          const w = wish(id);
+          if (w !== null) diffs.push(w - (cursor + block.rel[i]!));
+        });
+        cursor += (block.rel[block.rel.length - 1] ?? 0) + gap;
+      }
+      cluster.width = cursor - gap;
+      const move = diffs.length ? diffs.reduce((a, b) => a + b, 0) / diffs.length : null;
+      cluster.shift = move ?? cluster.blocks[0]!.base;
+    }
+    list.sort((a, b) => a.shift + a.width / 2 - (b.shift + b.width / 2));
+    const left: number[] = [];
+    let edge = Number.NEGATIVE_INFINITY;
+    for (const cluster of list) {
+      const at = Math.max(cluster.shift, edge);
+      left.push(at);
+      edge = at + cluster.width + sep;
+    }
+    const right: number[] = new Array(list.length).fill(0);
+    edge = Number.POSITIVE_INFINITY;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const at = Math.min(list[i]!.shift, edge - list[i]!.width - sep + 0);
+      right[i] = at;
+      edge = at;
+    }
+    list.forEach((cluster, i) => {
+      const at = (left[i]! + right[i]!) / 2;
+      cluster.blocks.forEach((block, b) => {
+        block.ids.forEach((id, k) => pos.set(id, at + cluster.locals[b]! + block.rel[k]!));
+      });
+    });
+  };
+  if (people.length > 3) {
+    const rounds = Math.max(4, Math.min(20, Math.round(25000 / Math.max(1, people.length))));
+    for (let round = 0; round < rounds; round++) {
+      for (let i = 1; i < levels.length; i++) refineLevel(levels[i]!);
+      for (let i = levels.length - 2; i >= 0; i--) refineLevel(levels[i]!);
+    }
+    // Последние проходы сверху вниз: ребёнок встаёт под родителями, где ряд это позволяет.
+    for (let round = 0; round < (PARENTS_FIRST ? 4 : 0); round++) for (let i = 1; i < levels.length; i++) refineLevel(levels[i]!, true);
+    if (STRAIGHT_SPINE) for (const level of levels) alignSpine(level);
+  }
 
   const span = (levels[levels.length - 1] ?? 0) - (levels[0] ?? 0);
   const rowOf = (level: number) => {

@@ -11,7 +11,7 @@ const TOP = 8; // верх страницы-продолжения, % высот
 
 /** Разбивает текст на куски по высоте страницы. Первый кусок остаётся на странице блока. */
 export function flowChunks(block: TextBlock): string[] {
-  const style = { font: block.font, size: block.size, px: block.px, look: block.look, w: block.w };
+  const style = { font: block.font, size: block.size, px: block.px, look: block.look, wordGap: block.wordGap, w: block.w };
   const { line, padY } = lineBox(style);
   const lines = wrapLines(block.text, style);
   // y блока в процентах высоты страницы; все расчёты в единицах ширины, как и высота строки.

@@ -260,6 +260,9 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
             max={300}
             onChange={(v) => ops.patch({ px: v } as Partial<PageBlock>, `size:${block.id}`)}
           />
+          <div className="mt-1.5">
+            <Stepper label="Пробелы" unit="%" value={Math.round((block.wordGap ?? 0) * 100)} min={-20} max={250} step={5} onChange={(v) => ops.patch({ wordGap: v === 0 ? undefined : v / 100 } as Partial<PageBlock>, `gap:${block.id}`)} />
+          </div>
         </div>
         </>
         ) : null}
@@ -681,6 +684,9 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
             </div>
             <div className="mt-2">
               <Stepper label="Размер" value={px} min={10} max={300} onChange={(v) => ops.patch({ px: v } as Partial<PageBlock>, `size:${block.id}`)} />
+              <div className="mt-1.5">
+                <Stepper label="Пробелы" unit="%" value={Math.round((block.wordGap ?? 0) * 100)} min={-20} max={250} step={5} onChange={(v) => ops.patch({ wordGap: v === 0 ? undefined : v / 100 } as Partial<PageBlock>, `gap:${block.id}`)} />
+              </div>
               <button
                 type="button"
                 className="mt-1.5 text-sm text-rose-deep underline"

@@ -26,3 +26,19 @@ test("пол не указан: жена дяди всё равно тётя", (
   const noGender = people.map((x) => (x.id === "uncleWife" ? { ...x, gender: "u" as const } : x));
   assert.equal(kinship(noGender, unions, "me", "uncleWife").card, "Тётя (жена дяди)");
 });
+
+// Поколения: я -> родитель -> дед -> прадед -> прапрадед; двоюродная сестра прапрадеда стоит выше родителей.
+test("родня из старших поколений называется по высоте поколения, а не просто «тётя»", () => {
+  const ids = ["me", "p", "g", "gg", "ggg", "root", "elderA", "elderB", "sibGG"];
+  const list = ids.map((id) => ({ ...p(id, id === "elderB" || id === "sibGG" ? "f" : "m") }));
+  const un = [
+    u("a", ["p"], ["me"]),
+    u("b", ["g"], ["p"]),
+    u("c", ["gg"], ["g", "sibGG"]),
+    u("d", ["ggg"], ["gg"]),
+    u("e", ["root"], ["ggg", "elderA"]),
+    u("f", ["elderA"], ["elderB"]),
+  ];
+  assert.equal(kinship(list, un, "me", "sibGG").card, "Двоюродная бабушка");
+  assert.equal(kinship(list, un, "me", "elderB").card, "Троюродная прабабушка");
+});

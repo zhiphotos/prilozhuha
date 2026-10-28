@@ -13,7 +13,7 @@ import { layoutPoster } from "@/lib/tree/poster.ts";
 import { layoutTaiga } from "@/lib/tree/taiga.ts";
 import type { TreeStyle } from "@/lib/tree/styles.ts";
 import type { TreeData } from "@/lib/tree/types.ts";
-import { kinship } from "@/lib/tree/kinship.ts";
+import { kinship, nameLines } from "@/lib/tree/kinship.ts";
 
 /**
  * Печать древа в PDF. Рисуем тот же векторный лист, что на экране (SVG/DOM, без растрового холста),
@@ -131,7 +131,8 @@ function SchemaSvg({ data, layout }: { data: TreeData; layout: ReturnType<typeof
       {layout.nodes.map((node) => {
         const person = byId.get(node.id);
         if (!person) return null;
-        const name = [person.firstName, person.patronymic, person.lastName].filter(Boolean).join(" ");
+        const lines = nameLines(person);
+        const name = lines.top;
         const role = kinship(data.people, data.unions, data.focusId, person.id).card;
         return (
           <g key={node.id}>
@@ -140,7 +141,12 @@ function SchemaSvg({ data, layout }: { data: TreeData; layout: ReturnType<typeof
             <text x={node.x} y={node.y + 46 + 12 + 22} textAnchor="middle" fill="#1c1612" fontFamily="Cormorant Garamond, serif" fontSize={16} fontWeight={600}>
               {name}
             </text>
-            <text x={node.x} y={node.y + 46 + 12 + 40} textAnchor="middle" fill="#8d4e3a" fontFamily="Manrope, sans-serif" fontSize={11} fontWeight={700}>
+            {lines.bottom ? (
+              <text x={node.x} y={node.y + 46 + 12 + 39} textAnchor="middle" fill="#1c1612" fontFamily="Cormorant Garamond, serif" fontSize={14}>
+                {lines.bottom}
+              </text>
+            ) : null}
+            <text x={node.x} y={node.y + 46 + 12 + (lines.bottom ? 58 : 40)} textAnchor="middle" fill="#8d4e3a" fontFamily="Manrope, sans-serif" fontSize={11} fontWeight={700}>
               {role}
             </text>
             <text x={node.x} y={node.y + 46 + 12 + 58} textAnchor="middle" fill="#7d7368" fontFamily="Manrope, sans-serif" fontSize={11}>
