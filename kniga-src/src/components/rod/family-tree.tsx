@@ -11,7 +11,7 @@ import { Button, Sheet, useNav } from "@/components/rod/chrome";
 import { PersonAvatar, PersonEditor, lookOf } from "@/components/rod/person-fields";
 
 type Line = { x1: number; y1: number; x2: number; y2: number; dashed?: boolean };
-type Link = { x: number; y: number; x1: number; x2: number; status: "married" | "divorced" | "partners" };
+type Link = { x: number; y: number; x1: number; x2: number; status: "married" | "divorced" | "partners" | "widowed" };
 
 function lifeYears(person: Person): string {
   return [person.birthYear, person.deathYear].filter((part) => part?.trim()).join(" – ");

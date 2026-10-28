@@ -70,3 +70,20 @@ test("ai json drops invented blank rows", () => {
   assert.equal(result.tree.unions.length, 0);
   assert.equal(result.tree.focusId, "p1");
 });
+
+test("человек без имени, но со связями, не теряется при загрузке", () => {
+  const ged = `0 HEAD
+0 @I1@ INDI
+1 NAME Иван /Петров/
+0 @I2@ INDI
+1 NAME //
+0 @I3@ INDI
+1 NAME //
+0 @F1@ FAM
+1 HUSB @I2@
+1 CHIL @I1@
+0 TRLR`;
+  const r = parseGedcom(ged);
+  if (!("tree" in r)) throw new Error("tree");
+  assert.equal(r.tree.people.length, 2, "родитель без имени остаётся, а одинокая пустая запись нет");
+});

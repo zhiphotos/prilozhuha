@@ -12,7 +12,6 @@ import { GedImportButton } from "@/components/rod/ged-import";
 import { Hint } from "@/components/rod/hint";
 import { TreeSearch } from "@/components/tree/TreeSearch";
 import { searchPeople } from "@/lib/tree/search";
-import { PrintTree } from "@/components/tree/PrintTree";
 import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { layoutTree, sliceByRadius } from "@/lib/tree/layout";
 import { SCOPES, scopeFilter } from "@/lib/tree/scope";
@@ -34,12 +33,46 @@ function TreeScreen() {
   const rodPeople = useRod((state) => state.people);
   const [pay, setPay] = useState(false);
   const [preview, setPreview] = useState<TreeStyle | null>(null);
-  const [printing, setPrinting] = useState(false);
   useEffect(() => warmPhotos(), [rodPeople]);
   const people = useTree((s) => s.people);
   const unions = useTree((s) => s.unions);
   const focusId = useTree((s) => s.focusId);
   const theme = useTree((s) => s.theme);
+  // Точки на фоне можно выключить: у части людей от них укачивает.
+  const [dots, setDots] = useState(() => {
+    try {
+      return localStorage.getItem("kniga-tree-dots") !== "off";
+    } catch {
+      return true;
+    }
+  });
+  // Цвет линий древо: свой выбор, хранится на устройстве; пусто – цвет темы.
+  const [lineColor, setLineColor] = useState<string>(() => {
+    try {
+      return localStorage.getItem("kniga-tree-line") ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const pickLine = (value: string) => {
+    setLineColor(value);
+    try {
+      if (value) localStorage.setItem("kniga-tree-line", value);
+      else localStorage.removeItem("kniga-tree-line");
+    } catch {
+      /* без запоминания */
+    }
+  };
+  const toggleDots = () => {
+    setDots((v) => {
+      try {
+        localStorage.setItem("kniga-tree-dots", v ? "off" : "on");
+      } catch {
+        /* без запоминания */
+      }
+      return !v;
+    });
+  };
   const style = useTree((s) => s.style);
   const selectedId = useTree((s) => s.selectedId);
   const unionOpen = useTree((s) => s.unionId);
@@ -90,12 +123,12 @@ function TreeScreen() {
     return () => window.clearTimeout(timer);
   }, [note]);
 
-  const save = async (paper: "white" | "black" = "white") => {
+  const save = async (paper: "white" | "black" = "white", format: "png" | "pdf" = "png") => {
     setSheetPick(false);
     setBusy(true);
     setNote(null);
     try {
-      await exportPoster({ people: shown.people, unions: shown.unions, focusId }, style, banner, paper, flow);
+      await exportPoster({ people: shown.people, unions: shown.unions, focusId }, style, banner, paper, flow, format);
       const saved =
         style === "work"
           ? paper === "black"
@@ -112,9 +145,9 @@ function TreeScreen() {
                   : style === "carved"
                     ? "Лист сохранён: живое древо и подпись «Книга Рода» внизу"
                     : "Лист сохранён: светлая бумага и подпись «Книга Рода» внизу";
-      setNote(saved);
+      setNote(saved.replace("Лист", format === "pdf" ? "PDF" : "PNG"));
     } catch {
-      setNote("Не удалось собрать лист");
+      setNote(format === "pdf" ? "Не удалось собрать PDF" : "Не удалось собрать картинку");
     } finally {
       setBusy(false);
     }
@@ -128,7 +161,7 @@ function TreeScreen() {
   };
 
   return (
-    <main data-theme={theme} className="tree-root fixed inset-0 z-40 overflow-hidden bg-canvas text-fg">
+    <main data-theme={theme} className={`tree-root${dots ? "" : " no-dots"} fixed inset-0 z-40 overflow-hidden bg-canvas text-fg`} style={lineColor ? ({ "--color-blood": lineColor } as React.CSSProperties) : undefined}>
       <TreeStage
         layout={layout}
         people={people}
@@ -199,6 +232,7 @@ function TreeScreen() {
               setCenterReq({ id, n: Date.now() });
             }}
           />
+          {people.length <= 2 && <Hint id="tree-ged"><GedImportButton /></Hint>}
           <button type="button" className="chip" aria-label="Настройки древа" aria-expanded={toolsOpen} onClick={() => setToolsOpen((v) => !v)}>
             <Settings className="size-5" />
           </button>
@@ -207,8 +241,7 @@ function TreeScreen() {
             <button type="button" className="chip" aria-label="Список рода" onClick={() => setRoster(!roster)}>
               <Users className="size-5" />
             </button>
-            <Hint id="tree-pdf"><button type="button" className="chip pointer-events-auto" onClick={() => setPrinting(true)}>PDF</button></Hint>
-            <Hint id="tree-ged"><GedImportButton /></Hint>
+            {people.length > 2 && <Hint id="tree-ged"><GedImportButton /></Hint>}
             <div className="relative" ref={scopeBox}>
               <button
                 type="button"
@@ -263,29 +296,52 @@ function TreeScreen() {
                 </div>
               )}
             </div>
+            <label className="chip pointer-events-auto relative cursor-pointer" aria-label="Цвет линий">
+              <span className="size-4 rounded-full border border-chip-line" style={{ background: lineColor || "var(--color-blood)" }} /> Линии
+              <input type="color" className="absolute inset-0 size-full cursor-pointer opacity-0" value={/^#[0-9a-f]{6}$/i.test(lineColor) ? lineColor : "#8eb6ff"} onChange={(event) => pickLine(event.target.value)} />
+            </label>
+            {lineColor ? (
+              <button type="button" className="chip" aria-label="Вернуть цвет линий по умолчанию" onClick={() => pickLine("")}>
+                Сбросить
+              </button>
+            ) : null}
+            <button type="button" className="chip" aria-label={dots ? "Убрать точки на фоне" : "Вернуть точки на фоне"} aria-pressed={!dots} onClick={toggleDots}>
+              {dots ? "Точки ✓" : "Точки"}
+            </button>
             <button type="button" className="chip" aria-label="Тема" onClick={() => setTheme(theme === "night" ? "paper" : "night")}>
               {theme === "night" ? <Sun className="size-5" /> : <Moon className="size-5" />}
             </button>
             <div className="relative">
-              <button
-                type="button"
-                className="chip"
-                disabled={busy || people.length === 0}
-                onClick={() => {
-                  if (style === "work") setSheetPick((open) => !open);
-                  else void save();
-                }}
-              >
-                {busy ? "…" : "Лист"}
+              <button type="button" className="chip" disabled={busy || people.length === 0} aria-expanded={sheetPick} onClick={() => setSheetPick((open) => !open)}>
+                {busy ? "…" : "Сохранить как"}
               </button>
-              {sheetPick && style === "work" && (
-                <div className="absolute top-12 right-0 z-30 grid w-36 max-w-[calc(100vw-1.5rem)] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg">
-                  <button type="button" className="min-h-11 rounded-xl bg-white px-3 text-sm font-semibold text-ink" onClick={() => void save("white")}>
-                    Белый фон
-                  </button>
-                  <button type="button" className="min-h-11 rounded-xl bg-ink px-3 text-sm font-semibold text-sheet" onClick={() => void save("black")}>
-                    Чёрный фон
-                  </button>
+              {sheetPick && (
+                <div className="absolute top-12 right-0 z-30 grid w-48 max-w-[calc(100vw-1.5rem)] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg">
+                  {style === "work" ? (
+                    <>
+                      <button type="button" className="min-h-11 rounded-xl bg-white px-3 text-sm font-semibold text-ink" onClick={() => void save("white", "png")}>
+                        PNG, белый фон
+                      </button>
+                      <button type="button" className="min-h-11 rounded-xl bg-ink px-3 text-sm font-semibold text-sheet" onClick={() => void save("black", "png")}>
+                        PNG, чёрный фон
+                      </button>
+                      <button type="button" className="min-h-11 rounded-xl bg-white px-3 text-sm font-semibold text-ink" onClick={() => void save("white", "pdf")}>
+                        PDF, белый фон
+                      </button>
+                      <button type="button" className="min-h-11 rounded-xl bg-ink px-3 text-sm font-semibold text-sheet" onClick={() => void save("black", "pdf")}>
+                        PDF, чёрный фон
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button type="button" className="min-h-11 rounded-xl bg-white px-3 text-sm font-semibold text-ink" onClick={() => void save("white", "png")}>
+                        PNG, картинка
+                      </button>
+                      <button type="button" className="min-h-11 rounded-xl bg-white px-3 text-sm font-semibold text-ink" onClick={() => void save("white", "pdf")}>
+                        PDF, файл
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -327,7 +383,6 @@ function TreeScreen() {
           onClose={() => setPreview(null)}
         />
       ) : null}
-      {printing ? <PrintTree style={style} data={{ people: shown.people, unions: shown.unions, focusId }} flow={flow} onClose={() => setPrinting(false)} /> : null}
       {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
     </main>
   );

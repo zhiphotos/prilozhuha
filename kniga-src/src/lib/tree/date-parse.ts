@@ -11,7 +11,8 @@ const two = (n: number) => String(n).padStart(2, "0");
  * День и месяц сохраняются, если они есть в файле; «около» и «до» отбрасываем, оставляя саму дату.
  */
 export function normalizeDate(raw: unknown): string {
-  const text = String(raw ?? "").replace(/\s+/g, " ").trim().toUpperCase();
+  // Календарь в GEDCOM помечают как «@#DJULIAN@ 12 OCT 1890»: метку отбрасываем, дату оставляем целиком.
+  const text = String(raw ?? "").replace(/@#D[^@]*@/gi, " ").replace(/\s+/g, " ").trim().toUpperCase();
   if (!text || /^[?…\s]*$/.test(text)) return "";
   const body = text.replace(/^(ABT|ABOUT|CAL|EST|BEF|BEFORE|AFT|AFTER|FROM|TO|BET|ОКОЛО|ДО|ПОСЛЕ|~)\.?\s*/, "").replace(/\s+(AND|И|-|–)\s+.*$/, "");
   // 2002-05-23

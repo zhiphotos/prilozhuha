@@ -24,3 +24,10 @@ test("пустое и вопросы", () => {
   assert.equal(normalizeDate("?"), "");
   assert.equal(normalizeDate(undefined), "");
 });
+
+import { normalizeDate as normalizeJulian } from "./date-parse.ts";
+test("метка календаря GEDCOM не отбрасывает день и месяц", () => {
+  assert.equal(normalizeJulian("@#DJULIAN@ 12 OCT 1890"), "12.10.1890");
+  assert.equal(normalizeJulian("EST @#DJULIAN@ 1890"), "1890");
+  assert.equal(normalizeJulian("BEF @#DJULIAN@ 3 JAN 1900"), "03.01.1900");
+});

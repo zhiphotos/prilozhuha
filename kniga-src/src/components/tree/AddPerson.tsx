@@ -30,6 +30,7 @@ export function AddPerson({
   const [spouseGender, setSpouseGender] = useState<Gender>("f");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [maidenName, setMaidenName] = useState("");
   const [patronymic, setPatronymic] = useState("");
   const [birthYear, setBirthYear] = useState("");
   const [unionId, setUnionId] = useState("");
@@ -62,6 +63,7 @@ export function AddPerson({
       firstName: firstName.trim(),
       patronymic: patronymic.trim(),
       lastName: (lastName.trim() || suggested).trim(),
+      maidenName: maidenName.trim(),
       birthYear,
       gender,
     };
@@ -175,13 +177,19 @@ export function AddPerson({
                 Фамилия
                 <input value={lastName} placeholder={suggested || "Можно оставить пустой"} onChange={(e) => setLastName(e.target.value)} />
               </label>
+              {gender !== "m" ? (
+                <label className="field">
+                  Девичья фамилия
+                  <input value={maidenName} placeholder="Если менялась" onChange={(e) => setMaidenName(e.target.value)} />
+                </label>
+              ) : null}
               <label className="field">
                 Отчество
                 <input value={patronymic} placeholder="Если знаете" onChange={(e) => setPatronymic(e.target.value)} />
               </label>
               <label className="field">
                 Дата рождения
-                <input value={birthYear} placeholder="Год или дата, например 18.05.1989" onChange={(e) => setBirthYear(e.target.value.slice(0, 20))} />
+                <input inputMode="decimal" value={birthYear} placeholder="Год или дата, например 18.05.1989" onChange={(e) => setBirthYear(e.target.value.slice(0, 20))} />
               </label>
             </div>
           </div>

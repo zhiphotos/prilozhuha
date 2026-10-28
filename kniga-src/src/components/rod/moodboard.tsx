@@ -34,7 +34,7 @@ export function MoodBoard({ open, onToggle, onPlace, pinned, onPin }: { open: bo
         type="button"
         onClick={onToggle}
         className={cn(
-          "toolbar-dark fixed right-0 top-1/2 z-[45] flex -translate-y-1/2 flex-col items-center gap-1 rounded-l-2xl px-2 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-paper transition",
+          "toolbar-dark fixed right-0 top-[72%] z-[45] flex -translate-y-1/2 flex-col items-center gap-1 rounded-l-2xl px-2 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-paper transition",
           open && "opacity-0 pointer-events-none",
         )}
         style={{ writingMode: "vertical-rl" }}

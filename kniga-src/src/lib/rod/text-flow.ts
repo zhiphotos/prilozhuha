@@ -10,12 +10,12 @@ const BOTTOM = 7; // нижнее поле, единицы ширины
 const TOP = 8; // верх страницы-продолжения, % высоты
 
 /** Разбивает текст на куски по высоте страницы. Первый кусок остаётся на странице блока. */
-export function flowChunks(block: TextBlock): string[] {
+export function flowChunks(block: TextBlock, bottom = BOTTOM): string[] {
   const style = { font: block.font, size: block.size, px: block.px, look: block.look, wordGap: block.wordGap, w: block.w };
   const { line, padY } = lineBox(style);
   const lines = wrapLines(block.text, style);
   // y блока в процентах высоты страницы; все расчёты в единицах ширины, как и высота строки.
-  const room = (topPercent: number) => Math.max(1, Math.floor((PAGE_H - BOTTOM - (topPercent / 100) * PAGE_H - padY * 2) / line));
+  const room = (topPercent: number) => Math.max(1, Math.floor((PAGE_H - bottom - (topPercent / 100) * PAGE_H - padY * 2) / line));
   const chunks: string[] = [];
   let at = 0;
   let capacity = room(block.y);

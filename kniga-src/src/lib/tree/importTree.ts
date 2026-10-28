@@ -22,6 +22,8 @@ type RawUnion = {
 };
 
 export type RawTree = {
+  /** GEDCOM: человек без имени, но со связями остаётся карточкой «Без имени». У ИИ-разбора выдуманные пустые строки отбрасываются. */
+  keepNameless?: boolean;
   people?: RawPerson[];
   unions?: RawUnion[];
   focusId?: string;
@@ -64,11 +66,14 @@ export function treeFromExtract(raw: RawTree): { tree: TreeData } | { error: str
   const source = Array.isArray(raw.people) ? raw.people.slice(0, MAX_PEOPLE) : [];
   const used = new Set<string>();
   const people: Person[] = [];
+  const referenced = new Set<string>();
+  for (const u of raw.unions ?? []) for (const id of [...(u.partnerIds ?? []), ...(u.childIds ?? [])]) referenced.add(clean(id));
   source.forEach((item, index) => {
     const firstName = clean(item.firstName);
     const patronymic = clean(item.patronymic);
     const lastName = clean(item.lastName);
-    if (!firstName && !lastName) return;
+    // Человек без имени остаётся, если у него есть связи (пустая карточка «Без имени» держит ветку), иначе пропускаем.
+    if (!firstName && !lastName && !(raw.keepNameless && referenced.has(clean(item.id)))) return;
     let id = slug(clean(item.id), index);
     while (used.has(id)) id = `${id}${index}`;
     used.add(id);
@@ -252,5 +257,5 @@ export function parseGedcom(text: string): { tree: TreeData } | { error: string 
     }
   }
   if (!people.length) return { error: "В GEDCOM нет людей" };
-  return treeFromExtract({ people, unions });
+  return treeFromExtract({ people, unions, keepNameless: true });
 }

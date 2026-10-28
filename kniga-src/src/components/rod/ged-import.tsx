@@ -29,6 +29,13 @@ function yearsAgree(a?: string, b?: string): boolean {
   return ya === 9999 || yb === 9999 || ya === yb;
 }
 
+/** Из двух дат одного человека берём более полную: «23.05.2002» лучше, чем «2002». Если годы спорят, остаётся прежняя. */
+function fuller(old: string | undefined, next: string | undefined): string | undefined {
+  if (!next) return old;
+  if (!old) return next;
+  return yearsAgree(old, next) && next.length > old.length ? next : old;
+}
+
 /** Запись без настоящего имени: «Мама», «Папа», «Бабушка» и т. п. */
 function isPlaceholder(c: RodPerson): boolean {
   const first = (c.firstName ?? c.name).trim().toLowerCase();
@@ -155,7 +162,8 @@ export function GedImportButton() {
         spouseStatus: links.spouseStatus ?? found.spouseStatus,
         moreSpouses: links.moreSpouses ?? found.moreSpouses,
         gender: found.gender ?? p.gender,
-        birthYear: found.birthYear || p.birthYear,
+        birthYear: fuller(found.birthYear, p.birthYear) ?? "",
+        deathYear: fuller(found.deathYear, p.deathYear),
       });
     }
     const fix = created.map((c) => {
@@ -179,7 +187,7 @@ export function GedImportButton() {
     <>
       <input ref={input} type="file" className="sr-only" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
       <button type="button" className="chip pointer-events-auto" onClick={() => setChooser(true)}>
-        Из файла
+        Загрузить из
       </button>
       {chooser ? (
         <Sheet title="Загрузить древо из файла" onClose={() => setChooser(false)}>

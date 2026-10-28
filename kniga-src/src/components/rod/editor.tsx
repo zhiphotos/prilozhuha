@@ -36,7 +36,7 @@ import { toast } from "sonner";
 import { flowChunks, flowToNextPages } from "@/lib/rod/text-flow";
 import { Button, Sheet, useNav } from "@/components/rod/chrome";
 import { fillInside } from "@/lib/rod/fill";
-import { BlockBar, Inspector, PenBar, TextPanel, type BlockOps, type Tool } from "@/components/rod/editor-bars";
+import { BlockBar, Inspector, PenBar, TextPanel, spillsOut, type BlockOps, type Tool } from "@/components/rod/editor-bars";
 import { FontsSheet, GENERIC_QUESTIONS, HelpSheet, LayersSheet, PasteSheet, PhotoSheet, PinterestPanel, StickersSheet, type PhotoStyle } from "@/components/rod/editor-sheets";
 import { BarBtn, IconBtn, MenuRow, ToolBtn } from "@/components/rod/editor-ui";
 import { ColorRow, ColorSheet } from "@/components/rod/color-sheet";
@@ -424,6 +424,24 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   };
 
   /** Удаляет все выделенные блоки одним шагом (один «Вернуть» возвращает всё). */
+  /** Добавляет к списку всех, кто сгруппирован с ними (общий groupId). */
+  const withGroupMates = (ids: string[]): string[] => {
+    const blocks = current()?.blocks ?? [];
+    const gids = new Set(blocks.filter((b) => ids.includes(b.id) && b.groupId).map((b) => b.groupId));
+    return gids.size ? blocks.filter((b) => ids.includes(b.id) || (b.groupId && gids.has(b.groupId))).map((b) => b.id) : ids;
+  };
+  const groupSelected = () => {
+    const ids = new Set(group);
+    if (ids.size < 2) return;
+    const gid = id();
+    commit((p) => ({ ...p, blocks: p.blocks.map((b) => (ids.has(b.id) ? ({ ...b, groupId: gid } as PageBlock) : b)) }));
+    toast("Сгруппировано: теперь они двигаются вместе", { duration: 2500 });
+  };
+  const ungroupSelected = () => {
+    const ids = new Set(group);
+    commit((p) => ({ ...p, blocks: p.blocks.map((b) => (ids.has(b.id) && b.groupId ? ({ ...b, groupId: undefined } as PageBlock) : b)) }));
+    toast("Группа разделена", { duration: 2000 });
+  };
   const removeGroup = () => {
     const ids = new Set(group);
     commit((p) => ({ ...p, blocks: p.blocks.filter((b) => !ids.has(b.id) || b.locked) }));
@@ -496,6 +514,23 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         copyBlocks(event.code === "KeyX");
         return;
       }
+      // Стрелки клавиатуры двигают выбранное: чуть-чуть, а с Shift крупнее. Для точной подгонки на компьютере.
+      if (event.key.startsWith("Arrow") && !typing && !panel && !editing && !pipette && !cropping && tool === "hand" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        const ids = group.length > 1 ? group : selected ? [selected] : [];
+        if (ids.length) {
+          event.preventDefault();
+          const step = event.shiftKey ? 2 : 0.25;
+          const dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
+          const dy = (event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0) / (PAGE_H / 100);
+          if (dx || dy) {
+            commit(
+              (p) => ({ ...p, blocks: p.blocks.map((b) => (ids.includes(b.id) && !b.locked ? ({ ...b, x: round(b.x + dx), y: round(b.y + dy) } as PageBlock) : b)) }),
+              `nudge:${ids.join(",")}`,
+            );
+          }
+          return;
+        }
+      }
       if ((event.key === "Delete" || event.key === "Backspace") && group.length > 1 && !typing && !panel) {
         event.preventDefault();
         removeGroup();
@@ -551,7 +586,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   const selectedBlock = page.blocks.find((b) => b.id === selected) ?? null;
   /** Текст, который не влезает на страницу: подсказываем перенести лишнее на следующую (как в Word). */
-  const overflowBlock = page.blocks.find((b) => b.type === "text" && !b.wrap && b.text.length > 150 && flowChunks(b).length > 1) ?? null;
+  const overflowBlock = page.blocks.find((b) => b.type === "text" && !b.wrap && b.text.length > 150 && flowChunks(b, 0).length > 1) ?? null;
   const editingBlock = (() => {
     const b = page.blocks.find((item) => item.id === editing);
     return b && b.type === "text" ? b : null;
@@ -593,7 +628,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     }
     // На другой странице блоки встают на то же место; на этой же странице каждая вставка чуть сдвигается.
     const shift = clip.pageId === page.id ? 4 * (clip.pasted + 1) : 0;
-    const copies = clip.blocks.map((b) => ({ ...structuredClone(b), id: id(), x: b.x + shift, y: b.y + shift * 0.75, locked: false }) as PageBlock);
+    const groupMap = new Map<string, string>();
+    const copies = clip.blocks.map((b) => ({ ...structuredClone(b), id: id(), x: b.x + shift, y: b.y + shift * 0.75, locked: false, groupId: b.groupId ? (groupMap.get(b.groupId) ?? groupMap.set(b.groupId, id()).get(b.groupId)) : undefined }) as PageBlock);
     commit((p) => ({ ...p, blocks: [...p.blocks, ...copies] }));
     clip.pasted += 1;
     if (copies.length > 1) {
@@ -1136,6 +1172,18 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     moveGesture(event);
   };
 
+  /** Рисунок вышел за край листа: предлагаем оставить его только на этом листе, всё лишнее скроется. */
+  const offerClip = (blockId: string) => {
+    toast("Рисунок вышел за край листа", {
+      id: "clip-offer",
+      duration: 7000,
+      action: {
+        label: "🪄 Только этот лист",
+        onClick: () => commit((p) => ({ ...p, blocks: p.blocks.map((b) => (b.id === blockId ? ({ ...b, clip: true, spread: false } as PageBlock) : b)) })),
+      },
+    });
+  };
+
   const finishStroke = (draw: Draw) => {
     let points = draw.points;
     let pressure = draw.hasPressure && !draw.snapped ? draw.pressure : undefined;
@@ -1162,12 +1210,14 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     if (next && top && next.id === top.id) {
       lastInk.current = { id: next.id, at: Date.now(), key };
       commit((p) => ({ ...p, blocks: [...p.blocks.slice(0, -1), next] }));
+      if (spillsOut(next) && !next.clip) offerClip(next.id);
     } else {
       let block = makeInkBlock([stroke], id);
       // Рисунок зашёл за край страницы: он ляжет через разворот и продолжится на соседней.
       if (partner && !isBack && (block.x < -0.5 || block.x + block.w > 100.5)) block = { ...block, spread: true };
       lastInk.current = { id: block.id, at: Date.now(), key };
       commit((p) => ({ ...p, blocks: [...p.blocks, block] }));
+      if (spillsOut(block)) offerClip(block.id);
     }
   };
 
@@ -1189,8 +1239,9 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           return b.x < right && b.x + w > left && b.y < bottom && b.y + h > top;
         })
         .map((b) => b.id);
-      if (hits.length > 1) {
-        setGroup(hits);
+      const picked = withGroupMates(hits);
+      if (picked.length > 1) {
+        setGroup(picked);
         setSelected(null);
       } else if (hits.length === 1) {
         setSelected(hits[0]!);
@@ -1270,11 +1321,21 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const proportional = block.type === "photo" && (block.cut && block.frame === "sticker" ? true : block.whole ? !event.shiftKey : event.shiftKey);
     const ratio = proportional || block.type === "ink" ? (block as { h: number; w: number }).h / (block as { h: number; w: number }).w : null;
     const cropGesture = cropping && block.type === "photo" && selected === block.id && mode === "move";
-    const inGroup = mode === "move" && group.length > 1 && group.includes(block.id);
+    // Сгруппированные блоки двигаются вместе: нажатие на любой из них берёт всю группу.
+    let activeGroup = group;
+    if (mode === "move" && block.groupId && !group.includes(block.id)) {
+      const mates = (current()?.blocks ?? []).filter((b) => b.groupId === block.groupId).map((b) => b.id);
+      if (mates.length > 1) {
+        activeGroup = mates;
+        setGroup(mates);
+        setSelected(null);
+      }
+    }
+    const inGroup = mode === "move" && activeGroup.length > 1 && activeGroup.includes(block.id);
     const members = inGroup
-      ? (current()?.blocks ?? []).filter((b) => group.includes(b.id) && !b.locked).map((b) => ({ id: b.id, box: boxOf(b) }))
+      ? (current()?.blocks ?? []).filter((b) => activeGroup.includes(b.id) && !b.locked).map((b) => ({ id: b.id, box: boxOf(b) }))
       : undefined;
-    if (!inGroup && group.length) setGroup([]);
+    if (!inGroup && activeGroup.length) setGroup([]);
     gesture.current = {
       members,
       id: block.id,
@@ -1379,9 +1440,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           };
         });
       } else {
-        // Просто нажали на блок из выделения: выделение сжимается до него одного, как в папках на компьютере.
-        setGroup([]);
-        setSelected(g.id);
+        // Просто нажали на блок из выделения: выделение сжимается до него одного, как в папках на компьютере. Сгруппированные остаются выбранными вместе.
+        const grouped = Boolean(current()?.blocks.find((b) => b.id === g.id)?.groupId);
+        if (!grouped) {
+          setGroup([]);
+          setSelected(g.id);
+        }
       }
       return;
     }
@@ -1623,6 +1687,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             patchBlock(selectedBlock.id, { spread: true, x: round(x) } as Partial<PageBlock>);
             toast("Фото лежит на двух страницах. Двигайте его так, чтобы нужная часть оказалась по обе стороны корешка.", { duration: 6000 });
           }
+        },
+        clipToPage: () => {
+          if (selectedBlock.type !== "ink") return;
+          const on = !selectedBlock.clip;
+          commit((p) => ({ ...p, blocks: p.blocks.map((b) => (b.id === selectedBlock.id ? ({ ...b, clip: on || undefined, spread: on ? false : b.spread } as PageBlock) : b)) }));
+          toast(on ? "Всё, что вышло за край листа, скрыто. Нажмите ещё раз, чтобы вернуть." : "Рисунок снова целиком", { duration: 3000 });
         },
         canSpread: Boolean(partner) && !isBack,
         pickPipette: startPipette,
@@ -1890,7 +1960,16 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                   {group.length > 1 ? (
                     <>
                       <span className="whitespace-nowrap">Выбрано: {group.length}</span>
-                      <button type="button" className="ml-1 grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={() => copyBlocks()}>
+                      {(current()?.blocks ?? []).filter((b) => group.includes(b.id)).every((b) => b.groupId && b.groupId === (current()?.blocks ?? []).find((x) => x.id === group[0])?.groupId) ? (
+                        <button type="button" className="ml-1 grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={ungroupSelected}>
+                          Разгруппировать
+                        </button>
+                      ) : (
+                        <button type="button" className="ml-1 grid min-h-9 place-items-center rounded-full bg-night px-3 text-paper" onClick={groupSelected}>
+                          Сгруппировать
+                        </button>
+                      )}
+                      <button type="button" className="grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={() => copyBlocks()}>
                         Копировать
                       </button>
                       {partner ? (

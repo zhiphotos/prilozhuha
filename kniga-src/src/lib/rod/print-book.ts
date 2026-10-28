@@ -25,6 +25,7 @@ import { MM, buildJpegPdf, type PdfSheet } from "@/lib/rod/pdf";
 import type { PrintSetup } from "@/lib/rod/page-style";
 import { shapeParts, shapeStyle } from "@/lib/rod/shapes";
 import { isStampBrush, stampRaster } from "@/lib/rod/stamp-brush";
+import { explodeBold, stripBold } from "@/lib/rod/rich";
 import { spreadGhosts } from "@/lib/rod/spread";
 import { backPage } from "@/lib/rod/store";
 import type { BookPage, PageBlock, PaperKind, SpineSetup } from "@/lib/rod/types";
@@ -60,11 +61,34 @@ async function loadMedia(src: string) {
 
 /** Ширина строки с добавкой между словами (не все браузеры умеют wordSpacing у холста, поэтому считаем сами). */
 function widthWith(ctx: CanvasRenderingContext2D, text: string, gap: number): number {
-  return ctx.measureText(text).width + (gap ? (text.split(" ").length - 1) * gap : 0);
+  return ctx.measureText(stripBold(text)).width + (gap ? (text.split(" ").length - 1) * gap : 0);
 }
 
 /** Строка по словам с добавкой между словами; выравнивание как у обычного fillText. */
 function fillLine(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, gap: number) {
+  if (text.includes("**")) {
+    // Жирные слова: рисуем по словам, жирным шрифтом там, где слово размечено.
+    const regular = ctx.font;
+    const heavy = regular.replace(/\b(normal|bold|[1-9]00)\b/, "700");
+    const align = ctx.textAlign;
+    const space = ctx.measureText(" ").width + gap;
+    const words = text.split(" ").map((word) => ({ word: stripBold(word), bold: word.includes("**") }));
+    const widths = words.map((item) => {
+      ctx.font = item.bold ? heavy : regular;
+      return ctx.measureText(item.word).width;
+    });
+    const total = widths.reduce((sum, w) => sum + w, 0) + space * Math.max(0, words.length - 1);
+    let at = align === "center" ? x - total / 2 : align === "right" ? x - total : x;
+    ctx.textAlign = "left";
+    words.forEach((item, i) => {
+      ctx.font = item.bold ? heavy : regular;
+      if (item.word) ctx.fillText(item.word, at, y);
+      at += widths[i] + space;
+    });
+    ctx.font = regular;
+    ctx.textAlign = align;
+    return;
+  }
   if (!gap || !text.includes(" ")) {
     ctx.fillText(text, x, y);
     return;
@@ -289,7 +313,7 @@ function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { ty
     ctx.restore();
     return;
   }
-  const lines = wrap(ctx, block.text, innerW, gap);
+  const lines = wrap(ctx, explodeBold(block.text), innerW, gap);
   const textW = Math.max(...lines.map((line) => widthWith(ctx, line, gap)), 0);
   const bgW = block.look === "pill" ? Math.min(boxW, textW + pad.x * 2 * U) : boxW;
   const bgH = lines.length * lh + pad.y * 2 * U;

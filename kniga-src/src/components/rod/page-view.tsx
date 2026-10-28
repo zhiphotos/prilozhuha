@@ -1,4 +1,5 @@
 import { wrapAroundLines } from "@/lib/rod/measure";
+import { boldParts } from "@/lib/rod/rich";
 import { useProfilesVersion } from "@/lib/rod/shape-profile";
 import { createContext, useContext, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { ImagePlus } from "lucide-react";
@@ -212,6 +213,17 @@ export function PlacedBlock({
 
 /** Как блок выглядит. Без рамок выбора – их рисует редактор. Ластик (маска) и прозрачность действуют только на сам рисунок, не на рамки и кнопки выбора. */
 export function BlockArt({ block, editing = false }: { block: PageBlock; editing?: boolean }) {
+  if (block.clip && "h" in block) {
+    // «Только этот лист»: прячем то, что вышло за край страницы.
+    const w = Math.max(0.01, block.w);
+    const h = Math.max(0.01, block.h);
+    const inset = `inset(${(Math.max(0, -block.y) / h) * 100}% ${(Math.max(0, block.x + w - 100) / w) * 100}% ${(Math.max(0, block.y + h - 100) / h) * 100}% ${(Math.max(0, -block.x) / w) * 100}%)`;
+    return (
+      <div className="h-full w-full" style={{ clipPath: inset }}>
+        <BlockArt block={{ ...block, clip: false }} editing={editing} />
+      </div>
+    );
+  }
   const hasMask = Boolean(block.mask && block.mask.strokes.length);
   if (!hasMask && block.opacity === undefined) return <BlockArtInner block={block} editing={editing} />;
   return (
@@ -349,7 +361,7 @@ export function TextArt({ block, editing }: { block: Extract<PageBlock, { type: 
       >
         {around.lines.map((line, i) => (
           <span key={i} className="absolute whitespace-pre" style={{ left: `${line.x}cqw`, top: `${line.y}cqw` }}>
-            {line.text}
+            <BoldText text={line.text} />
           </span>
         ))}
       </div>
@@ -373,8 +385,18 @@ export function TextArt({ block, editing }: { block: Extract<PageBlock, { type: 
       }}
       className="whitespace-pre-wrap break-words"
     >
-      {empty ? <span className="opacity-40">{block.placeholder || "Нажмите, чтобы написать"}</span> : block.text}
+      {empty ? <span className="opacity-40">{block.placeholder || "Нажмите, чтобы написать"}</span> : <BoldText text={block.text} />}
     </div>
+  );
+}
+
+/** Текст с жирными словами (**слово**). */
+function BoldText({ text }: { text: string }) {
+  if (!text.includes("**")) return <>{text}</>;
+  return (
+    <>
+      {boldParts(text).map((part, i) => (part.bold ? <strong key={i} style={{ fontWeight: 800 }}>{part.text}</strong> : <span key={i}>{part.text}</span>))}
+    </>
   );
 }
 
