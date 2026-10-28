@@ -23,6 +23,7 @@ import {
   RotateCcw,
   Smile,
   Sparkles,
+  ClipboardPaste,
   SquareMousePointer,
   Trash2,
   Type,
@@ -102,6 +103,9 @@ const SHADOW_KEY = "kniga-photo-shadow";
 const PEN_KEY = "kniga-pen-v2";
 
 const id = () => crypto.randomUUID();
+
+/** Скопированные блоки: живут, пока открыто приложение, и переходят с одной страницы на другую (в том числе на соседнюю в развороте). */
+let blockClip: { pageId: string; blocks: PageBlock[]; pasted: number } | null = null;
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 const round = (v: number) => Math.round(v * 100) / 100;
 
@@ -231,6 +235,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const [group, setGroup] = useState<string[]>([]);
   /** Режим «выбрать несколько»: нажатия на блоки добавляют их к выделению (для пальца, где нет Shift). */
   const [pickMode, setPickMode] = useState(false);
+  const [, setClipTick] = useState(0);
   const [ghostGroup, setGhostGroup] = useState<Record<string, Box> | null>(null);
   const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const marqueeRef = useRef<{ pointerId: number; x0: number; y0: number; x1: number; y1: number } | null>(null);
@@ -485,6 +490,11 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         else if (selected) setSelected(null);
         else if (tool !== "hand") setTool("hand");
       }
+      if ((event.metaKey || event.ctrlKey) && (event.code === "KeyC" || event.code === "KeyX") && !typing && !panel && (selected || group.length > 1)) {
+        event.preventDefault();
+        copyBlocks(event.code === "KeyX");
+        return;
+      }
       if ((event.key === "Delete" || event.key === "Backspace") && group.length > 1 && !typing && !panel) {
         event.preventDefault();
         removeGroup();
@@ -508,6 +518,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       const data = event.clipboardData;
       if (!data) return;
       event.preventDefault();
+      // Скопировали блоки внутри книги (и в буфере нет картинки): вставляем их на эту страницу.
+      const hasPicture = data.files.length > 0 || [...data.items].some((item) => item.kind === "file");
+      if (blockClip && !hasPicture) {
+        pasteBlocks();
+        return;
+      }
       void imageFromTransfer(data)
         .then((ref) => {
           if (ref) void placePhoto(ref);
@@ -542,6 +558,61 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const rect = sheetRef.current?.getBoundingClientRect();
     if (!rect) return { x: 50, y: 50 };
     return { x: ((clientX - rect.left) / rect.width) * 100, y: ((clientY - rect.top) / rect.height) * 100 };
+  };
+
+  // ——— Копирование блоков: Ctrl+C / Ctrl+V и кнопки (для устройств без клавиатуры) ———
+  const selectedIds = (): string[] => (group.length > 1 ? group : selected ? [selected] : []);
+  const copyBlocks = (cut = false) => {
+    const ids = selectedIds();
+    const blocks = (current()?.blocks ?? []).filter((b) => ids.includes(b.id)).map((b) => structuredClone(b) as PageBlock);
+    if (!blocks.length) return;
+    blockClip = { pageId: page.id, blocks, pasted: 0 };
+    // Чтобы старая картинка из системного буфера не перебила скопированное: кладём туда метку.
+    try {
+      void navigator.clipboard?.writeText("книга-рода: блоки").catch(() => undefined);
+    } catch {
+      /* буфер недоступен: вставка кнопкой всё равно работает */
+    }
+    setClipTick((value) => value + 1);
+    if (cut) {
+      const drop = new Set(ids);
+      commit((p) => ({ ...p, blocks: p.blocks.filter((b) => !drop.has(b.id) || b.locked) }));
+      setSelected(null);
+      setGroup([]);
+    }
+    toast(cut ? "Вырезано. Откройте другую страницу и нажмите «Вставить»." : blocks.length > 1 ? `Скопировано: ${blocks.length}` : "Скопировано. Откройте другую страницу и нажмите «Вставить».", { duration: 3500 });
+  };
+  const pasteBlocks = () => {
+    const clip = blockClip;
+    if (!clip || !clip.blocks.length) {
+      toast("Сначала скопируйте блок");
+      return;
+    }
+    // На другой странице блоки встают на то же место; на этой же странице каждая вставка чуть сдвигается.
+    const shift = clip.pageId === page.id ? 4 * (clip.pasted + 1) : 0;
+    const copies = clip.blocks.map((b) => ({ ...structuredClone(b), id: id(), x: b.x + shift, y: b.y + shift * 0.75, locked: false }) as PageBlock);
+    commit((p) => ({ ...p, blocks: [...p.blocks, ...copies] }));
+    clip.pasted += 1;
+    if (copies.length > 1) {
+      setGroup(copies.map((c) => c.id));
+      setSelected(null);
+    } else setSelected(copies[0]!.id);
+    stickSound();
+    toast(copies.length > 1 ? `Вставлено: ${copies.length}` : "Вставлено", { duration: 2000 });
+  };
+  const moveToPartner = () => {
+    if (!partner) return;
+    const ids = selectedIds();
+    const blocks = (current()?.blocks ?? []).filter((b) => ids.includes(b.id) && !b.locked);
+    if (!blocks.length) return;
+    const copies = blocks.map((b) => ({ ...structuredClone(b), id: id(), locked: false }) as PageBlock);
+    const partnerId = partner.id;
+    useRod.getState().updatePage(partnerId, (p) => ({ ...p, blocks: [...p.blocks, ...copies], editedAt: Date.now() }));
+    const gone = new Set(blocks.map((b) => b.id));
+    commit((p) => ({ ...p, blocks: p.blocks.filter((b) => !gone.has(b.id)) }));
+    setSelected(null);
+    setGroup([]);
+    toast("Перенесено на соседнюю страницу", { action: { label: "Открыть", onClick: () => nav.replace({ id: "editor", pageId: partnerId }) }, duration: 5000 });
   };
 
   // ——— Охранное поле ———
@@ -1457,6 +1528,10 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     ? {
         patch: (partial, group) => patchBlock(selectedBlock.id, partial, group),
         remove: () => removeBlock(selectedBlock.id),
+        copy: () => copyBlocks(),
+        paste: pasteBlocks,
+        canPaste: Boolean(blockClip?.blocks.length),
+        toPartner: partner ? moveToPartner : undefined,
         duplicate: () => {
           const copy = { ...selectedBlock, id: id(), x: selectedBlock.x + 4, y: selectedBlock.y + 3, locked: false } as PageBlock;
           commit((p) => {
@@ -1626,6 +1701,11 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           <IconBtn label="Вернуть отменённое" disabled={!redo.current.length} onClick={doRedo}>
             <Redo2 className="size-[18px]" />
           </IconBtn>
+          {blockClip ? (
+            <IconBtn label="Вставить скопированное на эту страницу" onClick={pasteBlocks}>
+              <ClipboardPaste className="size-[18px]" />
+            </IconBtn>
+          ) : null}
           <IconBtn
             label="Выбрать несколько блоков"
             active={pickMode}
@@ -1792,7 +1872,15 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                   {group.length > 1 ? (
                     <>
                       <span className="whitespace-nowrap">Выбрано: {group.length}</span>
-                      <button type="button" className="ml-1 grid min-h-9 place-items-center rounded-full px-3 text-rose-deep" onClick={removeGroup}>
+                      <button type="button" className="ml-1 grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={() => copyBlocks()}>
+                        Копировать
+                      </button>
+                      {partner ? (
+                        <button type="button" className="grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={moveToPartner}>
+                          На соседнюю
+                        </button>
+                      ) : null}
+                      <button type="button" className="grid min-h-9 place-items-center rounded-full px-3 text-rose-deep" onClick={removeGroup}>
                         Удалить
                       </button>
                       <button type="button" className="grid min-h-9 place-items-center rounded-full px-3 text-muted" onClick={() => setGroup([])}>
