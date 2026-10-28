@@ -33,6 +33,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { toast } from "sonner";
+import { flowChunks, flowToNextPages } from "@/lib/rod/text-flow";
 import { Button, Sheet, useNav } from "@/components/rod/chrome";
 import { fillInside } from "@/lib/rod/fill";
 import { BlockBar, Inspector, PenBar, TextPanel, type BlockOps, type Tool } from "@/components/rod/editor-bars";
@@ -549,6 +550,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   }
 
   const selectedBlock = page.blocks.find((b) => b.id === selected) ?? null;
+  /** Текст, который не влезает на страницу: подсказываем перенести лишнее на следующую (как в Word). */
+  const overflowBlock = page.blocks.find((b) => b.type === "text" && !b.wrap && b.text.length > 150 && flowChunks(b).length > 1) ?? null;
   const editingBlock = (() => {
     const b = page.blocks.find((item) => item.id === editing);
     return b && b.type === "text" ? b : null;
@@ -1754,6 +1757,21 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
       {/* Лист */}
       <div className="relative min-h-0 flex-1">
+        {overflowBlock && !drawingTool && editing !== overflowBlock.id ? (
+          <div className="glass-strong absolute inset-x-3 bottom-3 z-[46] mx-auto flex max-w-md flex-col gap-2 rounded-2xl p-3 text-sm shadow-xl">
+            <p className="text-ink">Текст не поместился на странице. Продолжить на следующей?</p>
+            <button
+              type="button"
+              className="min-h-11 rounded-full bg-night px-4 font-semibold text-paper"
+              onClick={() => {
+                const made = flowToNextPages(page.id, overflowBlock.id);
+                toast(made ? `Лишнее перенесено на ${made} ${made === 1 ? "новую страницу" : "новые страницы"}` : "Весь текст помещается на странице");
+              }}
+            >
+              Перенести лишнее на следующую страницу
+            </button>
+          </div>
+        ) : null}
         {!isBack && !drawingTool ? (
           <>
             <button type="button" className="glass-strong absolute left-1.5 top-1/2 z-[44] grid size-12 -translate-y-1/2 place-items-center rounded-full disabled:opacity-0" disabled={index <= 0} onClick={() => go(-1)} aria-label="Предыдущая страница">

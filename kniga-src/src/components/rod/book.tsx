@@ -79,6 +79,7 @@ export function BookScreen() {
           <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setTextToPages(true)}>
             <Sparkles className="size-4" /> Текст → страницы
           </Button>
+          <p className="mt-1 text-xs text-muted">Длинную историю вставьте сюда, она сама разойдётся по страницам.</p>
         </Hint>
         <Hint id="book-cover">
           <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setCoverSetup(true)}>
