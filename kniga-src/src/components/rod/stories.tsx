@@ -237,7 +237,7 @@ export function StoryScreen({ storyId }: { storyId: string }) {
   }
   const images = (story.attachments ?? []).filter((item) => item.kind === "image");
   const addPhotoPages = () => {
-    const pages = pagesFromStoryPhotos(story.title, images.map((item) => ({ src: item.ref, caption: "" })));
+    const pages = pagesFromStoryPhotos(story.title, images.map((item) => ({ src: item.ref, caption: item.caption ?? "" })));
     pages.forEach((page, index) => addPage({ ...page, promptId: `story:${story.id}:photos:${index}` }));
     toast(`В книгу добавлено страниц с фото: ${pages.length}`);
   };

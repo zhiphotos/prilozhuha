@@ -35,6 +35,7 @@ import { BarBtn, Stepper } from "@/components/rod/editor-ui";
 import { ColorSheet } from "@/components/rod/color-sheet";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { BRUSHES, px2w, w2px } from "@/lib/rod/ink";
+import { toggleBold } from "@/lib/rod/rich";
 import { startDictation, type Dictation } from "@/lib/rod/dictate";
 import { FONT_FAMILY, fontFamily, lookColors, textMetrics } from "@/lib/rod/page-style";
 import { FontLibrarySheet } from "@/components/rod/font-library";
@@ -46,6 +47,11 @@ import { flowToNextPages } from "@/lib/rod/text-flow";
 import type { BlendKind, BrushKind, FontKind, FontRef, PageBlock, PhotoFrame, ShapeKind, TextLook } from "@/lib/rod/types";
 
 export type Tool = "hand" | "draw" | "erase" | "fill";
+
+/** Рисунок выходит за край страницы. */
+export function spillsOut(block: PageBlock): boolean {
+  return block.type === "ink" && (block.x < -0.5 || block.y < -0.5 || block.x + block.w > 100.5 || block.y + block.h > 100.5);
+}
 
 export type BlockOps = {
   patch: (partial: Partial<PageBlock>, group?: string) => void;
@@ -68,6 +74,8 @@ export type BlockOps = {
   write: () => void;
   full: () => void;
   toggleSpread: () => void;
+  /** «Только этот лист»: скрыть то, что рисунок вынес за край страницы. */
+  clipToPage: () => void;
   canSpread: boolean;
   pickPipette: (done: (color: string) => void) => void;
   centerH: () => void;
@@ -304,6 +312,25 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
               <span className="size-4 rounded-full border border-ink/20" style={{ background: lookColors(block.look, block.color, block.bg).bg }} /> Фон
             </BarBtn>
           ) : null}
+          <BarBtn
+            label="Выделить жирным: сначала выделите слова в окне текста"
+            onClick={() => {
+              const box = document.getElementById(`edit-${block.id}`) as HTMLTextAreaElement | null;
+              if (!box) return;
+              const next = toggleBold(box.value, box.selectionStart, box.selectionEnd);
+              if (!next) {
+                toast("Выделите слова в тексте, потом нажмите Ж");
+                return;
+              }
+              setBoth(next.text);
+              requestAnimationFrame(() => {
+                box.focus();
+                box.setSelectionRange(next.from, next.to);
+              });
+            }}
+          >
+            <b>Ж</b> Жирный
+          </BarBtn>
           <BarBtn onClick={dictate} active={Boolean(mic)} label="Диктовать голосом">
             <Mic className="size-4" /> {mic ? "Стоп" : "Голос"}
           </BarBtn>
@@ -565,6 +592,11 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
           <BarBtn onClick={() => setColors("ink")}>
             <span className="size-4 rounded-full border border-ink/20" style={{ background: block.strokes[0]?.color.startsWith("#") ? block.strokes[0].color : "#2a2420" }} /> Цвет
           </BarBtn>
+          {spillsOut(block) || block.clip ? (
+            <BarBtn onClick={ops.clipToPage} active={Boolean(block.clip)} label="Оставить рисунок в рамках этого листа: всё лишнее скроется">
+              🪄 Только этот лист
+            </BarBtn>
+          ) : null}
           <BarBtn phoneHidden onClick={() => ops.inkScale(0.8)}>Тоньше</BarBtn>
           <BarBtn phoneHidden onClick={() => ops.inkScale(1.25)}>Толще</BarBtn>
         </>
@@ -617,6 +649,11 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
             ) : null}
             {block.type === "ink" ? (
               <>
+                {spillsOut(block) || block.clip ? (
+                  <BarBtn onClick={ops.clipToPage} active={Boolean(block.clip)}>
+                    🪄 Только этот лист
+                  </BarBtn>
+                ) : null}
                 <BarBtn onClick={() => ops.inkScale(0.8)}>Тоньше</BarBtn>
                 <BarBtn onClick={() => ops.inkScale(1.25)}>Толще</BarBtn>
               </>
@@ -826,7 +863,7 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
           </div>
         </Section>
       </div>
-      <Button className="mt-4 w-full" onClick={onClose}>
+      <Button className="sticky bottom-0 z-10 mt-4 w-full shadow-lg" onClick={onClose}>
         Готово
       </Button>
       {colors && (block.type === "text" || block.type === "shape") ? (

@@ -26,6 +26,8 @@ export type Draft = {
   deathYear: string;
   note: string;
   photo: string;
+  /** Девичья фамилия, если отличается от нынешней. */
+  maidenName?: string;
 };
 
 export function emptyDraft(gender: Gender = "u"): Draft {
@@ -33,7 +35,7 @@ export function emptyDraft(gender: Gender = "u"): Draft {
 }
 
 export function draftFrom(person: Person): Draft {
-  return { firstName: person.firstName, patronymic: person.patronymic, lastName: person.lastName, gender: person.gender, birthYear: person.birthYear, deathYear: person.deathYear, note: person.note, photo: person.photo };
+  return { firstName: person.firstName, patronymic: person.patronymic, lastName: person.lastName, gender: person.gender, birthYear: person.birthYear, deathYear: person.deathYear, note: person.note, photo: person.photo, maidenName: person.maidenName ?? "" };
 }
 
 type State = {
@@ -92,7 +94,7 @@ function saveUi(s: State) {
 }
 
 const photoUrls = new Map<string, string>();
-const STATUS_BACK: Record<UnionStatus, "married" | "divorced" | "partners"> = { married: "married", divorced: "divorced", widowed: "married", partner: "partners" };
+const STATUS_BACK: Record<UnionStatus, "married" | "divorced" | "partners" | "widowed"> = { married: "married", divorced: "divorced", widowed: "widowed", partner: "partners" };
 
 /** Список «Люди» с готовыми адресами фото: источник правды остаётся там. */
 function currentPeople(): RodPerson[] {
@@ -139,7 +141,7 @@ function createPerson(draft: Draft, relation: string, extra: Partial<RodPerson>,
     relation,
     birthYear: draft.birthYear,
     deathYear: draft.deathYear || undefined,
-    maidenName: "",
+    maidenName: draft.maidenName?.trim() ?? "",
     notes: draft.note,
     gender: genderOf(draft.gender),
     photo,
@@ -220,6 +222,7 @@ export const useTree = create<State>((set, get) => {
           birthYear: draft.birthYear,
           deathYear: draft.deathYear || undefined,
           notes: draft.note,
+          maidenName: draft.maidenName?.trim() ?? "",
           photo,
         });
       })();
@@ -227,9 +230,26 @@ export const useTree = create<State>((set, get) => {
     setUnionStatus: (id, status) => {
       const union = get().unions.find((u) => u.id === id);
       if (!union) return;
+      const next = STATUS_BACK[status];
+      // Статус хранится у того, кто указал супруга: основной брак или один из «ещё браков». Сохраняем у обоих, чтобы работало и без заполненной вкладки «Люди».
+      let saved = false;
       for (const pid of union.partnerIds) {
         const p = rod(pid);
-        if (p?.spouse) useRod.getState().updatePerson(pid, { spouseStatus: STATUS_BACK[status] });
+        if (!p) continue;
+        const other = union.partnerIds.find((x) => x !== pid);
+        if (p.spouse && p.spouse === other) {
+          useRod.getState().updatePerson(pid, { spouseStatus: next });
+          saved = true;
+        } else if (other && p.moreSpouses?.some((m) => m.id === other)) {
+          useRod.getState().updatePerson(pid, { moreSpouses: p.moreSpouses.map((m) => (m.id === other ? { ...m, status: next } : m)) });
+          saved = true;
+        }
+      }
+      if (!saved) {
+        // Связи в «Людях» нет (брак добавлен на схеме без записи): ставим её первому из пары.
+        const first = union.partnerIds.map(rod).find(Boolean);
+        const other = union.partnerIds.find((x) => x !== first?.id);
+        if (first && other && !first.spouse) useRod.getState().updatePerson(first.id, { spouse: other, spouseStatus: next });
       }
     },
     setUnionYears: (id, startYear, endYear) => {

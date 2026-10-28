@@ -56,11 +56,17 @@ function cap(word: string): string {
   return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
+/** «пра» столько раз, сколько нужно; длинную цепочку (больше четырёх) пишем числом: пра9. */
+function praPrefix(count: number, sep = ""): string {
+  if (count <= 0) return "";
+  return count > 4 ? `пра${count}${sep}` : "пра".repeat(count);
+}
+
 function ancestorTitle(dist: number, gender: Gender): string {
   if (dist <= 0) return "Я";
   if (dist === 1) return gender === "m" ? "Отец" : gender === "f" ? "Мать" : "Родитель";
   if (dist === 2) return gender === "m" ? "Дедушка" : gender === "f" ? "Бабушка" : "Предок";
-  const pra = "пра".repeat(dist - 2);
+  const pra = praPrefix(dist - 2, " ");
   if (gender === "m") return cap(pra + "дедушка");
   if (gender === "f") return cap(pra + "бабушка");
   return `Предок (${dist})`;
@@ -69,7 +75,7 @@ function ancestorTitle(dist: number, gender: Gender): string {
 function descendantTitle(dist: number, gender: Gender): string {
   if (dist === 1) return gender === "m" ? "Сын" : gender === "f" ? "Дочь" : "Ребёнок";
   if (dist === 2) return gender === "m" ? "Внук" : gender === "f" ? "Внучка" : "Внук";
-  const pra = "пра".repeat(Math.max(0, dist - 2));
+  const pra = praPrefix(Math.max(0, dist - 2), " ");
   if (gender === "m") return cap(pra + "внук");
   if (gender === "f") return cap(pra + "внучка");
   return `Потомок (${dist})`;
@@ -171,7 +177,7 @@ function cousinWord(steps: number, female = false): string {
 /** Слово по числу поколений вверх: 1 – дядя/тётя, 2 – бабушка/дедушка, 3 – прабабушка/прадедушка и так далее. */
 function elderWord(up: number, g: Gender): string {
   if (up <= 1) return g === "f" ? "тётя" : g === "m" ? "дядя" : "дядя или тётя";
-  const pra = "пра".repeat(Math.max(0, up - 2));
+  const pra = praPrefix(Math.max(0, up - 2), " ");
   return pra + (g === "f" ? "бабушка" : "дедушка");
 }
 
@@ -202,6 +208,25 @@ function genitiveAncestor(title: string): string {
   if (t.endsWith("а")) return t.slice(0, -1) + "и";
   if (t === "отец") return "отца";
   return t;
+}
+
+/** «Троюродная бабушка» -> «троюродной бабушки»: родство в родительном падеже, чтобы читалось «жена троюродной бабушки», а не «Супруг · Троюродная бабушка». */
+export function genitivePhrase(title: string): string {
+  return title
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => {
+      if (!word || /^[(\d]/.test(word)) return word;
+      if (/(ая)$/.test(word)) return word.slice(0, -2) + "ой";
+      if (/(яя)$/.test(word)) return word.slice(0, -2) + "ей";
+      if (/(ый|ой|ий)$/.test(word)) return word.slice(0, -2) + "ого";
+      if (/(ое|ее)$/.test(word)) return word.slice(0, -2) + "ого";
+      if (word.endsWith("а")) return word.slice(0, -1) + (/[кгхжчшщ]$/.test(word.slice(0, -1)) ? "и" : "ы");
+      if (word.endsWith("я")) return word.slice(0, -1) + "и";
+      if (/[ьй]$/.test(word)) return word.slice(0, -1) + "я";
+      return /[бвгджзклмнпрстфхцчшщ]$/.test(word) ? word + "а" : word;
+    })
+    .join(" ");
 }
 
 type Blood =
@@ -276,7 +301,7 @@ function inLawViaBlood(index: Index, focus: string, other: string): Kinship | nu
         // Жена дяди – тётя, муж тёти – дядя.
         const aunt = g === "f";
         title = divorced ? `${aunt ? "Бывшая жена" : "Бывший муж"} · ${rel.title}` : aunt ? (rel.title.startsWith("Дядя") ? "Тётя (жена дяди)" : "Тётя") : rel.title.startsWith("Тётя") ? "Дядя (муж тёти)" : "Дядя";
-      } else title = `${divorced ? (g === "f" ? "Бывшая супруга" : "Бывший супруг") : g === "f" ? "Супруга" : "Супруг"} · ${rel.title}`;
+      } else title = `${divorced ? (g === "f" ? "Бывшая жена" : "Бывший муж") : g === "f" ? "Жена" : g === "m" ? "Муж" : "Супруг(а)"} ${genitivePhrase(rel.title)}`;
       return { kind: "inlaw", title, degree: rel.degree, card: title };
     }
   }

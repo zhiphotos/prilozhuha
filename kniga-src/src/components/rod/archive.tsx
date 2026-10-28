@@ -311,13 +311,15 @@ function PlaceForm({ initial, submitLabel, onSubmit, onCancel }: { initial?: Pla
   const [years, setYears] = useState(initial?.years ?? "");
   const [note, setNote] = useState(initial?.note ?? "");
   const [files, setFiles] = useState<Attachment[]>(initial?.attachments ?? []);
+  const [who, setWho] = useState<string[]>(initial?.peopleIds ?? []);
+  const everyone = useRod((state) => state.people);
   return (
     <form
       className="glass grid gap-3 rounded-2xl p-5"
       onSubmit={(event) => {
         event.preventDefault();
         if (!name.trim()) return;
-        onSubmit({ name: name.trim(), years: years.trim(), note: note.trim(), attachments: files });
+        onSubmit({ name: name.trim(), years: years.trim(), note: note.trim(), attachments: files, peopleIds: who });
       }}
     >
       <Field label="Место">
@@ -329,6 +331,26 @@ function PlaceForm({ initial, submitLabel, onSubmit, onCancel }: { initial?: Pla
       <Field label="Что там было">
         <textarea className="field min-h-20" value={note} onChange={(event) => setNote(event.target.value)} />
       </Field>
+      {everyone.length ? (
+        <Field label="Кто здесь жил или бывал">
+          <div className="flex flex-wrap gap-2">
+            {everyone.map((person) => {
+              const on = who.includes(person.id);
+              return (
+                <button
+                  key={person.id}
+                  type="button"
+                  aria-pressed={on}
+                  className={`min-h-10 rounded-full border px-3 text-sm ${on ? "border-ink bg-ink text-paper" : "border-ink/20 bg-white/70 text-ink"}`}
+                  onClick={() => setWho((list) => (on ? list.filter((x) => x !== person.id) : [...list, person.id]))}
+                >
+                  {person.name || person.relation}
+                </button>
+              );
+            })}
+          </div>
+        </Field>
+      ) : null}
       <Attachments items={files} onChange={setFiles} title="Фото места" empty="Дом, двор, улица, как выглядело. Можно прикрепить несколько снимков." limitText="К одному месту" />
       <Button type="submit" disabled={!name.trim()}>
         {submitLabel}
@@ -346,6 +368,8 @@ function PlaceCard({ place }: { place: Place }) {
   const updatePlace = useRod((state) => state.updatePlace);
   const removePlace = useRod((state) => state.removePlace);
   const [editing, setEditing] = useState(false);
+  const everyone = useRod((state) => state.people);
+  const named = (place.peopleIds ?? []).map((id) => everyone.find((person) => person.id === id)?.name).filter((name): name is string => Boolean(name));
   if (editing) {
     return (
       <li>
@@ -369,6 +393,7 @@ function PlaceCard({ place }: { place: Place }) {
       <p className="pr-10 text-lg font-semibold text-ink">{place.name}</p>
       {place.years ? <p className="text-sm text-rose-deep">{place.years}</p> : null}
       {place.note ? <p className="mt-1 text-sm text-muted">{place.note}</p> : null}
+      {named.length ? <p className="mt-1 text-sm text-ink/80">Здесь: {named.join(", ")}</p> : null}
       {place.attachments?.length ? (
         <ul className="mt-2 flex flex-wrap gap-2">
           {place.attachments.map((item) => (

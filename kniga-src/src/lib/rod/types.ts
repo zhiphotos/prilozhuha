@@ -20,9 +20,9 @@ export type Person = {
   /** Супруг или супруга (id из этого же списка): пара встаёт в один ряд рядом друг с другом. */
   spouse?: string;
   /** Статус пары: в браке, развелись, живут вместе без брака. */
-  spouseStatus?: "married" | "divorced" | "partners";
+  spouseStatus?: "married" | "divorced" | "partners" | "widowed";
   /** Остальные браки человека (у него может быть несколько супругов, `spouse` хранит один). */
-  moreSpouses?: { id: string; status?: "married" | "divorced" | "partners"; from?: string; to?: string }[];
+  moreSpouses?: { id: string; status?: "married" | "divorced" | "partners" | "widowed"; from?: string; to?: string }[];
   /** Человек загружен из файла: связи берём только из ссылок, а не угадываем по слову «кем приходится». */
   fromFile?: boolean;
   /** Годы союза (для древа), хранятся у одного из супругов. */
@@ -44,6 +44,8 @@ export type Place = {
   name: string;
   years: string;
   note: string;
+  /** Родственники, которые связаны с этим местом (id из «Людей»). */
+  peopleIds?: string[];
   /** Фото дома, двора и других файлов, прикреплённых к месту. */
   attachments?: Attachment[];
 };
@@ -65,6 +67,8 @@ export type Attachment = {
   ref: string;
   name: string;
   kind: "image" | "file";
+  /** Подпись под фото, пользователь пишет сам. */
+  caption?: string;
 };
 
 export type Story = {
@@ -132,6 +136,10 @@ type Placed = {
   mask?: EraseMask;
   /** Лежит через разворот: часть на соседней странице (фото, рисунок, стикер, фигура). */
   spread?: boolean;
+  /** Рисунок обрезан по краям этого листа: всё, что вышло за край, скрыто (на соседней странице не показывается). */
+  clip?: boolean;
+  /** Сгруппированные элементы двигаются вместе: у них один и тот же groupId. */
+  groupId?: string;
 };
 
 export type BrushKind = "pen" | "marker" | "brush" | "highlighter" | "thread" | "dashed" | "dots" | "wash" | "ink" | "charcoal";

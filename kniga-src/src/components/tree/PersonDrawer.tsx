@@ -116,7 +116,7 @@ function PersonBody({ person, people, unions, focusId, onNewBook }: { person: Pe
         <label className="field">
           Дата рождения
           <input
-            inputMode="numeric"
+            inputMode="decimal"
             maxLength={10}
             placeholder="год или 12.03.1891"
             value={maskDate(person.birthYear)}
@@ -126,7 +126,7 @@ function PersonBody({ person, people, unions, focusId, onNewBook }: { person: Pe
         <label className="field">
           Дата смерти
           <input
-            inputMode="numeric"
+            inputMode="decimal"
             maxLength={10}
             placeholder="год или 04.11.1968"
             value={maskDate(person.deathYear)}
@@ -551,13 +551,19 @@ function PersonForm({
           Фамилия
           <input value={draft.lastName} onChange={(e) => set({ lastName: e.target.value })} />
         </label>
+        {draft.gender !== "m" ? (
+          <label className="field col-span-2">
+            Девичья фамилия
+            <input value={draft.maidenName ?? ""} placeholder="Если менялась" onChange={(e) => set({ maidenName: e.target.value })} />
+          </label>
+        ) : null}
         <label className="field">
           Дата рождения
-          <input inputMode="numeric" maxLength={10} placeholder="год или 12.03.1891" value={draft.birthYear} onChange={(e) => set({ birthYear: maskDate(e.target.value) })} />
+          <input inputMode="decimal" maxLength={10} placeholder="год или 12.03.1891" value={draft.birthYear} onChange={(e) => set({ birthYear: maskDate(e.target.value) })} />
         </label>
         <label className="field">
           Дата смерти
-          <input inputMode="numeric" maxLength={10} placeholder="год или 04.11.1968" value={draft.deathYear} onChange={(e) => set({ deathYear: maskDate(e.target.value) })} />
+          <input inputMode="decimal" maxLength={10} placeholder="год или 04.11.1968" value={draft.deathYear} onChange={(e) => set({ deathYear: maskDate(e.target.value) })} />
         </label>
       </div>
       {!lockGender && (

@@ -108,7 +108,9 @@ const v = g2.byId.get("viktor")!;
 const o = g2.byId.get("olga")!;
 const f = g2.byId.get("andrey")!;
 assert(v.gen === o.gen, "viktor stays beside olga's row");
-assert(Math.abs(v.x - o.x) < 280, `viktor drifted ${Math.abs(v.x - o.x)}`);
+// Когда у обоих супругов известны родители, каждый стоит под своими (длинная линия брака, как в восходящей схеме), поэтому допуск шире.
+assert(Math.abs(v.x - o.x) < 1000, `viktor drifted ${Math.abs(v.x - o.x)}`);
+assert(Math.abs(v.x - f.x) < 450, `viktor stands near his father ${Math.abs(v.x - f.x)}`);
 assert(f.gen === v.gen - 1, "father sits one row above");
 assert(Math.abs(f.x - v.x) < 360, `father not above viktor ${Math.abs(f.x - v.x)}`);
 

@@ -749,6 +749,7 @@ body {
 .glass-plaque-on { border-color: rgba(196, 154, 74, 0.85); box-shadow: 0 12px 32px rgba(40, 32, 20, 0.1), 0 0 0 1px rgba(196, 154, 74, 0.45); }
 .glass-photo { width: 46px; height: 54px; flex: none; border-radius: 12px; object-fit: cover; background: rgba(255, 255, 255, 0.55); box-shadow: 0 4px 12px rgba(30, 22, 12, 0.12); }
 .glass-photo.is-tiny { width: 28px; height: 36px; border-radius: 8px; }
+.tree-root.no-dots .tree-viewport { background-image: radial-gradient(circle at 50% -8%, var(--color-glow), transparent 46%); background-size: auto; }
 .tree-viewport { background-color: var(--color-canvas); background-image: radial-gradient(circle at 50% -8%, var(--color-glow), transparent 46%), radial-gradient(var(--color-grid) 1.1px, transparent 1.2px); background-size: auto, 22px 22px; touch-action: none; }
 .cam { transform-origin: 0 0; transition: transform 180ms ease; }
 .cam.is-gesturing { transition: none; }

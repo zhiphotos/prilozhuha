@@ -193,17 +193,55 @@ export function strokeGeom(stroke: InkStroke): StrokeGeom {
     return { d: pathOf(line), fill: false, width: brush === "dots" ? w * 1.3 : w, dash, cap: "round", alpha, color };
   }
 
-  const smooth = brush === "marker" || brush === "highlighter" ? 0.92 : brush === "brush" ? 0.75 : 0.6;
-  const input = brush === "marker" || brush === "highlighter" ? chaikin(thin(stabilize(pts, 3), w * 0.25), 2) : stabilize(pts, 1);
+  if (brush === "highlighter") {
+    // Выделитель с косым срезом, как у настоящего: плоское перо под углом, толстая и тонкая линии. Каждый отрезок пути – выпуклая оболочка двух положений пера, все вместе заливаются одним слоем (без двойной прозрачности).
+    const line = pts.length > 3 ? chaikin(thin(stabilize(pts, 2), w * 0.12), 1) : pts;
+    const half = w / 2;
+    const thick = Math.max(1, w * 0.22) / 2;
+    const ang = -Math.PI / 4;
+    const ux = Math.cos(ang) * half;
+    const uy = Math.sin(ang) * half;
+    const vx = -Math.sin(ang) * thick;
+    const vy = Math.cos(ang) * thick;
+    const tip = (x: number, y: number): number[][] => [[x + ux + vx, y + uy + vy], [x + ux - vx, y + uy - vy], [x - ux - vx, y - uy - vy], [x - ux + vx, y - uy + vy]];
+    const hull = (all: number[][]): number[][] => {
+      const sorted = [...all].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      const cross = (o: number[], a: number[], b: number[]) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+      const lower: number[][] = [];
+      for (const p of sorted) {
+        while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+        lower.push(p);
+      }
+      const upper: number[][] = [];
+      for (const p of [...sorted].reverse()) {
+        while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+        upper.push(p);
+      }
+      lower.pop();
+      upper.pop();
+      return lower.concat(upper);
+    };
+    let d = "";
+    for (let i = 0; i < line.length; i += 1) {
+      const a = line[i];
+      const b = line[Math.min(i + 1, line.length - 1)];
+      const poly = hull([...tip(a[0], a[1]), ...tip(b[0], b[1])]);
+      d += `M${poly.map((q) => `${r2(q[0])} ${r2(q[1])}`).join("L")}Z`;
+    }
+    return { d, fill: true, width: 0, cap: "butt", alpha, color };
+  }
+
+  const smooth = brush === "marker" ? 0.92 : brush === "brush" ? 0.75 : 0.6;
+  const input = brush === "marker" ? chaikin(thin(stabilize(pts, 3), w * 0.25), 2) : stabilize(pts, 1);
   const withP = input.map((p, i) => {
     const src = pressure ? pressure[Math.min(pressure.length - 1, Math.round((i / Math.max(1, input.length - 1)) * (pressure.length - 1)))] : undefined;
     return src === undefined ? [p[0], p[1]] : [p[0], p[1], src];
   });
   const outline = getStroke(withP, {
     size: w,
-    thinning: brush === "marker" || brush === "highlighter" ? 0 : brush === "brush" ? 0.7 : 0.45,
+    thinning: brush === "marker" ? 0 : brush === "brush" ? 0.7 : 0.45,
     smoothing: smooth,
-    streamline: brush === "marker" || brush === "highlighter" ? 0.85 : 0.55,
+    streamline: brush === "marker" ? 0.85 : 0.55,
     simulatePressure: !pressure && (brush === "pen" || brush === "brush"),
     start: { taper: brush === "brush" ? w * 4 : 0, cap: true },
     end: { taper: brush === "brush" ? w * 6 : 0, cap: true },
@@ -650,7 +688,7 @@ export function mergeInk(block: InkBlock, stroke: InkStroke): InkBlock {
   if (!untouched) return makeInkBlock([stroke], () => crypto.randomUUID());
   const mine = shiftStrokes(block.strokes, block.x, block.y);
   const merged = makeInkBlock([...mine, stroke], () => block.id);
-  return { ...merged, locked: block.locked, opacity: block.opacity, blend: block.blend, mask: block.mask };
+  return { ...merged, locked: block.locked, opacity: block.opacity, blend: block.blend, mask: block.mask, spread: block.spread, clip: block.clip, groupId: block.groupId };
 }
 
 /** Старые страницы хранили чернила поверх всего листа; переносим их в блоки, чтобы с ними можно было работать. */

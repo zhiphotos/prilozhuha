@@ -37,7 +37,7 @@ function genderOf(p: RodPerson, role: Role): Gender {
   return "u";
 }
 
-const STATUS: Record<string, UnionStatus> = { married: "married", divorced: "divorced", partners: "partner" };
+const STATUS: Record<string, UnionStatus> = { married: "married", divorced: "divorced", partners: "partner", widowed: "widowed" };
 
 /**
  * Собирает данные нового древа из основного списка «Людей».

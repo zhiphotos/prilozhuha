@@ -70,21 +70,47 @@ function pillText(status: UnionStatus): string {
   return "БРАК";
 }
 
+/** Родители далеко от детей (семья супруга стоит отдельной веткой): эту связь рисуем бледным пунктиром, чтобы она не выглядела общей линией детей. */
+const FAR_LINK = 520;
+function busIsFar(bus: TreeLayout["buses"][number]): boolean {
+  const min = bus.xs[0];
+  const max = bus.xs[bus.xs.length - 1];
+  return bus.fromX != null && bus.fromY != null && min != null && max != null && (bus.fromX < min - FAR_LINK || bus.fromX > max + FAR_LINK);
+}
+
 function busPath(bus: TreeLayout["buses"][number]): string {
   const parts: string[] = [];
   const min = bus.xs[0];
   const max = bus.xs[bus.xs.length - 1];
-  if (bus.fromX != null && bus.fromY != null && min != null && max != null) {
+  const far = busIsFar(bus);
+  if (!far && bus.fromX != null && bus.fromY != null && min != null && max != null) {
     parts.push(`M ${bus.fromX} ${bus.fromY} V ${bus.busY}`);
     if (bus.fromX < min - 1) parts.push(`M ${bus.fromX} ${bus.busY} H ${min}`);
     else if (bus.fromX > max + 1) parts.push(`M ${bus.fromX} ${bus.busY} H ${max}`);
   }
-  if (min != null && max != null && bus.xs.length > 1) parts.push(`M ${min} ${bus.busY} H ${max}`);
+  if (bus.partnerXs && bus.partnerTop != null && bus.bracketY !== undefined) {
+    // Брак между далёкими супругами: от каждого вниз и общая линия; от её середины вниз к детям, там разветвление.
+    for (const x of bus.partnerXs) parts.push(`M ${x} ${bus.partnerTop} V ${bus.bracketY}`);
+    parts.push(`M ${Math.min(...bus.partnerXs)} ${bus.bracketY} H ${Math.max(...bus.partnerXs)}`);
+    const mid = bus.fromX ?? (bus.partnerXs[0]! + bus.partnerXs[1]!) / 2;
+    parts.push(`M ${mid} ${bus.bracketY} V ${bus.busY}`);
+    parts.push(`M ${Math.min(mid, ...bus.xs)} ${bus.busY} H ${Math.max(mid, ...bus.xs)}`);
+  } else if (min != null && max != null && bus.xs.length > 1) parts.push(`M ${min} ${bus.busY} H ${max}`);
   for (const x of bus.xs) parts.push(`M ${x} ${bus.busY} V ${bus.childTop}`);
   return parts.join(" ");
 }
 
+/** Дальняя связь от родителей к детям: от брака вниз и вбок к ближайшему ребёнку. */
+function busLinkPath(bus: TreeLayout["buses"][number]): string {
+  if (!busIsFar(bus)) return "";
+  const min = bus.xs[0]!;
+  const max = bus.xs[bus.xs.length - 1]!;
+  const to = bus.fromX! < min ? min : max;
+  return `M ${bus.fromX} ${bus.fromY} V ${bus.busY} H ${to}`;
+}
+
 function spousePath(link: TreeLayout["spouses"][number]): string {
+  if (link.bracketY !== undefined) return "";
   const dir = Math.sign(link.x2 - link.x1) || 1;
   const x1 = link.x1 + dir * (PORTRAIT_R + 2);
   const x2 = link.x2 - dir * (PORTRAIT_R + 2);
@@ -95,6 +121,7 @@ function spousePath(link: TreeLayout["spouses"][number]): string {
 }
 
 function pillPoint(link: TreeLayout["spouses"][number]): { x: number; y: number } {
+  if (link.bracketY !== undefined) return { x: (link.x1 + link.x2) / 2, y: link.bracketY };
   if (!link.curved) return { x: (link.x1 + link.x2) / 2, y: link.y1 };
   const mx = (link.x1 + link.x2) / 2;
   const my = Math.min(link.y1, link.y2) - 58;
@@ -178,6 +205,14 @@ export function TreeStage(props: Props) {
     return { w: layout.width, h: layout.height };
   })();
 
+  /** Нижняя граница отдаления: большое древо должно помещаться на экране целиком, а не упираться в общий минимум. */
+  const minZoomNow = () => {
+    const el = wrap.current;
+    if (!el || sheet.w < 1 || sheet.h < 1) return MIN_ZOOM;
+    const whole = Math.min((el.clientWidth - 24) / sheet.w, (el.clientHeight - 24) / sheet.h);
+    return Math.min(MIN_ZOOM, Math.max(0.002, whole * 0.9));
+  };
+
   const fit = (w = sheet.w, h = sheet.h) => {
     const el = wrap.current;
     if (!el || w < 1 || h < 1) return;
@@ -222,7 +257,7 @@ export function TreeStage(props: Props) {
       const px = e.clientX - rect.left;
       const py = e.clientY - rect.top;
       setCam((c) => {
-        const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, c.k * (e.deltaY < 0 ? 1.08 : 0.92)));
+        const next = Math.min(MAX_ZOOM, Math.max(minZoomNow(), c.k * (e.deltaY < 0 ? 1.08 : 0.92)));
         const wx = (px - c.x) / c.k;
         const wy = (py - c.y) / c.k;
         return { k: next, x: px - wx * next, y: py - wy * next };
@@ -283,8 +318,12 @@ export function TreeStage(props: Props) {
     if (pointers.current.size >= 2) {
       const pts = [...pointers.current.values()];
       const dist = Math.hypot(pts[0]!.x - pts[1]!.x, pts[0]!.y - pts[1]!.y);
-      if (!pinch.current) pinch.current = { dist, k: cam.k };
-      const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, pinch.current.k * (dist / pinch.current.dist)));
+      if (!pinch.current || pinch.current.dist < 8) pinch.current = { dist, k: cam.k };
+      // Пальцы почти в одной точке или счёт сбился: ничего не делаем, иначе масштаб станет NaN и экран пустым.
+      if (pinch.current.dist < 8) return;
+      const ratio = dist / pinch.current.dist;
+      const next = Math.min(MAX_ZOOM, Math.max(minZoomNow(), pinch.current.k * ratio));
+      if (!Number.isFinite(next)) return;
       const mid = { x: (pts[0]!.x + pts[1]!.x) / 2, y: (pts[0]!.y + pts[1]!.y) / 2 };
       const rect = wrap.current?.getBoundingClientRect();
       if (!rect) return;
@@ -293,7 +332,8 @@ export function TreeStage(props: Props) {
       setCam((c) => {
         const wx = (px - c.x) / c.k;
         const wy = (py - c.y) / c.k;
-        return { k: next, x: px - wx * next, y: py - wy * next };
+        const out = { k: next, x: px - wx * next, y: py - wy * next };
+        return Number.isFinite(out.x) && Number.isFinite(out.y) ? out : c;
       });
       return;
     }
@@ -326,7 +366,7 @@ export function TreeStage(props: Props) {
     const px = el.clientWidth / 2;
     const py = el.clientHeight / 2;
     setCam((c) => {
-      const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, c.k * factor));
+      const next = Math.min(MAX_ZOOM, Math.max(minZoomNow(), c.k * factor));
       const wx = (px - c.x) / c.k;
       const wy = (py - c.y) / c.k;
       return { k: next, x: px - wx * next, y: py - wy * next };
@@ -361,6 +401,9 @@ export function TreeStage(props: Props) {
                   <path key={bus.unionId} d={style === "carved" ? carvedBusPath(bus) : busPath(bus)} strokeDasharray={halfUnions.has(bus.unionId) ? "7 6" : undefined} />
                 ))}
               </g>
+              <g fill="none" stroke="var(--color-blood)" strokeWidth={1.6} strokeOpacity={0.4} strokeDasharray="2 9" strokeLinecap="round">
+                {style === "carved" ? null : layout.buses.map((bus) => (busIsFar(bus) ? <path key={`far-${bus.unionId}`} d={busLinkPath(bus)} /> : null))}
+              </g>
               {layout.spouses.map((link) => (
                 <path key={link.unionId} d={style === "carved" ? carvedSpousePath(link) : spousePath(link)} fill="none" stroke={lineColor(link.status)} strokeWidth={2.4} strokeLinecap="round" strokeDasharray={link.status === "divorced" ? "6 7" : undefined} />
               ))}
@@ -391,6 +434,15 @@ export function TreeStage(props: Props) {
                         <circle r={12} fill="var(--color-gold)" />
                         <text textAnchor="middle" dominantBaseline="middle" fill="var(--color-ink)" fontFamily="var(--font-sans)" fontSize={11} fontWeight={700}>
                           я
+                        </text>
+                      </g>
+                    )}
+                    {layout.detached?.includes(person.id) && (
+                      <g transform={`translate(${node.x - 32} ${node.y - 32})`}>
+                        <title>Родители этого человека стоят в другом месте схемы. Нажмите на человека: в карточке есть переход к родителям.</title>
+                        <circle r={12} fill="var(--color-chip)" stroke="var(--color-gold)" strokeWidth={1.5} />
+                        <text textAnchor="middle" dominantBaseline="middle" fill="var(--color-gold)" fontFamily="var(--font-sans)" fontSize={14} fontWeight={700}>
+                          ↑
                         </text>
                       </g>
                     )}

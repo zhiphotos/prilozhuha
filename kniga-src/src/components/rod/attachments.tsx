@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Paperclip } from "lucide-react";
 import { importImage } from "@/lib/rod/image";
@@ -8,8 +8,9 @@ import type { Attachment } from "@/lib/rod/types";
 const MAX_FILE = 15 * 1024 * 1024;
 const MAX_ITEMS = 30;
 
-function Thumb({ item, onRemove }: { item: Attachment; onRemove: () => void }) {
+function Thumb({ item, onRemove, onCaption }: { item: Attachment; onRemove: () => void; onCaption: (caption: string) => void }) {
   const src = useMedia(item.kind === "image" ? item.ref : undefined);
+  const [big, setBig] = useState(false);
   const open = async () => {
     const blob = await mediaBlob(item.ref);
     if (!blob) return toast("Файл не найден на этом устройстве");
@@ -23,16 +24,34 @@ function Thumb({ item, onRemove }: { item: Attachment; onRemove: () => void }) {
   return (
     <li className="glass relative flex w-24 flex-col items-center gap-1 rounded-2xl p-2 text-center">
       {item.kind === "image" ? (
-        <img src={src} alt={item.name} className="h-20 w-20 rounded-xl object-cover" />
+        <button type="button" onClick={() => setBig(true)} aria-label="Открыть фото крупно">
+          <img src={src} alt={item.caption || item.name} className="h-20 w-20 rounded-xl object-cover" />
+        </button>
       ) : (
         <button type="button" onClick={open} className="flex h-20 w-20 items-center justify-center rounded-xl bg-ink/5">
           <Paperclip className="h-7 w-7 text-muted" />
         </button>
       )}
-      <span className="line-clamp-2 w-full break-words text-[11px] leading-tight text-muted">{item.name}</span>
+      <span className="line-clamp-2 w-full break-words text-[11px] leading-tight text-muted">{item.caption || item.name}</span>
       <button type="button" aria-label="Убрать" onClick={onRemove} className="text-xs text-muted underline">
         Убрать
       </button>
+      {big ? (
+        <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-3 bg-black/85 p-4" onClick={() => setBig(false)}>
+          <img src={src} alt={item.caption || item.name} className="max-h-[72svh] max-w-full rounded-xl object-contain" />
+          <input
+            className="field w-full max-w-md text-center"
+            value={item.caption ?? ""}
+            placeholder="Подпись к фото"
+            maxLength={200}
+            onClick={(event) => event.stopPropagation()}
+            onChange={(event) => onCaption(event.target.value)}
+          />
+          <button type="button" className="rounded-full bg-white/90 px-6 py-2 text-sm text-ink" onClick={() => setBig(false)}>
+            Закрыть
+          </button>
+        </div>
+      ) : null}
     </li>
   );
 }
@@ -74,6 +93,7 @@ export function Attachments({ items, onChange, title = "Фото и файлы �
             <Thumb
               key={item.id}
               item={item}
+              onCaption={(caption) => onChange(items.map((x) => (x.id === item.id ? { ...x, caption } : x)))}
               onRemove={() => {
                 dropMedia(item.ref);
                 onChange(items.filter((x) => x.id !== item.id));

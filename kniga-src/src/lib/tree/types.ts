@@ -50,6 +50,8 @@ export type SpouseLink = {
   y2: number;
   status: UnionStatus;
   curved: boolean;
+  /** Супруги стоят далеко друг от друга (каждый под своими родителями): линии брака нет, плашка стоит на скобке над ребёнком на этой высоте. */
+  bracketY?: number;
 };
 
 export type ChildBus = {
@@ -59,6 +61,11 @@ export type ChildBus = {
   busY: number;
   xs: number[];
   childTop: number;
+  /** Супруги далеко друг от друга: линии идут от каждого из них вниз к общей скобке. */
+  partnerXs?: number[];
+  partnerTop?: number;
+  /** Высота линии брака между далёкими супругами (выше линии детей). */
+  bracketY?: number;
 };
 
 export type GenLabel = {
@@ -72,6 +79,8 @@ export type TreeLayout = {
   spouses: SpouseLink[];
   buses: ChildBus[];
   labels: GenLabel[];
+  /** Люди, чьи родители стоят далеко: связь с ними не рисуется, у карточки значок. */
+  detached?: string[];
   width: number;
   height: number;
   focusGen: number;

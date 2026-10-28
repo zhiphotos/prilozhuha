@@ -163,9 +163,10 @@ export function PersonFields({ value, onChange, others }: { value: PersonDraft; 
             ))}
           </select>
           {value.spouse ? (
-            <select className="field mt-2" value={value.spouseStatus ?? "married"} onChange={(event) => onChange({ spouseStatus: event.target.value as "married" | "divorced" | "partners" })}>
+            <select className="field mt-2" value={value.spouseStatus ?? "married"} onChange={(event) => onChange({ spouseStatus: event.target.value as "married" | "divorced" | "partners" | "widowed" })}>
               <option value="married">В браке</option>
               <option value="divorced">Развелись</option>
+              <option value="widowed">Овдовели</option>
               <option value="partners">Живут вместе</option>
             </select>
           ) : null}
@@ -189,9 +190,10 @@ export function PersonFields({ value, onChange, others }: { value: PersonDraft; 
                     <button type="button" aria-label="Убрать этот брак" className="grid size-11 place-items-center rounded-full border border-ink/15 text-muted" onClick={() => onChange({ moreSpouses: (value.moreSpouses ?? []).filter((_, i) => i !== index) })}>
                       <X className="size-4" />
                     </button>
-                    <select className="field col-span-2" value={mate.status ?? "married"} onChange={(event) => update({ status: event.target.value as "married" | "divorced" | "partners" })}>
+                    <select className="field col-span-2" value={mate.status ?? "married"} onChange={(event) => update({ status: event.target.value as "married" | "divorced" | "partners" | "widowed" })}>
                       <option value="married">В браке</option>
                       <option value="divorced">Развелись</option>
+              <option value="widowed">Овдовели</option>
                       <option value="partners">Живут вместе</option>
                     </select>
                   </div>
