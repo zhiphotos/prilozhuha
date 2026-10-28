@@ -180,7 +180,7 @@ export function AddPerson({
                 <input value={patronymic} placeholder="Если знаете" onChange={(e) => setPatronymic(e.target.value)} />
               </label>
               <label className="field">
-                Год рождения
+                Дата рождения
                 <input value={birthYear} placeholder="Год или дата, например 18.05.1989" onChange={(e) => setBirthYear(e.target.value.slice(0, 20))} />
               </label>
             </div>

@@ -8,6 +8,8 @@ import {
   SendToBack,
   BookOpen,
   Copy,
+  ClipboardPaste,
+  ArrowLeftRight,
   Crop,
   Maximize2,
   Droplet,
@@ -49,6 +51,11 @@ export type BlockOps = {
   patch: (partial: Partial<PageBlock>, group?: string) => void;
   remove: () => void;
   duplicate: () => void;
+  copy: () => void;
+  paste: () => void;
+  canPaste: boolean;
+  /** Есть соседняя страница разворота: перенести выбранное на неё. */
+  toPartner?: () => void;
   layer: (where: "up" | "down" | "top" | "bottom") => void;
   toggleLock: () => void;
   edit: () => void;
@@ -460,6 +467,19 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
       <BarBtn label="Копия" onClick={ops.duplicate}>
         <Copy className="size-4" /> Копия
       </BarBtn>
+      <BarBtn label="Скопировать, чтобы вставить на другой странице" onClick={ops.copy}>
+        <Copy className="size-4" /> Копировать
+      </BarBtn>
+      {ops.canPaste ? (
+        <BarBtn label="Вставить скопированное на эту страницу" onClick={ops.paste}>
+          <ClipboardPaste className="size-4" /> Вставить
+        </BarBtn>
+      ) : null}
+      {ops.toPartner ? (
+        <BarBtn label="Перенести на соседнюю страницу разворота" onClick={ops.toPartner}>
+          <ArrowLeftRight className="size-4" /> На соседнюю
+        </BarBtn>
+      ) : null}
       <BarBtn phoneHidden label={locked ? "Разблокировать" : "Закрепить: не будет двигаться"} active={locked} onClick={ops.toggleLock}>
         {locked ? <Lock className="size-4" /> : <Unlock className="size-4" />} {locked ? "Снять" : "Закрепить"}
       </BarBtn>

@@ -188,7 +188,7 @@ export function GedImportButton() {
             <ul className="grid gap-2 text-sm text-ink">
               <li><b>.ged</b> (GEDCOM): обычный обмен между программами. Его сохраняют «Древо Жизни», FamilyTree, Gramps, MyHeritage, Ancestry, Familysearch и другие.</li>
               <li><b>.xml</b> из «Древа Жизни» (genery.com): Файл, Экспорт, формат XML.</li>
-              <li><b>.csv</b>: таблица из Excel или Google Таблиц (Файл, Скачать или Сохранить как, CSV). Колонки: Фамилия, Имя, Отчество, Год рождения, Год смерти, Пол, Кем приходится, Отец, Мать, Супруг.</li>
+              <li><b>.csv</b>: таблица из Excel или Google Таблиц (Файл, Скачать или Сохранить как, CSV). Колонки: Фамилия, Имя, Отчество, Дата рождения, Дата смерти, Пол, Кем приходится, Отец, Мать, Супруг.</li>
             </ul>
             <p className="text-xs text-muted">Файл с расширением .atdb (база «Древа Жизни») открыть нельзя: сохраните из программы XML.</p>
             <Button onClick={() => { setChooser(false); input.current?.click(); }}>Выбрать файл</Button>
