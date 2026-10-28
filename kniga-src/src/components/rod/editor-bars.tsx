@@ -9,6 +9,7 @@ import {
   BookOpen,
   Copy,
   Crop,
+  Maximize2,
   Droplet,
   Eraser,
   Highlighter,
@@ -53,6 +54,7 @@ export type BlockOps = {
   edit: () => void;
   cut: (mode: "auto" | "precise") => void;
   cropMode: () => void;
+  fitWhole: () => void;
   cropping: boolean;
   replace: () => void;
   fill: () => void;
@@ -500,6 +502,9 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
           <BarBtn onClick={ops.cropMode} active={ops.cropping} label="Выбрать, какая часть фото видна">
             <Crop className="size-4" /> Кадр
           </BarBtn>
+          <BarBtn onClick={ops.fitWhole} label="Показать фото целиком, без обрезки">
+            <Maximize2 className="size-4" /> Целиком
+          </BarBtn>
           <BarBtn onClick={ops.replace} label="Заменить фото на другое с теми же настройками">
             <Replace className="size-4" /> Заменить
           </BarBtn>
@@ -750,6 +755,9 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
               <BarBtn onClick={() => ops.cut("precise")}>Убрать фон точнее</BarBtn>
               <BarBtn onClick={ops.cropMode}>
                 <Crop className="size-4" /> Кадр
+              </BarBtn>
+              <BarBtn onClick={ops.fitWhole}>
+                <Maximize2 className="size-4" /> Целиком
               </BarBtn>
               <BarBtn onClick={ops.replace}>
                 <Replace className="size-4" /> Заменить
