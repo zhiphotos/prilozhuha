@@ -633,14 +633,23 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     if (target && target.type === "slot") {
       block = { id: id(), type: "photo", x: target.x, y: target.y, w: target.w, h: target.h, rotate: target.rotate ?? 0, src: ref, caption: "", frame, shadow: shadowPref };
     } else {
-      const w = chosen === "cutout" ? 52 : 56;
-      const inner = frame === "polaroid" ? w * (1 - (2 * POLAROID.side) / 100) : frame === "sticker" ? w - 2.8 : w;
-      const extra = frame === "polaroid" ? (w * (POLAROID.top + POLAROID.bottom)) / 100 : frame === "sticker" ? 2.8 : 0;
-      const h = clamp((inner * ratio + extra) / (PAGE_H / 100), 8, 80);
+      // Очень длинное или очень высокое фото: подбираем ширину так, чтобы оно легло целиком, а не обрезалось рамкой.
+      const heightFor = (width: number) => {
+        const inside = frame === "polaroid" ? width * (1 - (2 * POLAROID.side) / 100) : frame === "sticker" ? width - 2.8 : width;
+        const more = frame === "polaroid" ? (width * (POLAROID.top + POLAROID.bottom)) / 100 : frame === "sticker" ? 2.8 : 0;
+        return (inside * ratio + more) / (PAGE_H / 100);
+      };
+      let w = chosen === "cutout" ? 52 : 56;
+      for (let i = 0; i < 4; i++) {
+        const raw = heightFor(w);
+        if (raw > 80) w = Math.max(14, (w * 80) / raw);
+        else if (raw < 8 && w < 92) w = Math.min(92, (w * 8) / Math.max(raw, 0.5));
+      }
+      const h = clamp(heightFor(w), 4, 82);
       const cx = at?.x ?? 50;
       const cy = at?.y ?? 42;
       const tilt = frame === "none" || info.alpha ? 0 : Math.round((Math.random() * 6 - 3) * 10) / 10;
-      block = { id: id(), type: "photo", x: clamp(cx - w / 2, -10, 90), y: clamp(cy - h / 2, -5, 92), w, h, rotate: tilt, src: ref, caption: "", frame, shadow: shadowPref };
+      block = { id: id(), type: "photo", x: clamp(cx - w / 2, -10, 90), y: clamp(cy - h / 2, -5, 92), w, h, rotate: tilt, src: ref, caption: "", frame, shadow: shadowPref, whole: true };
       if (info.alpha) block = { ...block, cut: ref, frame: "sticker" };
     }
     const full = chosen === "full" && !target;
@@ -1183,8 +1192,9 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const rect = wrapper?.getBoundingClientRect();
     const center = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined;
     const box = boxOf(block);
-    // Фото и рисунок растягиваем только пропорционально: иначе картинку «обрезает» по краям рамки, когда её двигают за угол.
-    const ratio = block.type === "photo" || block.type === "ink" ? block.h / block.w : null;
+    // Рисунок и вырезанное фото растягиваются пропорционально; обычное фото свободно (так меняют рамку, в которой видна картинка), с Shift тоже пропорционально.
+    const proportional = block.type === "photo" && (block.cut && block.frame === "sticker" ? true : block.whole ? !event.shiftKey : event.shiftKey);
+    const ratio = proportional || block.type === "ink" ? (block as { h: number; w: number }).h / (block as { h: number; w: number }).w : null;
     const cropGesture = cropping && block.type === "photo" && selected === block.id && mode === "move";
     const inGroup = mode === "move" && group.length > 1 && group.includes(block.id);
     const members = inGroup
@@ -1473,6 +1483,17 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           setPanel(null);
         },
         cropping,
+        // Рамка по размеру самой картинки: вся фотография видна целиком, без обрезки.
+        fitWhole: () => {
+          const photo = selectedBlock;
+          if (photo.type !== "photo") return;
+          void imageInfo(photo.src).then((info) => {
+            const inner = innerBox(photo.frame, false, photo.w, 1000);
+            const extraH = 1000 - inner.h;
+            const hUnits = inner.w * info.ratio + extraH;
+            patchBlock(photo.id, { h: round(clamp(hUnits / (PAGE_H / 100), 4, 160)), crop: undefined, whole: true } as Partial<PageBlock>);
+          });
+        },
         replace: () => {
           setReplaceTarget(selectedBlock.id);
           setSlotTarget(null);

@@ -378,6 +378,8 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
   const [drag, setDrag] = useState<{ id: string; pointerId: number; dx: number; dy: number; x0: number; y0: number; s0: number; over: number } | null>(null);
   const first = pages[0]?.kind === "cover" ? 1 : 0;
   const pointer = useRef({ x: 0, y: 0 });
+  /** Страницу взяли мышью прямо за миниатюру: нажатие уже обработано, повторный click не должен менять выбор. */
+  const skipClick = useRef(false);
   const scroller = useRef<HTMLElement | null>(null);
   const undoStack = useRef<(() => void)[]>([]);
   const [undoCount, setUndoCount] = useState(0);
@@ -483,12 +485,15 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
     // Простое касание ручки без перетаскивания – выбрать страницу.
     if (!moved) togglePick(drag.id);
     setDrag(null);
+    window.setTimeout(() => {
+      skipClick.current = false;
+    }, 0);
   };
 
   return (
     <>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-sm text-muted">{arrange ? "Тащите за ручку под страницей – поменять место. Коснитесь страницы – выбрать." : `${plural(pages.length, "страница", "страницы", "страниц")}`}</p>
+        <p className="text-sm text-muted">{arrange ? "Тащите страницу мышью или за ручку под ней – поменять место. Нажмите на страницу – выбрать." : `${plural(pages.length, "страница", "страницы", "страниц")}`}</p>
         {pages.length > 0 ? (
           <span className="flex shrink-0 gap-2">
             <Button variant="soft" className="min-h-10 px-3" onClick={onAdd}>
@@ -575,7 +580,24 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
               onPointerUp={onUp}
               onPointerCancel={onUp}
             >
-              <button type="button" onClick={() => (arrange ? togglePick(page.id) : onOpen(page.id))} className="group block w-full text-left">
+              <button
+                type="button"
+                onPointerDown={(event) => {
+                  // Мышью и пером страницу можно взять прямо за миниатюру; пальцем тащат за ручку, чтобы экран прокручивался.
+                  if (!arrange || page.kind === "cover" || event.pointerType === "touch" || (event.pointerType === "mouse" && event.button !== 0)) return;
+                  skipClick.current = true;
+                  onGripDown(event, page, index);
+                }}
+                onClick={() => {
+                  if (skipClick.current) {
+                    skipClick.current = false;
+                    return;
+                  }
+                  if (arrange) togglePick(page.id);
+                  else onOpen(page.id);
+                }}
+                className={cn("group block w-full text-left", arrange && page.kind !== "cover" && "cursor-grab active:cursor-grabbing")}
+              >
                 <div className={cn("thumb-shadow overflow-hidden rounded-[6px] transition", !arrange && "group-active:scale-[0.98]", arrange && page.kind !== "cover" && "animate-[wiggle_0.4s_ease-in-out_infinite_alternate]", target && "ring-4 ring-rose", dragging && "shadow-2xl", arrange && picked.includes(page.id) && "ring-4 ring-night")}>
                   <PageSheet page={page} meta={meta} editing />
                 </div>
