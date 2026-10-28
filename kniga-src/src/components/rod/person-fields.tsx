@@ -169,6 +169,39 @@ export function PersonFields({ value, onChange, others }: { value: PersonDraft; 
               <option value="partners">Живут вместе</option>
             </select>
           ) : null}
+          {value.spouse ? (
+            <div className="mt-3 grid gap-2">
+              {(value.moreSpouses ?? []).map((mate, index) => {
+                const update = (patch: Partial<NonNullable<PersonDraft["moreSpouses"]>[number]>) =>
+                  onChange({ moreSpouses: (value.moreSpouses ?? []).map((item, i) => (i === index ? { ...item, ...patch } : item)) });
+                return (
+                  <div key={index} className="grid grid-cols-[1fr_auto] gap-2 rounded-xl border border-ink/10 bg-white/50 p-2">
+                    <select className="field" value={mate.id} onChange={(event) => update({ id: event.target.value })}>
+                      <option value="">Кто это</option>
+                      {others
+                        .filter((item) => item.id === mate.id || (item.id !== value.spouse && !(value.moreSpouses ?? []).some((m) => m.id === item.id)))
+                        .map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name} ({item.relation})
+                          </option>
+                        ))}
+                    </select>
+                    <button type="button" aria-label="Убрать этот брак" className="grid size-11 place-items-center rounded-full border border-ink/15 text-muted" onClick={() => onChange({ moreSpouses: (value.moreSpouses ?? []).filter((_, i) => i !== index) })}>
+                      <X className="size-4" />
+                    </button>
+                    <select className="field col-span-2" value={mate.status ?? "married"} onChange={(event) => update({ status: event.target.value as "married" | "divorced" | "partners" })}>
+                      <option value="married">В браке</option>
+                      <option value="divorced">Развелись</option>
+                      <option value="partners">Живут вместе</option>
+                    </select>
+                  </div>
+                );
+              })}
+              <button type="button" className="min-h-11 rounded-full border border-moss/50 px-4 text-sm font-semibold text-moss" onClick={() => onChange({ moreSpouses: [...(value.moreSpouses ?? []), { id: "", status: "married" }] })}>
+                + Добавить ещё брак
+              </button>
+            </div>
+          ) : null}
         </Field>
       ) : null}
       {others.length ? (

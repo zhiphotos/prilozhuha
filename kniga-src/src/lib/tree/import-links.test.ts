@@ -39,3 +39,14 @@ test("режим «прямые» от меня показывает всю ли
   const direct = scopeFilter(t.people, t.unions, t.focusId, "direct");
   assert.ok(direct.people.length >= 7);
 });
+
+test("ребёнок с одним родителем в файле не получает жену центра вторым родителем", () => {
+  const list = [
+    mk("me", "Василий", "я", { spouse: "wife" }),
+    mk("wife", "Агафия", "Жена"),
+    mk("son", "Филипп", "Сын", { parents: ["me"] }),
+  ];
+  const t = treeFromPeople(list as never);
+  const u = t.unions.find((x) => x.childIds.includes("son"));
+  assert.deepEqual(u?.partnerIds, ["me"]);
+});

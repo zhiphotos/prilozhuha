@@ -1,3 +1,4 @@
+import { syncRelations, onParentAdded, onSiblingSet, onSpouseAdded, parentsForChild, siblingLinks, type Patch as AutoPatch } from "@/lib/tree/auto-links";
 import { create } from "zustand";
 import { composeName } from "@/lib/rod/person";
 import { isMediaRef, resolveMedia, saveMedia } from "@/lib/rod/media";
@@ -147,6 +148,11 @@ function createPerson(draft: Draft, relation: string, extra: Partial<RodPerson>,
   return useRod.getState().people[0]!.id;
 }
 
+function applyAuto(patch: AutoPatch) {
+  for (const [id, change] of Object.entries(patch)) useRod.getState().updatePerson(id, change);
+  useRod.setState((state) => ({ people: syncRelations(state.people) }));
+}
+
 /** Записывает ручную расстановку в список людей: источник правды остаётся там. */
 function applyPatches(patches: Patch[]) {
   for (const patch of patches) {
@@ -250,12 +256,14 @@ export const useTree = create<State>((set, get) => {
         if (facts?.startYear) extra.unionFrom = facts.startYear;
         if (facts?.endYear) extra.unionTo = facts.endYear;
       } else if (kind === "son" || kind === "daughter") {
-        if (base) extra.parents = [base.id, ...(base.spouse ? [base.spouse] : [])].slice(0, 2);
-      } else if (base) extra.siblingOf = base.id;
+        if (base) extra.parents = parentsForChild(useRod.getState().people, base.id);
+      } else if (base) Object.assign(extra, siblingLinks(base));
       void (async () => {
         const photo = await storedPhoto(draft.photo);
         const created = createPerson(draft, relation, extra, photo);
-        if ((kind === "father" || kind === "mother") && base) useRod.getState().updatePerson(base.id, { parents: [...(base.parents ?? []), created].slice(0, 2) });
+        if ((kind === "father" || kind === "mother") && base) applyAuto(onParentAdded(useRod.getState().people, base.id, created));
+        if (kind === "spouse" && base) applyAuto(onSpouseAdded(useRod.getState().people, base.id, created));
+        useRod.setState((state) => ({ people: syncRelations(state.people) }));
         set({ selectedId: created, unionId: null, roster: false });
       })();
       return null;
@@ -265,12 +273,16 @@ export const useTree = create<State>((set, get) => {
       const other = rod(existingId);
       if (!other) return "Нет такого человека";
       if (kind === "father" || kind === "mother") {
-        if (base) useRod.getState().updatePerson(base.id, { parents: [...(base.parents ?? []), other.id].slice(0, 2) });
+        if (base) applyAuto(onParentAdded(useRod.getState().people, base.id, other.id));
       } else if (kind === "spouse") {
         useRod.getState().updatePerson(other.id, { spouse: base?.id });
+        if (base) applyAuto(onSpouseAdded(useRod.getState().people, base.id, other.id));
       } else if (kind === "son" || kind === "daughter") {
-        if (base) useRod.getState().updatePerson(other.id, { parents: [base.id, ...(base.spouse ? [base.spouse] : [])].slice(0, 2) });
-      } else if (base) useRod.getState().updatePerson(other.id, { siblingOf: base.id });
+        if (base) useRod.getState().updatePerson(other.id, { parents: parentsForChild(useRod.getState().people, base.id) });
+      } else if (base) {
+        useRod.getState().updatePerson(other.id, siblingLinks(base));
+        applyAuto(onSiblingSet(useRod.getState().people, other.id, base.id));
+      }
       set({ selectedId: other.id, unionId: null, roster: false });
       return null;
     },

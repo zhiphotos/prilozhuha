@@ -168,21 +168,32 @@ function cousinWord(steps: number, female = false): string {
   return female ? word.replace(/ый$/, "ая").replace(/ой$/, "ая") : word;
 }
 
+/** Слово по числу поколений вверх: 1 – дядя/тётя, 2 – бабушка/дедушка, 3 – прабабушка/прадедушка и так далее. */
+function elderWord(up: number, g: Gender): string {
+  if (up <= 1) return g === "f" ? "тётя" : g === "m" ? "дядя" : "дядя или тётя";
+  const pra = "пра".repeat(Math.max(0, up - 2));
+  return pra + (g === "f" ? "бабушка" : "дедушка");
+}
+
 function collateralTitle(index: Index, dFocus: number, dOther: number, other: string, half: boolean): string {
   const g = genderOf(index, other);
-  if (dOther === 1 && dFocus === 2) {
-    if (half) return g === "f" ? "Сводная тётя" : "Сводный дядя";
-    return g === "f" ? "Тётя" : g === "m" ? "Дядя" : "Дядя или тётя";
+  if (dOther < dFocus) {
+    // Человек старше меня на несколько поколений: назван по тому, на сколько поколений он выше, а не только по степени родства.
+    const up = dFocus - dOther;
+    if (up === 1 && dOther === 1) {
+      if (half) return g === "f" ? "Сводная тётя" : "Сводный дядя";
+      return g === "f" ? "Тётя" : g === "m" ? "Дядя" : "Дядя или тётя";
+    }
+    // Брат или сестра предка называется «двоюродным», двоюродный брат предка – «троюродным»; у дяди и тёти счёт на единицу меньше.
+    const degree = up === 1 ? dOther : dOther + 1;
+    return `${cap(cousinWord(degree, g === "f"))} ${elderWord(up, g)}`;
   }
-  if (dOther === 1 && dFocus === 3) return g === "f" ? "Двоюродная бабушка" : "Двоюродный дедушка";
-  if (dOther === 1 && dFocus > 3) return g === "f" ? `Тётя (${dFocus})` : `Дядя (${dFocus})`;
   if (dFocus === 1 && dOther === 2) return g === "f" ? "Племянница" : "Племянник";
   if (dFocus === 1 && dOther === 3) return g === "f" ? "Внучатая племянница" : "Внучатый племянник";
   if (dFocus === 1 && dOther > 3) return g === "f" ? `Племянница (${dOther})` : `Племянник (${dOther})`;
   const near = Math.min(dFocus, dOther);
   const word = cap(cousinWord(near, g === "f"));
   if (dFocus === dOther) return g === "f" ? `${word} сестра` : `${word} брат`;
-  if (dOther < dFocus) return g === "f" ? `${word} тётя` : `${word} дядя`;
   return g === "f" ? `${word} племянница` : `${word} племянник`;
 }
 
@@ -330,9 +341,18 @@ export function kinship(people: Person[], unions: Union[], focusId: string, pers
 
 export function displayName(person: Person, style: "card" | "full" = "card"): string {
   if (style === "full") {
-    return [person.firstName, person.patronymic, person.lastName].filter(Boolean).join(" ");
+    const full = [person.firstName, person.patronymic, person.lastName].filter(Boolean).join(" ");
+    return person.maidenName && full ? `${full} (${person.maidenName})` : full;
   }
   return [person.firstName, person.lastName].filter(Boolean).join(" ") || "Без имени";
+}
+
+/** Подпись на карточке: сверху фамилия (в скобках девичья), ниже имя и отчество. */
+export function nameLines(person: Person): { top: string; bottom: string } {
+  const surname = person.lastName ? (person.maidenName ? `${person.lastName} (${person.maidenName})` : person.lastName) : "";
+  const rest = [person.firstName, person.patronymic].filter(Boolean).join(" ");
+  if (!surname) return { top: rest || "Без имени", bottom: "" };
+  return { top: surname, bottom: rest };
 }
 
 /** Полное ФИО (имя, отчество, фамилия) для подписи в древе. */
@@ -345,7 +365,10 @@ export function fullName(person: Person): string {
  * а если и так не влезает, подпись сжимается по ширине (textLength).
  */
 export function fitName(person: Person, maxW: number, base: number, min = 9): { text: string; size: number; textLength?: number } {
-  const text = fullName(person);
+  return fitText(fullName(person), maxW, base, min);
+}
+
+export function fitText(text: string, maxW: number, base: number, min = 9): { text: string; size: number; textLength?: number } {
   const wide = (size: number) => text.length * size * 0.52;
   const size = Math.max(min, Math.min(base, Math.floor((maxW / (text.length * 0.52)) * 10) / 10));
   return wide(size) > maxW ? { text, size, textLength: maxW } : { text, size };

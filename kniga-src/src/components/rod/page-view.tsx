@@ -33,7 +33,6 @@ const DarkPage = createContext(false);
 export const PageBlocks = createContext<PageBlock[]>([]);
 
 /** Высота страницы в единицах ширины (для координат по вертикали). */
-export const PAGE_H = INK_PAGE_H;
 
 export const inkColor = inkColorOf;
 
@@ -163,7 +162,7 @@ function StampShape({ stroke }: { stroke: InkStroke }) {
 /** Старые чернила поверх всей страницы (новые рисунки – блоки «ink») и штрих, который рисуется прямо сейчас. */
 export function InkLayer({ strokes, live }: { strokes: InkStroke[]; live?: InkStroke | null }) {
   return (
-    <svg viewBox={`0 0 100 ${PAGE_H}`} className="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible">
+    <svg viewBox={`0 0 100 ${INK_PAGE_H}`} className="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible">
       {[...strokes, ...(live ? [live] : [])].map((stroke) => (
         <StrokeShape key={stroke.id} stroke={stroke} />
       ))}
@@ -260,9 +259,9 @@ function BlockArtInner({ block, editing = false }: { block: PageBlock; editing?:
 
 export function ShapeArt({ block }: { block: Extract<PageBlock, { type: "shape" }> }) {
   const style = shapeStyle(block);
-  const parts = shapeParts(block.shape, block.w, (block.h * 100) / PAGE_H, style.strokeW);
+  const parts = shapeParts(block.shape, block.w, (block.h * 100) / INK_PAGE_H, style.strokeW);
   return (
-    <svg viewBox={`0 0 ${block.w} ${(block.h * 100) / PAGE_H}`} className="block h-full w-full overflow-visible" preserveAspectRatio="none">
+    <svg viewBox={`0 0 ${block.w} ${(block.h * 100) / INK_PAGE_H}`} className="block h-full w-full overflow-visible" preserveAspectRatio="none">
       {parts.map((part, i) => (
         <path
           key={i}
@@ -281,8 +280,9 @@ export function ShapeArt({ block }: { block: Extract<PageBlock, { type: "shape" 
 
 export function InkArt({ block, editing }: { block: Extract<PageBlock, { type: "ink" }>; editing: boolean }) {
   return (
-    <svg viewBox={`0 0 ${block.ow} ${block.oh}`} preserveAspectRatio="none" className="pointer-events-none block h-full w-full overflow-visible">
-      {block.fill ? <FillImage src={block.fill} w={block.ow} h={block.oh} editing={editing} /> : null}
+    // Линии лежат в «единицах ширины страницы», поэтому высота рамки тоже в них (на высокой странице иначе рисунок вытягивался вниз).
+    <svg viewBox={`0 0 ${block.ow} ${(block.oh * INK_PAGE_H) / 100}`} preserveAspectRatio="none" className="pointer-events-none block h-full w-full overflow-visible">
+      {block.fill ? <FillImage src={block.fill} w={block.ow} h={(block.oh * INK_PAGE_H) / 100} editing={editing} /> : null}
       {block.strokes.map((stroke) => (
         <StrokeShape key={stroke.id} stroke={stroke} />
       ))}
@@ -315,7 +315,7 @@ function FillImage({ src, w, h, editing }: { src: string; w: number; h: number; 
 
 function hitPoints(points: number[]) {
   const pairs: string[] = [];
-  for (let i = 0; i + 1 < points.length; i += 2) pairs.push(`${points[i]},${(points[i + 1] * PAGE_H) / 100}`);
+  for (let i = 0; i + 1 < points.length; i += 2) pairs.push(`${points[i]},${(points[i + 1] * INK_PAGE_H) / 100}`);
   return pairs.join(" ");
 }
 
@@ -343,6 +343,7 @@ export function TextArt({ block, editing }: { block: Extract<PageBlock, { type: 
           fontWeight: fontWeight(block.font),
           fontSize: `${metrics.size}cqw`,
           lineHeight: metrics.leading,
+          wordSpacing: block.wordGap ? `${block.wordGap}em` : undefined,
           color: colors.fg,
         }}
       >
@@ -361,6 +362,7 @@ export function TextArt({ block, editing }: { block: Extract<PageBlock, { type: 
         fontWeight: fontWeight(block.font),
         fontSize: `${metrics.size}cqw`,
         lineHeight: metrics.leading,
+        wordSpacing: block.wordGap ? `${block.wordGap}em` : undefined,
         padding: `${pad.y}cqw ${pad.x}cqw`,
         background: colors.bg,
         color: colors.fg,

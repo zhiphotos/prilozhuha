@@ -149,6 +149,11 @@ function TreeScreen() {
           selectUnion(null);
           setCenterReq({ id: focusId, n: Date.now() });
         }}
+        onJump={(id) => {
+          selectPerson(null);
+          selectUnion(null);
+          setCenterReq({ id, n: Date.now() });
+        }}
         onClear={() => {
           selectPerson(null);
           selectUnion(null);

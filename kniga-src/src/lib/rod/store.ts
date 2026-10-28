@@ -1,3 +1,4 @@
+import { applyPatch, onSiblingSet, syncRelations } from "@/lib/tree/auto-links";
 import { toast } from "sonner";
 import { bumpUsage, searchesLeft, type SearchUsage } from "@/lib/rod/search-limit";
 import { create } from "zustand";
@@ -293,9 +294,12 @@ export const useRod = create<RodState>()(
           people: [{ ...input, id: uid() }, ...state.people],
         })),
       updatePerson: (id, patch) =>
-        set((state) => ({
-          people: state.people.map((person) => (person.id === id ? { ...person, ...patch } : person)),
-        })),
+        set((state) => {
+          let people = state.people.map((person) => (person.id === id ? { ...person, ...patch } : person));
+          if (patch.siblingOf) people = applyPatch(people, onSiblingSet(people, id, patch.siblingOf));
+          if (!("relation" in patch) && ("parents" in patch || "spouse" in patch || "siblingOf" in patch || "moreSpouses" in patch)) people = syncRelations(people);
+          return { people };
+        }),
       removePerson: (id) =>
         set((state) => ({
           people: state.people.filter((person) => person.id !== id).map((person) => {

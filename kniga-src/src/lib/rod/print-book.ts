@@ -2,7 +2,7 @@
 import { ensureLibraryFont, libraryIdsIn } from "@/lib/rod/fonts";
 import { resolveMedia } from "@/lib/rod/media";
 import { cropGeom } from "@/lib/rod/crop";
-import { strokeGeom } from "@/lib/rod/ink";
+import { PAGE_H, strokeGeom } from "@/lib/rod/ink";
 import { maskImageUrl } from "@/lib/rod/mask";
 import {
   COLORS,
@@ -58,7 +58,30 @@ async function loadMedia(src: string) {
   return loadImage(await resolveMedia(src));
 }
 
-function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+/** Ширина строки с добавкой между словами (не все браузеры умеют wordSpacing у холста, поэтому считаем сами). */
+function widthWith(ctx: CanvasRenderingContext2D, text: string, gap: number): number {
+  return ctx.measureText(text).width + (gap ? (text.split(" ").length - 1) * gap : 0);
+}
+
+/** Строка по словам с добавкой между словами; выравнивание как у обычного fillText. */
+function fillLine(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, gap: number) {
+  if (!gap || !text.includes(" ")) {
+    ctx.fillText(text, x, y);
+    return;
+  }
+  const align = ctx.textAlign;
+  const total = widthWith(ctx, text, gap);
+  let at = align === "center" ? x - total / 2 : align === "right" ? x - total : x;
+  ctx.textAlign = "left";
+  const space = ctx.measureText(" ").width + gap;
+  for (const word of text.split(" ")) {
+    ctx.fillText(word, at, y);
+    at += ctx.measureText(word).width + space;
+  }
+  ctx.textAlign = align;
+}
+
+function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, gap = 0): string[] {
   const lines: string[] = [];
   text.split("\n").forEach((paragraph) => {
     const words = paragraph.split(/\s+/).filter(Boolean);
@@ -69,7 +92,7 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
     let line = "";
     // Слово длиннее строки режем по буквам – как на экране (break-words), иначе оно уезжает за край листа.
     const pieces = words.flatMap((word) => {
-      if (ctx.measureText(word).width <= maxWidth) return [word];
+      if (widthWith(ctx, word, 0) <= maxWidth) return [word];
       const parts: string[] = [];
       let chunk = "";
       for (const ch of word) {
@@ -83,7 +106,7 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
     });
     pieces.forEach((word) => {
       const next = line ? `${line} ${word}` : word;
-      if (ctx.measureText(next).width <= maxWidth || !line) line = next;
+      if (widthWith(ctx, next, gap) <= maxWidth || !line) line = next;
       else {
         lines.push(line);
         line = word;
@@ -251,9 +274,10 @@ function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { ty
   ctx.font = `${fontWeight(block.font)} ${px}px ${fontFamily(block.font)}`;
   const boxW = (block.w / 100) * W;
   const innerW = boxW - pad.x * 2 * U;
+  const gap = (block.wordGap ?? 0) * px;
   if (block.wrap && block.look !== "card" && block.look !== "pill") {
     // Текст обтекает фото и стикеры: те же строки, что на экране.
-    const around = flowAround(block, obstaclesFor(siblings, block), (text) => ctx.measureText(text).width / U, metrics.size * metrics.leading, pad);
+    const around = flowAround(block, obstaclesFor(siblings, block), (text) => widthWith(ctx, text, gap) / U, metrics.size * metrics.leading, pad);
     const ax = (block.x / 100) * W;
     const ay = (block.y / 100) * H;
     ctx.save();
@@ -261,12 +285,12 @@ function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { ty
     ctx.fillStyle = colors.fg;
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";
-    around.lines.forEach((line) => ctx.fillText(line.text, line.x * U, (line.y + metrics.size * metrics.leading / 2) * U));
+    around.lines.forEach((line) => fillLine(ctx, line.text, line.x * U, (line.y + metrics.size * metrics.leading / 2) * U, gap));
     ctx.restore();
     return;
   }
-  const lines = wrap(ctx, block.text, innerW);
-  const textW = Math.max(...lines.map((line) => ctx.measureText(line).width), 0);
+  const lines = wrap(ctx, block.text, innerW, gap);
+  const textW = Math.max(...lines.map((line) => widthWith(ctx, line, gap)), 0);
   const bgW = block.look === "pill" ? Math.min(boxW, textW + pad.x * 2 * U) : boxW;
   const bgH = lines.length * lh + pad.y * 2 * U;
   const x = (block.x / 100) * W;
@@ -287,7 +311,7 @@ function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { ty
   ctx.textAlign = center ? "center" : right ? "right" : "left";
   lines.forEach((line, index) => {
     const ly = pad.y * U + index * lh + lh / 2;
-    ctx.fillText(line, center ? bgW / 2 : right ? bgW - pad.x * U : pad.x * U, ly);
+    fillLine(ctx, line, center ? bgW / 2 : right ? bgW - pad.x * U : pad.x * U, ly, gap);
   });
   ctx.restore();
 }
@@ -436,10 +460,12 @@ async function paintInk(ctx: CanvasRenderingContext2D, block: Extract<PageBlock,
   const h = (block.h / 100) * H;
   ctx.save();
   rotateAround(ctx, x, y, w, h, block.rotate ?? 0);
-  ctx.scale(w / block.ow, h / block.oh);
+  // Линии лежат в «единицах ширины страницы»: высота рамки в тех же единицах.
+  const ohUnits = (block.oh * PAGE_H) / 100;
+  ctx.scale(w / block.ow, h / ohUnits);
   if (block.fill) {
     const fill = await loadMedia(block.fill);
-    if (fill) ctx.drawImage(fill, 0, 0, block.ow, block.oh);
+    if (fill) ctx.drawImage(fill, 0, 0, block.ow, ohUnits);
   }
   paintStrokeList(ctx, block.strokes);
   ctx.restore();

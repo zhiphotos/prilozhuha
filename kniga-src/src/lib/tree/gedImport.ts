@@ -7,6 +7,7 @@ export type ImportedPerson = {
   firstName: string;
   patronymic: string;
   lastName: string;
+  maidenName?: string;
   relation: string;
   birthYear: string;
   deathYear?: string;
@@ -49,6 +50,7 @@ export function gedToPeople(tree: TreeData, selfKey: string): ImportedPerson[] {
       firstName: p.firstName,
       patronymic: p.patronymic,
       lastName: p.lastName,
+      maidenName: p.maidenName,
       relation,
       birthYear: p.birthYear,
       deathYear: p.deathYear || undefined,

@@ -30,6 +30,7 @@ export function AddPerson({
   const [spouseGender, setSpouseGender] = useState<Gender>("f");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [patronymic, setPatronymic] = useState("");
   const [birthYear, setBirthYear] = useState("");
   const [unionId, setUnionId] = useState("");
   const [picking, setPicking] = useState(false);
@@ -59,6 +60,7 @@ export function AddPerson({
     const draft = {
       ...emptyDraft(gender),
       firstName: firstName.trim(),
+      patronymic: patronymic.trim(),
       lastName: (lastName.trim() || suggested).trim(),
       birthYear,
       gender,
@@ -172,6 +174,10 @@ export function AddPerson({
               <label className="field">
                 Фамилия
                 <input value={lastName} placeholder={suggested || "Можно оставить пустой"} onChange={(e) => setLastName(e.target.value)} />
+              </label>
+              <label className="field">
+                Отчество
+                <input value={patronymic} placeholder="Если знаете" onChange={(e) => setPatronymic(e.target.value)} />
               </label>
               <label className="field">
                 Год рождения

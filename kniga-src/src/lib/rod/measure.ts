@@ -4,7 +4,7 @@ import { flowAround, obstaclesFor } from "@/lib/rod/wrap-around";
 import type { PageBlock } from "@/lib/rod/types";
 
 type TextBlock = Extract<PageBlock, { type: "text" }>;
-export type TextStyle = Pick<TextBlock, "font" | "size" | "px" | "look"> & { w: number };
+export type TextStyle = Pick<TextBlock, "font" | "size" | "px" | "look" | "wordGap"> & { w: number };
 
 let ctx: CanvasRenderingContext2D | null = null;
 const canvas = () => (ctx ??= document.createElement("canvas").getContext("2d"));
@@ -17,6 +17,9 @@ export function wrapLines(text: string, style: TextStyle): string[] {
   const pad = lookPad(style.look);
   context.font = `${fontWeight(style.font)} ${metrics.size * 10}px ${fontFamily(style.font)}`;
   const widthPx = Math.max(40, (style.w - pad.x * 2) * 10);
+  const gapPx = (style.wordGap ?? 0) * metrics.size * 10;
+  const measureCtx = context;
+  const widthOf = (text: string) => measureCtx.measureText(text).width + (text.split(" ").length - 1) * gapPx;
   const lines: string[] = [];
   for (const paragraph of text.split("\n")) {
     if (!paragraph.trim()) {
@@ -26,7 +29,7 @@ export function wrapLines(text: string, style: TextStyle): string[] {
     let line = "";
     for (const word of paragraph.split(/\s+/).filter(Boolean)) {
       const test = line ? `${line} ${word}` : word;
-      if (line && context.measureText(test).width > widthPx) {
+      if (line && widthOf(test) > widthPx) {
         lines.push(line);
         line = word;
       } else line = test;
@@ -42,7 +45,8 @@ export function wrapAroundLines(block: TextBlock, blocks: PageBlock[]) {
   const metrics = textMetrics(block.font, block.size, block.px);
   const pad = lookPad(block.look);
   if (context) context.font = `${fontWeight(block.font)} ${metrics.size * 10}px ${fontFamily(block.font)}`;
-  const measure = (text: string) => (context ? context.measureText(text).width / 10 : text.length * metrics.size * 0.5);
+  const gap = (block.wordGap ?? 0) * metrics.size;
+  const measure = (text: string) => (context ? context.measureText(text).width / 10 : text.length * metrics.size * 0.5) + (text.split(" ").length - 1) * gap;
   return flowAround(block, obstaclesFor(blocks, block), measure, metrics.size * metrics.leading, pad);
 }
 

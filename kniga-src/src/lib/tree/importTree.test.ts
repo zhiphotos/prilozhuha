@@ -33,7 +33,7 @@ test("gedcom keeps spouses side by side and children under them", () => {
   assert.equal(result.tree.people.length, 3);
   const ivan = result.tree.people.find((p) => p.firstName === "Иван");
   assert.equal(ivan?.patronymic, "Петрович");
-  assert.equal(ivan?.birthYear, "1920");
+  assert.equal(ivan?.birthYear, "12.03.1920");
   assert.equal(result.tree.unions[0]?.partnerIds.length, 2);
   assert.deepEqual(result.tree.unions[0]?.childIds, ["I3"]);
   assert.equal(result.tree.unions[0]?.status, "divorced");

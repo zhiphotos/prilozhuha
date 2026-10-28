@@ -69,6 +69,7 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
       deathYear: p.deathYear ?? "",
       photo: p.photo ?? "",
       note: p.notes ?? "",
+      maidenName: last.trim() && p.maidenName?.trim() && p.maidenName.trim().toLowerCase() !== last.trim().toLowerCase() ? p.maidenName.trim() : undefined,
       side: p.treeSide,
       rank: p.treeRank,
     });
@@ -152,7 +153,12 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     const explicit = (p.parents ?? []).filter((id) => known.has(id) && id !== p.id && !(!p.fromFile && role === "sibling" && badKin.has(roleOf(people.find((q) => q.id === id)?.relation ?? "")) ));
     if (explicit.length) { addChild(explicit.slice(0, 2), p.id); continue; }
     if (p.siblingOf && known.has(p.siblingOf)) {
-      const other = unions.find((u) => u.childIds.includes(p.siblingOf!));
+      let other = unions.find((u) => u.childIds.includes(p.siblingOf!));
+      if (!other && !p.fromFile && !(people.find((q) => q.id === p.siblingOf)?.parents ?? []).length) {
+        // У того, чей это брат или сестра, родителей пока нет: рядом появляются пустые «Мама» и «Папа», общие для обоих.
+        addChild([ghost("father", p.siblingOf), ghost("mother", p.siblingOf)], p.siblingOf);
+        other = unions.find((u) => u.childIds.includes(p.siblingOf!));
+      }
       if (other) { other.childIds.push(p.id); continue; }
     }
     if (p.fromFile) continue;
@@ -208,7 +214,8 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
   const spouseOfSelf = people.find((p) => !p.fromFile && roleOf(p.relation) === "spouse") ?? people.find((p) => roleOf(p.relation) === "spouse" && p.spouse === selfId);
   if (spouseOfSelf && !unions.some((u) => u.partnerIds.includes(spouseOfSelf.id))) unionFor([selfId, spouseOfSelf.id]);
   // Дети, у которых есть супруг «меня», уходят в общий союз.
-  if (spouseOfSelf) {
+  // Для людей из файла связи точные: ребёнок с одним родителем остаётся с одним (жена бывает второй, а не мать).
+  if (spouseOfSelf && !selfRec?.fromFile) {
     const solo = unions.find((u) => u.partnerIds.length === 1 && u.partnerIds[0] === selfId);
     const pair = unions.find((u) => u.partnerIds.includes(selfId) && u.partnerIds.includes(spouseOfSelf.id));
     if (solo && pair) { pair.childIds.push(...solo.childIds); unions.splice(unions.indexOf(solo), 1); }

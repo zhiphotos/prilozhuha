@@ -1,3 +1,4 @@
+import { normalizeDate } from "./date-parse.ts";
 import type { Person, TreeData, Union, UnionStatus } from "./types.ts";
 
 /**
@@ -47,8 +48,8 @@ export function parseAgelongXml(text: string): { tree: TreeData } | { error: str
       patronymic,
       lastName: last || clean(full.split(/\s+/)[0] ?? ""),
       gender: sex === "М" ? "m" : sex === "Ж" ? "f" : "u",
-      birthYear: year(attr(head, "bdate")),
-      deathYear: year(attr(head, "ddate")),
+      birthYear: normalizeDate(attr(head, "bdate")),
+      deathYear: normalizeDate(attr(head, "ddate")),
       photo: "",
       note: "",
     });

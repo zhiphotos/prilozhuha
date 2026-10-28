@@ -23,6 +23,7 @@ import {
   RotateCcw,
   Smile,
   Sparkles,
+  SquareMousePointer,
   Trash2,
   Type,
   Undo2,
@@ -75,6 +76,9 @@ type Gesture = {
   ratio?: number | null;
   last?: Box;
   crop0?: { cx: number; cy: number; z: number };
+  /** Несколько выделенных блоков двигаются вместе: исходные рамки и новые. */
+  members?: { id: string; box: Box }[];
+  lastMembers?: Record<string, Box>;
 };
 type Draw = {
   pointerId: number;
@@ -223,6 +227,13 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const draftRef = useRef<PageBlock | null>(null);
   const draftFrame = useRef<number | undefined>(undefined);
   const [ghost, setGhost] = useState<{ id: string; box: Box } | null>(null);
+  /** Несколько выделенных блоков (Shift/Ctrl + нажатие или рамка выделения мышью). */
+  const [group, setGroup] = useState<string[]>([]);
+  /** Режим «выбрать несколько»: нажатия на блоки добавляют их к выделению (для пальца, где нет Shift). */
+  const [pickMode, setPickMode] = useState(false);
+  const [ghostGroup, setGhostGroup] = useState<Record<string, Box> | null>(null);
+  const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+  const marqueeRef = useRef<{ pointerId: number; x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [busy, setBusy] = useState<Record<string, string>>({});
   const [dropping, setDropping] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -406,6 +417,15 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     if (!quiet) toast("Удалено", { action: { label: "Вернуть", onClick: doUndo } });
   };
 
+  /** Удаляет все выделенные блоки одним шагом (один «Вернуть» возвращает всё). */
+  const removeGroup = () => {
+    const ids = new Set(group);
+    commit((p) => ({ ...p, blocks: p.blocks.filter((b) => !ids.has(b.id) || b.locked) }));
+    setGroup([]);
+    setSelected(null);
+    toast("Удалено", { action: { label: "Вернуть", onClick: doUndo } });
+  };
+
   const addBlock = (block: PageBlock) => {
     commit((p) => ({ ...p, blocks: [...p.blocks, block] }));
     setSelected(block.id);
@@ -460,8 +480,15 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         if (pipette) setPipette(null);
         else if (editing) setEditing(null);
         else if (cropping) setCropping(false);
+        else if (group.length) setGroup([]);
+        else if (pickMode) setPickMode(false);
         else if (selected) setSelected(null);
         else if (tool !== "hand") setTool("hand");
+      }
+      if ((event.key === "Delete" || event.key === "Backspace") && group.length > 1 && !typing && !panel) {
+        event.preventDefault();
+        removeGroup();
+        return;
       }
       if ((event.key === "Delete" || event.key === "Backspace") && selected && !typing && !panel) {
         const block = current()?.blocks.find((b) => b.id === selected);
@@ -987,6 +1014,14 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   };
 
   const onSheetMove = (event: React.PointerEvent) => {
+    const m = marqueeRef.current;
+    if (m && m.pointerId === event.pointerId) {
+      const at = toPct(event.clientX, event.clientY);
+      m.x1 = at.x;
+      m.y1 = at.y;
+      if (Math.hypot(m.x1 - m.x0, m.y1 - m.y0) > 0.8) setMarquee({ x0: m.x0, y0: m.y0, x1: m.x1, y1: m.y1 });
+      return;
+    }
     if (tool !== "hand") updateCursor(event, event.pointerType !== "touch" || Boolean(drawing.current));
     const draw = drawing.current;
     if (draw && draw.pointerId === event.pointerId) {
@@ -1054,6 +1089,31 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   };
 
   const onSheetUp = (event: React.PointerEvent) => {
+    const m = marqueeRef.current;
+    if (m && m.pointerId === event.pointerId) {
+      marqueeRef.current = null;
+      setMarquee(null);
+      const left = Math.min(m.x0, m.x1);
+      const right = Math.max(m.x0, m.x1);
+      const top = Math.min(m.y0, m.y1);
+      const bottom = Math.max(m.y0, m.y1);
+      if (right - left < 0.8 && bottom - top < 0.8) return;
+      const hits = (current()?.blocks ?? [])
+        .filter((b) => !b.locked && !(b.type === "ink" && !b.strokes.length))
+        .filter((b) => {
+          const w = blockW(b as { type: string; w?: number });
+          const h = heightOf(b);
+          return b.x < right && b.x + w > left && b.y < bottom && b.y + h > top;
+        })
+        .map((b) => b.id);
+      if (hits.length > 1) {
+        setGroup(hits);
+        setSelected(null);
+      } else if (hits.length === 1) {
+        setSelected(hits[0]!);
+      }
+      return;
+    }
     const draw = drawing.current;
     if (draw && draw.pointerId === event.pointerId) {
       window.clearTimeout(draw.still);
@@ -1087,6 +1147,17 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       setSelected(null);
       setEditing(null);
       setCropping(false);
+      setGroup([]);
+      // Мышью: тянем рамку по пустому месту, все блоки внутри выделяются разом.
+      if (tool === "hand" && ((event.pointerType === "mouse" && event.button === 0) || pickMode)) {
+        const at = toPct(event.clientX, event.clientY);
+        marqueeRef.current = { pointerId: event.pointerId, x0: at.x, y0: at.y, x1: at.x, y1: at.y };
+        try {
+          sheetRef.current?.setPointerCapture(event.pointerId);
+        } catch {
+          /* указатель уже отпущен */
+        }
+      }
     }
   };
 
@@ -1097,15 +1168,31 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     if (editing === block.id && mode === "move") return;
     event.stopPropagation();
     event.preventDefault();
+    // Shift / Ctrl / ⌘ + нажатие: добавить блок к выделению или убрать из него.
+    if (mode === "move" && (pickMode || (event.pointerType === "mouse" && (event.shiftKey || event.metaKey || event.ctrlKey)))) {
+      const base = group.length ? group : selected ? [selected] : [];
+      const next = base.includes(block.id) ? base.filter((x) => x !== block.id) : [...base, block.id];
+      setGroup(next.length > 1 ? next : []);
+      setSelected(next.length === 1 ? next[0]! : null);
+      setEditing(null);
+      return;
+    }
     if (touches.current.size >= 2) return;
     if (editing && editing !== block.id) setEditing(null);
     const wrapper = (event.currentTarget as HTMLElement).closest("[data-block]") as HTMLElement | null;
     const rect = wrapper?.getBoundingClientRect();
     const center = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined;
     const box = boxOf(block);
-    const ratio = (block.type === "photo" && block.cut && block.frame === "sticker") || block.type === "ink" ? block.h / block.w : null;
+    // Фото и рисунок растягиваем только пропорционально: иначе картинку «обрезает» по краям рамки, когда её двигают за угол.
+    const ratio = block.type === "photo" || block.type === "ink" ? block.h / block.w : null;
     const cropGesture = cropping && block.type === "photo" && selected === block.id && mode === "move";
+    const inGroup = mode === "move" && group.length > 1 && group.includes(block.id);
+    const members = inGroup
+      ? (current()?.blocks ?? []).filter((b) => group.includes(b.id) && !b.locked).map((b) => ({ id: b.id, box: boxOf(b) }))
+      : undefined;
+    if (!inGroup && group.length) setGroup([]);
     gesture.current = {
+      members,
       id: block.id,
       mode: cropGesture ? "crop" : mode,
       pointerId: event.pointerId,
@@ -1124,7 +1211,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     } catch {
       /* указатель уже отпущен */
     }
-    setSelected(block.id);
+    if (!inGroup) setSelected(block.id);
   };
 
   const moveGesture = (event: React.PointerEvent) => {
@@ -1138,6 +1225,20 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     g.moved = true;
     const dx = (dxPx / rect.width) * 100;
     const dy = (dyPx / rect.height) * 100;
+    if (g.members && g.mode === "move") {
+      const next: Record<string, Box> = {};
+      // Сдвиг ограничиваем для всей группы сразу: расстояния между блоками не меняются, даже когда один дошёл до края.
+      const loX = Math.max(...g.members.map((m) => -m.box.w + 6 - m.box.x));
+      const hiX = Math.min(...g.members.map((m) => 94 - m.box.x));
+      const loY = Math.max(...g.members.map((m) => -6 - m.box.y));
+      const hiY = Math.min(...g.members.map((m) => 96 - m.box.y));
+      const gx = clamp(dx, Math.min(loX, hiX), hiX);
+      const gy = clamp(dy, Math.min(loY, hiY), hiY);
+      for (const m of g.members) next[m.id] = { ...m.box, x: m.box.x + gx, y: m.box.y + gy };
+      g.lastMembers = next;
+      setGhostGroup(next);
+      return;
+    }
     if (g.mode === "crop") {
       const block = current()?.blocks.find((b) => b.id === g.id);
       if (!block || block.type !== "photo" || !g.crop0) return;
@@ -1170,6 +1271,36 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     gesture.current = null;
     const final = g.last ?? null;
     setGhost(null);
+    if (g.members) {
+      const moved = g.lastMembers;
+      setGhostGroup(null);
+      if (g.moved && moved) {
+        commit((p) => {
+          // Охранное поле подвигает группу целиком: берём самую большую поправку и применяем её ко всем, чтобы блоки не слиплись у края.
+          let cdx = 0;
+          let cdy = 0;
+          for (const b of p.blocks) {
+            const box = moved[b.id];
+            if (!box) continue;
+            const fit = fitSafe({ ...b, x: round(box.x), y: round(box.y) } as PageBlock);
+            if (Math.abs(fit.x - box.x) > Math.abs(cdx)) cdx = fit.x - box.x;
+            if (Math.abs(fit.y - box.y) > Math.abs(cdy)) cdy = fit.y - box.y;
+          }
+          return {
+            ...p,
+            blocks: p.blocks.map((b) => {
+              const box = moved[b.id];
+              return box ? ({ ...b, x: round(box.x + cdx), y: round(box.y + cdy) } as PageBlock) : b;
+            }),
+          };
+        });
+      } else {
+        // Просто нажали на блок из выделения: выделение сжимается до него одного, как в папках на компьютере.
+        setGroup([]);
+        setSelected(g.id);
+      }
+      return;
+    }
     const block = current()?.blocks.find((b) => b.id === g.id);
     if (!block) return;
     if (g.mode === "crop") return;
@@ -1474,6 +1605,19 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           <IconBtn label="Вернуть отменённое" disabled={!redo.current.length} onClick={doRedo}>
             <Redo2 className="size-[18px]" />
           </IconBtn>
+          <IconBtn
+            label="Выбрать несколько блоков"
+            active={pickMode}
+            onClick={() => {
+              setTool("hand");
+              setSelected(null);
+              setEditing(null);
+              setGroup([]);
+              setPickMode((value) => !value);
+            }}
+          >
+            <SquareMousePointer className="size-[18px]" />
+          </IconBtn>
           <IconBtn className="max-sm:hidden" label="Содержание: перейти к главе" onClick={() => setPanel("contents")}>
             <ListChecks className="size-[18px]" />
           </IconBtn>
@@ -1538,7 +1682,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             <div
               ref={sheetRef}
               className={cn("book-page-shadow relative z-[5] select-none rounded-[2px]", dropping && "ring-4 ring-rose/60")}
-              style={{ width: size.w * zoom, cursor: pipette ? "crosshair" : cursor, touchAction: tool === "hand" && zoom > 1 ? "pan-x pan-y" : "none" }}
+              style={{ width: size.w * zoom, cursor: pipette ? "crosshair" : cursor, touchAction: tool === "hand" && zoom > 1 && !pickMode ? "pan-x pan-y" : "none" }}
               onPointerDown={onSheetDown}
               onPointerMove={onSheetMove}
               onPointerUp={onSheetUp}
@@ -1555,7 +1699,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                 {page.blocks.map((blockBase) => {
                   const block = eraseDraft && eraseDraft.id === blockBase.id ? eraseDraft : blockBase;
                   if (block.type === "ink" && !block.strokes.length) return null;
-                  const box = ghost?.id === block.id ? ghost.box : null;
+                  const box = ghost?.id === block.id ? ghost.box : (ghostGroup?.[block.id] ?? null);
                   const shown = box
                     ? ({
                         ...block,
@@ -1577,6 +1721,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                     >
                       <BlockArt block={shown} editing />
                       {editing === block.id ? <span className="pointer-events-none absolute -inset-[4px] rounded-[4px] border-2 border-rose" /> : null}
+                      {group.includes(block.id) ? <span className="pointer-events-none absolute -inset-[5px] rounded-[6px] border-2 border-dashed border-rose bg-rose/10" /> : null}
                       {block.locked ? <span className="pointer-events-none absolute -right-1 -top-1 z-20 grid size-[4.2cqw] min-h-4 min-w-4 place-items-center rounded-full bg-night/80 text-paper"><Lock className="size-[60%]" /></span> : null}
                       {cropping && isSel && block.type === "photo" ? <span className="pointer-events-none absolute inset-0 grid place-items-center bg-night/10 text-[2.6cqw] font-semibold text-white [text-shadow:0_1px_3px_rgba(0,0,0,.6)]">Двигайте фото пальцем</span> : null}
                       {busy[block.id] ? (
@@ -1615,6 +1760,41 @@ export function EditorScreen({ pageId }: { pageId: string }) {
               <svg viewBox={`0 0 100 ${PAGE_H}`} className="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible">
                 <g ref={livePath} />
               </svg>
+              {marquee ? (
+                <div
+                  className="pointer-events-none absolute z-40 border border-rose bg-rose/10"
+                  style={{ left: `${Math.min(marquee.x0, marquee.x1)}%`, top: `${Math.min(marquee.y0, marquee.y1)}%`, width: `${Math.abs(marquee.x1 - marquee.x0)}%`, height: `${Math.abs(marquee.y1 - marquee.y0)}%` }}
+                />
+              ) : null}
+              {group.length > 1 || pickMode ? (
+                <div className="absolute left-1/2 top-2 z-[45] flex -translate-x-1/2 items-center gap-1 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-ink shadow-md" onPointerDown={(event) => event.stopPropagation()}>
+                  {group.length > 1 ? (
+                    <>
+                      <span className="whitespace-nowrap">Выбрано: {group.length}</span>
+                      <button type="button" className="ml-1 grid min-h-9 place-items-center rounded-full px-3 text-rose-deep" onClick={removeGroup}>
+                        Удалить
+                      </button>
+                      <button type="button" className="grid min-h-9 place-items-center rounded-full px-3 text-muted" onClick={() => setGroup([])}>
+                        Снять
+                      </button>
+                    </>
+                  ) : (
+                    <span className="whitespace-nowrap px-1">Нажимайте на блоки или обведите их</span>
+                  )}
+                  {pickMode ? (
+                    <button
+                      type="button"
+                      className="grid min-h-9 place-items-center rounded-full bg-night px-3 text-paper"
+                      onClick={() => {
+                        setPickMode(false);
+                        setGroup([]);
+                      }}
+                    >
+                      Готово
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
               {/* Охранное поле и зона корешка */}
               <div
                 className={cn("pointer-events-none absolute z-30 border border-dashed transition-colors", ghost ? "border-rose" : "border-rose/35")}
@@ -2074,7 +2254,7 @@ function Handles({ onTurn, onSize, onDelete, onLock }: { onTurn: (event: React.P
       <button type="button" aria-label="Заблокировать" className="pointer-events-auto absolute -left-5 -top-5 grid size-11 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onLock}>
         <Lock className="size-4" />
       </button>
-      <button type="button" aria-label="Размер" className="handle pointer-events-auto absolute -bottom-5 -right-5 size-11 rounded-full border-[3px] border-rose bg-white shadow-md" onPointerDown={onSize} />
+      <button type="button" aria-label="Размер" className="handle pointer-events-auto absolute -bottom-9 -right-9 size-11 rounded-full border-[3px] border-rose bg-white shadow-md" onPointerDown={onSize} />
     </>
   );
 }
