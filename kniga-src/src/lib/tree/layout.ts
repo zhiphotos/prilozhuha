@@ -7,6 +7,8 @@ let spread: 0 | 1 | 2 = 0;
 const STRAIGHT_SPINE = false;
 /** Проверено замером на её GED: оба приёма не улучшают, а ухудшают раскладку (длиннее линии, нарушается порядок по возрасту). Оставлены выключенными. */
 const PULL_EDGE = false;
+/** Насколько семья супруга тянется к паре (подобрано замером на её GED: братья и сёстры собираются, а ветки не разъезжаются по ширине). */
+const ATTRACT = 12;
 const PARENTS_FIRST = false;
 const SPREAD_EXTRA = [0, 90, 220] as const;
 export function setLayoutSpread(value: 0 | 1 | 2) {
@@ -405,6 +407,22 @@ export function layoutTree(people: Person[], unions: Union[], focusId: string, f
       entry.blocks.push(block);
       clusters.set(key, entry);
     });
+    // Семья супруга тянется к паре: братья и сёстры того, чьи родители стоят в другом месте, собираются рядом с ним.
+    const pullers = new Map<string, number[]>();
+    if (ATTRACT > 0) {
+      blocks.forEach((block, index) => {
+        const own = clusterKey(block, index);
+        for (const id of block.ids) {
+          const parents = (g.parentOf.get(id) ?? []).filter((q) => pos.has(q) && gen.get(q) === level - 1);
+          if (!parents.length) continue;
+          const key2 = parents.slice().sort().join("+");
+          if (key2 === own) continue;
+          const list2 = pullers.get(key2) ?? [];
+          list2.push(pos.get(id)!);
+          pullers.set(key2, list2);
+        }
+      });
+    }
     const sep = gap + SPREAD_EXTRA[spread];
     const list = [...clusters.values()];
     for (const cluster of list) {
@@ -458,6 +476,7 @@ export function layoutTree(people: Person[], unions: Union[], focusId: string, f
         cursor += (block.rel[block.rel.length - 1] ?? 0) + gap;
       }
       cluster.width = cursor - gap;
+      for (const x of pullers.get(cluster.key) ?? []) for (let k = 0; k < ATTRACT; k++) diffs.push(x - cluster.width / 2);
       const move = diffs.length ? diffs.reduce((a, b) => a + b, 0) / diffs.length : null;
       cluster.shift = move ?? cluster.blocks[0]!.base;
     }
