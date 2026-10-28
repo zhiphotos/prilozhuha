@@ -140,10 +140,10 @@ export function PersonFields({ value, onChange, others }: { value: PersonDraft; 
         </Field>
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Год рождения" hint="Можно и полную дату, например 12.03.1948. Появится на ленте. Можно примерно.">
+        <Field label="Дата рождения" hint="Можно только год, 1948, или полную дату, 12.03.1948. Появится на ленте. Можно примерно.">
           <input className="field" value={value.birthYear} onChange={(event) => onChange({ birthYear: event.target.value })} placeholder="1948" />
         </Field>
-        <Field label="Год смерти" hint="Можно и полную дату, например 12.03.1999. Если нужно. Тоже на ленте.">
+        <Field label="Дата смерти" hint="Можно только год или полную дату, 12.03.1999. Если нужно. Тоже на ленте.">
           <input className="field" value={value.deathYear ?? ""} onChange={(event) => onChange({ deathYear: event.target.value })} />
         </Field>
       </div>
