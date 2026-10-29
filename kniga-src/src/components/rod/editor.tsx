@@ -236,6 +236,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const [group, setGroup] = useState<string[]>([]);
   /** Режим «выбрать несколько»: нажатия на блоки добавляют их к выделению (для пальца, где нет Shift). */
   const [pickMode, setPickMode] = useState(false);
+  const [groupColors, setGroupColors] = useState(false);
   const [, setClipTick] = useState(0);
   const [ghostGroup, setGhostGroup] = useState<Record<string, Box> | null>(null);
   const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
@@ -415,6 +416,16 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   const patchBlock = (blockId: string, partial: Partial<PageBlock>, group?: string) =>
     commit((p) => ({ ...p, blocks: p.blocks.map((b) => (b.id === blockId ? ({ ...b, ...partial } as PageBlock) : b)) }), group);
+
+  /** Один цвет для всех выделенных текстов за один шаг: у плашек и карточек меняется фон, у остальных цвет букв. */
+  const colorGroupTexts = (ids: string[], c: string, groupKey?: string) =>
+    commit(
+      (p) => ({
+        ...p,
+        blocks: p.blocks.map((b) => (b.type === "text" && ids.includes(b.id) ? ({ ...b, ...(b.look === "card" || b.look === "pill" ? { bg: c } : { color: c }) } as PageBlock) : b)),
+      }),
+      groupKey,
+    );
 
   const removeBlock = (blockId: string, quiet = false) => {
     commit((p) => ({ ...p, blocks: p.blocks.filter((b) => b.id !== blockId) }));
@@ -2006,6 +2017,11 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                       <button type="button" aria-label="Повернуть группу вправо" className="grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={() => rotateGroup(15)}>
                         ↻
                       </button>
+                      {(current()?.blocks ?? []).some((b) => group.includes(b.id) && b.type === "text") ? (
+                        <button type="button" className="grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={() => setGroupColors(true)}>
+                          Цвет
+                        </button>
+                      ) : null}
                       <button type="button" className="grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={() => copyBlocks()}>
                         Копировать
                       </button>
@@ -2361,6 +2377,15 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             else addText({ font });
             setPanel(null);
           }}
+        />
+      ) : null}
+
+      {groupColors && group.length > 1 ? (
+        <ColorSheet
+          title={`Цвет всех выбранных текстов (${(current()?.blocks ?? []).filter((b) => group.includes(b.id) && b.type === "text").length})`}
+          onPick={(c) => colorGroupTexts(group, c, "color:group")}
+          onClose={() => setGroupColors(false)}
+          onPipette={() => startPipette((c) => colorGroupTexts(group, c))}
         />
       ) : null}
 
