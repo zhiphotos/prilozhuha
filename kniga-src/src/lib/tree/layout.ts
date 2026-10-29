@@ -128,10 +128,19 @@ function orderGroup(g: Graph, ids: string[]): string[] {
     return byBirth(g, a, b) <= 0 ? [a, b] : [b, a];
   }
   const hub = ids.slice().sort((a, b) => (g.marriagesOf.get(b)?.length ?? 0) - (g.marriagesOf.get(a)?.length ?? 0) || byBirth(g, a, b))[0]!;
-  const others = ids.filter((id) => id !== hub).sort((a, b) => marriageYear(g, hub, a) - marriageYear(g, hub, b) || byBirth(g, a, b));
-  if (others.length === 2) return [others[0]!, hub, others[1]!];
-  const mid = Math.ceil(others.length / 2);
-  return [...others.slice(0, mid), hub, ...others.slice(mid)];
+  // Ближе к главному стоит действующий брак, потом более ранний; бывшие супруги уходят наружу и не оказываются между ним и текущей парой.
+  const unionWith = (a: string) => g.unions.find((u) => u.partnerIds.includes(hub) && u.partnerIds.includes(a));
+  const current = (a: string) => (unionWith(a)?.status === "married" || unionWith(a)?.status === "partner" ? 0 : 1);
+  const others = ids.filter((id) => id !== hub).sort((a, b) => current(a) - current(b) || marriageYear(g, hub, a) - marriageYear(g, hub, b) || byBirth(g, a, b) || a.localeCompare(b));
+  if (others.length === 2) {
+    // Два брака: в порядке заключения (при равных годах действующий слева, бывший справа).
+    const chrono = others.slice().sort((a, b) => marriageYear(g, hub, a) - marriageYear(g, hub, b) || current(a) - current(b) || byBirth(g, a, b) || a.localeCompare(b));
+    return [chrono[0]!, hub, chrono[1]!];
+  }
+  const left: string[] = [];
+  const right: string[] = [];
+  others.forEach((id, i) => (i % 2 === 0 ? left : right).push(id));
+  return [...left.reverse(), hub, ...right];
 }
 
 function spouseGroups(g: Graph, ids: string[]): string[][] {
@@ -658,7 +667,17 @@ function rowLabel(delta: number): string {
   return n === 1 ? "Дети" : n === 2 ? "Внуки" : `${n} колено вниз`;
 }
 
+/**
+ * Раскладка читает готовые данные и не должна зависеть от порядка, в котором людей добавляли:
+ * входные списки приводятся к стабильному порядку (по id), дальше работают те же правила, что и раньше.
+ */
 export function layoutTree(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down"): TreeLayout {
+  const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  const sortedUnions = [...unions].sort(byId).map((u) => ({ ...u, childIds: [...u.childIds].sort() }));
+  return layoutCore([...people].sort(byId), sortedUnions, focusId, flow);
+}
+
+function layoutCore(people: Person[], unions: Union[], focusId: string, flow: "down" | "up"): TreeLayout {
   const g = graph(people, unions);
   const gen = assignGenerations(people, unions);
   const focusGen = gen.get(focusId) ?? 0;
