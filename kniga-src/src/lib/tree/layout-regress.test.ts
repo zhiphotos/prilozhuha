@@ -222,3 +222,19 @@ test("свёкор, тесть, муж тёти: пол и подписи по �
   assert.equal(kinship(data.people, data.unions, data.focusId, "fil").title, "Свёкор");
   assert.equal(kinship(data.people, data.unions, data.focusId, "mil").title, "Свекровь");
 });
+
+test("противоречивые связи не растягивают схему: без бесконечных пустых рядов (регрессия: пустое полотно и обрывок наверху)", () => {
+  const cases: [string, TreeData][] = [
+    ["родитель и супруг", mkTree([["me", "f"], ["F", "m"], ["M", "f"]], [union("a", ["F", "M"], ["me"]), union("b", ["F", "me"], [])], "me")],
+    ["круг предков", mkTree([["me", "f"], ["F", "m"], ["M", "f"]], [union("a", ["F", "M"], ["me"]), union("b", ["me"], ["F"])], "me")],
+    ["два куска", mkTree([["me", "f"], ["F", "m"], ["M", "f"], ["a1", "m"], ["a2", "f"], ["k1", "m"]], [union("a", ["F", "M"], ["me"]), union("b", ["F", "me"], []), union("c", ["a1", "a2"], ["k1"])], "me")],
+  ];
+  for (const [label, d] of cases) {
+    const l = layoutTree(d.people, d.unions, d.focusId);
+    const rows = new Set(l.nodes.map((n) => n.y)).size;
+    assert.ok(rows <= d.people.length, `${label}: рядов ${rows} не больше, чем людей`);
+    assert.ok(l.height < 6 * 332, `${label}: высота ${Math.round(l.height)} не раздута`);
+    assert.ok(l.nodes.every((n) => n.y >= 0 && n.y <= l.height && n.x >= 0 && n.x <= l.width), `${label}: карточки внутри полотна`);
+    assert.ok(validateGraph(buildRelationshipGraph(d), d.focusId).length > 0, `${label}: противоречие показано плашкой, не скрыто`);
+  }
+});

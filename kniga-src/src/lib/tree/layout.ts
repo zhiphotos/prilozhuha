@@ -86,23 +86,27 @@ export function assignGenerations(people: Person[], unions: Union[]): Map<string
     }
   }
   // Противоречие (например, дядя женат на племяннице): ребёнок не может оказаться в одном ряду с родителем или выше. Подтягиваем вниз, пока каждый ребёнок не станет строго ниже родителя, а супруги не окажутся в одном ряду. Связи не меняются, только строка.
+  // Подтяжка работает на копии и применяется, только если сошлась. Если связи образуют круг (человек сам себе предок, родитель и супруг одновременно), подтяжка не заканчивается: ряды растут без конца и схема растягивается на тысячи пикселей пустоты. Тогда остаются обычные ряды, а противоречие показывает плашка.
   const limit = people.length + 5;
+  const fixed = new Map(gen);
+  let settled = false;
   for (let round = 0; round < limit; round++) {
     let changed = false;
     for (const union of unions) {
-      const partners = union.partnerIds.filter((id) => gen.has(id));
+      const partners = union.partnerIds.filter((id) => fixed.has(id));
       if (partners.length >= 2) {
-        const top = Math.max(...partners.map((id) => gen.get(id)!));
-        for (const id of partners) if (gen.get(id) !== top) { gen.set(id, top); changed = true; }
+        const top = Math.max(...partners.map((id) => fixed.get(id)!));
+        for (const id of partners) if (fixed.get(id) !== top) { fixed.set(id, top); changed = true; }
       }
-      const parentRow = partners.length ? Math.max(...partners.map((id) => gen.get(id)!)) : null;
+      const parentRow = partners.length ? Math.max(...partners.map((id) => fixed.get(id)!)) : null;
       if (parentRow === null) continue;
       for (const child of union.childIds) {
-        if (gen.has(child) && gen.get(child)! <= parentRow) { gen.set(child, parentRow + 1); changed = true; }
+        if (fixed.has(child) && fixed.get(child)! <= parentRow) { fixed.set(child, parentRow + 1); changed = true; }
       }
     }
-    if (!changed) break;
+    if (!changed) { settled = true; break; }
   }
+  if (settled) for (const [id, value] of fixed) gen.set(id, value);
   let min = Infinity;
   for (const value of gen.values()) min = Math.min(min, value);
   if (!Number.isFinite(min)) min = 0;
