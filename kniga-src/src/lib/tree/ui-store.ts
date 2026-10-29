@@ -8,7 +8,7 @@ import type { UnionFacts } from "./fill.ts";
 import { flipSpouse, moveBranch, type Patch } from "./arrange.ts";
 import { setLayoutSpread } from "./layout.ts";
 import { SELF_ID, roleOf, treeFromPeople } from "./from-people.ts";
-import { buildRelationshipGraph, validateGraph } from "./relgraph.ts";
+import { buildRelationshipGraph, validateGraph, validatePeopleLinks } from "./relgraph.ts";
 import type { TreeScope } from "./scope.ts";
 import type { TreeStyle } from "./styles.ts";
 import type { Gender, Person, Union, UnionStatus } from "./types.ts";
@@ -173,7 +173,7 @@ function applyPatches(patches: Patch[]) {
 function issuesOf(data: ReturnType<typeof treeFromPeople>): string[] {
   const name = (id: string) => data.people.find((p) => p.id === id)?.firstName || "?";
   const found = validateGraph(buildRelationshipGraph(data), data.focusId).map((i) => `${i.message} (${[...new Set(i.ids)].map(name).join(", ")})`);
-  return [...found, ...(data.ambiguous ?? []).map((a) => a.message)];
+  return [...validatePeopleLinks(currentPeople()), ...found, ...(data.ambiguous ?? []).map((a) => a.message)];
 }
 
 export const useTree = create<State>((set, get) => {

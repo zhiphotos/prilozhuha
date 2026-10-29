@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { treeFromPeople, SELF_ID } from "./from-people.ts";
-import { buildRelationshipGraph, calculateGenerations, findSiblings, parentIdsOf, resolveBranch, validateGraph } from "./relgraph.ts";
+import { buildRelationshipGraph, calculateGenerations, findSiblings, parentIdsOf, resolveBranch, validateGraph, validatePeopleLinks } from "./relgraph.ts";
 import type { TreeData } from "./types.ts";
 
 const base = { maidenName: "", notes: "", birthYear: "" };
@@ -115,4 +115,34 @@ test("братья с разными вторыми родителями ост�
   assert.deepEqual(parentIdsOf(g, "b2").sort(), ["m", "x"]);
   assert.deepEqual(parentIdsOf(g, "b1").sort(), ["f", "m"]);
   assert.equal(findSiblings("b1", g).find((s) => s.id === "b2")?.kind, "half");
+});
+
+test("раскладка: бывший муж мамы не втискивается между мамой и папой, сводная сестра на маминой стороне", async () => {
+  const { layoutTree } = await import("./layout.ts");
+  const d = sample();
+  d.people.push(person("pm", "f"), person("pf", "m"));
+  d.unions.push({ id: "u0", partnerIds: ["pf", "pm"], childIds: ["f"], status: "married", startYear: "", endYear: "" });
+  const run = () => layoutTree(d.people, d.unions, "me");
+  const l = run();
+  const x = (id: string) => l.nodes.find((n) => n.id === id)!.x;
+  assert.ok(x("f") < x("m") && x("m") < x("x"), "папа, мама, потом её бывший муж");
+  assert.ok(!(x("f") < x("x") && x("x") < x("m")));
+  assert.ok(x("half") > x("sis") && x("sis") > x("me") - 1);
+  assert.ok(x("half") > x("m") - 1, "сводная сестра по маме правее папиной стороны");
+  assert.deepEqual(run().nodes.map((n) => [n.id, n.x, n.y]), l.nodes.map((n) => [n.id, n.x, n.y]), "повтор даёт тот же результат");
+  const ys = new Map<number, number[]>();
+  for (const n of l.nodes) ys.set(n.y, [...(ys.get(n.y) ?? []), n.x]);
+  for (const xs of ys.values()) { xs.sort((a, b) => a - b); for (let i = 1; i < xs.length; i++) assert.ok(xs[i]! - xs[i - 1]! >= 150, "карточки не перекрываются"); }
+});
+
+test("данные Анны и Ивана: родитель сам себе и супруг-родитель названы точно, данные не тронуты", () => {
+  const people = [
+    { id: "a", name: "Анна", parents: ["i", "a"], spouse: "i" },
+    { id: "i", name: "Иван", spouse: "a" },
+  ];
+  const copy = JSON.stringify(people);
+  const msgs = validatePeopleLinks(people);
+  assert.ok(msgs.some((m) => m.includes("самому себе")));
+  assert.ok(msgs.some((m) => m.includes("супругом")));
+  assert.equal(JSON.stringify(people), copy);
 });

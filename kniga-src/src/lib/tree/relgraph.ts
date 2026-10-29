@@ -155,3 +155,15 @@ export function resolveBranch(personId: string, rootId: string, g: RelationshipG
   for (const m of mates) if (m === personId || up(m).has(personId) || down(m).has(personId) || down(personId).has(m)) return "spouse";
   return "other";
 }
+
+/** Проверка исходных записей «Люди» (до сборки древа): ловит то, что сборка тихо отбрасывает. Данные не меняет. */
+export function validatePeopleLinks(people: { id: string; name: string; parents?: string[]; spouse?: string }[]): string[] {
+  const name = (id: string) => people.find((p) => p.id === id)?.name ?? id;
+  const out: string[] = [];
+  for (const p of people) {
+    const par = p.parents ?? [];
+    if (par.includes(p.id)) out.push(`«${p.name}» записан(а) родителем самому себе: откройте карточку, поле «Чей ребёнок».`);
+    for (const id of par) if (id !== p.id && (p.spouse === id || people.find((q) => q.id === id)?.spouse === p.id)) out.push(`«${p.name}»: родитель «${name(id)}» одновременно записан(а) супругом, проверьте поле «Чей ребёнок».`);
+  }
+  return out;
+}

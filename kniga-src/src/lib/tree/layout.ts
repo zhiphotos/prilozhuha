@@ -306,7 +306,8 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     const cands = block.ids.filter((id) => hasParents(id, block.level) && ancestors.has(id) && (strict || siblingsFamily(id) <= SMALL_FAMILY));
     if (cands.length < 2) continue;
     const order = block.ids.slice();
-    const sorted = cands.slice().sort((a, b) => betterPrimary(a, b, order));
+    // Главным остаётся тот, у кого несколько браков: остальные супруги стоят вокруг него и не оказываются рядом с чужим бывшим мужем или женой.
+    const sorted = cands.slice().sort((a, b) => (g.marriagesOf.get(b)?.length ?? 0) - (g.marriagesOf.get(a)?.length ?? 0) || betterPrimary(a, b, order));
     const main = sorted[0]!;
     for (const other of sorted.slice(1)) {
       const key = [main, other].sort().join("+");
