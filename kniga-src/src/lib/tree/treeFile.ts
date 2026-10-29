@@ -142,7 +142,7 @@ export function buildDiagnostics(people: Person[], opts: { anonymize: boolean; b
     app: { build: opts.build ?? "" },
     counts: { people: src.length, links: countLinks(src), unions: data.unions.length },
     people: src as unknown as Record<string, unknown>[],
-    checks: { raw: validatePeopleLinks(src.map((p) => ({ id: p.id, name: opts.anonymize ? p.id : p.name, parents: p.parents, spouse: p.spouse }))), graph: issues.map((i) => ({ code: i.code, ids: i.ids.map((x) => (opts.anonymize ? x : x)), message: i.message })), ambiguous: data.ambiguous ?? [] },
+    checks: { raw: validatePeopleLinks(src.map((p) => ({ id: p.id, name: opts.anonymize ? p.id : p.name, parents: p.parents, spouse: p.spouse, siblingOf: p.siblingOf, moreSpouses: p.moreSpouses }))), graph: issues.map((i) => ({ code: i.code, ids: i.ids.map((x) => (opts.anonymize ? x : x)), message: i.message })), ambiguous: data.ambiguous ?? [] },
     layout,
     view: opts.view,
   };

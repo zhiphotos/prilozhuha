@@ -28,6 +28,11 @@ export function roleOf(relation: string): Role {
   return "other";
 }
 
+/** Родной брат или сестра (в том числе сводные). «Двоюродный/троюродный» сюда не входят: roleOf относит их к "sibling" только как к боковой родне, а не как к брату или сестре «меня». */
+export function isOwnSibling(relation: string): boolean {
+  return roleOf(relation) === "sibling" && !/^(дв|тр|четверо)\S*юрод/.test(relation.trim().toLowerCase());
+}
+
 function genderOf(p: RodPerson, role: Role): Gender {
   if (p.gender) return p.gender;
   const r = p.relation.trim().toLowerCase();
@@ -133,10 +138,11 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     const pair = [f, m].filter((x): x is string => Boolean(x));
     if (pair.length) addChild(pair, selfId);
   }
-  const parentOfSelf = unions.find((u) => u.childIds.includes(selfId));
+  // Союз родителей «меня» ищем в момент обращения: если родители заданы явно (parents), он появляется только в цикле ниже, а не до него.
+  const selfParentUnion = () => unions.find((u) => u.childIds.includes(selfId));
   const lineParent = (line?: "mom" | "dad"): string | undefined =>
-    line === "mom" ? (parentOfSelf?.partnerIds.find((id) => byId.get(id)?.gender === "f") ?? mom)
-      : line === "dad" ? (parentOfSelf?.partnerIds.find((id) => byId.get(id)?.gender === "m") ?? dad)
+    line === "mom" ? (selfParentUnion()?.partnerIds.find((id) => byId.get(id)?.gender === "f") ?? mom)
+      : line === "dad" ? (selfParentUnion()?.partnerIds.find((id) => byId.get(id)?.gender === "m") ?? dad)
         : undefined;
   const lineGrandUnion = (line?: "mom" | "dad"): string[] | undefined => {
     const parent = lineParent(line);
@@ -160,11 +166,21 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     return pair;
   };
 
-  for (const p of people) {
+  // Порядок: сначала по цепочке «брат или сестра», внутри уровня сначала те, у кого родители заданы явно (к ним потом привязываются остальные), потом как в списке.
+  // «Брат или сестра» ссылается на другого человека.
+  // Иначе результат зависит от порядка записей («Люди» хранят новых вперёд): брат брата создавал пустых «Маму» и «Папу» раньше, чем тот вставал в свою семью.
+  const chainDepth = (p: RodPerson, seen = new Set<string>()): number => {
+    if (!p.siblingOf || !known.has(p.siblingOf) || validParents(p).some((id) => known.has(id) && id !== p.id) || seen.has(p.id)) return 0;
+    const target = byRod.get(p.siblingOf);
+    return target ? 1 + chainDepth(target, new Set([...seen, p.id])) : 0;
+  };
+  const byRod = new Map(people.map((q) => [q.id, q]));
+  const placing = people.map((q, i) => ({ q, i, d: chainDepth(q), e: validParents(q).some((id) => known.has(id) && id !== q.id) ? 0 : 1 })).sort((a, b) => a.d - b.d || a.e - b.e || a.i - b.i).map((x) => x.q);
+  for (const p of placing) {
     const role = roleOf(p.relation);
     // Брат или сестра не бывают моим ребёнком: если в «Чей ребёнок» выбран я, потомок или ещё брат, связь игнорируем (читаем по слову «кем приходится»).
     const badKin = new Set<Role>(["self", "child", "grandchild", "sibling"]);
-    const explicit = validParents(p).filter((id) => known.has(id) && id !== p.id && !(!p.fromFile && role === "sibling" && badKin.has(roleOf(people.find((q) => q.id === id)?.relation ?? "")) ));
+    const explicit = validParents(p).filter((id) => known.has(id) && id !== p.id && !(!p.fromFile && isOwnSibling(p.relation) && (badKin.has(roleOf(people.find((q) => q.id === id)?.relation ?? "")) && (roleOf(people.find((q) => q.id === id)?.relation ?? "") !== "sibling" || isOwnSibling(people.find((q) => q.id === id)?.relation ?? "")))));
     if (explicit.length) { addChild(explicit.slice(0, 2), p.id); continue; }
     if (p.siblingOf && known.has(p.siblingOf)) {
       let other = unions.find((u) => u.childIds.includes(p.siblingOf!));
@@ -176,7 +192,7 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
       if (other) { other.childIds.push(p.id); continue; }
     }
     if (p.fromFile) continue;
-    if (role === "sibling" && parentOfSelf) addChild(parentOfSelf.partnerIds, p.id);
+    if (role === "sibling" && selfParentUnion()) addChild(selfParentUnion()!.partnerIds, p.id);
     else if (role === "child") {
       const spouse = p.parents?.length ? [] : [selfId];
       addChild(spouse, p.id);

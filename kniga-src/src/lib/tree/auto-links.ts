@@ -29,6 +29,34 @@ export function parentsForChild(people: RodPerson[], parentId: string): string[]
   return co ? [parentId, co] : [parentId];
 }
 
+/** У ребёнка уже двое родителей: приложение хранит не больше двух, третьего принять нельзя. Возвращает текст для пользователя или null. */
+export function parentLimitMessage(people: RodPerson[], childId: string): string | null {
+  const child = people.find((p) => p.id === childId);
+  const known = (child?.parents ?? []).filter((id) => people.some((p) => p.id === id));
+  return known.length >= 2 ? "У этого человека уже указаны двое родителей, а больше двух приложение не хранит. Чтобы добавить другого, сначала уберите одного из них в карточке («Чей ребёнок»)." : null;
+}
+
+/** Родители для нового ребёнка из выбранного брака (состав пары на схеме): без выбора – как раньше, по супругу. Заглушки «Мама»/«Папа» (id с __) родителями не записываются. */
+export function parentsForUnion(people: RodPerson[], parentId: string, partnerIds: string[] | undefined): string[] {
+  if (!partnerIds || !partnerIds.includes(parentId)) return parentsForChild(people, parentId);
+  const real = partnerIds.filter((id) => !id.startsWith("__") && people.some((p) => p.id === id));
+  return [parentId, ...real.filter((id) => id !== parentId)].slice(0, 2);
+}
+
+/** Список без удалённого человека: ссылки на него убираются из родителей, супругов, «ещё браков» и «брата или сестры». Остальные поля не трогаем. */
+export function withoutPerson(people: RodPerson[], id: string): RodPerson[] {
+  return people
+    .filter((p) => p.id !== id)
+    .map((p) => {
+      let next = p;
+      if (next.parents?.includes(id)) next = { ...next, parents: next.parents.filter((x) => x !== id) };
+      if (next.spouse === id) next = { ...next, spouse: undefined };
+      if (next.moreSpouses?.some((m) => m.id === id)) next = { ...next, moreSpouses: next.moreSpouses.filter((m) => m.id !== id) };
+      if (next.siblingOf === id) next = { ...next, siblingOf: undefined };
+      return next;
+    });
+}
+
 /** Новый брат или сестра: те же родители, что у того, кому приходится; без родителей – связь «брат или сестра». */
 export function siblingLinks(base: RodPerson | undefined): Partial<RodPerson> {
   if (!base) return {};
@@ -118,7 +146,7 @@ export function syncRelations(people: RodPerson[]): RodPerson[] {
   let changed = false;
   const next = people.map((p) => {
     const title = titles.get(p.id);
-    if (!title || p.fromFile || !linked.has(p.id) || /^(я|мне)$/i.test(p.relation.trim()) || p.relation === title) return p;
+    if (!title || p.fromFile || !linked.has(p.id) || /^(я|мне)$/i.test(p.relation.trim()) || p.relation.trim().toLowerCase() === title.toLowerCase()) return p;
     changed = true;
     return { ...p, relation: title };
   });
