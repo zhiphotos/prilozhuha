@@ -445,7 +445,7 @@ export function PenBar({
           </button>
         </div>
       ) : null}
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         <Hint id="draw-brush"><BarBtn active={tool === "draw"} label="Выбрать кисть" onClick={() => setMenu(menu === "brush" ? null : "brush")}>
           <PenLine className="size-4" /> {current.label} ▾
         </BarBtn></Hint>
@@ -459,18 +459,18 @@ export function PenBar({
           ◇ <span className="max-[400px]:hidden">Фигуры</span>
         </BarBtn></Hint>
         <span className="min-w-0 flex-1" />
-        <Button className="min-h-11 shrink-0 px-5" onClick={onDone}>
+        <Button className="ml-auto min-h-11 shrink-0 px-5" onClick={onDone}>
           Готово
         </Button>
       </div>
-      <div className="mt-2 flex items-center gap-2">
+      <div className="mt-2 flex flex-wrap items-center gap-2">
         <button type="button" aria-label="Цвет" onClick={onColor} className="size-11 shrink-0 rounded-full border-[3px] border-white shadow ring-1 ring-ink/20" style={{ background: erasing ? "#fff" : color }}>
           {erasing ? <Eraser className="m-auto size-4 text-ink/75" /> : null}
         </button>
         <Hint id="draw-pipette"><button type="button" aria-label="Пипетка: взять цвет со страницы" onClick={onPipette} className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-ink">
           <Pipette className="size-4" />
         </button></Hint>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[10.5rem] flex-1">
           <Stepper label={erasing ? "Ластик" : "Кисть"} value={erasing ? eraserPx : sizePx} min={1} max={erasing ? 150 : 140} onChange={erasing ? setEraserPx : setSizePx} />
         </div>
       </div>

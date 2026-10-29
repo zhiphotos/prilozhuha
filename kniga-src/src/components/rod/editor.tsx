@@ -2085,7 +2085,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             {twoUp && partner && side === "left" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="right" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
           </div>
         </div>
-        <div className="glass-strong absolute right-3 top-1 z-10 flex origin-top-right items-center rounded-full p-1 max-md:scale-90 md:bottom-2 md:top-auto">
+        <div className="glass-strong absolute bottom-2 left-3 z-10 flex origin-bottom-left items-center rounded-full p-1 max-md:scale-90 md:left-auto md:right-3 md:origin-bottom-right">
           <IconBtn label="Мельче" disabled={zoom <= 1} onClick={() => setZoom((z) => Math.max(1, z - 0.5))}>
             <ZoomOut className="size-4" />
           </IconBtn>
