@@ -23,7 +23,6 @@ export function inkColor(color: string): string {
 
 export const BRUSHES: { id: BrushKind; label: string; hint: string }[] = [
   { id: "pen", label: "Перо", hint: "Тонкая линия, нажим меняет толщину" },
-  { id: "marker", label: "Маркер", hint: "Ровный, как маркером по бумаге" },
   { id: "brush", label: "Кисть", hint: "Мягкая, с нажимом" },
   { id: "highlighter", label: "Выделитель", hint: "Широкий и прозрачный" },
   { id: "thread", label: "Нитки", hint: "Шов строчкой" },

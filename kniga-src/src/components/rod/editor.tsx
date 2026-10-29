@@ -128,7 +128,9 @@ function savedPen(): PenPrefs {
   const fallback: PenPrefs = { brush: "pen", color: "#2a2420", sizes: { ...BRUSH_DEFAULT_PX }, eraser: 14, auto: false, hold: true };
   try {
     const raw = JSON.parse(localStorage.getItem(PEN_KEY) ?? "null") as Partial<PenPrefs> | null;
-    return raw ? { ...fallback, ...raw, sizes: { ...fallback.sizes, ...(raw.sizes ?? {}) } } : fallback;
+    // Маркера в кистях больше нет (остался выделитель): сохранённый выбор «маркер» заменяем на выделитель. Старые штрихи на страницах рисуются как раньше.
+    const merged = raw ? { ...fallback, ...raw, sizes: { ...fallback.sizes, ...(raw.sizes ?? {}) } } : fallback;
+    return merged.brush === "marker" ? { ...merged, brush: "highlighter" } : merged;
   } catch {
     return fallback;
   }
