@@ -370,7 +370,7 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
       const rest = block.ids.filter((id) => id !== other);
       const linked = (a: string) => (g.marriagesOf.get(a) ?? []).flatMap((u) => u.partnerIds).filter((o) => rest.includes(o));
       const keep = new Set<string>([main]);
-      for (const q of [...keep]) for (const o of linked(q)) if (!keep.has(o)) { keep.add(o); q !== o && [...keep].includes(o); }
+      for (const q of [...keep]) for (const o of linked(q)) if (!keep.has(o)) keep.add(o);
       for (let n = 0; n < rest.length; n++) for (const q of [...keep]) for (const o of linked(q)) keep.add(o);
       const withOther = rest.filter((id) => !keep.has(id));
       const gids = order.filter((id) => id === other || withOther.includes(id));
@@ -622,7 +622,15 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
   });
   // Ветки без предков выбранного (родня, пришедшая через брак) уходят в конец: между отцом и матерью выбранного должны стоять только их предки, иначе линия брака растягивается на весь лист.
   // Ветки, которые пользователь расставил сам (rank), главнее порядка по родословной.
+  // Сторона ветки (отец слева, мама справа) главнее rank: rank пишется на весь ряд сразу (arrange.moveBranch) и после добавления родни перемешивал бы стороны.
+  const sideOfTree = (t: number) => {
+    const s = treeSlot.get(t);
+    return s === undefined ? 0 : s < 0.5 ? -1 : 1;
+  };
   const order = roots.map((_, t) => t).sort((a, b) => {
+    const sa = sideOfTree(a);
+    const sb = sideOfTree(b);
+    if (sa && sb && sa !== sb) return sa - sb;
     const ra = rankOf(g, blocks[roots[a]!]!.ids);
     const rb = rankOf(g, blocks[roots[b]!]!.ids);
     if (Number.isFinite(ra) && Number.isFinite(rb) && ra !== rb) return ra - rb;
@@ -678,7 +686,7 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
       const hi = Math.max(...xsFam) + ((blocks[meBlock]!.ids.length * gap) / 2) + buffer;
       const mid = (lo + hi) / 2;
       const level = blocks[meBlock]!.level;
-      const movers = blocks.filter((b) => b.level === level && !inside.has(b.index) && cx.has(b.index) && (cx.get(b.index)! + (b.ids.length * gap) / 2 > lo) && (cx.get(b.index)! - (b.ids.length * gap) / 2 < hi));
+      const movers = blocks.filter((b) => b.level === level && !inside.has(b.index) && b.parent === null && cx.has(b.index) && (cx.get(b.index)! + (b.ids.length * gap) / 2 > lo) && (cx.get(b.index)! - (b.ids.length * gap) / 2 < hi));
       for (const b of movers) {
         const half = (b.ids.length * gap) / 2;
         const x = cx.get(b.index)!;

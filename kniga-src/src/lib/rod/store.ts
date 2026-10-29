@@ -1,4 +1,4 @@
-import { applyPatch, onSiblingSet, syncRelations } from "@/lib/tree/auto-links";
+import { applyPatch, onSiblingSet, syncRelations, withoutPerson } from "@/lib/tree/auto-links";
 import { toast } from "sonner";
 import { bumpUsage, searchesLeft, type SearchUsage } from "@/lib/rod/search-limit";
 import { create } from "zustand";
@@ -300,15 +300,7 @@ export const useRod = create<RodState>()(
           if (!("relation" in patch) && ("parents" in patch || "spouse" in patch || "siblingOf" in patch || "moreSpouses" in patch)) people = syncRelations(people);
           return { people };
         }),
-      removePerson: (id) =>
-        set((state) => ({
-          people: state.people.filter((person) => person.id !== id).map((person) => {
-            let next = person;
-            if (next.parents?.includes(id)) next = { ...next, parents: next.parents.filter((parent) => parent !== id) };
-            if (next.spouse === id) next = { ...next, spouse: undefined };
-            return next;
-          }),
-        })),
+      removePerson: (id) => set((state) => ({ people: withoutPerson(state.people, id) })),
       addPlace: (input) => set((state) => ({ places: [{ ...input, id: uid() }, ...state.places] })),
       updatePlace: (id, patch) => set((state) => ({ places: state.places.map((place) => (place.id === id ? { ...place, ...patch } : place)) })),
       removePlace: (id) => set((state) => ({ places: state.places.filter((place) => place.id !== id) })),

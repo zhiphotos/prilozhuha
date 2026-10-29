@@ -194,12 +194,12 @@ function FamilySheet({
         Искать предков
       </button>
       <div className="grid grid-cols-2 gap-2">
-        {!family.father && (
+        {!family.father && family.parentCount < 2 && (
           <button type="button" className="min-h-12 rounded-2xl bg-ink px-3 text-sm font-semibold text-sheet" onClick={() => onAdd("father")}>
             Добавить отца
           </button>
         )}
-        {!family.mother && (
+        {!family.mother && family.parentCount < 2 && (
           <button type="button" className="min-h-12 rounded-2xl bg-ink px-3 text-sm font-semibold text-sheet" onClick={() => onAdd("mother")}>
             Добавить мать
           </button>

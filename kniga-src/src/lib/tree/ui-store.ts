@@ -1,4 +1,4 @@
-import { syncRelations, onParentAdded, onSiblingSet, onSpouseAdded, parentsForChild, siblingLinks, type Patch as AutoPatch } from "@/lib/tree/auto-links";
+import { syncRelations, onParentAdded, onSiblingSet, onSpouseAdded, parentLimitMessage, parentsForUnion, siblingLinks, type Patch as AutoPatch } from "@/lib/tree/auto-links";
 import { create } from "zustand";
 import { composeName } from "@/lib/rod/person";
 import { isMediaRef, resolveMedia, saveMedia } from "@/lib/rod/media";
@@ -270,10 +270,14 @@ export const useTree = create<State>((set, get) => {
       const holder = union.partnerIds.map(rod).find((p) => p?.spouse) ?? union.partnerIds.map(rod).find(Boolean);
       if (holder) useRod.getState().updatePerson(holder.id, { unionFrom: clean(startYear), unionTo: clean(endYear) });
     },
-    addRelative: (fromId, kind, draft, _unionId, facts) => {
+    addRelative: (fromId, kind, draft, unionId, facts) => {
       if (!draft.firstName.trim()) return "Введите имя";
       const base = rod(fromId);
       if (!realId(fromId) && fromId !== SELF_ID) return "Сначала заполните это место, потом добавляйте родню";
+      if ((kind === "father" || kind === "mother") && base) {
+        const limit = parentLimitMessage(useRod.getState().people, base.id);
+        if (limit) return limit;
+      }
       const baseRole = baseRoleOf(fromId);
       const gender: "m" | "f" | undefined = kind === "father" || kind === "brother" || kind === "son" ? "m" : kind === "mother" || kind === "sister" || kind === "daughter" ? "f" : genderOf(draft.gender);
       const relation = relationFor(kind, baseRole, gender);
@@ -287,7 +291,7 @@ export const useTree = create<State>((set, get) => {
         if (facts?.startYear) extra.unionFrom = facts.startYear;
         if (facts?.endYear) extra.unionTo = facts.endYear;
       } else if (kind === "son" || kind === "daughter") {
-        if (base) extra.parents = parentsForChild(useRod.getState().people, base.id);
+        if (base) extra.parents = parentsForUnion(useRod.getState().people, base.id, get().unions.find((u) => u.id === unionId)?.partnerIds);
       } else if (base) Object.assign(extra, siblingLinks(base));
       void (async () => {
         const photo = await storedPhoto(draft.photo);
@@ -299,17 +303,21 @@ export const useTree = create<State>((set, get) => {
       })();
       return null;
     },
-    attachRelative: (fromId, kind, existingId) => {
+    attachRelative: (fromId, kind, existingId, unionId) => {
       const base = rod(fromId);
       const other = rod(existingId);
       if (!other) return "Нет такого человека";
+      if ((kind === "father" || kind === "mother") && base && !(base.parents ?? []).includes(other.id)) {
+        const limit = parentLimitMessage(useRod.getState().people, base.id);
+        if (limit) return limit;
+      }
       if (kind === "father" || kind === "mother") {
         if (base) applyAuto(onParentAdded(useRod.getState().people, base.id, other.id));
       } else if (kind === "spouse") {
         useRod.getState().updatePerson(other.id, { spouse: base?.id });
         if (base) applyAuto(onSpouseAdded(useRod.getState().people, base.id, other.id));
       } else if (kind === "son" || kind === "daughter") {
-        if (base) useRod.getState().updatePerson(other.id, { parents: parentsForChild(useRod.getState().people, base.id) });
+        if (base) useRod.getState().updatePerson(other.id, { parents: parentsForUnion(useRod.getState().people, base.id, get().unions.find((u) => u.id === unionId)?.partnerIds) });
       } else if (base) {
         useRod.getState().updatePerson(other.id, siblingLinks(base));
         applyAuto(onSiblingSet(useRod.getState().people, other.id, base.id));

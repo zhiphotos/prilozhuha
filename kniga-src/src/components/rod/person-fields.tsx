@@ -9,6 +9,7 @@ import { useRod } from "@/lib/rod/store";
 import type { Person } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
 import { roleOf } from "@/lib/tree/from-people";
+import { applyMarriages, withMarriages } from "@/lib/tree/marriages";
 import { Field } from "@/components/rod/chrome";
 import { CircleCrop } from "@/components/rod/circle-crop";
 
@@ -258,7 +259,23 @@ export function PersonEditor({ person, onRemoved }: { person: Person; onRemoved?
   const removePerson = useRod((state) => state.removePerson);
   return (
     <div className="grid gap-3">
-      <PersonFields value={person} onChange={(patch) => updatePerson(person.id, patch)} others={people.filter((item) => item.id !== person.id)} />
+      <PersonFields
+        value={withMarriages(people, person)}
+        onChange={(patch) => {
+          // Браки могут быть записаны у самого человека или у его супруга: показываем и правим все, каждая запись меняется там, где хранится.
+          if (!("spouse" in patch || "spouseStatus" in patch || "moreSpouses" in patch)) return updatePerson(person.id, patch);
+          const { spouse, spouseStatus, moreSpouses, ...rest } = patch;
+          if (Object.keys(rest).length) updatePerson(person.id, rest);
+          const shown = withMarriages(people, person);
+          const mainId = "spouse" in patch ? spouse : shown.spouse;
+          const next = [
+            ...(mainId ? [{ id: mainId, status: "spouseStatus" in patch ? spouseStatus : shown.spouseStatus }] : []),
+            ...("moreSpouses" in patch ? moreSpouses : shown.moreSpouses) ?? [],
+          ];
+          for (const [pid, change] of Object.entries(applyMarriages(people, person.id, next))) updatePerson(pid, change);
+        }}
+        others={people.filter((item) => item.id !== person.id)}
+      />
       <button
         type="button"
         className="text-left text-sm text-muted underline"

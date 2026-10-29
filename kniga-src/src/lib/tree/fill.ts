@@ -41,6 +41,8 @@ export type StarterInput = {
 export type FamilyView = {
   father?: Person;
   mother?: Person;
+  /** Сколько родителей уже стоит в схеме (приложение хранит не больше двух). */
+  parentCount: number;
   marriages: { union: Union; spouse?: Person; children: Person[] }[];
   siblings: Person[];
 };
@@ -303,5 +305,5 @@ export function familyOf(people: Person[], unions: Union[], personId: string): F
       spouse: union.partnerIds.map((id) => byId.get(id)).find((p): p is Person => Boolean(p && p.id !== personId)),
       children: union.childIds.map((id) => byId.get(id)).filter((p): p is Person => Boolean(p)),
     }));
-  return { father, mother, marriages, siblings };
+  return { father, mother, parentCount: folks.length, marriages, siblings };
 }
