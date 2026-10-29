@@ -9,6 +9,7 @@ import { PersonDrawer } from "@/components/tree/PersonDrawer";
 import { TreeStage } from "@/components/tree/TreeStage";
 import { StylePreview } from "@/components/tree/StylePreview";
 import { GedImportButton } from "@/components/rod/ged-import";
+import { TreeFileButton } from "@/components/rod/tree-file";
 import { Hint } from "@/components/rod/hint";
 import { TreeSearch } from "@/components/tree/TreeSearch";
 import { searchPeople } from "@/lib/tree/search";
@@ -269,6 +270,7 @@ function TreeScreen() {
               <Users className="size-5" />
             </button>
             {people.length > 2 && <Hint id="tree-ged"><GedImportButton /></Hint>}
+            <TreeFileButton />
             <div className="relative" ref={scopeBox}>
               <button
                 type="button"

@@ -13,6 +13,7 @@ import { isAgelongXml, parseAgelongXml } from "@/lib/tree/agelongXml.ts";
 import type { TreeData } from "@/lib/tree/types.ts";
 import { useTree } from "@/lib/tree/ui-store";
 import { roleOf } from "@/lib/tree/from-people.ts";
+import { parseTreeFile, planImport } from "@/lib/tree/treeFile.ts";
 
 /** Имя и фамилия для сравнения: без регистра, «ё» как «е». */
 function sameKey(first: string, last: string): string {
@@ -115,6 +116,16 @@ export function GedImportButton() {
     }
     void file.arrayBuffer().then((raw) => {
       const text = decodeText(raw);
+      // Файл древа самого приложения (.tree): добавляем только тех, кого ещё нет по id; совпадающих и отличающихся не трогаем.
+      if (/\.tree$/i.test(file.name) || /"format"\s*:\s*"kniga-roda-tree"/.test(text.slice(0, 2000))) {
+        const parsed = parseTreeFile(text);
+        if (!parsed.ok) return toast(parsed.error, { duration: 9000 });
+        const plan = planImport(useRod.getState().people, parsed.file.people);
+        if (plan.add.length) useRod.setState({ people: [...plan.add, ...useRod.getState().people] });
+        setChooser(false);
+        toast(`Файл древа: добавлено людей ${plan.add.length}, уже были ${plan.identical.length}${plan.conflicts.length ? `, отличаются и не тронуты: ${plan.conflicts.length}` : ""}. Заменить дерево целиком можно в «Файл древа».`, { duration: 10000 });
+        return;
+      }
       if (isAgelongXml(text)) {
         const r = parseAgelongXml(text);
         if ("error" in r) return toast(r.error);
