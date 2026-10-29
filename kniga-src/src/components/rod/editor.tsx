@@ -128,7 +128,9 @@ function savedPen(): PenPrefs {
   const fallback: PenPrefs = { brush: "pen", color: "#2a2420", sizes: { ...BRUSH_DEFAULT_PX }, eraser: 14, auto: false, hold: true };
   try {
     const raw = JSON.parse(localStorage.getItem(PEN_KEY) ?? "null") as Partial<PenPrefs> | null;
-    return raw ? { ...fallback, ...raw, sizes: { ...fallback.sizes, ...(raw.sizes ?? {}) } } : fallback;
+    // Маркера в кистях больше нет (остался выделитель): сохранённый выбор «маркер» заменяем на выделитель. Старые штрихи на страницах рисуются как раньше.
+    const merged = raw ? { ...fallback, ...raw, sizes: { ...fallback.sizes, ...(raw.sizes ?? {}) } } : fallback;
+    return merged.brush === "marker" ? { ...merged, brush: "highlighter" } : merged;
   } catch {
     return fallback;
   }
@@ -236,6 +238,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const [group, setGroup] = useState<string[]>([]);
   /** Режим «выбрать несколько»: нажатия на блоки добавляют их к выделению (для пальца, где нет Shift). */
   const [pickMode, setPickMode] = useState(false);
+  const [groupColors, setGroupColors] = useState(false);
   const [, setClipTick] = useState(0);
   const [ghostGroup, setGhostGroup] = useState<Record<string, Box> | null>(null);
   const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
@@ -415,6 +418,16 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
   const patchBlock = (blockId: string, partial: Partial<PageBlock>, group?: string) =>
     commit((p) => ({ ...p, blocks: p.blocks.map((b) => (b.id === blockId ? ({ ...b, ...partial } as PageBlock) : b)) }), group);
+
+  /** Один цвет для всех выделенных текстов за один шаг: у плашек и карточек меняется фон, у остальных цвет букв. */
+  const colorGroupTexts = (ids: string[], c: string, groupKey?: string) =>
+    commit(
+      (p) => ({
+        ...p,
+        blocks: p.blocks.map((b) => (b.type === "text" && ids.includes(b.id) ? ({ ...b, ...(b.look === "card" || b.look === "pill" ? { bg: c } : { color: c }) } as PageBlock) : b)),
+      }),
+      groupKey,
+    );
 
   const removeBlock = (blockId: string, quiet = false) => {
     commit((p) => ({ ...p, blocks: p.blocks.filter((b) => b.id !== blockId) }));
@@ -1528,6 +1541,11 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const onTextTool = () => {
     setTool("hand");
     setCropping(false);
+    // Выделено несколько блоков с текстом: «Текст» меняет настройки выделенных (цвет), а не добавляет новый текст.
+    if (group.length > 1 && (current()?.blocks ?? []).some((b) => group.includes(b.id) && b.type === "text")) {
+      setGroupColors(true);
+      return;
+    }
     if (selectedBlock && selectedBlock.type === "text" && !selectedBlock.locked) {
       startEditing(selectedBlock.id);
       return;
@@ -1767,11 +1785,20 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       onDrop={onDrop}
     >
       {/* Верх */}
-      <header className="relative z-[46] flex items-center gap-2 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <header className="relative z-[46] flex items-center gap-2 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] max-sm:flex-wrap">
         <button type="button" className="glass-strong grid size-11 shrink-0 place-items-center rounded-full" aria-label="К книге" onClick={() => { remindBackup(); nav.back(); }}>
           <ChevronLeft className="size-5" />
         </button>
-        <div className="min-w-0 flex-1 text-center">
+        <div className="glass-strong flex shrink-0 items-center rounded-full p-0.5 md:hidden max-[400px]:[&_button]:size-8 max-[400px]:[&_svg]:size-3.5">
+          <IconBtn label="Мельче" disabled={zoom <= 1} onClick={() => setZoom((z) => Math.max(1, z - 0.5))}>
+            <ZoomOut className="size-4" />
+          </IconBtn>
+          <span className="w-9 text-center text-xs tabular-nums text-ink max-[400px]:w-8 max-[340px]:hidden">{Math.round(zoom * 100)}%</span>
+          <IconBtn label="Крупнее" disabled={zoom >= 3} onClick={() => setZoom((z) => Math.min(3, z + 0.5))}>
+            <ZoomIn className="size-4" />
+          </IconBtn>
+        </div>
+        <div className="min-w-0 flex-1 text-center max-sm:order-last max-sm:basis-full">
           <p className="truncate text-sm font-semibold text-ink">{isBack ? "Задняя сторона обложки" : page.kind === "cover" ? "Обложка" : page.title}</p>
           {isBack ? (
             <button type="button" className="text-xs text-rose-deep underline" onClick={() => nav.replace({ id: "editor", pageId: pages[0]?.id ?? "" })} disabled={!pages[0]}>
@@ -1798,7 +1825,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             </div>
           )}
         </div>
-        <div className="glass-strong flex shrink-0 items-center rounded-full p-1">
+        <div className="glass-strong flex shrink-0 items-center rounded-full p-1 max-sm:ml-auto max-[400px]:p-0.5 max-[400px]:[&_button]:size-8 max-[400px]:[&_svg]:size-4">
           <IconBtn label="Отменить (или тап двумя пальцами)" disabled={!undo.current.length} onClick={doUndo}>
             <Undo2 className="size-[18px]" />
           </IconBtn>
@@ -2006,6 +2033,11 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                       <button type="button" aria-label="Повернуть группу вправо" className="grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={() => rotateGroup(15)}>
                         ↻
                       </button>
+                      {(current()?.blocks ?? []).some((b) => group.includes(b.id) && b.type === "text") ? (
+                        <button type="button" className="grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={() => setGroupColors(true)}>
+                          Цвет
+                        </button>
+                      ) : null}
                       <button type="button" className="grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={() => copyBlocks()}>
                         Копировать
                       </button>
@@ -2062,7 +2094,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             {twoUp && partner && side === "left" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="right" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
           </div>
         </div>
-        <div className="glass-strong absolute right-3 top-1 z-10 flex origin-top-right items-center rounded-full p-1 max-md:scale-90 md:bottom-2 md:top-auto">
+        <div className="glass-strong absolute bottom-2 right-3 z-10 flex origin-bottom-right items-center rounded-full p-1 max-md:hidden">
           <IconBtn label="Мельче" disabled={zoom <= 1} onClick={() => setZoom((z) => Math.max(1, z - 0.5))}>
             <ZoomOut className="size-4" />
           </IconBtn>
@@ -2361,6 +2393,15 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             else addText({ font });
             setPanel(null);
           }}
+        />
+      ) : null}
+
+      {groupColors && group.length > 1 ? (
+        <ColorSheet
+          title={`Цвет всех выбранных текстов (${(current()?.blocks ?? []).filter((b) => group.includes(b.id) && b.type === "text").length})`}
+          onPick={(c) => colorGroupTexts(group, c, "color:group")}
+          onClose={() => setGroupColors(false)}
+          onPipette={() => startPipette((c) => colorGroupTexts(group, c))}
         />
       ) : null}
 
