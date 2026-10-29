@@ -419,6 +419,8 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
   // Порядок веток слева направо как в восходящей схеме: сторона отца целиком слева, сторона матери целиком справа, и так на каждом уровне (отец отца, мать отца, отец матери, мать матери...).
   const slot = new Map<string, number>();
   const bit = new Map<string, number>();
+  /** Сторона всей ветки от выбранного: через отца −1 (влево), через маму +1 (вправо). У супруга предка своей стороны нет. */
+  const sideOf = new Map<string, number>();
   const span = new Map<string, [number, number]>([[focusId, [0, 1]]]);
   slot.set(focusId, 0.5);
   const upQ = [focusId];
@@ -434,6 +436,7 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
       span.set(parent, [a, a + half]);
       slot.set(parent, a + half / 2);
       bit.set(parent, parents.length > 1 ? k : 0);
+      sideOf.set(parent, child === focusId ? (parents.length > 1 && k === 1 ? 1 : -1) : sideOf.get(child) ?? -1);
       upQ.push(parent);
     });
   }
@@ -464,8 +467,9 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     if (!lineKids.length || !sideKids.length) continue;
     if (block.kids.some((k) => blocks[k]!.ids.includes(focusId))) continue;
     const ids = lineKids.flatMap((k) => blocks[k]!.ids);
-    const person = ids.find((id) => bit.has(id));
-    const dir = person !== undefined && bit.get(person) === 1 ? 1 : -1;
+    // Сторона берётся у кровного предка блока, а не у того, кто стоит первым в паре (иначе братья бабушки по маме уезжали на папину сторону, потому что первым в паре стоит дедушка).
+    const person = ids.find((id) => sideOf.has(id) && (g.parentOf.get(id) ?? []).some((q) => block.ids.includes(q))) ?? ids.find((id) => sideOf.has(id));
+    const dir = person !== undefined ? (sideOf.get(person)! > 0 ? 1 : -1) : -1;
     // Боковые ветки уходят к краям: родня стороны отца левее всего прямого рода, стороны матери правее; чем старше предок, тем дальше от центра.
     const above = Math.max(1, (gen.get(focusId) ?? 0) - block.level);
     sideKids.forEach((k, i) => {
@@ -622,7 +626,8 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     const ra = rankOf(g, blocks[roots[a]!]!.ids);
     const rb = rankOf(g, blocks[roots[b]!]!.ids);
     if (Number.isFinite(ra) && Number.isFinite(rb) && ra !== rb) return ra - rb;
-    return (treeSlot.get(a) ?? 2) - (treeSlot.get(b) ?? 2) || a - b;
+    // Родня, пришедшая через брак, стоит после всех веток самого выбранного, в том числе после боковых веток мамы (они идут со слотом 2,1 и дальше).
+    return (treeSlot.get(a) ?? 1000) - (treeSlot.get(b) ?? 1000) || a - b;
   });
   for (const t of order) put(t, 1);
 

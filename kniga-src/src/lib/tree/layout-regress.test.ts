@@ -238,3 +238,38 @@ test("противоречивые связи не растягивают схе
     assert.ok(validateGraph(buildRelationshipGraph(d), d.focusId).length > 0, `${label}: противоречие показано плашкой, не скрыто`);
   }
 });
+
+test("родня по маме справа, по папе слева: сестра бабушки по маме и сестра бабушки по папе, двоюродные и родня мужа", () => {
+  const d = mkTree(
+    [["me", "f"], ["F", "m"], ["M", "f"], ["FF", "m"], ["FM", "f"], ["MF", "m"], ["MM", "f"], ["GGF", "m"], ["GGM", "f"], ["MS", "f"], ["MSH", "m"], ["C1", "f"], ["C2", "m"], ["HGF", "m"], ["HGM", "f"], ["FMS", "f"], ["FMSC", "m"], ["FB", "m"], ["FBC", "f"], ["H", "m"], ["HF", "m"], ["HM", "f"], ["HB", "m"], ["HBC", "f"]],
+    [
+      union("a", ["F", "M"], ["me"]),
+      union("b", ["FF", "FM"], ["F", "FB"]),
+      union("c", ["MF", "MM"], ["M"], "widowed"),
+      union("d", ["GGF", "GGM"], ["MM", "MS"]),
+      union("e", ["MS", "MSH"], ["C1", "C2"]),
+      union("f", ["HGF", "HGM"], ["FM", "FMS"]),
+      union("g", ["FMS"], ["FMSC"]),
+      union("h", ["FB"], ["FBC"]),
+      union("i", ["me", "H"], []),
+      union("j", ["HF", "HM"], ["H", "HB"]),
+      union("k", ["HB"], ["HBC"]),
+    ],
+    "me",
+  );
+  for (const flow of ["down", "up"] as const) {
+    const l = layoutTree(d.people, d.unions, d.focusId, flow);
+    const x = (id: string) => l.nodes.find((n) => n.id === id)!.x;
+    for (const id of ["MS", "MSH", "C1", "C2"]) assert.ok(x(id) > x("M"), `${flow}: ${id} (родня по маме) правее мамы`);
+    for (const id of ["FB", "FBC", "FMS", "FMSC"]) assert.ok(x(id) < x("F"), `${flow}: ${id} (родня по папе, в том числе сестра бабушки) левее папы`);
+    assert.ok(x("F") < x("M"));
+    const rows = new Map<number, number[]>();
+    for (const n of l.nodes) rows.set(n.y, [...(rows.get(n.y) ?? []), n.x]);
+    for (const xs of rows.values()) { xs.sort((a, b) => a - b); for (let i = 1; i < xs.length; i++) assert.ok(xs[i]! - xs[i - 1]! >= 150, "карточки не перекрываются"); }
+  }
+  // добавление мужа и его родни не двигает родню мамы на папину сторону
+  const without = layoutTree(d.people.filter((p) => !["H", "HF", "HM", "HB", "HBC"].includes(p.id)), d.unions.filter((u) => !["i", "j", "k"].includes(u.id)), "me");
+  const withH = layoutTree(d.people, d.unions, "me");
+  const wx = (l: typeof withH, id: string) => l.nodes.find((n) => n.id === id)!.x;
+  for (const id of ["MS", "C1", "C2"]) assert.ok(wx(withH, id) > wx(withH, "M") && wx(without, id) > wx(without, "M"), `${id} остаётся на маминой стороне после добавления мужа`);
+});
