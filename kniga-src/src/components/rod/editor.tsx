@@ -1789,6 +1789,15 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         <button type="button" className="glass-strong grid size-11 shrink-0 place-items-center rounded-full" aria-label="К книге" onClick={() => { remindBackup(); nav.back(); }}>
           <ChevronLeft className="size-5" />
         </button>
+        <div className="glass-strong flex shrink-0 items-center rounded-full p-0.5 md:hidden max-[400px]:[&_button]:size-8 max-[400px]:[&_svg]:size-3.5">
+          <IconBtn label="Мельче" disabled={zoom <= 1} onClick={() => setZoom((z) => Math.max(1, z - 0.5))}>
+            <ZoomOut className="size-4" />
+          </IconBtn>
+          <span className="w-9 text-center text-xs tabular-nums text-ink max-[400px]:w-8 max-[340px]:hidden">{Math.round(zoom * 100)}%</span>
+          <IconBtn label="Крупнее" disabled={zoom >= 3} onClick={() => setZoom((z) => Math.min(3, z + 0.5))}>
+            <ZoomIn className="size-4" />
+          </IconBtn>
+        </div>
         <div className="min-w-0 flex-1 text-center max-sm:order-last max-sm:basis-full">
           <p className="truncate text-sm font-semibold text-ink">{isBack ? "Задняя сторона обложки" : page.kind === "cover" ? "Обложка" : page.title}</p>
           {isBack ? (
@@ -1816,7 +1825,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             </div>
           )}
         </div>
-        <div className="glass-strong flex shrink-0 items-center rounded-full p-1 max-sm:ml-auto">
+        <div className="glass-strong flex shrink-0 items-center rounded-full p-1 max-sm:ml-auto max-[400px]:p-0.5 max-[400px]:[&_button]:size-8 max-[400px]:[&_svg]:size-4">
           <IconBtn label="Отменить (или тап двумя пальцами)" disabled={!undo.current.length} onClick={doUndo}>
             <Undo2 className="size-[18px]" />
           </IconBtn>
@@ -2085,7 +2094,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             {twoUp && partner && side === "left" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="right" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
           </div>
         </div>
-        <div className="glass-strong absolute left-3 top-0.5 z-10 flex origin-top-left items-center rounded-full p-0.5 max-md:scale-75 md:bottom-2 md:left-auto md:right-3 md:top-auto md:origin-bottom-right md:scale-100 md:p-1">
+        <div className="glass-strong absolute bottom-2 right-3 z-10 flex origin-bottom-right items-center rounded-full p-1 max-md:hidden">
           <IconBtn label="Мельче" disabled={zoom <= 1} onClick={() => setZoom((z) => Math.max(1, z - 0.5))}>
             <ZoomOut className="size-4" />
           </IconBtn>
