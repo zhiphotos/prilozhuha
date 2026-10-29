@@ -198,3 +198,27 @@ test("брак дяди с племянницей: ребёнок всё рав�
   assert.deepEqual(parentIdsOf(g, "N").sort(), ["F", "NF"]);
   assert.ok(validateGraph(g, "me").length > 0, "противоречие поколений показано, а не скрыто");
 });
+
+test("у обоих родителей есть второй брак: цепочка бывшая жена – папа – мама – бывший муж, дети по порядку браков", () => {
+  const d = mkTree(
+    [["me", "f"], ["sis", "f"], ["hd", "m"], ["hm", "f"], ["F", "m"], ["M", "f"], ["NW", "f"], ["SM", "m"], ["pf", "m"], ["pm", "f"], ["mf", "m"], ["mm", "f"]],
+    [union("a", ["F", "M"], ["me", "sis"]), union("b", ["F", "NW"], ["hd"], "divorced"), union("c", ["M", "SM"], ["hm"], "divorced"), union("d", ["pf", "pm"], ["F"]), union("e", ["mf", "mm"], ["M"])],
+    "me",
+  );
+  const r = check(d, "цепочка браков");
+  assert.ok(r.x("NW") < r.x("F") && r.x("F") < r.x("M") && r.x("M") < r.x("SM"), "бывшие по краям, текущая пара рядом");
+  assert.ok(r.x("hd") < Math.min(r.x("me"), r.x("sis")) && Math.max(r.x("me"), r.x("sis")) < r.x("hm"), `сводные по краям, родные в середине: ${["hd","me","sis","hm"].map((i) => r.x(i)).join(",")}`);
+});
+
+test("свёкор, тесть, муж тёти: пол и подписи по слову родства", async () => {
+  const { kinship } = await import("./kinship.ts");
+  const base = { maidenName: "", notes: "", birthYear: "" };
+  const data = treeFromPeople([
+    { ...base, id: "me", name: "Надя Ёжкина", relation: "я" },
+    { ...base, id: "h", name: "Пётр Соколов", relation: "муж", spouse: "me", parents: ["mil", "fil"] },
+    { ...base, id: "mil", name: "Галина Соколова", relation: "свекровь" },
+    { ...base, id: "fil", name: "Иван Соколов", relation: "свёкор" },
+  ]);
+  assert.equal(kinship(data.people, data.unions, data.focusId, "fil").title, "Свёкор");
+  assert.equal(kinship(data.people, data.unions, data.focusId, "mil").title, "Свекровь");
+});

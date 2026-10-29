@@ -32,6 +32,8 @@ function genderOf(p: RodPerson, role: Role): Gender {
   if (p.gender) return p.gender;
   const r = p.relation.trim().toLowerCase();
   if (role === "spousesib") return /сестр/.test(r.split(/\s+/).find((w) => /(брат|сестр)/.test(w)) ?? "") ? "f" : "m";
+  if (/^(муж|свёкор|свекор|тесть|отчим|деверь|шурин|зять)/.test(r)) return "m";
+  if (/^(свекровь|тёща|теща|мачеха|золовка|невестка|сноха)/.test(r)) return "f";
   if (/(мам|мат|бабуш|тёт|тет|сестр|дочь|дочк|внуч|жена)/.test(r)) return "f";
   if (/(пап|отец|дед|дяд|брат|сын|внук|муж)/.test(r)) return "m";
   void role;
