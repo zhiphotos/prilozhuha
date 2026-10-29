@@ -85,6 +85,24 @@ export function assignGenerations(people: Person[], unions: Union[]): Map<string
       }
     }
   }
+  // Противоречие (например, дядя женат на племяннице): ребёнок не может оказаться в одном ряду с родителем или выше. Подтягиваем вниз, пока каждый ребёнок не станет строго ниже родителя, а супруги не окажутся в одном ряду. Связи не меняются, только строка.
+  const limit = people.length + 5;
+  for (let round = 0; round < limit; round++) {
+    let changed = false;
+    for (const union of unions) {
+      const partners = union.partnerIds.filter((id) => gen.has(id));
+      if (partners.length >= 2) {
+        const top = Math.max(...partners.map((id) => gen.get(id)!));
+        for (const id of partners) if (gen.get(id) !== top) { gen.set(id, top); changed = true; }
+      }
+      const parentRow = partners.length ? Math.max(...partners.map((id) => gen.get(id)!)) : null;
+      if (parentRow === null) continue;
+      for (const child of union.childIds) {
+        if (gen.has(child) && gen.get(child)! <= parentRow) { gen.set(child, parentRow + 1); changed = true; }
+      }
+    }
+    if (!changed) break;
+  }
   let min = Infinity;
   for (const value of gen.values()) min = Math.min(min, value);
   if (!Number.isFinite(min)) min = 0;

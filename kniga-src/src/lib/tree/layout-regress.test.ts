@@ -183,3 +183,18 @@ test("сценарий Анна/Иван: ссылка «родитель сам
   assert.equal(n("maria").y, n("petr").y);
   assert.ok(Math.abs(n("maria").x - n("petr").x) <= 250, "муж рядом с Марией");
 });
+
+test("брак дяди с племянницей: ребёнок всё равно ниже родителей, супруги в одном ряду, связи не меняются", () => {
+  const d = mkTree(
+    [["me", "f"], ["GP", "m"], ["GM", "f"], ["F", "m"], ["U", "m"], ["N", "f"], ["NF", "f"]],
+    [union("a", ["GP", "GM"], ["F", "U"]), union("b", ["F", "NF"], ["N"]), union("c", ["U", "N"], ["me"])],
+    "me",
+  );
+  const l = layoutTree(d.people, d.unions, d.focusId);
+  const y = (id: string) => l.nodes.find((n) => n.id === id)!.y;
+  const g = buildRelationshipGraph(d);
+  for (const p of d.people) for (const par of parentIdsOf(g, p.id)) assert.ok(y(par) < y(p.id), `${par} выше ${p.id}`);
+  assert.equal(y("U"), y("N"));
+  assert.deepEqual(parentIdsOf(g, "N").sort(), ["F", "NF"]);
+  assert.ok(validateGraph(g, "me").length > 0, "противоречие поколений показано, а не скрыто");
+});
