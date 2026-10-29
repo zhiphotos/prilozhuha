@@ -164,7 +164,7 @@ function TreeScreen() {
   return (
     <main data-theme={theme} className={`tree-root${dots ? "" : " no-dots"} fixed inset-0 z-40 overflow-hidden bg-canvas text-fg`} style={lineColor ? ({ "--color-blood": lineColor } as React.CSSProperties) : undefined}>
       {issues.length ? (
-        <div role="status" className="absolute left-3 right-3 top-16 z-30 max-h-28 overflow-auto rounded-xl bg-white/90 p-3 text-xs text-ink shadow">
+        <div role="status" className="absolute bottom-28 left-3 right-3 z-30 max-h-24 overflow-auto rounded-xl bg-white/90 p-3 text-xs text-ink shadow">
           <b>Нужно уточнить связи:</b>
           <ul className="mt-1 list-disc pl-4">
             {issues.slice(0, 5).map((text) => (
