@@ -29,6 +29,7 @@ import { explodeBold, stripBold } from "@/lib/rod/rich";
 import { spreadGhosts } from "@/lib/rod/spread";
 import { backPage } from "@/lib/rod/store";
 import type { BookPage, PageBlock, PaperKind, SpineSetup } from "@/lib/rod/types";
+import { splitWords } from "@/lib/rod/words";
 
 export type CoverMeta = { dedicatee: string; collector: string };
 
@@ -108,7 +109,7 @@ function fillLine(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
 function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, gap = 0): string[] {
   const lines: string[] = [];
   text.split("\n").forEach((paragraph) => {
-    const words = paragraph.split(/\s+/).filter(Boolean);
+    const words = splitWords(paragraph);
     if (!words.length) {
       lines.push("");
       return;
