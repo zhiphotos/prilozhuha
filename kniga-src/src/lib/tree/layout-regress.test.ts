@@ -156,3 +156,30 @@ test("экран и экспорт: общий вызов раскладки, о
   assert.deepEqual(a.nodes, b.nodes);
   assert.deepEqual(a.buses?.length, b.buses?.length);
 });
+
+test("сценарий Анна/Иван: ссылка «родитель сам себе» и «родитель = супруг» не рисуется, дети под настоящими родителями", async () => {
+  const { validatePeopleLinks } = await import("./relgraph.ts");
+  const base = { maidenName: "", notes: "", birthYear: "" };
+  const people = [
+    { ...base, id: "anna", name: "Анна Петрова", relation: "Мать", parents: ["ivan", "anna"], spouse: "ivan" },
+    { ...base, id: "ivan", name: "Иван Петров", relation: "Отец", spouse: "anna" },
+    { ...base, id: "maria", name: "Мария Ёжкина", relation: "я", parents: ["ivan", "anna"], spouse: "petr" },
+    { ...base, id: "petr", name: "Пётр Ёжкин", relation: "Муж", spouse: "maria" },
+  ];
+  const copy = JSON.stringify(people);
+  const data = treeFromPeople(people);
+  assert.equal(JSON.stringify(people), copy, "записи не изменены");
+  const g = buildRelationshipGraph(data);
+  assert.deepEqual(parentIdsOf(g, "anna").filter((i) => !i.startsWith("__")), [], "Иван не родитель Анны");
+  assert.deepEqual(parentIdsOf(g, "maria").sort(), ["anna", "ivan"]);
+  assert.deepEqual(parentIdsOf(g, "petr").filter((i) => !i.startsWith("__")), []);
+  assert.deepEqual(validateGraph(g, data.focusId), [], "граф теперь согласован");
+  assert.ok(validatePeopleLinks(people).length >= 2, "замечание о записях остаётся (не скрыто)");
+  const l = layoutTree(data.people, data.unions, data.focusId);
+  const n = (id: string) => l.nodes.find((x) => x.id === id)!;
+  assert.equal(n("anna").y, n("ivan").y, "Анна и Иван в одном ряду");
+  assert.ok(n("anna").y < n("maria").y);
+  assert.ok(Math.abs(n("maria").x - (n("anna").x + n("ivan").x) / 2) < 1, "Мария под серединой родителей");
+  assert.equal(n("maria").y, n("petr").y);
+  assert.ok(Math.abs(n("maria").x - n("petr").x) <= 250, "муж рядом с Марией");
+});
