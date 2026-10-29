@@ -1785,11 +1785,11 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       onDrop={onDrop}
     >
       {/* Верх */}
-      <header className="relative z-[46] flex items-center gap-2 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <header className="relative z-[46] flex items-center gap-2 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] max-sm:flex-wrap">
         <button type="button" className="glass-strong grid size-11 shrink-0 place-items-center rounded-full" aria-label="К книге" onClick={() => { remindBackup(); nav.back(); }}>
           <ChevronLeft className="size-5" />
         </button>
-        <div className="min-w-0 flex-1 text-center">
+        <div className="min-w-0 flex-1 text-center max-sm:order-last max-sm:basis-full">
           <p className="truncate text-sm font-semibold text-ink">{isBack ? "Задняя сторона обложки" : page.kind === "cover" ? "Обложка" : page.title}</p>
           {isBack ? (
             <button type="button" className="text-xs text-rose-deep underline" onClick={() => nav.replace({ id: "editor", pageId: pages[0]?.id ?? "" })} disabled={!pages[0]}>
@@ -1816,7 +1816,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             </div>
           )}
         </div>
-        <div className="glass-strong flex shrink-0 items-center rounded-full p-1">
+        <div className="glass-strong flex shrink-0 items-center rounded-full p-1 max-sm:ml-auto">
           <IconBtn label="Отменить (или тап двумя пальцами)" disabled={!undo.current.length} onClick={doUndo}>
             <Undo2 className="size-[18px]" />
           </IconBtn>
