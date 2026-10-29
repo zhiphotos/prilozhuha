@@ -52,7 +52,7 @@ export function buildRelationshipGraph(data: Pick<TreeData, "people" | "unions">
 export const parentIdsOf = (g: RelationshipGraph, id: string) => (g.parents.get(id) ?? []).map((r) => r.parentId);
 export const childIdsOf = (g: RelationshipGraph, id: string) => (g.children.get(id) ?? []).map((r) => r.childId);
 
-export type Issue = { code: "self-parent" | "cycle" | "too-many-parents" | "generation-conflict" | "unknown-id"; ids: string[]; message: string };
+export type Issue = { code: "self-parent" | "parent-spouse" | "cycle" | "too-many-parents" | "generation-conflict" | "unknown-id"; ids: string[]; message: string };
 
 /** Проверка связей. Ничего не исправляет молча, только сообщает. */
 export function validateGraph(g: RelationshipGraph, rootId?: string): Issue[] {
@@ -60,6 +60,10 @@ export function validateGraph(g: RelationshipGraph, rootId?: string): Issue[] {
   for (const [child, list] of g.parents) {
     if (list.some((r) => r.parentId === child)) out.push({ code: "self-parent", ids: [child], message: "Человек записан родителем самому себе." });
     if (list.length > 2) out.push({ code: "too-many-parents", ids: [child, ...list.map((r) => r.parentId)], message: "У человека больше двух родителей: выберите двух." });
+  }
+  for (const pt of g.partnerships) {
+    const kin = parentIdsOf(g, pt.a).includes(pt.b) || parentIdsOf(g, pt.b).includes(pt.a);
+    if (kin) out.push({ code: "parent-spouse", ids: [pt.a, pt.b], message: "Родитель и ребёнок записаны супругами: проверьте связи." });
   }
   // Циклы по родительским связям.
   const state = new Map<string, 1 | 2>();
