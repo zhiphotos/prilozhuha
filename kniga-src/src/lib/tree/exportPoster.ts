@@ -91,13 +91,14 @@ async function savePdf(canvas: HTMLCanvasElement) {
 }
 
 /** PDF из нескольких листов: у каждого свой размер, ничего не сжимается в одну полосу. */
-async function savePdfSheets(canvases: HTMLCanvasElement[]) {
+async function savePdfSheets(input: { canvases: HTMLCanvasElement[]; raster: number }) {
+  const canvases = input.canvases;
   const sheets = [];
   for (const canvas of canvases) {
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
     if (!blob) throw new Error("pdf");
     // Холст нарисован в 1,5 раза крупнее листа: лист в PDF – по размеру схемы (96 точек на дюйм), картинка внутри чёткая при увеличении.
-    const k = 0.75 / 1.5;
+    const k = 1 / input.raster;
     sheets.push({ bytes: new Uint8Array(await blob.arrayBuffer()), width: canvas.width, height: canvas.height, pageW: canvas.width * k, pageH: canvas.height * k });
   }
   const pdf = buildJpegPdf(sheets);
@@ -112,7 +113,7 @@ async function savePdfSheets(canvases: HTMLCanvasElement[]) {
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-export async function exportPoster(data: TreeData, style: TreeStyle = "work", banner = "", paper: "white" | "black" = "white", flow: "down" | "up" = "down", format: "png" | "pdf" = "png"): Promise<void> {
+export async function exportPoster(data: TreeData, style: TreeStyle = "work", banner = "", paper: "white" | "black" = "white", flow: "down" | "up" = "down", format: "png" | "pdf" = "png", print: PrintOptions = DEFAULT_PRINT): Promise<void> {
   const out = format === "pdf" ? savePdf : savePng;
   await document.fonts.load('600 64px "Cormorant Garamond"');
   await document.fonts.load('500 22px Manrope');
@@ -122,8 +123,40 @@ export async function exportPoster(data: TreeData, style: TreeStyle = "work", ba
   if (style === "gzhel") return out(await renderGzhel(data, titleOf, flow));
   if (style === "cameo") return out(await renderCameo(data, titleOf, flow));
   if (style === "carved") return out(await renderLiving(data, titleOf, flow));
-  if (format === "pdf") return savePdfSheets(await renderWorkSheets(data, paper, flow));
+  if (format === "pdf") return savePdfSheets(await renderWorkSheets(data, paper, flow, print));
+  if (format === "png") {
+    // Длинное древо в одну ленту нечитаемо: большие схемы выводим полосами друг под другом в высоком разрешении.
+    const prep = await prepareWork(data, paper, flow);
+    if (prep.layout.width > 7000) return out(drawBandsPng(prep));
+  }
   await out(await renderWork(data, paper, flow));
+}
+
+function drawBandsPng(prep: WorkPrep): HTMLCanvasElement {
+  const { layout, tone } = prep;
+  const xs = layout.nodes.map((n) => n.x);
+  const left = Math.min(...xs) - PLATE_W / 2 - 40;
+  const right = Math.max(...xs) + PLATE_W / 2 + 40;
+  const n = Math.max(2, Math.ceil((right - left) / 4200));
+  // Не больше ~100 мегапикселей: иначе телефон не соберёт картинку; крупно печатать лучше через PDF.
+  const estPx = ((right - left) / n + 80) * (n * (layout.height + 180) + 210);
+  const s = Math.min(1, Math.sqrt(100e6 / estPx));
+  const { canvas, bandOf, place } = drawBands(prep, n, [left, right], s, 40, 110, 60, 100);
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = tone.footer;
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+  ctx.font = '600 44px "Cormorant Garamond", serif';
+  ctx.fillText("Книга Рода", 40, 70);
+  ctx.font = "500 22px Manrope, sans-serif";
+  ctx.globalAlpha = 0.65;
+  for (let i = 0; i < n; i++) {
+    const [, y] = place(left + (i * (right - left)) / n, 0);
+    ctx.fillText(`полоса ${i + 1} из ${n}${i < n - 1 ? " · продолжение справа ниже" : ""}`, 44, y - 8 > 90 ? y - 8 : 96);
+  }
+  ctx.globalAlpha = 1;
+  void bandOf;
+  return canvas;
 }
 
 type WorkPrep = {
@@ -302,7 +335,7 @@ function columnEdges(xs: number[], from: number, to: number, target: number): nu
       break;
     }
     let best = start + target;
-    for (let b = start + target; b > start + target * 0.55; b -= 20) {
+    for (let b = start + target; b > start + target * 0.3; b -= 8) {
       if (clear(b)) {
         best = b;
         break;
@@ -313,90 +346,175 @@ function columnEdges(xs: number[], from: number, to: number, target: number): nu
   return edges;
 }
 
+export type PrintOptions = { paper: "A4" | "A3"; scale: "large" | "medium" | "small" };
+export const DEFAULT_PRINT: PrintOptions = { paper: "A4", scale: "medium" };
+/** Страница в пунктах (альбомная ориентация) и сколько пунктов бумаги приходится на одну единицу схемы. */
+const PAGE_PT = { A4: { w: 842, h: 595 }, A3: { w: 1191, h: 842 } } as const;
+const PT_PER_UNIT = { large: 0.7, medium: 0.55, small: 0.42 } as const;
+const RASTER = 2.4;
+
+/** Подпись про печать: сколько листов и какой размер карточки получится. */
+export function printPlan(layoutWidth: number, layoutHeight: number, opts: PrintOptions) {
+  const page = PAGE_PT[opts.paper];
+  const wanted = PT_PER_UNIT[opts.scale];
+  const usableH = page.h - 56;
+  // Число рядов поколений на листе целое: подгоняем масштаб так, чтобы листа хватило ровно на них (без пустой полосы внизу).
+  const rows = Math.max(1, Math.round(usableH / wanted / ROW_H));
+  const k = usableH / (rows * ROW_H);
+  const sheetW = (page.w - 40) / k;
+  return { k, sheetW, rows, cardCm: Math.round(((PLATE_W * k) / 72) * 2.54 * 10) / 10, estSheets: Math.ceil(layoutWidth / sheetW) * Math.ceil(layoutHeight / (rows * ROW_H)) };
+}
+
+/** Рисует схему полосами друг под другом (как строки текста): длинное древо занимает страницу целиком, а не тонкую ленту. */
+function drawBands(prep: WorkPrep, bands: number, bandX: [number, number], s: number, pad: number, top: number, gap: number, extraH = 0): { canvas: HTMLCanvasElement; bandOf: (x: number) => number; place: (x: number, y: number) => [number, number] } {
+  const { layout, tone } = prep;
+  const [left, right] = bandX;
+  const bw = (right - left) / bands;
+  const bh = layout.height + 120;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(bw * s + pad * 2);
+  canvas.height = Math.ceil(top + bands * (bh * s + gap) + extraH);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas");
+  ctx.fillStyle = tone.sheet;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const total = layout.width + Math.abs(left) + 2000;
+  for (let i = 0; i < bands; i++) {
+    const oy = top + i * (bh * s + gap);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(pad, oy, bw * s, bh * s);
+    ctx.clip();
+    ctx.setTransform(s, 0, 0, s, pad - (left + i * bw) * s, oy);
+    drawWork(ctx, prep, total, layout.height + 200);
+    ctx.restore();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (i > 0) { ctx.strokeStyle = tone.muted; ctx.globalAlpha = 0.5; ctx.setLineDash([6, 6]); ctx.strokeRect(pad, oy, bw * s, bh * s); ctx.setLineDash([]); ctx.globalAlpha = 1; } else { ctx.strokeStyle = tone.muted; ctx.globalAlpha = 0.5; ctx.setLineDash([6, 6]); ctx.strokeRect(pad, oy, bw * s, bh * s); ctx.setLineDash([]); ctx.globalAlpha = 1; }
+  }
+  const bandOf = (x: number) => Math.min(bands - 1, Math.max(0, Math.floor((x - left) / bw)));
+  const place = (x: number, y: number): [number, number] => {
+    const i = bandOf(x);
+    return [pad + (x - left - i * bw) * s, top + i * (bh * s + gap) + y * s];
+  };
+  return { canvas, bandOf, place };
+}
+
 /**
- * Схема для PDF: не одна гигантская полоса, а листы нормального размера, на которых всё читается.
- * Каждый лист вырезан из древа в хорошем разрешении; пустые листы пропускаем; на листе подпись «лист N из M».
+ * Схема для PDF: листы A4/A3 с читаемым размером карточек (масштаб выбирает человек), страницы настоящего размера.
+ * Первая страница: обзор (схема полосами) с номерами листов. Границы листов идут между семьями, на краях метки продолжения.
  */
-async function renderWorkSheets(data: TreeData, paper: "white" | "black", flow: "down" | "up"): Promise<HTMLCanvasElement[]> {
+async function renderWorkSheets(data: TreeData, paper: "white" | "black", flow: "down" | "up", opts: PrintOptions = DEFAULT_PRINT): Promise<{ canvases: HTMLCanvasElement[]; raster: number }> {
   const prep = await prepareWork(data, paper, flow);
   const { layout, tone } = prep;
-  const SHEET_W = 2000;
-  const ROWS = 3;
-  const SHEET_H = ROWS * ROW_H;
-  const SCALE = 1.5;
+  const page = PAGE_PT[opts.paper];
+  const plan = printPlan(layout.width, layout.height, opts);
+  const K = plan.k * RASTER;
+  const SHEET_W = plan.sheetW;
+  const SHEET_H = plan.rows * ROW_H;
   const xs = layout.nodes.map((n) => n.x);
   const left = Math.min(...xs) - PLATE_W / 2 - 40;
   const right = Math.max(...xs) + PLATE_W / 2 + 40;
-  const cols = columnEdges(xs, left, right, SHEET_W);
-  const rowsCount = Math.max(1, Math.ceil(layout.height / SHEET_H));
-  const tiles: { x0: number; x1: number; y0: number; y1: number }[] = [];
+  const minY = Math.min(...layout.nodes.map((n) => n.y));
+  const base = minY - 130;
+  const rowsCount = Math.max(1, Math.ceil((layout.height + 120 - base) / SHEET_H));
+  type Tile = { x0: number; x1: number; y0: number; y1: number; r: number; c: number };
+  const tiles: Tile[] = [];
   for (let r = 0; r < rowsCount; r++) {
+    const y0 = base + r * SHEET_H;
+    const y1 = y0 + SHEET_H;
+    // Границы листов считаем отдельно для каждой полосы рядов: режем только в промежутках между карточками этой полосы.
+    const bandXs = layout.nodes.filter((n) => n.y + 140 > y0 && n.y - PORTRAIT_R < y1).map((n) => n.x);
+    if (!bandXs.length) continue;
+    const bl = Math.min(...bandXs) - PLATE_W / 2 - 40;
+    const br = Math.max(...bandXs) + PLATE_W / 2 + 40;
+    const cols = columnEdges(bandXs, bl, br, SHEET_W);
     for (let c = 0; c < cols.length - 1; c++) {
-      const t = { x0: cols[c]!, x1: cols[c + 1]!, y0: r * SHEET_H, y1: Math.min(layout.height + 120, (r + 1) * SHEET_H) };
+      const t = { x0: cols[c]!, x1: cols[c + 1]!, y0, y1, r, c };
       const has = layout.nodes.some((n) => n.x + PLATE_W / 2 > t.x0 && n.x - PLATE_W / 2 < t.x1 && n.y + 140 > t.y0 && n.y - PORTRAIT_R < t.y1);
       if (has) tiles.push(t);
     }
   }
+  const numberOf = new Map(tiles.map((t, i) => [t, i + 1]));
+  const neighbor = (t: Tile, dr: number, dc: number): number | undefined => {
+    if (dr === 0) return numberOf.get(tiles.find((o) => o.r === t.r && o.c === t.c + dc) as Tile);
+    const cx = (t.x0 + t.x1) / 2;
+    const hit = tiles.find((o) => o.r === t.r + dr && o.x0 <= cx && o.x1 > cx);
+    return hit ? numberOf.get(hit) : undefined;
+  };
   const out: HTMLCanvasElement[] = [];
-  // Первый лист: карта всех листов, чтобы быстро найти нужное место.
+  const PW = Math.round(page.w * RASTER);
+  const PH = Math.round(page.h * RASTER);
+  // Обзор: схема полосами, чтобы заполнить страницу; выбираем число полос с самым крупным масштабом.
   {
-    const ovW = Math.ceil(SHEET_W * SCALE);
-    const ovS = ovW / (right - left);
-    const ovH = Math.ceil(SHEET_H * SCALE);
+    let best = { n: 1, s: 0 };
+    for (let n = 1; n <= 14; n++) {
+      const bw = (right - left) / n;
+      const s = Math.min((PW - 60) / bw, (PH - 140 - (n - 1) * 24) / (n * (layout.height + 120)));
+      if (s > best.s) best = { n, s };
+    }
+    const bands = drawBands(prep, best.n, [left, right], best.s, 30, 100, 24);
     const ov = document.createElement("canvas");
-    ov.width = ovW;
-    ov.height = ovH;
+    ov.width = PW;
+    ov.height = PH;
     const octx = ov.getContext("2d");
     if (!octx) throw new Error("canvas");
     octx.fillStyle = tone.sheet;
-    octx.fillRect(0, 0, ovW, ovH);
-    const fit = Math.min(ovS, (ovH - 140) / (layout.height + 120));
-    octx.save();
-    octx.setTransform(fit, 0, 0, fit, (ovW - (right - left) * fit) / 2 - left * fit, 110);
-    drawWork(octx, prep, layout.width + Math.abs(left) + 2000, layout.height + 200);
-    octx.restore();
+    octx.fillRect(0, 0, PW, PH);
+    octx.drawImage(bands.canvas, (PW - bands.canvas.width) / 2, 0);
+    const dx = (PW - bands.canvas.width) / 2;
     octx.fillStyle = tone.footer;
-    octx.font = `600 ${Math.round(22 * SCALE)}px "Cormorant Garamond", serif`;
+    octx.font = `600 ${Math.round(18 * RASTER)}px "Cormorant Garamond", serif`;
     octx.textAlign = "left";
-    octx.fillText(`Книга Рода: карта листов (всего ${tiles.length})`, 24, 60);
-    octx.strokeStyle = "#c0392b";
+    octx.fillText(`Книга Рода · обзор · листов: ${tiles.length}, ${opts.paper}, карточка ≈ ${plan.cardCm} см`, 30, 56);
     octx.lineWidth = 2;
-    octx.font = `700 ${Math.round(11 * SCALE)}px Manrope, sans-serif`;
+    octx.strokeStyle = "#c0392b";
     octx.fillStyle = "#c0392b";
-    const ox = (ovW - (right - left) * fit) / 2 - left * fit;
+    octx.font = `700 ${Math.max(14, Math.round(5.5 * RASTER))}px Manrope, sans-serif`;
     tiles.forEach((t, i) => {
-      octx.strokeRect(ox + t.x0 * fit, 110 + t.y0 * fit, (t.x1 - t.x0) * fit, (t.y1 - t.y0) * fit);
-      octx.fillText(String(i + 1), ox + t.x0 * fit + 3, 110 + t.y0 * fit + 14);
+      const [px, py] = bands.place(Math.max(t.x0, left), t.y0);
+      const w = (Math.min(t.x1, right) - t.x0) * best.s;
+      octx.strokeRect(dx + px, py, w, (t.y1 - t.y0) * best.s);
+      octx.fillText(String(i + 1), dx + px + 3, py + Math.max(14, 5.5 * RASTER));
     });
     out.push(ov);
   }
   for (const [i, t] of tiles.entries()) {
-    // Все листы одного размера (чтобы PDF листался ровно): то, что вне вырезанной части, остаётся пустым.
     const canvas = document.createElement("canvas");
-    canvas.width = Math.ceil(SHEET_W * SCALE);
-    canvas.height = Math.ceil(SHEET_H * SCALE);
+    canvas.width = PW;
+    canvas.height = PH;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("canvas");
     ctx.fillStyle = tone.sheet;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, PW, PH);
+    const ox = 20 * RASTER;
+    const oy = 16 * RASTER;
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, 0, (t.x1 - t.x0) * SCALE, (t.y1 - t.y0) * SCALE);
+    ctx.rect(ox, oy, (t.x1 - t.x0) * K, (t.y1 - t.y0) * K);
     ctx.clip();
-    ctx.setTransform(SCALE, 0, 0, SCALE, -t.x0 * SCALE, -t.y0 * SCALE);
+    ctx.setTransform(K, 0, 0, K, ox - t.x0 * K, oy - t.y0 * K);
     drawWork(ctx, prep, layout.width + Math.abs(left) + 2000, layout.height + 200);
     ctx.restore();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = tone.footer;
+    ctx.textBaseline = "alphabetic";
     ctx.globalAlpha = 0.6;
     ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
-    ctx.font = `500 ${Math.round(15 * SCALE)}px Manrope, sans-serif`;
-    ctx.fillText(`Книга Рода · лист ${i + 1} из ${tiles.length}`, 20 * SCALE, canvas.height - 14 * SCALE);
+    ctx.font = `500 ${Math.round(8 * RASTER)}px Manrope, sans-serif`;
+    ctx.fillText(`Книга Рода · лист ${i + 1} из ${tiles.length}`, ox, PH - 12 * RASTER);
     ctx.globalAlpha = 1;
+    // Метки продолжения: куда уходит схема за краем листа.
+    ctx.fillStyle = "#c0392b";
+    ctx.font = `700 ${Math.round(8 * RASTER)}px Manrope, sans-serif`;
+    const mark = (text: string, x: number, y: number, align: CanvasTextAlign) => { ctx.textAlign = align; ctx.fillText(text, x, y); };
+    const R = neighbor(t, 0, 1), L = neighbor(t, 0, -1), D = neighbor(t, 1, 0), U = neighbor(t, -1, 0);
+    if (R) mark(`продолжение → лист ${R}`, PW - ox, PH - 12 * RASTER, "right");
+    if (L) mark(`← с листа ${L}`, PW / 2, PH - 12 * RASTER, "center");
+    if (D) mark(`↓ лист ${D}`, PW - ox, oy + 8 * RASTER, "right");
+    if (U) mark(`↑ с листа ${U}`, PW / 2, oy + 8 * RASTER, "center");
     out.push(canvas);
   }
-  return out;
+  return { canvases: out, raster: RASTER };
 }
 
 function paintFooter(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, sheetHeight: number, scale: number, color: string) {

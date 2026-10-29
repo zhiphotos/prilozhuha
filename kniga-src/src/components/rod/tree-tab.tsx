@@ -20,7 +20,7 @@ import { layoutGzhel } from "@/lib/tree/gzhel";
 import { layoutBoheme } from "@/lib/tree/boheme";
 import { layoutTaiga } from "@/lib/tree/taiga";
 import { layoutPoster } from "@/lib/tree/poster";
-import { exportPoster } from "@/lib/tree/exportPoster";
+import { DEFAULT_PRINT, exportPoster, printPlan, type PrintOptions } from "@/lib/tree/exportPoster";
 import { useTree, warmPhotos, type TreeStyle } from "@/lib/tree/ui-store";
 
 export function TreeTab() {
@@ -91,6 +91,22 @@ function TreeScreen() {
   const [busy, setBusy] = useState(false);
   const [add, setAdd] = useState(false);
   const [sheetPick, setSheetPick] = useState(false);
+  const [print, setPrint] = useState<PrintOptions>(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem("kniga-print") ?? "null") as Partial<PrintOptions> | null;
+      return { paper: raw?.paper === "A3" ? "A3" : "A4", scale: raw?.scale === "large" || raw?.scale === "small" ? raw.scale : DEFAULT_PRINT.scale };
+    } catch {
+      return DEFAULT_PRINT;
+    }
+  });
+  const choosePrint = (next: PrintOptions) => {
+    setPrint(next);
+    try {
+      localStorage.setItem("kniga-print", JSON.stringify(next));
+    } catch {
+      /* без сохранения настройки */
+    }
+  };
   const [fitReq, setFitReq] = useState(0);
   // При входе в древо камера встаёт на «Вас»: большое древо иначе открывается на дальних предках.
   useEffect(() => {
@@ -129,7 +145,7 @@ function TreeScreen() {
     setBusy(true);
     setNote(null);
     try {
-      await exportPoster({ people: shown.people, unions: shown.unions, focusId }, style, banner, paper, flow, format);
+      await exportPoster({ people: shown.people, unions: shown.unions, focusId }, style, banner, paper, flow, format, print);
       const saved =
         style === "work"
           ? paper === "black"
@@ -327,9 +343,29 @@ function TreeScreen() {
                 {busy ? "…" : "Сохранить как"}
               </button>
               {sheetPick && (
-                <div className="absolute top-12 right-0 z-30 grid w-48 max-w-[calc(100vw-1.5rem)] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg">
+                <div className="absolute top-12 left-0 z-30 grid w-56 max-w-[calc(100vw-1.5rem)] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg">
                   {style === "work" ? (
                     <>
+                      <div className="grid gap-1 px-1 pb-1 text-xs text-muted">
+                        <span>Печать (PDF): формат и размер карточек</span>
+                        <div className="flex gap-1">
+                          {(["A4", "A3"] as const).map((p) => (
+                            <button key={p} type="button" aria-pressed={print.paper === p} className={`min-h-9 flex-1 rounded-lg px-2 text-sm font-semibold ${print.paper === p ? "bg-ink text-sheet" : "bg-white text-ink"}`} onClick={() => choosePrint({ ...print, paper: p })}>
+                              {p}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex gap-1">
+                          {([["large", "Крупно"], ["medium", "Средне"], ["small", "Мелко"]] as const).map(([k, label]) => (
+                            <button key={k} type="button" aria-pressed={print.scale === k} className={`min-h-9 flex-1 rounded-lg px-1 text-xs font-semibold ${print.scale === k ? "bg-ink text-sheet" : "bg-white text-ink"}`} onClick={() => choosePrint({ ...print, scale: k })}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        <span>
+                          Карточка ≈ {printPlan(layout.width, layout.height, print).cardCm} см, листов ≈ {printPlan(layout.width, layout.height, print).estSheets}
+                        </span>
+                      </div>
                       <button type="button" className="min-h-11 rounded-xl bg-white px-3 text-sm font-semibold text-ink" onClick={() => void save("white", "png")}>
                         PNG, белый фон
                       </button>
