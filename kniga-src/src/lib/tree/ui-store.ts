@@ -8,6 +8,7 @@ import type { UnionFacts } from "./fill.ts";
 import { flipSpouse, moveBranch, type Patch } from "./arrange.ts";
 import { setLayoutSpread } from "./layout.ts";
 import { SELF_ID, roleOf, treeFromPeople } from "./from-people.ts";
+import { buildRelationshipGraph, validateGraph } from "./relgraph.ts";
 import type { TreeScope } from "./scope.ts";
 import type { TreeStyle } from "./styles.ts";
 import type { Gender, Person, Union, UnionStatus } from "./types.ts";
@@ -39,6 +40,8 @@ export function draftFrom(person: Person): Draft {
 }
 
 type State = {
+  /** Замечания к связям: показываем, молча не исправляем. */
+  issues: string[];
   people: Person[];
   unions: Union[];
   focusId: string;
@@ -125,7 +128,8 @@ function relationFor(kind: RelKind, baseRole: string, gender: "m" | "f" | undefi
     if (baseRole === "self") return f ? "мама" : "папа";
     if (baseRole === "mother" || baseRole === "father") return f ? "бабушка" : "дедушка";
     if (baseRole === "grand") return f ? "прабабушка" : "прадедушка";
-    return f ? "мать" : "отец";
+    // Слова «мать» и «отец» без уточнения программа читает как моих родителей: у родителей мужа, бабушки и других пишем «родитель».
+    return f ? "родитель (мать)" : "родитель (отец)";
   }
   if (kind === "spouse") return f ? "жена" : "муж";
   if (kind === "son" || kind === "daughter") return baseRole === "self" ? (f ? "дочь" : "сын") : baseRole === "child" ? (f ? "внучка" : "внук") : f ? "дочь" : "сын";
@@ -166,6 +170,12 @@ function applyPatches(patches: Patch[]) {
   }
 }
 
+function issuesOf(data: ReturnType<typeof treeFromPeople>): string[] {
+  const name = (id: string) => data.people.find((p) => p.id === id)?.firstName || "?";
+  const found = validateGraph(buildRelationshipGraph(data), data.focusId).map((i) => `${i.message} (${[...new Set(i.ids)].map(name).join(", ")})`);
+  return [...found, ...(data.ambiguous ?? []).map((a) => a.message)];
+}
+
 export const useTree = create<State>((set, get) => {
   const ui = readUi();
   setLayoutSpread(ui.spread);
@@ -174,7 +184,7 @@ export const useTree = create<State>((set, get) => {
   const rebuild = () => {
     const data = treeFromPeople(currentPeople());
     const focus = data.people.some((p) => p.id === get().focusId) ? get().focusId : data.focusId;
-    set({ people: data.people, unions: data.unions, focusId: focus });
+    set({ people: data.people, unions: data.unions, focusId: focus, issues: issuesOf(data) });
   };
   useRod.subscribe(rebuild);
 
@@ -183,6 +193,7 @@ export const useTree = create<State>((set, get) => {
 
   return {
     ...ui,
+    issues: issuesOf(initial),
     people: initial.people,
     unions: initial.unions,
     focusId: initial.focusId,

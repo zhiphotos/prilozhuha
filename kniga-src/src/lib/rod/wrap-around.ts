@@ -119,6 +119,9 @@ export function flowAround(
       row += 1;
       continue;
     }
+    // Пробелы в начале абзаца (красная строка) не теряем: их поставил сам человек.
+    const lead = paragraph.match(/^[ \t]+/)?.[0] ?? "";
+    if (lead) words[0] = lead + words[0];
     let at = 0;
     while (at < words.length && guard++ < 4000) {
       const all = freeSpans();

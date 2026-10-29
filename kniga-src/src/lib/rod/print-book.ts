@@ -114,6 +114,7 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, gap
       return;
     }
     let line = "";
+    let lead = paragraph.match(/^[ \t]+/)?.[0] ?? "";
     // Слово длиннее строки режем по буквам – как на экране (break-words), иначе оно уезжает за край листа.
     const pieces = words.flatMap((word) => {
       if (widthWith(ctx, word, 0) <= maxWidth) return [word];
@@ -129,7 +130,8 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, gap
       return parts;
     });
     pieces.forEach((word) => {
-      const next = line ? `${line} ${word}` : word;
+      const next = line ? `${line} ${word}` : lead + word;
+      lead = "";
       if (widthWith(ctx, next, gap) <= maxWidth || !line) line = next;
       else {
         lines.push(line);
@@ -282,6 +284,14 @@ async function paintCover(ctx: CanvasRenderingContext2D, meta: CoverMeta) {
   ctx.restore();
 }
 
+/** Отражение блока (зеркало по горизонтали и вертикали) вокруг его центра. */
+function flipBlock(ctx: CanvasRenderingContext2D, block: { flipX?: boolean; flipY?: boolean }, w: number, h: number) {
+  if (!block.flipX && !block.flipY) return;
+  ctx.translate(w / 2, h / 2);
+  ctx.scale(block.flipX ? -1 : 1, block.flipY ? -1 : 1);
+  ctx.translate(-w / 2, -h / 2);
+}
+
 function rotateAround(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, deg: number) {
   ctx.translate(x + w / 2, y + h / 2);
   ctx.rotate((deg * Math.PI) / 180);
@@ -350,6 +360,7 @@ async function paintPhoto(ctx: CanvasRenderingContext2D, block: Extract<PageBloc
   const lit = block.shadow !== false;
   ctx.save();
   rotateAround(ctx, x, y, w, h, block.rotate ?? 0);
+  flipBlock(ctx, block, w, h);
   if (lifted) {
     if (lit) shadow(ctx, 1, 0.8);
     if (image) contain(ctx, image, 0, 0, w, h);
@@ -426,6 +437,7 @@ function paintShape(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { t
   const style = shapeStyle(block);
   ctx.save();
   rotateAround(ctx, x, y, w, h, block.rotate ?? 0);
+  flipBlock(ctx, block, w, h);
   ctx.scale(U, U);
   for (const part of shapeParts(block.shape, block.w, block.h, style.strokeW)) {
     const path = new Path2D(part.d);
@@ -484,6 +496,7 @@ async function paintInk(ctx: CanvasRenderingContext2D, block: Extract<PageBlock,
   const h = (block.h / 100) * H;
   ctx.save();
   rotateAround(ctx, x, y, w, h, block.rotate ?? 0);
+  flipBlock(ctx, block, w, h);
   // Линии лежат в «единицах ширины страницы»: высота рамки в тех же единицах.
   const ohUnits = (block.oh * PAGE_H) / 100;
   ctx.scale(w / block.ow, h / ohUnits);
@@ -504,6 +517,7 @@ async function paintSticker(ctx: CanvasRenderingContext2D, block: Extract<PageBl
   const y = (block.y / 100) * H;
   ctx.save();
   rotateAround(ctx, x, y, w, h, block.rotate ?? 0);
+  flipBlock(ctx, block, w, h);
   ctx.shadowColor = "rgba(42, 36, 32, 0.22)";
   ctx.shadowBlur = 1 * U;
   ctx.shadowOffsetY = 0.6 * U;

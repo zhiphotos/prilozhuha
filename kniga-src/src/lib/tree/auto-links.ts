@@ -76,6 +76,16 @@ export function onSiblingSet(people: RodPerson[], personId: string, otherId: str
   const a = people.find((p) => p.id === personId);
   const b = people.find((p) => p.id === otherId);
   if (!a || !b) return {};
+  // Предок или потомок не может быть братом или сестрой: родителей не копируем.
+  const reach = (from: string, step: (id: string) => string[]) => {
+    const seen = new Set<string>([from]);
+    const q = [from];
+    for (let i = 0; i < q.length; i++) for (const n of step(q[i]!)) if (!seen.has(n)) { seen.add(n); q.push(n); }
+    return seen;
+  };
+  const up = (id: string) => (people.find((p) => p.id === id)?.parents ?? []);
+  const down = (id: string) => people.filter((p) => (p.parents ?? []).includes(id)).map((p) => p.id);
+  if (reach(personId, up).has(otherId) || reach(personId, down).has(otherId)) return {};
   if (!(a.parents ?? []).length && (b.parents ?? []).length) return { [personId]: { parents: [...b.parents!] } };
   if ((a.parents ?? []).length && !(b.parents ?? []).length) return { [otherId]: { parents: [...a.parents!] } };
   return {};

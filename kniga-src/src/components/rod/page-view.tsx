@@ -213,6 +213,14 @@ export function PlacedBlock({
 
 /** Как блок выглядит. Без рамок выбора – их рисует редактор. Ластик (маска) и прозрачность действуют только на сам рисунок, не на рамки и кнопки выбора. */
 export function BlockArt({ block, editing = false }: { block: PageBlock; editing?: boolean }) {
+  if (block.flipX || block.flipY) {
+    // Зеркало: отражаем только саму картинку, а не рамки и кнопки выбора.
+    return (
+      <div className="h-full w-full" style={{ transform: `scale(${block.flipX ? -1 : 1}, ${block.flipY ? -1 : 1})` }}>
+        <BlockArt block={{ ...block, flipX: false, flipY: false }} editing={editing} />
+      </div>
+    );
+  }
   if (block.clip && "h" in block) {
     // «Только этот лист»: прячем то, что вышло за край страницы.
     const w = Math.max(0.01, block.w);

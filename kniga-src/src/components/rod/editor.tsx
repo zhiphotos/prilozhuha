@@ -430,6 +430,37 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const gids = new Set(blocks.filter((b) => ids.includes(b.id) && b.groupId).map((b) => b.groupId));
     return gids.size ? blocks.filter((b) => ids.includes(b.id) || (b.groupId && gids.has(b.groupId))).map((b) => b.id) : ids;
   };
+  /** Поворот выбранной группы вокруг её центра: каждый блок поворачивается сам и сдвигается по дуге. */
+  const rotateGroup = (deg: number) => {
+    const ids = new Set(group);
+    const blocks = (current()?.blocks ?? []).filter((b) => ids.has(b.id) && !b.locked);
+    if (blocks.length < 2) return;
+    const k = PAGE_H / 100;
+    const boxes = new Map(blocks.map((b) => [b.id, { w: blockW(b as { type: string; w?: number }), h: heightOf(b) }]));
+    const x0 = Math.min(...blocks.map((b) => b.x));
+    const x1 = Math.max(...blocks.map((b) => b.x + boxes.get(b.id)!.w));
+    const y0 = Math.min(...blocks.map((b) => b.y * k));
+    const y1 = Math.max(...blocks.map((b) => (b.y + boxes.get(b.id)!.h) * k));
+    const gx = (x0 + x1) / 2;
+    const gy = (y0 + y1) / 2;
+    const c = Math.cos((deg * Math.PI) / 180);
+    const sn = Math.sin((deg * Math.PI) / 180);
+    commit(
+      (p) => ({
+        ...p,
+        blocks: p.blocks.map((b) => {
+          const f = boxes.get(b.id);
+          if (!f) return b;
+          const dx = b.x + f.w / 2 - gx;
+          const dy = (b.y + f.h / 2) * k - gy;
+          const nx = gx + dx * c - dy * sn;
+          const ny = gy + dx * sn + dy * c;
+          return { ...b, x: round(nx - f.w / 2), y: round(ny / k - f.h / 2), rotate: round((b.rotate ?? 0) + deg) } as PageBlock;
+        }),
+      }),
+      `rotate-group:${[...ids].join(",")}`,
+    );
+  };
   const groupSelected = () => {
     const ids = new Set(group);
     if (ids.size < 2) return;
@@ -1969,6 +2000,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                           Сгруппировать
                         </button>
                       )}
+                      <button type="button" aria-label="Повернуть группу влево" className="grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={() => rotateGroup(-15)}>
+                        ↺
+                      </button>
+                      <button type="button" aria-label="Повернуть группу вправо" className="grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={() => rotateGroup(15)}>
+                        ↻
+                      </button>
                       <button type="button" className="grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={() => copyBlocks()}>
                         Копировать
                       </button>

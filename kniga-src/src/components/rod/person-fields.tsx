@@ -243,6 +243,7 @@ export function PersonFields({ value, onChange, others }: { value: PersonDraft; 
           </select>
         </Field>
       ) : null}
+      {others.length && (value as Person).id ? <SiblingsPicker self={value as Person} others={others} /> : null}
       <Field label="Комментарий">
         <textarea className="field min-h-20" value={value.notes} onChange={(event) => onChange({ notes: event.target.value })} placeholder="Фраза, привычка, чего не знаете" />
       </Field>
@@ -269,5 +270,41 @@ export function PersonEditor({ person, onRemoved }: { person: Person; onRemoved?
         Убрать из семьи
       </button>
     </div>
+  );
+}
+
+
+/** Отметить сразу всех братьев и сестёр: у кого оба родителя совпадают, те уже отмечены. */
+function SiblingsPicker({ self, others }: { self: Person; others: Person[] }) {
+  const updatePerson = useRod((state) => state.updatePerson);
+  const same = (a?: string[], b?: string[]) => !!a?.length && !!b?.length && a.length === b.length && a.every((x) => b.includes(x));
+  const isSib = (o: Person) => o.siblingOf === self.id || self.siblingOf === o.id || same(o.parents, self.parents);
+  const banned = new Set<string>([...(self.parents ?? []), ...(self.spouse ? [self.spouse] : []), ...(self.moreSpouses ?? []).map((m) => m.id)]);
+  const pool = others.filter((o) => !banned.has(o.id) && !(o.parents ?? []).includes(self.id) && o.spouse !== self.id);
+  const mine = pool.filter(isSib);
+  return (
+    <Field label="Все братья и сёстры" hint="Отметьте всех сразу. Братья и сёстры – те, у кого совпадают оба родителя.">
+      <div className="grid max-h-44 gap-1 overflow-auto rounded-xl border border-ink/10 p-2">
+        {pool.map((o) => {
+          const on = mine.includes(o);
+          return (
+            <label key={o.id} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={on}
+                onChange={() => {
+                  if (on) {
+                    if (o.siblingOf === self.id) updatePerson(o.id, { siblingOf: undefined });
+                    else if (self.siblingOf === o.id) updatePerson(self.id, { siblingOf: undefined });
+                    else updatePerson(o.id, { parents: [] });
+                  } else updatePerson(o.id, { siblingOf: self.id });
+                }}
+              />
+              {o.name} ({o.relation})
+            </label>
+          );
+        })}
+      </div>
+    </Field>
   );
 }

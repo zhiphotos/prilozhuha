@@ -35,6 +35,7 @@ function TreeScreen() {
   const [preview, setPreview] = useState<TreeStyle | null>(null);
   useEffect(() => warmPhotos(), [rodPeople]);
   const people = useTree((s) => s.people);
+  const issues = useTree((s) => s.issues);
   const unions = useTree((s) => s.unions);
   const focusId = useTree((s) => s.focusId);
   const theme = useTree((s) => s.theme);
@@ -162,6 +163,16 @@ function TreeScreen() {
 
   return (
     <main data-theme={theme} className={`tree-root${dots ? "" : " no-dots"} fixed inset-0 z-40 overflow-hidden bg-canvas text-fg`} style={lineColor ? ({ "--color-blood": lineColor } as React.CSSProperties) : undefined}>
+      {issues.length ? (
+        <div role="status" className="absolute left-3 right-3 top-16 z-30 max-h-28 overflow-auto rounded-xl bg-white/90 p-3 text-xs text-ink shadow">
+          <b>Нужно уточнить связи:</b>
+          <ul className="mt-1 list-disc pl-4">
+            {issues.slice(0, 5).map((text) => (
+              <li key={text}>{text}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <TreeStage
         layout={layout}
         people={people}
