@@ -1539,6 +1539,11 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const onTextTool = () => {
     setTool("hand");
     setCropping(false);
+    // Выделено несколько блоков с текстом: «Текст» меняет настройки выделенных (цвет), а не добавляет новый текст.
+    if (group.length > 1 && (current()?.blocks ?? []).some((b) => group.includes(b.id) && b.type === "text")) {
+      setGroupColors(true);
+      return;
+    }
     if (selectedBlock && selectedBlock.type === "text" && !selectedBlock.locked) {
       startEditing(selectedBlock.id);
       return;
