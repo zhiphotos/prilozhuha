@@ -15,6 +15,7 @@ export function roleOf(relation: string): Role {
   const r = relation.trim().toLowerCase();
   if (/^(я|сам|сама)$/.test(r)) return "self";
   if (spouseSiblingWord(r)) return "spousesib";
+  if (/^(мам|мат|мать|отец|отц|пап)\S*\s+(мужа|жены|супруг)/.test(r)) return "other";
   if (/^(мам|мат)/.test(r)) return "mother";
   if (/^(пап|отец|отц)/.test(r)) return "father";
   if (/^(пра)+(бабуш|дед)/.test(r) || /^предок/.test(r)) return "greatgrand";
@@ -31,6 +32,8 @@ function genderOf(p: RodPerson, role: Role): Gender {
   if (p.gender) return p.gender;
   const r = p.relation.trim().toLowerCase();
   if (role === "spousesib") return /сестр/.test(r.split(/\s+/).find((w) => /(брат|сестр)/.test(w)) ?? "") ? "f" : "m";
+  if (/^(муж|свёкор|свекор|тесть|отчим|деверь|шурин|зять)/.test(r)) return "m";
+  if (/^(свекровь|тёща|теща|мачеха|золовка|невестка|сноха)/.test(r)) return "f";
   if (/(мам|мат|бабуш|тёт|тет|сестр|дочь|дочк|внуч|жена)/.test(r)) return "f";
   if (/(пап|отец|дед|дяд|брат|сын|внук|муж)/.test(r)) return "m";
   void role;
@@ -77,6 +80,7 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
   }
   const byId = new Map(out.map((p) => [p.id, p]));
   const unions: Union[] = [];
+  const ambiguous: { id: string; message: string }[] = [];
   let seq = 0;
   const unionFor = (partners: string[]): Union => {
     const key = [...partners].sort().join("|");
@@ -103,8 +107,18 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     }
     return id;
   };
+  // Родитель, которого указали родителем чьего-то ещё (мужа, бабушки, дяди...), не может быть «моей мамой» или «моим папой» только из-за слова «мать» или «отец».
+  // Явно противоречивая ссылка «родитель» (сам себе, или тот, кто записан супругом) в схему не попадает: сами записи не меняются, замечание показывает плашка.
+  const spouseIds = (q: RodPerson) => new Set([...(q.spouse ? [q.spouse] : []), ...(q.moreSpouses ?? []).map((m) => m.id), ...people.filter((o) => o.spouse === q.id || (o.moreSpouses ?? []).some((m) => m.id === q.id)).map((o) => o.id)]);
+  const validParents = (q: RodPerson) => {
+    const sp = spouseIds(q);
+    return (q.parents ?? []).filter((id) => id !== q.id && !sp.has(id));
+  };
+  const claimedBy = new Map<string, RodPerson[]>();
+  for (const q of people) for (const id of validParents(q)) claimedBy.set(id, [...(claimedBy.get(id) ?? []), q]);
+  const foreign = (id: string) => (claimedBy.get(id) ?? []).some((q) => !["self", "sibling"].includes(roleOf(q.relation)));
   const first = (role: Role, line?: "mom" | "dad") =>
-    people.find((p) => roleOf(p.relation) === role && (!line || p.line === line))?.id;
+    people.find((p) => roleOf(p.relation) === role && (!line || p.line === line) && !((role === "mother" || role === "father") && foreign(p.id)))?.id;
   const mother = first("mother");
   const father = first("father");
   const mom = mother ?? undefined;
@@ -112,7 +126,7 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
   const needParents = people.some((p) => !p.fromFile && roleOf(p.relation) === "sibling" && !p.parents?.length && !p.siblingOf);
 
   // Родители «меня»: мама и папа (если хоть один указан или нужны братья).
-  const selfHasParents = Boolean(selfRec?.parents?.some((id) => known.has(id) && id !== selfId));
+  const selfHasParents = Boolean(selfRec && validParents(selfRec).some((id) => known.has(id) && id !== selfId));
   if (!selfHasParents && (mom || dad || needParents || people.some((p) => roleOf(p.relation) === "grand" || roleOf(p.relation) === "uncle"))) {
     const m = mom ?? (dad || needParents ? ghost("mother", selfId) : undefined);
     const f = dad ?? (mom || needParents ? ghost("father", selfId) : undefined);
@@ -150,7 +164,7 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     const role = roleOf(p.relation);
     // Брат или сестра не бывают моим ребёнком: если в «Чей ребёнок» выбран я, потомок или ещё брат, связь игнорируем (читаем по слову «кем приходится»).
     const badKin = new Set<Role>(["self", "child", "grandchild", "sibling"]);
-    const explicit = (p.parents ?? []).filter((id) => known.has(id) && id !== p.id && !(!p.fromFile && role === "sibling" && badKin.has(roleOf(people.find((q) => q.id === id)?.relation ?? "")) ));
+    const explicit = validParents(p).filter((id) => known.has(id) && id !== p.id && !(!p.fromFile && role === "sibling" && badKin.has(roleOf(people.find((q) => q.id === id)?.relation ?? "")) ));
     if (explicit.length) { addChild(explicit.slice(0, 2), p.id); continue; }
     if (p.siblingOf && known.has(p.siblingOf)) {
       let other = unions.find((u) => u.childIds.includes(p.siblingOf!));
@@ -189,9 +203,11 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
   }
   // «Мама бабушки» и пр.: прабабушки/прадедушки привязываем к бабушке/дедушке своей линии.
   for (const line of ["mom", "dad"] as const) {
-    const gg = people.filter((p) => roleOf(p.relation) === "greatgrand" && p.line === line);
-    const grand = people.find((p) => roleOf(p.relation) === "grand" && p.line === line);
-    if (gg.length && grand) addChild(gg.slice(0, 2).map((p) => p.id), grand.id);
+    const gg = people.filter((p) => roleOf(p.relation) === "greatgrand" && p.line === line && !(claimedBy.get(p.id) ?? []).length);
+    const grands = people.filter((p) => roleOf(p.relation) === "grand" && p.line === line);
+    // Один дедушка или бабушка на линии: прабабушка однозначно его родитель. Двое: без явной связи неизвестно, чей это родитель, ничего не выдумываем и просим уточнить.
+    if (gg.length && grands.length === 1) addChild(gg.slice(0, 2).map((p) => p.id), grands[0]!.id);
+    else if (gg.length && grands.length > 1) for (const p of gg) ambiguous.push({ id: p.id, message: `«${p.name}»: укажите в карточке, чей это родитель (бабушки или дедушки).` });
   }
   // Супруги.
   for (const p of people) {
@@ -220,5 +236,5 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     const pair = unions.find((u) => u.partnerIds.includes(selfId) && u.partnerIds.includes(spouseOfSelf.id));
     if (solo && pair) { pair.childIds.push(...solo.childIds); unions.splice(unions.indexOf(solo), 1); }
   }
-  return { people: out, unions, focusId: selfId };
+  return { people: out, unions, focusId: selfId, ambiguous };
 }

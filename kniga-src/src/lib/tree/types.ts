@@ -33,6 +33,8 @@ export type TreeData = {
   people: Person[];
   unions: Union[];
   focusId: string;
+  /** Связи, которые нельзя определить без выбора пользователя (не угадываются). */
+  ambiguous?: { id: string; message: string }[];
 };
 
 export type LayoutNode = {

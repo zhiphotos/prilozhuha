@@ -508,6 +508,10 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
       </div>
       {arrange ? (
         <div className="glass sticky top-2 z-20 mb-4 flex flex-wrap items-center gap-2 rounded-xl p-2">
+          {/* Липкая «Готово»: при прокрутке вниз её можно нажать в любой момент. */}
+          <Button className="min-h-10 px-4" onClick={() => { setArrange(false); setPicked([]); setConfirmAll(false); setMoving(false); }}>
+            Готово
+          </Button>
           <Button variant="white" className="min-h-10 px-3" disabled={!undoCount} onClick={doUndo}>
             <Undo2 className="size-4" /> Отменить
           </Button>

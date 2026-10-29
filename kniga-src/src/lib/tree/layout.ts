@@ -85,6 +85,24 @@ export function assignGenerations(people: Person[], unions: Union[]): Map<string
       }
     }
   }
+  // Противоречие (например, дядя женат на племяннице): ребёнок не может оказаться в одном ряду с родителем или выше. Подтягиваем вниз, пока каждый ребёнок не станет строго ниже родителя, а супруги не окажутся в одном ряду. Связи не меняются, только строка.
+  const limit = people.length + 5;
+  for (let round = 0; round < limit; round++) {
+    let changed = false;
+    for (const union of unions) {
+      const partners = union.partnerIds.filter((id) => gen.has(id));
+      if (partners.length >= 2) {
+        const top = Math.max(...partners.map((id) => gen.get(id)!));
+        for (const id of partners) if (gen.get(id) !== top) { gen.set(id, top); changed = true; }
+      }
+      const parentRow = partners.length ? Math.max(...partners.map((id) => gen.get(id)!)) : null;
+      if (parentRow === null) continue;
+      for (const child of union.childIds) {
+        if (gen.has(child) && gen.get(child)! <= parentRow) { gen.set(child, parentRow + 1); changed = true; }
+      }
+    }
+    if (!changed) break;
+  }
   let min = Infinity;
   for (const value of gen.values()) min = Math.min(min, value);
   if (!Number.isFinite(min)) min = 0;
@@ -127,11 +145,43 @@ function orderGroup(g: Graph, ids: string[]): string[] {
     if (pb?.gender === "m" && pa?.gender !== "m") return [b, a];
     return byBirth(g, a, b) <= 0 ? [a, b] : [b, a];
   }
+  // Цепочка браков (Е – С – А – Д: у каждого из родителей есть второй брак): порядок идёт вдоль цепочки, текущая пара остаётся рядом, бывшие – по краям.
+  {
+    const set = new Set(ids);
+    const nb = new Map<string, string[]>(ids.map((id) => [id, [...new Set((g.marriagesOf.get(id) ?? []).flatMap((u) => u.partnerIds).filter((o) => o !== id && set.has(o)))]]));
+    const edges = [...nb.values()].reduce((n, l) => n + l.length, 0) / 2;
+    const isPath = edges === ids.length - 1 && [...nb.values()].every((l) => l.length <= 2) && [...nb.values()].some((l) => l.length === 2) && ids.length >= 4;
+    if (isPath) {
+      const ends = ids.filter((id) => nb.get(id)!.length === 1);
+      const walk = (start: string) => {
+        const path = [start];
+        while (true) {
+          const next = nb.get(path[path.length - 1]!)!.find((o) => !path.includes(o));
+          if (!next) return path;
+          path.push(next);
+        }
+      };
+      const a = walk(ends.slice().sort()[0]!);
+      const b = a.slice().reverse();
+      // Главной считается пара в середине цепочки (у обоих по несколько браков): в ней мужчина слева, как в любой родословной; крайние (бывшие) смотрят наружу.
+      const score = (p: string[]) => p.slice(1).filter((id, i) => nb.get(p[i]!)!.length === 2 && nb.get(id)!.length === 2 && g.people.get(p[i]!)?.gender === "m" && g.people.get(id)?.gender === "f").length;
+      return score(b) > score(a) ? b : a;
+    }
+  }
   const hub = ids.slice().sort((a, b) => (g.marriagesOf.get(b)?.length ?? 0) - (g.marriagesOf.get(a)?.length ?? 0) || byBirth(g, a, b))[0]!;
-  const others = ids.filter((id) => id !== hub).sort((a, b) => marriageYear(g, hub, a) - marriageYear(g, hub, b) || byBirth(g, a, b));
-  if (others.length === 2) return [others[0]!, hub, others[1]!];
-  const mid = Math.ceil(others.length / 2);
-  return [...others.slice(0, mid), hub, ...others.slice(mid)];
+  // Ближе к главному стоит действующий брак, потом более ранний; бывшие супруги уходят наружу и не оказываются между ним и текущей парой.
+  const unionWith = (a: string) => g.unions.find((u) => u.partnerIds.includes(hub) && u.partnerIds.includes(a));
+  const current = (a: string) => (unionWith(a)?.status === "married" || unionWith(a)?.status === "partner" ? 0 : 1);
+  const others = ids.filter((id) => id !== hub).sort((a, b) => current(a) - current(b) || marriageYear(g, hub, a) - marriageYear(g, hub, b) || byBirth(g, a, b) || a.localeCompare(b));
+  if (others.length === 2) {
+    // Два брака: в порядке заключения (при равных годах действующий слева, бывший справа).
+    const chrono = others.slice().sort((a, b) => marriageYear(g, hub, a) - marriageYear(g, hub, b) || current(a) - current(b) || byBirth(g, a, b) || a.localeCompare(b));
+    return [chrono[0]!, hub, chrono[1]!];
+  }
+  const left: string[] = [];
+  const right: string[] = [];
+  others.forEach((id, i) => (i % 2 === 0 ? left : right).push(id));
+  return [...left.reverse(), hub, ...right];
 }
 
 function spouseGroups(g: Graph, ids: string[]): string[][] {
@@ -241,7 +291,7 @@ const PEDIGREE_MAX = 150;
 function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId: string, extra: number, banned: Set<string>, strict = false): { pos: Map<string, number>; far: string[]; detached: Set<string> } | null {
   const gap = PLATE_W + H_GAP;
   const levels = [...new Set([...gen.values()])].sort((a, b) => a - b);
-  type Block = { index: number; ids: string[]; level: number; primary: string | null; parent: number | null; kids: number[]; ghostOf: number | null; splits: { ghost: number; side: -1 | 1; key: string }[] };
+  type Block = { index: number; ids: string[]; full: string[]; level: number; primary: string | null; parent: number | null; kids: number[]; ghostOf: number | null; splits: { ghost: number; side: -1 | 1; key: string }[] };
   const blocks: Block[] = [];
   const blockOf = new Map<string, number>();
   const hasParents = (id: string, level: number) => (g.parentOf.get(id) ?? []).some((q) => (gen.get(q) ?? -99) === level - 1);
@@ -261,7 +311,7 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     const ids = people.filter((p) => gen.get(p.id) === level).map((p) => p.id);
     for (const members of spouseGroups(g, ids)) {
       const index = blocks.length;
-      blocks.push({ index, ids: members, level, primary: null, parent: null, kids: [], ghostOf: null, splits: [] });
+      blocks.push({ index, ids: members, full: members.slice(), level, primary: null, parent: null, kids: [], ghostOf: null, splits: [] });
       for (const id of members) blockOf.set(id, index);
     }
   }
@@ -306,14 +356,24 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     const cands = block.ids.filter((id) => hasParents(id, block.level) && ancestors.has(id) && (strict || siblingsFamily(id) <= SMALL_FAMILY));
     if (cands.length < 2) continue;
     const order = block.ids.slice();
-    const sorted = cands.slice().sort((a, b) => betterPrimary(a, b, order));
+    // Главным остаётся тот, у кого несколько браков: остальные супруги стоят вокруг него и не оказываются рядом с чужим бывшим мужем или женой.
+    const sorted = cands.slice().sort((a, b) => (g.marriagesOf.get(b)?.length ?? 0) - (g.marriagesOf.get(a)?.length ?? 0) || betterPrimary(a, b, order));
     const main = sorted[0]!;
     for (const other of sorted.slice(1)) {
       const key = [main, other].sort().join("+");
       if (banned.has(key)) continue;
-      const ghost: Block = { index: blocks.length, ids: [other], level: block.level, primary: other, parent: null, kids: [], ghostOf: i, splits: [] };
+      // Вместе с уходящим под своих родителей уходят и те, кто связан с блоком только через него (его второй муж или жена): иначе они остаются рядом с чужим человеком.
+      const rest = block.ids.filter((id) => id !== other);
+      const linked = (a: string) => (g.marriagesOf.get(a) ?? []).flatMap((u) => u.partnerIds).filter((o) => rest.includes(o));
+      const keep = new Set<string>([main]);
+      for (const q of [...keep]) for (const o of linked(q)) if (!keep.has(o)) { keep.add(o); q !== o && [...keep].includes(o); }
+      for (let n = 0; n < rest.length; n++) for (const q of [...keep]) for (const o of linked(q)) keep.add(o);
+      const withOther = rest.filter((id) => !keep.has(id));
+      const gids = order.filter((id) => id === other || withOther.includes(id));
+      const ghost: Block = { index: blocks.length, ids: gids, full: gids.slice(), level: block.level, primary: other, parent: null, kids: [], ghostOf: i, splits: [] };
       blocks.push(ghost);
-      block.ids = block.ids.filter((id) => id !== other);
+      block.ids = block.ids.filter((id) => !gids.includes(id));
+      for (const id of gids) blockOf.set(id, ghost.index);
       block.splits.push({ ghost: ghost.index, side: order.indexOf(other) < order.indexOf(main) ? -1 : 1, key });
       blockOf.set(other, ghost.index);
     }
@@ -341,6 +401,12 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
   }
   for (const block of blocks) if (block.parent !== null) blocks[block.parent]!.kids.push(block.index);
   // Где стоит брак, из которого вышел ребёнок, среди участников блока (индекс супруга, у пары из двух – 0,5).
+  /** Порядок детей по бракам блока считается по полному порядку супругов (в том числе ушедших под своих родителей). */
+  const orderKey = (block: Block, kid: number) => {
+    const k = blocks[kid]!;
+    const who = (g.parentOf.get(k.primary ?? k.ids[0]!) ?? []).map((q) => block.full.indexOf(q)).filter((i) => i >= 0);
+    return who.length ? who.reduce((sum, i) => sum + i, 0) / who.length : 0;
+  };
   const marriageKey = (block: Block, kid: number) => {
     const k = blocks[kid]!;
     const who = (g.parentOf.get(k.primary ?? k.ids[0]!) ?? []).map((q) => block.ids.indexOf(q)).filter((i) => i >= 0);
@@ -373,7 +439,7 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     block.kids.sort((a, b) => {
       const ka = blocks[a]!;
       const kb = blocks[b]!;
-      return marriageKey(block, a) - marriageKey(block, b) || cmpRank(g, ka.ids, kb.ids) || byBirth(g, ka.primary ?? ka.ids[0]!, kb.primary ?? kb.ids[0]!);
+      return orderKey(block, a) - orderKey(block, b) || cmpRank(g, ka.ids, kb.ids) || byBirth(g, ka.primary ?? ka.ids[0]!, kb.primary ?? kb.ids[0]!);
     });
     // Прямой род по центру, боковые ветки в сторону: братья и сёстры предка стоят с внешней стороны от него (сторона отца слева, сторона матери справа), а сам он ближе к середине схемы.
     const line = block.kids.filter(isLine);
@@ -578,7 +644,7 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
       if (a === undefined || b === undefined) continue;
       const shift = (b - a) / 2;
       if (!shift) continue;
-      const ghostId = blocks[sp.ghost]!.ids[0]!;
+      const ghostId = blocks[sp.ghost]!.primary ?? blocks[sp.ghost]!.ids[0]!;
       // Двигаем только детей этого брака (их родители включают ушедшего супруга), остальные дети блока остаются.
       for (const kid of block.kids) {
         const k = blocks[kid]!;
@@ -657,7 +723,17 @@ function rowLabel(delta: number): string {
   return n === 1 ? "Дети" : n === 2 ? "Внуки" : `${n} колено вниз`;
 }
 
+/**
+ * Раскладка читает готовые данные и не должна зависеть от порядка, в котором людей добавляли:
+ * входные списки приводятся к стабильному порядку (по id), дальше работают те же правила, что и раньше.
+ */
 export function layoutTree(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down"): TreeLayout {
+  const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  const sortedUnions = [...unions].sort(byId).map((u) => ({ ...u, childIds: [...u.childIds].sort() }));
+  return layoutCore([...people].sort(byId), sortedUnions, focusId, flow);
+}
+
+function layoutCore(people: Person[], unions: Union[], focusId: string, flow: "down" | "up"): TreeLayout {
   const g = graph(people, unions);
   const gen = assignGenerations(people, unions);
   const focusGen = gen.get(focusId) ?? 0;

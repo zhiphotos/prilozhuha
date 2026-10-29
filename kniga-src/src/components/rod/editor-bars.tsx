@@ -567,9 +567,17 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
         </>
       ) : null}
       {block.type === "photo" || block.type === "ink" || block.type === "sticker" || block.type === "shape" ? (
+        <>
         <BarBtn phoneHidden onClick={ops.toggleSpread} disabled={!ops.canSpread && !block.spread} active={Boolean(block.spread)} label="Лежит на двух страницах разворота">
           <BookOpen className="size-4" /> Через разворот
         </BarBtn>
+        <BarBtn phoneHidden active={Boolean(block.flipX)} onClick={() => ops.patch({ flipX: !block.flipX || undefined } as Partial<PageBlock>)} label="Отразить по горизонтали">
+          ⇋ Зеркало
+        </BarBtn>
+        <BarBtn phoneHidden active={Boolean(block.flipY)} onClick={() => ops.patch({ flipY: !block.flipY || undefined } as Partial<PageBlock>)} label="Отразить по вертикали">
+          ⇅ Вверх ногами
+        </BarBtn>
+        </>
       ) : null}
       {block.type === "slot" ? (
         <BarBtn onClick={ops.fill} active>
@@ -643,9 +651,17 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
               </>
             ) : null}
             {block.type === "photo" || block.type === "ink" || block.type === "sticker" || block.type === "shape" ? (
+              <>
               <BarBtn onClick={ops.toggleSpread} disabled={!ops.canSpread && !block.spread} active={Boolean(block.spread)}>
                 <BookOpen className="size-4" /> Через разворот
               </BarBtn>
+              <BarBtn active={Boolean(block.flipX)} onClick={() => ops.patch({ flipX: !block.flipX || undefined } as Partial<PageBlock>)}>
+                ⇋ Зеркало
+              </BarBtn>
+              <BarBtn active={Boolean(block.flipY)} onClick={() => ops.patch({ flipY: !block.flipY || undefined } as Partial<PageBlock>)}>
+                ⇅ Вверх ногами
+              </BarBtn>
+              </>
             ) : null}
             {block.type === "ink" ? (
               <>

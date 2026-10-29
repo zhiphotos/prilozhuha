@@ -34,3 +34,29 @@ test("запись «я» становится центром древа, без
   assert.deepEqual([...parentsOf("me")].sort(), ["f", "m"]);
   assert.deepEqual([...parentsOf("s")].sort(), ["f", "m"]);
 });
+
+test("родители мужа остаются родителями мужа, а не становятся моими отцом и мачехой", () => {
+  const data = treeFromPeople([
+    { ...base, id: "me", name: "Анна Мужева", relation: "я" },
+    { ...base, id: "h", name: "Олег", relation: "муж", spouse: "me", parents: ["hm", "hf"] },
+    { ...base, id: "hm", name: "Свекровь", relation: "мать", gender: "f" },
+    { ...base, id: "hf", name: "Свёкор", relation: "отец", gender: "m" },
+  ] as never);
+  const parentsOf = (id: string) => [...(data.unions.find((u) => u.childIds.includes(id))?.partnerIds ?? [])].sort();
+  assert.deepEqual(parentsOf("h"), ["hf", "hm"]);
+  assert.ok(!parentsOf("me").includes("hm") && !parentsOf("me").includes("hf"), "мои родители не подменяются родителями мужа");
+});
+
+test("прадед, отец бабушки, не становится ещё и отцом дедушки", () => {
+  const data = treeFromPeople([
+    { ...base, id: "me", name: "Я", relation: "я" },
+    { ...base, id: "m", name: "Мама", relation: "мама" },
+    { ...base, id: "f", name: "Папа", relation: "папа" },
+    { ...base, id: "gm", name: "Бабушка", relation: "бабушка", line: "dad", gender: "f", parents: [] },
+    { ...base, id: "gd", name: "Дед", relation: "дедушка", line: "dad", gender: "m" },
+    { ...base, id: "gg", name: "Прадед", relation: "прадедушка", line: "dad", gender: "m" },
+  ].map((p) => (p.id === "gm" ? { ...p, parents: ["gg"] } : p)) as never);
+  const parentsOf = (id: string) => data.unions.find((u) => u.childIds.includes(id))?.partnerIds ?? [];
+  assert.ok(parentsOf("gm").includes("gg"));
+  assert.ok(!parentsOf("gd").includes("gg"), "дедушка не ребёнок прадеда по линии бабушки");
+});

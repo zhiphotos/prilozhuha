@@ -51,14 +51,15 @@ function matchExisting(current: RodPerson[], list: ImportedPerson[]): Map<string
     const want = sameKey(p.firstName, p.lastName);
     const byName = current.find((c) => {
       if (taken.has(c.id)) return false;
-      if (mine && /^(я|сам|сама)$/i.test(c.relation.trim())) return true;
+      // «Я» совпадает с записанным «я» только если это тот же человек (имя не спорит) или запись пустая: чужого человека из тестовых данных не перезаписываем.
+      if (mine && /^(я|сам|сама)$/i.test(c.relation.trim())) return isPlaceholder(c) || sameFirst(c, p);
       if (!want) return false;
       if (sameKey(c.firstName ?? c.name.split(/\s+/)[0] ?? "", c.lastName ?? c.name.split(/\s+/).slice(-1)[0] ?? "") !== want) return false;
       return yearsAgree(c.birthYear, p.birthYear);
     });
     if (byName) return byName;
     const role = roleOf(p.relation);
-    if (role === "mother" || role === "father") return current.find((c) => !taken.has(c.id) && roleOf(c.relation) === role);
+    if (role === "mother" || role === "father") return current.find((c) => !taken.has(c.id) && roleOf(c.relation) === role && (isPlaceholder(c) || sameFirst(c, p)));
     return undefined;
   };
   for (const p of list) {
@@ -143,6 +144,13 @@ export function GedImportButton() {
     const current = useRod.getState().people;
     const created: RodPerson[] = [];
     const matched = matchExisting(current, preview.list);
+    const selfIn = preview.list.find((p) => p.relation === "я");
+    const mineNow = current.find((c) => /^(я|сам|сама)$/i.test(c.relation.trim()));
+    if (selfIn && mineNow && matched.get(selfIn.key)?.id !== mineNow.id) {
+      setBusy(false);
+      toast(`В списке уже есть «я»: ${mineNow.name}, а в файле «я» – ${composeName(selfIn)}. Это разные люди, поэтому ничего не добавлено. Если запись «${mineNow.name}» тестовая, удалите её или выберите её же в файле.`, { duration: 12000 });
+      return;
+    }
     const keyToId = new Map<string, string>();
     for (const p of preview.list) keyToId.set(p.key, matched.get(p.key)?.id ?? uid());
     for (const p of preview.list) if (!matched.has(p.key)) created.push(toRod(p, keyToId.get(p.key)!, keyToId));
