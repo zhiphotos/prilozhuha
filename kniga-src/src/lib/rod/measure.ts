@@ -3,6 +3,7 @@ import { fontFamily, fontWeight, lookPad, textMetrics } from "@/lib/rod/page-sty
 import { flowAround, obstaclesFor } from "@/lib/rod/wrap-around";
 import { explodeBold, stripBold } from "@/lib/rod/rich";
 import type { PageBlock } from "@/lib/rod/types";
+import { splitWords } from "@/lib/rod/words";
 
 type TextBlock = Extract<PageBlock, { type: "text" }>;
 export type TextStyle = Pick<TextBlock, "font" | "size" | "px" | "look" | "wordGap"> & { w: number };
@@ -30,7 +31,7 @@ export function wrapLines(text: string, style: TextStyle): string[] {
     let line = "";
     // Пробелы в начале абзаца (красная строка) сохраняем: пользователь ставит их сам.
     const lead = paragraph.match(/^[ \t]+/)?.[0] ?? "";
-    for (const word of paragraph.split(/\s+/).filter(Boolean)) {
+    for (const word of splitWords(paragraph)) {
       const test = line ? `${line} ${word}` : lead + word;
       if (line && widthOf(test) > widthPx) {
         lines.push(line);

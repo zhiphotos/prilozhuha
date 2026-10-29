@@ -5,6 +5,7 @@ import { peekMedia, resolveMedia } from "@/lib/rod/media";
 import { stickerRatio, stickerUrl } from "@/lib/rod/page-style";
 import { loadProfile, profileOf, PROFILE_ROWS, type Profile } from "@/lib/rod/shape-profile";
 import type { PageBlock } from "@/lib/rod/types";
+import { splitWords } from "@/lib/rod/words";
 
 type TextBlock = Extract<PageBlock, { type: "text" }>;
 
@@ -114,7 +115,7 @@ export function flowAround(
 
   let guard = 0;
   for (const paragraph of paragraphs) {
-    const words = paragraph.split(/\s+/).filter(Boolean);
+    const words = splitWords(paragraph);
     if (!words.length) {
       row += 1;
       continue;
