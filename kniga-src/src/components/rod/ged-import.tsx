@@ -1,3 +1,4 @@
+import { SearchSelect } from "./search-select";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button, Sheet } from "@/components/rod/chrome";
@@ -228,14 +229,15 @@ export function GedImportButton() {
             {tree ? (
               <>
                 <p className="text-sm text-muted">Найдено людей в файле: {tree.people.length}. Выберите, кто из них вы: от него считаются родственники.</p>
-                <select className="field" value={selfKey} onChange={(e) => setSelfKey(e.target.value)}>
-                  <option value="">Выберите себя из списка</option>
-                  {tree.people.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {`${p.firstName} ${p.patronymic} ${p.lastName}`.replace(/\s+/g, " ").trim()} {p.birthYear ? `· ${p.birthYear}` : ""}
-                    </option>
-                  ))}
-                </select>
+                <SearchSelect
+                  label="Кто вы"
+                  value={selfKey}
+                  onChange={setSelfKey}
+                  empty="Выберите себя из списка"
+                  options={[...tree.people]
+                    .sort((a, b) => (a.lastName || "").localeCompare(b.lastName || "", "ru") || (a.firstName || "").localeCompare(b.firstName || "", "ru"))
+                    .map((p) => ({ value: p.id, label: `${p.lastName} ${p.firstName} ${p.patronymic}`.replace(/\s+/g, " ").trim() + (p.birthYear ? ` · ${p.birthYear}` : "") }))}
+                />
               </>
             ) : (
               <p className="text-sm text-muted">Найдено людей в таблице: {table?.length}. Колонка «Кем приходится» станет подписью родства.</p>

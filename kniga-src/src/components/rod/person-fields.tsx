@@ -1,3 +1,4 @@
+import { SearchSelect } from "./search-select";
 import { useRef, useState } from "react";
 import { Camera, X } from "lucide-react";
 import { toast } from "sonner";
@@ -40,7 +41,7 @@ export function PersonAvatar({ person, size = 48 }: { person: Pick<Person, "name
 }
 
 /** Все поля человека. Общие для формы добавления и для карточки (меняем сразу, как печатаем). */
-export function PersonFields({ value, onChange, others }: { value: PersonDraft; onChange: (patch: Partial<PersonDraft>) => void; others: Person[] }) {
+export function PersonFields({ value, onChange, others, extraSiblings, onExtraSiblings }: { value: PersonDraft; onChange: (patch: Partial<PersonDraft>) => void; others: Person[]; extraSiblings?: string[]; onExtraSiblings?: (ids: string[]) => void }) {
   const parts = partsOf(value);
   const file = useRef<HTMLInputElement>(null);
   const setParts = (patch: Partial<typeof parts>) => {
@@ -155,14 +156,7 @@ export function PersonFields({ value, onChange, others }: { value: PersonDraft; 
       ) : null}
       {others.length ? (
         <Field label="Супруг или супруга" hint="Пара встанет в древе в одном ряду.">
-          <select className="field" value={value.spouse ?? ""} onChange={(event) => onChange({ spouse: event.target.value || undefined })}>
-            <option value="">Не выбрано</option>
-            {others.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name} ({item.relation})
-              </option>
-            ))}
-          </select>
+          <SearchSelect label="Супруг или супруга" value={value.spouse ?? ""} onChange={(next) => onChange({ spouse: next || undefined })} empty="Не выбрано" options={others.map((item) => ({ value: item.id, label: `${item.name} (${item.relation})` }))} />
           {value.spouse ? (
             <select className="field mt-2" value={value.spouseStatus ?? "married"} onChange={(event) => onChange({ spouseStatus: event.target.value as "married" | "divorced" | "partners" | "widowed" })}>
               <option value="married">В браке</option>
@@ -178,16 +172,15 @@ export function PersonFields({ value, onChange, others }: { value: PersonDraft; 
                   onChange({ moreSpouses: (value.moreSpouses ?? []).map((item, i) => (i === index ? { ...item, ...patch } : item)) });
                 return (
                   <div key={index} className="grid grid-cols-[1fr_auto] gap-2 rounded-xl border border-ink/10 bg-white/50 p-2">
-                    <select className="field" value={mate.id} onChange={(event) => update({ id: event.target.value })}>
-                      <option value="">Кто это</option>
-                      {others
+                    <SearchSelect
+                      label="Ещё брак"
+                      value={mate.id}
+                      onChange={(next) => update({ id: next })}
+                      empty="Кто это"
+                      options={others
                         .filter((item) => item.id === mate.id || (item.id !== value.spouse && !(value.moreSpouses ?? []).some((m) => m.id === item.id)))
-                        .map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.name} ({item.relation})
-                          </option>
-                        ))}
-                    </select>
+                        .map((item) => ({ value: item.id, label: `${item.name} (${item.relation})` }))}
+                    />
                     <button type="button" aria-label="Убрать этот брак" className="grid size-11 place-items-center rounded-full border border-ink/15 text-muted" onClick={() => onChange({ moreSpouses: (value.moreSpouses ?? []).filter((_, i) => i !== index) })}>
                       <X className="size-4" />
                     </button>
@@ -211,37 +204,41 @@ export function PersonFields({ value, onChange, others }: { value: PersonDraft; 
         <Field label="Чей ребёнок" hint="Родители нужны для древа.">
           <div className="grid grid-cols-2 gap-2">
             {[0, 1].map((slot) => (
-              <select
+              <SearchSelect
                 key={slot}
-                className="field"
+                label={slot === 0 ? "Родитель 1" : "Родитель 2"}
                 value={value.parents?.[slot] ?? ""}
-                onChange={(event) => {
+                onChange={(picked) => {
                   const next = [...(value.parents ?? [])];
-                  next[slot] = event.target.value;
+                  next[slot] = picked;
                   onChange({ parents: next.filter(Boolean) });
                 }}
-              >
-                <option value="">{slot === 0 ? "Родитель 1" : "Родитель 2"}</option>
-                {others.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name} ({item.relation})
-                  </option>
-                ))}
-              </select>
+                empty={slot === 0 ? "Родитель 1" : "Родитель 2"}
+                options={others.map((item) => ({ value: item.id, label: `${item.name} (${item.relation})` }))}
+              />
             ))}
           </div>
         </Field>
       ) : null}
       {others.length ? (
         <Field label="Брат или сестра" hint="Например, брат дедушки: выберите дедушку. Встанет рядом, в тот же ряд.">
-          <select className="field" value={value.siblingOf ?? ""} onChange={(event) => onChange({ siblingOf: event.target.value || undefined })}>
-            <option value="">Не указано</option>
-            {others.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name} ({item.relation})
-              </option>
+          <SearchSelect label="Брат или сестра" value={value.siblingOf ?? ""} onChange={(next) => onChange({ siblingOf: next || undefined })} empty="Не указано" options={others.map((item) => ({ value: item.id, label: `${item.name} (${item.relation})` }))} />
+        </Field>
+      ) : null}
+      {others.length && onExtraSiblings && !(value as Person).id ? (
+        <Field label="Ещё братья и сёстры" hint="Если их несколько, отметьте всех сразу.">
+          <div className="grid max-h-44 gap-1 overflow-auto rounded-xl border border-ink/10 p-2">
+            {others.map((o) => (
+              <label key={o.id} className="flex min-h-9 items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={(extraSiblings ?? []).includes(o.id)}
+                  onChange={(event) => onExtraSiblings(event.target.checked ? [...(extraSiblings ?? []), o.id] : (extraSiblings ?? []).filter((id) => id !== o.id))}
+                />
+                {o.name} ({o.relation})
+              </label>
             ))}
-          </select>
+          </div>
         </Field>
       ) : null}
       {others.length && (value as Person).id ? <SiblingsPicker self={value as Person} others={others} /> : null}

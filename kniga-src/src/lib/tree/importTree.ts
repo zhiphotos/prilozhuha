@@ -1,3 +1,4 @@
+import { normalizeSurnames } from "./surnames.ts";
 import type { Gender, Person, TreeData, Union, UnionStatus } from "./types.ts";
 
 type RawPerson = {
@@ -230,7 +231,8 @@ export function parseGedcom(text: string): { tree: TreeData } | { error: string 
   const unions: RawUnion[] = [];
   for (const record of records) {
     if (record.tag === "INDI" && record.xref) {
-      const name = splitGedName(child(record, "NAME")?.value ?? record.value);
+      const rawName = splitGedName(child(record, "NAME")?.value ?? record.value);
+      const name = { ...rawName, lastName: normalizeSurnames(rawName.lastName).lastName };
       const sex = child(record, "SEX")?.value ?? "";
       people.push({
         id: record.xref,
@@ -239,7 +241,7 @@ export function parseGedcom(text: string): { tree: TreeData } | { error: string 
         birthYear: eventDate(record, "BIRT"),
         deathYear: eventDate(record, "DEAT"),
         note: biography(record),
-        maidenName: maidenOf(record, name.lastName),
+        maidenName: normalizeSurnames(name.lastName, maidenOf(record, name.lastName) ?? normalizeSurnames(rawName.lastName).maidenName).maidenName,
       });
     }
     if (record.tag === "FAM" && record.xref) {

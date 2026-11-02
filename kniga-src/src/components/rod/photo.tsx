@@ -1,3 +1,4 @@
+import { SearchSelect } from "./search-select";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImagePlus } from "lucide-react";
@@ -89,14 +90,7 @@ export function PhotoNewScreen() {
         </Field>
         {people.length > 0 ? (
           <Field label="Привязать к человеку из семьи" hint="Необязательно.">
-            <select className="field" value={personId} onChange={(event) => setPersonId(event.target.value)}>
-              <option value="">Не привязывать</option>
-              {people.map((person) => (
-                <option key={person.id} value={person.id}>
-                  {person.name} · {person.relation}
-                </option>
-              ))}
-            </select>
+            <SearchSelect label="Привязать к человеку" value={personId} onChange={setPersonId} empty="Не привязывать" options={people.map((person) => ({ value: person.id, label: `${person.name} · ${person.relation}` }))} />
           </Field>
         ) : null}
         <Field label="Где?">

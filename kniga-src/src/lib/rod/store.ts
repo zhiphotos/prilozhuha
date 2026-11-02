@@ -78,7 +78,7 @@ type RodState = {
   setPrint: (patch: Partial<PrintSetup>) => void;
   finishOnboarding: (input: { audience: Audience; dedicatee: string; collector: string }) => void;
   updateProfile: (input: { audience: Audience; dedicatee: string; collector: string }) => void;
-  addPerson: (input: Omit<Person, "id">) => void;
+  addPerson: (input: Omit<Person, "id">) => string;
   updatePerson: (id: string, patch: Partial<Omit<Person, "id">>) => void;
   removePerson: (id: string) => void;
   addPlace: (input: Omit<Place, "id">) => void;
@@ -86,6 +86,7 @@ type RodState = {
   removePlace: (id: string) => void;
   addPhoto: (input: Omit<FamilyPhoto, "id">) => boolean;
   removePhoto: (id: string) => void;
+  updatePhoto: (id: string, patch: Partial<Omit<FamilyPhoto, "id" | "dataUrl">>) => void;
   addStory: (input: Omit<Story, "id" | "createdAt">) => string;
   removeStory: (id: string) => void;
   updateStory: (id: string, patch: Partial<Pick<Story, "title" | "narrative" | "attachments">>) => void;
@@ -289,10 +290,13 @@ export const useRod = create<RodState>()(
         set({ onboarded: true, audience, dedicatee: dedicatee.trim(), collector: collector.trim() }),
       updateProfile: ({ audience, dedicatee, collector }) =>
         set({ audience, dedicatee: dedicatee.trim(), collector: collector.trim() }),
-      addPerson: (input) =>
+      addPerson: (input) => {
+        const id = uid();
         set((state) => ({
-          people: [{ ...input, id: uid() }, ...state.people],
-        })),
+          people: [{ ...input, id }, ...state.people],
+        }));
+        return id;
+      },
       updatePerson: (id, patch) =>
         set((state) => {
           let people = state.people.map((person) => (person.id === id ? { ...person, ...patch } : person));
@@ -310,6 +314,7 @@ export const useRod = create<RodState>()(
         return true;
       },
       removePhoto: (id) => set((state) => ({ photos: state.photos.filter((photo) => photo.id !== id) })),
+      updatePhoto: (id, patch) => set((state) => ({ photos: state.photos.map((photo) => (photo.id === id ? { ...photo, ...patch } : photo)) })),
       addStory: (input) => {
         const id = uid();
         set((state) => ({
