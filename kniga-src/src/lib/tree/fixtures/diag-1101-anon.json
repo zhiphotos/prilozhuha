@@ -1,0 +1,379 @@
+{
+ "format": "kniga-roda-diagnostics",
+ "anonymized": true,
+ "note": "Обезличено: имена, даты, заметки заменены; структура связей сохранена.",
+ "people": [
+  {
+   "id": "P1",
+   "name": "P1",
+   "firstName": "P1",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "жена",
+   "gender": "f",
+   "spouseStatus": "married",
+   "spouse": "P2"
+  },
+  {
+   "id": "P2",
+   "name": "P2",
+   "firstName": "P2",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "родитель (отец)",
+   "gender": "m"
+  },
+  {
+   "id": "P3",
+   "name": "P3",
+   "firstName": "P3",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "жена",
+   "gender": "f",
+   "spouseStatus": "married",
+   "spouse": "P4"
+  },
+  {
+   "id": "P4",
+   "name": "P4",
+   "firstName": "P4",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "родитель (отец)",
+   "gender": "m"
+  },
+  {
+   "id": "P5",
+   "name": "P5",
+   "firstName": "P5",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "жена",
+   "gender": "f",
+   "spouseStatus": "married",
+   "spouse": "P6"
+  },
+  {
+   "id": "P6",
+   "name": "P6",
+   "firstName": "P6",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "родитель (отец)",
+   "gender": "m"
+  },
+  {
+   "id": "P7",
+   "name": "P7",
+   "firstName": "P7",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "жена",
+   "gender": "f",
+   "spouseStatus": "married",
+   "parents": [
+    "P6",
+    "P5"
+   ],
+   "spouse": "P8"
+  },
+  {
+   "id": "P8",
+   "name": "P8",
+   "firstName": "P8",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "родитель (отец)",
+   "gender": "m",
+   "parents": [
+    "P4",
+    "P3"
+   ]
+  },
+  {
+   "id": "P9",
+   "name": "P9",
+   "firstName": "P9",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "жена",
+   "gender": "f",
+   "spouseStatus": "married",
+   "spouse": "P10"
+  },
+  {
+   "id": "P10",
+   "name": "P10",
+   "firstName": "P10",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "родитель (отец)",
+   "gender": "m"
+  },
+  {
+   "id": "P11",
+   "name": "P11",
+   "firstName": "P11",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "родитель (мать)",
+   "gender": "f",
+   "parents": [
+    "P2",
+    "P1"
+   ],
+   "spouse": "P12"
+  },
+  {
+   "id": "P12",
+   "name": "P12",
+   "firstName": "P12",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "родитель (отец)",
+   "gender": "m",
+   "parents": [
+    "P10",
+    "P9"
+   ]
+  },
+  {
+   "id": "P13",
+   "name": "P13",
+   "firstName": "P13",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "сын",
+   "gender": "m",
+   "parents": [
+    "P14",
+    "P15"
+   ]
+  },
+  {
+   "id": "P14",
+   "name": "P14",
+   "firstName": "P14",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "жена",
+   "gender": "f",
+   "spouseStatus": "married",
+   "parents": [
+    "P12",
+    "P11"
+   ],
+   "spouse": "P15"
+  },
+  {
+   "id": "P15",
+   "name": "P15",
+   "firstName": "P15",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "родитель (отец)",
+   "gender": "m",
+   "parents": [
+    "P8",
+    "P7"
+   ]
+  },
+  {
+   "id": "P16",
+   "name": "P16",
+   "firstName": "P16",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "сын",
+   "gender": "m",
+   "parents": [
+    "P17",
+    "P20"
+   ]
+  },
+  {
+   "id": "P17",
+   "name": "P17",
+   "firstName": "P17",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "муж",
+   "gender": "m",
+   "spouseStatus": "married",
+   "spouse": "P20"
+  },
+  {
+   "id": "P18",
+   "name": "P18",
+   "firstName": "P18",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "дедушка",
+   "gender": "m",
+   "line": "dad"
+  },
+  {
+   "id": "P19",
+   "name": "P19",
+   "firstName": "P19",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Свёкор",
+   "gender": "m",
+   "spouseStatus": "divorced",
+   "spouse": "P20"
+  },
+  {
+   "id": "P20",
+   "name": "P20",
+   "firstName": "P20",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Свекровь",
+   "gender": "f",
+   "parents": [
+    "P15",
+    "P14"
+   ]
+  },
+  {
+   "id": "P21",
+   "name": "P21",
+   "firstName": "P21",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "бабушка",
+   "line": "mom",
+   "parents": []
+  },
+  {
+   "id": "P22",
+   "name": "P22",
+   "firstName": "P22",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "бабушка",
+   "line": "dad",
+   "parents": []
+  },
+  {
+   "id": "P23",
+   "name": "P23",
+   "firstName": "P23",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "брат",
+   "gender": "m"
+  },
+  {
+   "id": "P24",
+   "name": "P24",
+   "firstName": "P24",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "мама",
+   "gender": "f"
+  },
+  {
+   "id": "P25",
+   "name": "P25",
+   "firstName": "P25",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "папа",
+   "gender": "m"
+  },
+  {
+   "id": "P26",
+   "name": "P26",
+   "firstName": "P26",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Муж",
+   "gender": "m",
+   "parents": [
+    "P20",
+    "P19"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,46 @@
+0 HEAD
+1 SOUR SYNTH
+2 NAME Synthetic
+1 GEDC
+2 VERS 5.5.1
+0 @I1@ INDI
+1 NAME Тест Первый /Тестов/
+1 SEX M
+1 BIRT
+2 DATE 1960
+0 @I2@ INDI
+1 NAME Тестия Первая /Тестова (Образцова)/
+2 SURN Образцова
+1 SEX F
+1 BIRT
+2 DATE 1962
+0 @I3@ INDI
+1 NAME Малыш //
+1 SEX M
+0 @I4@ INDI
+1 NAME Малыш //
+1 SEX F
+0 @I5@ INDI
+1 NAME Эдгар /Заводов/
+1 SEX M
+0 @I6@ INDI
+1 NAME Эдгар /Заводов/
+1 SEX M
+0 @I7@ INDI
+1 NAME Алла /Другая-Новая/
+1 SEX F
+0 @I8@ INDI
+1 NAME Дочь Первая /Тестова/
+1 SEX F
+1 BIRT
+2 DATE 1985
+1 FAMC @F1@
+0 @I9@ INDI
+1 NAME Новичок Новый /Новиков/
+1 SEX M
+0 @F1@ FAM
+1 HUSB @I9@
+1 WIFE @I2@
+1 CHIL @I8@
+1 CHIL @I3@
+0 TRLR

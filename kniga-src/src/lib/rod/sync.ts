@@ -4,16 +4,16 @@ import { API_BASE } from "@/lib/rod/config";
 import { DATA_KEYS, applyBookData, collectRefs } from "@/lib/rod/backup";
 import { hasMedia, mediaDataUrl, saveMediaAs } from "@/lib/rod/media";
 import { deviceId } from "@/lib/rod/pay";
-import { decideSync, fingerprint, splitParts } from "@/lib/rod/sync-logic";
+import { fingerprint, splitParts } from "@/lib/rod/sync-logic";
+import { PART, afterOpenCopy, previewMerge, restoreLocalBackup, restorePreviousCloud, syncCore, type Deps, type Meta, type SyncMode, type SyncOutcome } from "@/lib/rod/sync-engine";
+import { readBackup, saveBackup } from "@/lib/rod/sync-backup";
 import { flushBook, useRod } from "@/lib/rod/store";
 
 // Синхронизация книги между устройствами одного оплаченного доступа (до 3 устройств).
 // Книга и фото хранятся в облаке; версия растёт на единицу при каждой загрузке. Если менялось и там, и здесь, решает человек.
 
-const PART = 700_000;
 const META = "kniga-sync";
 
-type Meta = { rev: number; hash: string; at: string };
 
 export type SyncState = {
   busy: boolean;
@@ -54,23 +54,6 @@ async function call<T>(body: Record<string, unknown>): Promise<{ status: number;
   const response = await fetch(`${API_BASE}/api/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, deviceId: deviceId(), ...body }) });
   const data = (await response.json().catch(() => ({ error: "Облако не ответило." }))) as T & { error?: string };
   return { status: response.status, data };
-}
-
-async function pack(text: string): Promise<string> {
-  if (typeof CompressionStream === "undefined") return `r:${text}`;
-  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream("gzip"));
-  const buffer = new Uint8Array(await new Response(stream).arrayBuffer());
-  let binary = "";
-  for (let i = 0; i < buffer.length; i += 0x8000) binary += String.fromCharCode(...buffer.subarray(i, i + 0x8000));
-  return `g:${btoa(binary)}`;
-}
-
-async function unpack(packed: string): Promise<string> {
-  if (packed.startsWith("r:")) return packed.slice(2);
-  const binary = atob(packed.slice(2));
-  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
-  return new Response(stream).text();
 }
 
 function snapshot() {
@@ -114,91 +97,91 @@ async function downloadMedia(refs: string[]) {
   }
 }
 
-async function upload(cloudRev: number): Promise<"ok" | "conflict"> {
-  const snap = snapshot();
-  await uploadMedia(snap.refs);
-  const parts = splitParts(await pack(snap.text), PART);
-  for (let i = 0; i < parts.length; i += 1) {
-    const sent = await call<{ committed?: boolean; rev?: number }>({ op: "push", baseRev: cloudRev, parts: parts.length, i, data: parts[i] });
-    if (sent.status === 409) return "conflict";
-    if (sent.status !== 200) throw new Error(sent.data.error || "Книга не загрузилась.");
-    if (sent.data.committed) writeMeta({ rev: sent.data.rev ?? cloudRev + 1, hash: snap.hash, at: new Date().toISOString() });
-  }
-  return "ok";
+/** Версия принята облаком, только если сервер подтвердил «committed» и потом показал ту же версию и тот же отпечаток. */
+function makeDeps(): Deps {
+  return {
+    call: (body) => call<Record<string, unknown>>(body),
+    snapshot,
+    readMeta,
+    writeMeta,
+    isEmpty: () => {
+      const state = useRod.getState();
+      return !state.pages.length && !state.people.length && !state.photos.length && !state.stories.length;
+    },
+    uploadMedia,
+    downloadMedia,
+    collectRefs: (data) => {
+      const refs = new Set<string>();
+      collectRefs(data, refs);
+      return [...refs];
+    },
+    applyBook: applyBookData,
+    saveBackup,
+    readBackup,
+    now: () => new Date().toISOString(),
+  };
 }
 
-async function download(rev: number, parts: number) {
-  let packed = "";
-  for (let i = 0; i < parts; i += 1) {
-    const got = await call<{ data?: string }>({ op: "part", rev, i });
-    if (got.status !== 200 || got.data.data == null) throw new Error(got.data.error || "Книга не загрузилась из облака.");
-    packed += got.data.data;
+export type { SyncMode };
+
+const MESSAGES = {
+  uploaded: "Книга загружена в облако.",
+  downloaded: "Взяла книгу из облака.",
+  same: "Всё актуально, версия одинаковая.",
+} as const;
+
+/** Показывает человеку итог синхронизации. */
+function report(outcome: SyncOutcome, mode: SyncMode) {
+  const ui = useSync.getState();
+  if (outcome.kind === "conflict") {
+    const message = outcome.reason === "cloud-moved" ? "Пока я загружала, в облаке появилась новая версия. Выберите, какую оставить." : "Книга менялась и здесь, и на другом устройстве. Выберите, какую оставить.";
+    ui.setState({ busy: false, conflict: true, message });
+    if (mode === "auto") toast("Книга менялась и здесь, и на другом устройстве. Откройте «Главная» → «Книга на ваших устройствах» и выберите, какую оставить.", { id: "sync-conflict", duration: 20000 });
+  } else if (outcome.kind === "error") {
+    ui.setState({ busy: false, message: outcome.message });
+  } else if (outcome.kind === "merged") {
+    const { added, differing } = outcome.report.total;
+    const kept = differing ? ` Записей с разным содержимым: ${differing}. Оставлены версии с этого устройства, облачные лежат в копиях.` : "";
+    ui.setState({ busy: false, conflict: false, message: `Книги объединены: из облака добавлено записей: ${added}.${kept} Удалённое на одном устройстве, но оставшееся на другом, вернулось. Обе прежние версии сохранены копиями на этом устройстве.` });
+  } else {
+    ui.setState({ busy: false, conflict: false, message: MESSAGES[outcome.kind] });
   }
-  const data = JSON.parse(await unpack(packed)) as Record<string, unknown>;
-  const refs = new Set<string>();
-  collectRefs(data, refs);
-  await downloadMedia([...refs]);
-  applyBookData(data);
-  const snap = snapshot();
-  writeMeta({ rev, hash: snap.hash, at: new Date().toISOString() });
 }
 
-export type SyncMode = "auto" | "mine" | "cloud";
+/** Что даст «Объединить»: числа для подтверждения. Ничего не меняет. */
+export async function previewMergeNow() {
+  return previewMerge(makeDeps());
+}
 
 /** Одна синхронизация. auto: только безопасные случаи, при конфликте ждёт выбора. mine/cloud: выбор человека при конфликте. */
 export async function syncNow(mode: SyncMode = "auto"): Promise<void> {
   const ui = useSync.getState();
-  if (ui.busy || !API_BASE) return;
-  const access = useRod.getState().access;
-  if (!access?.token) return;
+  if (ui.busy || !API_BASE || !useRod.getState().access?.token) return;
   ui.setState({ busy: true, message: "Синхронизирую…" });
-  try {
-    const head = await call<{ rev?: number; parts?: number }>({ op: "head" });
-    if (head.status !== 200) throw new Error(head.data.error || "Облако не ответило.");
-    const cloudRev = head.data.rev ?? 0;
-    const meta = readMeta();
-    const state = useRod.getState();
-    const empty = !state.pages.length && !state.people.length && !state.photos.length && !state.stories.length;
-    // Пустая книга на новом устройстве ничего не меняла: берём облако без вопросов.
-    const dirty = meta.rev === 0 && empty ? false : snapshot().hash !== meta.hash;
-    let todo = decideSync({ cloudRev, baseRev: meta.rev, dirty });
-    if (todo === "conflict" && mode === "mine") todo = "upload";
-    if (todo === "conflict" && mode === "cloud") todo = "download";
-    if (todo === "conflict") {
-      ui.setState({ busy: false, conflict: true, message: "Книга менялась и здесь, и на другом устройстве. Выберите, какую оставить." });
-      if (mode === "auto") toast("Книга менялась и здесь, и на другом устройстве. Откройте «Главная» → «Книга на ваших устройствах» и выберите, какую оставить.", { id: "sync-conflict", duration: 20000 });
-      return;
-    }
-    if (todo === "upload") {
-      const result = await upload(cloudRev);
-      if (result === "conflict") {
-        ui.setState({ busy: false, conflict: true, message: "Пока я загружала, в облаке появилась новая версия. Выберите, какую оставить." });
-        return;
-      }
-      ui.setState({ busy: false, conflict: false, message: "Книга загружена в облако." });
-    } else if (todo === "download") {
-      await download(cloudRev, head.data.parts ?? 1);
-      ui.setState({ busy: false, conflict: false, message: "Взяла книгу из облака." });
-    } else {
-      writeMeta({ ...meta, at: new Date().toISOString() });
-      ui.setState({ busy: false, conflict: false, message: "Всё актуально, версия одинаковая." });
-    }
-  } catch (error) {
-    ui.setState({ busy: false, message: error instanceof Error ? error.message : "Не получилось синхронизировать." });
-  }
+  report(await syncCore(makeDeps(), mode), mode);
 }
 
-/** После «Открыть копию»: эта копия и есть книга. Считаем её правкой поверх текущей версии в облаке, чтобы она ушла на другие устройства. */
+/** Копия книги на этом устройстве до замены. Вызывать перед «Открыть копию» и перед восстановлением. */
+export async function backupLocalNow(label: string): Promise<string> {
+  return saveBackup(label, snapshot().text);
+}
+
+/** Вернуть книгу из резервной копии на этом устройстве. */
+export async function restoreBackup(key: string): Promise<boolean> {
+  return restoreLocalBackup(makeDeps(), key);
+}
+
+/** После «Открыть копию»: см. afterOpenCopy. */
 export async function markImportedCopy(): Promise<void> {
   if (!API_BASE || !useRod.getState().access?.token) return;
-  try {
-    const head = await call<{ rev?: number }>({ op: "head" });
-    if (head.status !== 200) return;
-    writeMeta({ rev: head.data.rev ?? 0, hash: "", at: readMeta().at });
-    await syncNow("auto");
-  } catch {
-    /* без сети копия просто останется на этом устройстве и уйдёт при следующей синхронизации */
-  }
+  report(await afterOpenCopy(makeDeps()), "auto");
+}
+
+/** Вернуть предыдущую облачную версию. */
+export async function restorePreviousCloudVersion(): Promise<void> {
+  if (!API_BASE || !useRod.getState().access?.token) return;
+  useSync.getState().setState({ busy: true, message: "Возвращаю предыдущую облачную версию…" });
+  report(await restorePreviousCloud(makeDeps()), "auto");
 }
 
 let started = false;

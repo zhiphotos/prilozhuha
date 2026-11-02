@@ -2,10 +2,8 @@ import { SearchSelect } from "./search-select";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button, Sheet } from "@/components/rod/chrome";
-import { composeName } from "@/lib/rod/person";
-import { yearNum } from "@/lib/tree/kinship.ts";
 import { useRod } from "@/lib/rod/store";
-import type { Person as RodPerson } from "@/lib/rod/types";
+import { backupLocalNow, restoreBackup } from "@/lib/rod/sync";
 import { gedToPeople, type ImportedPerson } from "@/lib/tree/gedImport.ts";
 import { decodeText } from "@/lib/tree/decode.ts";
 import { parseGedcom } from "@/lib/tree/importTree.ts";
@@ -13,82 +11,10 @@ import { parseTable } from "@/lib/tree/tableImport.ts";
 import { isAgelongXml, parseAgelongXml } from "@/lib/tree/agelongXml.ts";
 import type { TreeData } from "@/lib/tree/types.ts";
 import { useTree } from "@/lib/tree/ui-store";
-import { roleOf } from "@/lib/tree/from-people.ts";
 import { parseTreeFile, planImport } from "@/lib/tree/treeFile.ts";
 
-/** Имя и фамилия для сравнения: без регистра, «ё» как «е». */
-function sameKey(first: string, last: string): string {
-  const norm = (x: string) => x.trim().toLowerCase().replace(/ё/g, "е");
-  const f = norm(first).split(/\s+/)[0] ?? "";
-  const l = norm(last);
-  return f && l ? `${f}|${l}` : "";
-}
+import { guessSelf, linkDiffs, matchExisting, planGedImport, possibleSame } from "@/lib/tree/ged-match.ts";
 
-/** Годы рождения не спорят: равны или хотя бы у одного не указан. */
-function yearsAgree(a?: string, b?: string): boolean {
-  const ya = yearNum(a);
-  const yb = yearNum(b);
-  return ya === 9999 || yb === 9999 || ya === yb;
-}
-
-/** Из двух дат одного человека берём более полную: «23.05.2002» лучше, чем «2002». Если годы спорят, остаётся прежняя. */
-function fuller(old: string | undefined, next: string | undefined): string | undefined {
-  if (!next) return old;
-  if (!old) return next;
-  return yearsAgree(old, next) && next.length > old.length ? next : old;
-}
-
-/** Запись без настоящего имени: «Мама», «Папа», «Бабушка» и т. п. */
-function isPlaceholder(c: RodPerson): boolean {
-  const first = (c.firstName ?? c.name).trim().toLowerCase();
-  return /^(мама|папа|мать|отец|бабушка|дедушка|я)$/.test(first) || !c.lastName?.trim() && !/\s/.test(c.name.trim()) && first === c.relation.trim().toLowerCase();
-}
-
-/** Кто из уже записанных людей – тот же человек, что в файле. Запись «я» совпадает с выбранным «Я», мама и папа – по роли, остальные – по имени и фамилии (годы не спорят). */
-function matchExisting(current: RodPerson[], list: ImportedPerson[]): Map<string, RodPerson> {
-  const taken = new Set<string>();
-  const matched = new Map<string, RodPerson>();
-  const find = (p: ImportedPerson): RodPerson | undefined => {
-    const mine = p.relation === "я";
-    const want = sameKey(p.firstName, p.lastName);
-    const byName = current.find((c) => {
-      if (taken.has(c.id)) return false;
-      // «Я» совпадает с записанным «я» только если это тот же человек (имя не спорит) или запись пустая: чужого человека из тестовых данных не перезаписываем.
-      if (mine && /^(я|сам|сама)$/i.test(c.relation.trim())) return isPlaceholder(c) || sameFirst(c, p);
-      if (!want) return false;
-      if (sameKey(c.firstName ?? c.name.split(/\s+/)[0] ?? "", c.lastName ?? c.name.split(/\s+/).slice(-1)[0] ?? "") !== want) return false;
-      return yearsAgree(c.birthYear, p.birthYear);
-    });
-    if (byName) return byName;
-    const role = roleOf(p.relation);
-    if (role === "mother" || role === "father") return current.find((c) => !taken.has(c.id) && roleOf(c.relation) === role && (isPlaceholder(c) || sameFirst(c, p)));
-    return undefined;
-  };
-  for (const p of list) {
-    const found = find(p);
-    if (!found) continue;
-    taken.add(found.id);
-    matched.set(p.key, found);
-  }
-  return matched;
-}
-
-/** Человек из файла, который, скорее всего, и есть тот, кто уже записан как «я»: по имени (и фамилии, если она есть). */
-function guessSelf(tree: TreeData, current: RodPerson[]): string {
-  const me = current.find((c) => /^(я|сам|сама)$/i.test(c.relation.trim()));
-  if (!me) return tree.focusId;
-  const first = (me.firstName ?? me.name.split(/\s+/)[0] ?? "").trim().toLowerCase().replace(/ё/g, "е");
-  const last = (me.lastName ?? me.name.split(/\s+/).slice(1).join(" ")).trim().toLowerCase().replace(/ё/g, "е");
-  const norm = (x: string) => x.trim().toLowerCase().replace(/ё/g, "е");
-  const hits = tree.people.filter((p) => norm(p.firstName).split(/\s+/)[0] === first && (!last || norm(p.lastName) === last) && yearsAgree(me.birthYear, p.birthYear));
-  // Если однозначно угадать нельзя (в файле несколько тёзок), пусть человек выберет себя сам: чужой «Я» ломает все подписи.
-  return hits.length === 1 ? hits[0]!.id : "";
-}
-
-function sameFirst(c: RodPerson, p: ImportedPerson): boolean {
-  const n = (x: string) => x.trim().toLowerCase().replace(/ё/g, "е").split(/\s+/)[0] ?? "";
-  return n(c.firstName ?? c.name) === n(p.firstName);
-}
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -106,8 +32,10 @@ export function GedImportButton() {
     const list = table ?? (tree && selfKey ? gedToPeople(tree, selfKey) : null);
     if (!list) return null;
     const same = matchExisting(people, list).size;
-    return { list, fresh: list.length - same, same };
+    const matched = matchExisting(people, list);
+    return { list, fresh: list.length - same, same, diffs: linkDiffs(people, list, matched), possible: possibleSame(people, list, matched) };
   }, [tree, table, selfKey, people]);
+  const [updateLinks, setUpdateLinks] = useState(false);
 
   const pick = (file: File | undefined) => {
     if (!file) return;
@@ -150,47 +78,28 @@ export function GedImportButton() {
     });
   };
 
-  const add = () => {
+  const add = async () => {
     if (!preview) return;
     setBusy(true);
-    const current = useRod.getState().people;
-    const created: RodPerson[] = [];
-    const matched = matchExisting(current, preview.list);
-    const selfIn = preview.list.find((p) => p.relation === "я");
-    const mineNow = current.find((c) => /^(я|сам|сама)$/i.test(c.relation.trim()));
-    if (selfIn && mineNow && matched.get(selfIn.key)?.id !== mineNow.id) {
+    let backupKey = "";
+    try {
+      backupKey = await backupLocalNow("Книга до загрузки файла с древом");
+    } catch {
       setBusy(false);
-      toast(`В списке уже есть «я»: ${mineNow.name}, а в файле «я» – ${composeName(selfIn)}. Это разные люди, поэтому ничего не добавлено. Если запись «${mineNow.name}» тестовая, удалите её или выберите её же в файле.`, { duration: 12000 });
+      toast("Не получилось сохранить резервную копию книги перед загрузкой, поэтому ничего не загружено. Сохраните копию на Главной и повторите.", { duration: 10000 });
       return;
     }
-    const keyToId = new Map<string, string>();
-    for (const p of preview.list) keyToId.set(p.key, matched.get(p.key)?.id ?? uid());
-    for (const p of preview.list) if (!matched.has(p.key)) created.push(toRod(p, keyToId.get(p.key)!, keyToId));
-    // Найденные люди получают связи и подпись родства из файла, остальное (фото, заметки) остаётся как было.
-    const updated = new Map<string, RodPerson>();
-    for (const p of preview.list) {
-      const found = matched.get(p.key);
-      if (!found) continue;
-      const links = linksOf(p, keyToId);
-      updated.set(found.id, {
-        ...found,
-        relation: p.relation,
-        fromFile: true,
-        ...(isPlaceholder(found) || (!found.lastName?.trim() && sameFirst(found, p)) ? { name: composeName(p), firstName: p.firstName, patronymic: p.patronymic, lastName: p.lastName } : {}),
-        parents: links.parents ?? found.parents,
-        spouse: links.spouse ?? found.spouse,
-        spouseStatus: links.spouseStatus ?? found.spouseStatus,
-        moreSpouses: links.moreSpouses ?? found.moreSpouses,
-        gender: found.gender ?? p.gender,
-        birthYear: fuller(found.birthYear, p.birthYear) ?? "",
-        deathYear: fuller(found.deathYear, p.deathYear),
-      });
+    const current = useRod.getState().people;
+    const plan = planGedImport(current, preview.list, { updateLinks, uid });
+    if (!plan.ok) {
+      setBusy(false);
+      toast(plan.reason, { duration: 12000 });
+      return;
     }
-    const fix = created.map((c) => {
-      const src = preview.list.find((p) => keyToId.get(p.key) === c.id)!;
-      return { ...c, ...linksOf(src, keyToId) };
-    });
-    useRod.setState({ people: [...fix, ...current.map((c) => updated.get(c.id) ?? c)] });
+    const fix = { length: plan.added };
+    const updated = { size: plan.updated };
+    const keyToId = plan.keyToId;
+    useRod.setState({ people: plan.people });
     // Центр древа переходит на выбранного «Я»: иначе режимы и подписи считаются от прежнего человека.
     const selfImported = preview.list.find((p) => p.relation === "я");
     const selfId = selfImported ? keyToId.get(selfImported.key) : undefined;
@@ -200,7 +109,7 @@ export function GedImportButton() {
     setBusy(false);
     setTree(null);
     setTable(null);
-    toast(`Добавлено людей: ${fix.length}. Уже были в списке и обновлены: ${updated.size}. Древо обновлено.${preview.list.length > 80 ? " Показала вашу линию; всех родственников можно включить в «Расширенных»." : ""}`, { duration: 8000 });
+    toast(`Добавлено людей: ${fix.length}. Уже были в списке: ${updated.size}${updateLinks ? ", связи обновлены по файлу" : ", их связи и подписи не менялись"}.${preview.list.length > 80 ? " Показала вашу линию; всех родственников можно включить в «Расширенных»." : ""}`, { duration: 20000, action: { label: "Отменить загрузку", onClick: () => void restoreBackup(backupKey).then((ok) => toast(ok ? "Загрузка отменена, книга как была" : "Копия не нашлась")) } });
   };
 
   return (
@@ -246,7 +155,26 @@ export function GedImportButton() {
             {preview ? (
               <p className="text-sm">Будет добавлено новых: <b>{preview.fresh}</b>. Уже есть в списке, не дублируем: {preview.same}.</p>
             ) : null}
-            <Button disabled={busy || !preview || preview.fresh === 0} onClick={add}>
+            {preview && preview.possible.length ? (
+              <p className="rounded-xl border border-ink/15 p-3 text-sm">
+                У <b>{preview.possible.length}</b> людей в файле тот же номер, что у уже записанных, но имя или фамилия изменились ({preview.possible.slice(0, 3).map((d) => `${d.name} → ${d.fileName}`).join("; ")}
+                {preview.possible.length > 3 ? "…" : ""}). Они добавятся как новые, чтобы не склеить разных людей: после загрузки проверьте, нет ли дубля, и удалите лишнего.
+              </p>
+            ) : null}
+            {preview && preview.diffs.length ? (
+              <div className="grid gap-2 rounded-xl border border-ink/15 p-3 text-sm">
+                <p>
+                  У <b>{preview.diffs.length}</b> уже записанных людей связи в файле отличаются от ваших ({preview.diffs.slice(0, 4).map((d) => `${d.name}: ${d.what}`).join("; ")}
+                  {preview.diffs.length > 4 ? "…" : ""}). По умолчанию они остаются как есть.
+                </p>
+                <label className="flex items-start gap-2">
+                  <input type="checkbox" className="mt-1 size-5" checked={updateLinks} onChange={(event) => setUpdateLinks(event.target.checked)} />
+                  Заменить эти связи и подписи «Кем приходится» данными из файла
+                </label>
+              </div>
+            ) : null}
+            <p className="text-xs text-muted">Перед загрузкой книга сохраняется на этом устройстве. После загрузки появится кнопка «Отменить загрузку».</p>
+            <Button disabled={busy || !preview} onClick={() => void add()}>
               Добавить в древо
             </Button>
           </div>
@@ -254,31 +182,4 @@ export function GedImportButton() {
       ) : null}
     </>
   );
-}
-
-function linksOf(p: ImportedPerson, keyToId: Map<string, string>): Partial<RodPerson> {
-  const parents = p.parentKeys.map((k) => keyToId.get(k)).filter((x): x is string => Boolean(x));
-  const spouse = p.spouseKey ? keyToId.get(p.spouseKey) : undefined;
-  const more = (p.moreSpouses ?? [])
-    .map((m) => ({ id: keyToId.get(m.key), status: m.status, from: m.from, to: m.to }))
-    .filter((m): m is { id: string; status: "married" | "divorced" | "partners" | undefined; from: string | undefined; to: string | undefined } => Boolean(m.id));
-  return { parents: parents.length ? parents : undefined, spouse, spouseStatus: p.spouseStatus, unionFrom: p.unionFrom, unionTo: p.unionTo, moreSpouses: more.length ? more : undefined };
-}
-
-function toRod(p: ImportedPerson, id: string, keyToId: Map<string, string>): RodPerson {
-  return {
-    id,
-    name: composeName(p),
-    firstName: p.firstName,
-    patronymic: p.patronymic,
-    lastName: p.lastName,
-    relation: p.relation,
-    birthYear: p.birthYear,
-    deathYear: p.deathYear,
-    maidenName: p.maidenName ?? "",
-    notes: p.notes,
-    gender: p.gender,
-    fromFile: true,
-    ...linksOf(p, keyToId),
-  } as RodPerson;
 }

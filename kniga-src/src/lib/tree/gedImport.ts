@@ -4,6 +4,8 @@ import { kinship } from "./kinship.ts";
 /** Человек из GED в виде, который хранится в списке «Люди». Связи – через id из списка. */
 export type ImportedPerson = {
   key: string;
+  /** Источник файла (см. TreeData.source). */
+  source?: string;
   firstName: string;
   patronymic: string;
   lastName: string;
@@ -47,6 +49,7 @@ export function gedToPeople(tree: TreeData, selfKey: string): ImportedPerson[] {
     const sp = mates[0];
     return {
       key: p.id,
+      source: tree.source,
       firstName: p.firstName,
       patronymic: p.patronymic,
       lastName: p.lastName,

@@ -1,4 +1,5 @@
-import { SearchSelect } from "./search-select";
+import { PeoplePicker } from "./people-picker";
+import { canSavePhoto, photoCaption, photoLinkFields } from "@/lib/rod/photo-people";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImagePlus } from "lucide-react";
@@ -14,7 +15,7 @@ export function PhotoNewScreen() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dataUrl, setDataUrl] = useState("");
   const [who, setWho] = useState("");
-  const [personId, setPersonId] = useState("");
+  const [personIds, setPersonIds] = useState<string[]>([]);
   const [where, setWhere] = useState("");
   const [year, setYear] = useState("");
   const [what, setWhat] = useState("");
@@ -67,15 +68,15 @@ export function PhotoNewScreen() {
         className="mt-4 grid gap-3"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!dataUrl || !who.trim()) return;
+          if (!canSavePhoto({ dataUrl, who, ids: personIds, people })) return;
           const ok = addPhoto({
             dataUrl,
-            who: who.trim(),
+            who: photoCaption(who, personIds, people),
             where: where.trim(),
             year: year.trim(),
             what: what.trim(),
             photographer: photographer.trim(),
-            personId,
+            ...photoLinkFields(personIds),
           });
           if (!ok) {
             toast("Архив переполнен. Удалите несколько фото.");
@@ -86,11 +87,11 @@ export function PhotoNewScreen() {
         }}
       >
         <Field label="Кто на фото?">
-          <input className="field" value={who} onChange={(event) => setWho(event.target.value)} placeholder="Бабушка Нина и мама" />
+          <input className="field" value={who} onChange={(event) => setWho(event.target.value)} placeholder={photoCaption("", personIds, people) || "Бабушка Нина и мама"} />
         </Field>
         {people.length > 0 ? (
-          <Field label="Привязать к человеку из семьи" hint="Необязательно.">
-            <SearchSelect label="Привязать к человеку" value={personId} onChange={setPersonId} empty="Не привязывать" options={people.map((person) => ({ value: person.id, label: `${person.name} · ${person.relation}` }))} />
+          <Field label="Кто из семьи на фото" hint="Найдите по имени и отметьте, можно нескольких. Подпись подставится сама, если «Кто на фото» пусто.">
+            <PeoplePicker value={personIds} onChange={setPersonIds} people={people} />
           </Field>
         ) : null}
         <Field label="Где?">
@@ -105,7 +106,7 @@ export function PhotoNewScreen() {
         <Field label="Кто фотографировал?">
           <input className="field" value={photographer} onChange={(event) => setPhotographer(event.target.value)} placeholder="Дедушка или уличный фотограф" />
         </Field>
-        <Button type="submit" disabled={!dataUrl || !who.trim() || busy}>
+        <Button type="submit" disabled={!canSavePhoto({ dataUrl, who, ids: personIds, people, busy })}>
           Сохранить фотографию
         </Button>
       </form>
