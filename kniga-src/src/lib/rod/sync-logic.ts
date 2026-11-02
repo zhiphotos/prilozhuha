@@ -28,3 +28,22 @@ export function fingerprint(text: string): string {
   }
   return `${text.length}:${(h >>> 0).toString(36)}`;
 }
+
+/** «Открыть копию» при включённой синхронизации: копию отправляем в облако сами только если в облаке нет ничего, чего это устройство не видело. Иначе решает человек. */
+export function decideOpenCopy(input: { cloudRev: number; baseRev: number }): "upload" | "conflict" {
+  const { cloudRev, baseRev } = input;
+  return cloudRev === 0 || cloudRev === baseRev ? "upload" : "conflict";
+}
+
+/** Какие резервные копии удалить, чтобы осталось не больше keep. Удаляются самые старые; восстанавливаемая копия (protect) не удаляется никогда. */
+export function pruneKeys(keys: string[], keep: number, protect?: string): string[] {
+  const sorted = [...keys].sort();
+  const extra = sorted.length - Math.max(1, keep);
+  const out: string[] = [];
+  for (const key of sorted) {
+    if (out.length >= extra) break;
+    if (key === protect) continue;
+    out.push(key);
+  }
+  return out;
+}

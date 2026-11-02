@@ -6,6 +6,7 @@ import { createJSONStorage, persist, type StateStorage } from "zustand/middlewar
 import { applyFormat } from "@/lib/rod/book-format";
 import { noteEdit } from "@/lib/rod/edit-counter";
 import { DEFAULT_PRINT, isDark, type PrintSetup } from "@/lib/rod/page-style";
+import { freezeDerivedParents } from "@/lib/tree/freeze.ts";
 import { MEDIA_STORE, STATE_STORE, idbClear, idbGet, idbSet } from "@/lib/rod/idb";
 import { activeProjectId, listProjects, setActiveProject, storageKeyFor } from "@/lib/rod/projects";
 import {
@@ -299,7 +300,9 @@ export const useRod = create<RodState>()(
       },
       updatePerson: (id, patch) =>
         set((state) => {
-          let people = state.people.map((person) => (person.id === id ? { ...person, ...patch } : person));
+          // Подпись «Кем приходится» не должна незаметно менять семейный граф: сначала выведенные по ней связи записываем явно.
+          const before = "relation" in patch && state.people.find((person) => person.id === id)?.relation !== patch.relation ? freezeDerivedParents(state.people) : state.people;
+          let people = before.map((person) => (person.id === id ? { ...person, ...patch } : person));
           if (patch.siblingOf) people = applyPatch(people, onSiblingSet(people, id, patch.siblingOf));
           if (!("relation" in patch) && ("parents" in patch || "spouse" in patch || "siblingOf" in patch || "moreSpouses" in patch)) people = syncRelations(people);
           return { people };

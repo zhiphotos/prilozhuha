@@ -1,0 +1,460 @@
+{
+ "format": "kniga-roda-diagnostics",
+ "anonymized": true,
+ "note": "Обезличено: имена, даты, заметки заменены; структура связей сохранена.",
+ "people": [
+  {
+   "id": "P1",
+   "name": "P1",
+   "firstName": "P1",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "не указано",
+   "gender": "m",
+   "parents": [
+    "P7",
+    "P8"
+   ]
+  },
+  {
+   "id": "P2",
+   "name": "P2",
+   "firstName": "P2",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "не указано",
+   "gender": "f",
+   "parents": [
+    "P6"
+   ],
+   "siblingOf": "P3"
+  },
+  {
+   "id": "P3",
+   "name": "P3",
+   "firstName": "P3",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Троюродный брат",
+   "gender": "m",
+   "parents": [
+    "P10",
+    "P6"
+   ],
+   "siblingOf": "P2"
+  },
+  {
+   "id": "P4",
+   "name": "P4",
+   "firstName": "P4",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Троюродный брат",
+   "gender": "m",
+   "parents": [
+    "P5",
+    "P9"
+   ]
+  },
+  {
+   "id": "P5",
+   "name": "P5",
+   "firstName": "P5",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Муж двоюродной тёти",
+   "gender": "m",
+   "treeRank": 20,
+   "parents": [],
+   "spouse": "P9"
+  },
+  {
+   "id": "P6",
+   "name": "P6",
+   "firstName": "P6",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Жена двоюродного дяди",
+   "gender": "f",
+   "treeRank": 30,
+   "parents": [],
+   "spouse": "P10"
+  },
+  {
+   "id": "P7",
+   "name": "P7",
+   "firstName": "P7",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Муж двоюродной тёти",
+   "gender": "m",
+   "treeRank": 40,
+   "parents": [],
+   "spouse": "P8"
+  },
+  {
+   "id": "P8",
+   "name": "P8",
+   "firstName": "P8",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Двоюродная тётя",
+   "gender": "f",
+   "treeRank": 40,
+   "parents": [
+    "P13",
+    "P14"
+   ],
+   "siblingOf": "P9"
+  },
+  {
+   "id": "P9",
+   "name": "P9",
+   "firstName": "P9",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Двоюродная тётя",
+   "gender": "f",
+   "treeRank": 20,
+   "parents": [
+    "P13",
+    "P14"
+   ],
+   "siblingOf": "P10"
+  },
+  {
+   "id": "P10",
+   "name": "P10",
+   "firstName": "P10",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Двоюродный дядя",
+   "gender": "m",
+   "treeRank": 30,
+   "parents": [
+    "P14",
+    "P13"
+   ]
+  },
+  {
+   "id": "P11",
+   "name": "P11",
+   "firstName": "P11",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Прабабушка",
+   "spouseStatus": "widowed",
+   "line": "mom",
+   "treeRank": 10,
+   "parents": [],
+   "spouse": "P12"
+  },
+  {
+   "id": "P12",
+   "name": "P12",
+   "firstName": "P12",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Прадедушка",
+   "gender": "m",
+   "spouseStatus": "widowed",
+   "line": "mom",
+   "treeRank": 10,
+   "parents": [],
+   "spouse": "P11"
+  },
+  {
+   "id": "P13",
+   "name": "P13",
+   "firstName": "P13",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Муж двоюродной бабушки",
+   "gender": "m",
+   "spouseStatus": "married",
+   "treeSide": "right",
+   "treeRank": 0,
+   "spouse": "P14"
+  },
+  {
+   "id": "P14",
+   "name": "P14",
+   "firstName": "P14",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Двоюродная бабушка",
+   "gender": "f",
+   "treeSide": "left",
+   "treeRank": 0,
+   "parents": [
+    "P15",
+    "P16"
+   ],
+   "siblingOf": "P24"
+  },
+  {
+   "id": "P15",
+   "name": "P15",
+   "firstName": "P15",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Прадедушка",
+   "gender": "m",
+   "line": "mom",
+   "treeRank": 0,
+   "spouse": "P16"
+  },
+  {
+   "id": "P16",
+   "name": "P16",
+   "firstName": "P16",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Прабабушка",
+   "gender": "f",
+   "spouseStatus": "widowed",
+   "line": "mom",
+   "treeRank": 0,
+   "spouse": "P15"
+  },
+  {
+   "id": "P17",
+   "name": "P17",
+   "firstName": "P17",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Двоюродная сестра",
+   "gender": "f",
+   "parents": [
+    "P20",
+    "P19"
+   ]
+  },
+  {
+   "id": "P18",
+   "name": "P18",
+   "firstName": "P18",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Двоюродная сестра",
+   "gender": "f",
+   "parents": [
+    "P20",
+    "P19"
+   ]
+  },
+  {
+   "id": "P19",
+   "name": "P19",
+   "firstName": "P19",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Тётя",
+   "gender": "f",
+   "spouseStatus": "married",
+   "line": "dad",
+   "treeRank": 60,
+   "spouse": "P20"
+  },
+  {
+   "id": "P20",
+   "name": "P20",
+   "firstName": "P20",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Дядя",
+   "line": "dad",
+   "treeRank": 60,
+   "parents": [
+    "P21",
+    "P22"
+   ],
+   "spouse": "P19",
+   "siblingOf": "P26"
+  },
+  {
+   "id": "P21",
+   "name": "P21",
+   "firstName": "P21",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Бабушка",
+   "line": "dad",
+   "treeRank": 30,
+   "parents": [],
+   "spouse": "P22"
+  },
+  {
+   "id": "P22",
+   "name": "P22",
+   "firstName": "P22",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Дедушка",
+   "gender": "m",
+   "line": "dad",
+   "treeRank": 30,
+   "parents": []
+  },
+  {
+   "id": "P23",
+   "name": "P23",
+   "firstName": "P23",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "я",
+   "gender": "m",
+   "parents": [
+    "P26",
+    "P27"
+   ]
+  },
+  {
+   "id": "P24",
+   "name": "P24",
+   "firstName": "P24",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Дедушка",
+   "spouseStatus": "widowed",
+   "line": "mom",
+   "treeSide": "left",
+   "treeRank": 20,
+   "parents": [
+    "P16",
+    "P15"
+   ],
+   "spouse": "P25",
+   "siblingOf": "992c5ffc-dc06-4397-897c-5a93cb59d1a4"
+  },
+  {
+   "id": "P25",
+   "name": "P25",
+   "firstName": "P25",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Бабушка",
+   "spouseStatus": "widowed",
+   "line": "mom",
+   "treeSide": "right",
+   "treeRank": 20,
+   "parents": [
+    "P11",
+    "P12"
+   ],
+   "spouse": "P24"
+  },
+  {
+   "id": "P26",
+   "name": "P26",
+   "firstName": "P26",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Отец",
+   "gender": "m",
+   "treeRank": 50,
+   "parents": [
+    "P22",
+    "P21"
+   ],
+   "spouse": "P27",
+   "siblingOf": "P20"
+  },
+  {
+   "id": "P27",
+   "name": "P27",
+   "firstName": "P27",
+   "patronymic": "",
+   "lastName": "",
+   "birthYear": "",
+   "maidenName": "",
+   "notes": "",
+   "relation": "Мать",
+   "gender": "f",
+   "treeRank": 50,
+   "parents": [
+    "P25",
+    "P24"
+   ],
+   "spouse": "P26"
+  }
+ ]
+}

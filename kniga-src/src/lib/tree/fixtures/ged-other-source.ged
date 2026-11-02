@@ -1,0 +1,12 @@
+0 HEAD
+1 SOUR OTHERAPP
+2 NAME Other
+1 GEDC
+2 VERS 5.5.1
+0 @I1@ INDI
+1 NAME Совсем /Другой/
+1 SEX M
+0 @I2@ INDI
+1 NAME Другая /Особа/
+1 SEX F
+0 TRLR

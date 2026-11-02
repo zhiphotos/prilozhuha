@@ -6,6 +6,8 @@ import { BohemeView } from "@/components/tree/BohemeView";
 import { TaigaView } from "@/components/tree/TaigaView";
 import { PosterView } from "@/components/tree/PosterView";
 import { fitText, isDeceased, kinship, nameLines, yearsOf } from "@/lib/tree/kinship";
+import { lineageUnionIds } from "@/lib/tree/lineage";
+import { centerDecision } from "@/lib/tree/camera";
 import { MAX_ZOOM, MIN_ZOOM, PLATE_GAP, PLATE_H, PLATE_W, PORTRAIT_R } from "@/lib/tree/metrics";
 import type { CameoSheet } from "@/lib/tree/cameo";
 import { FRAME } from "@/lib/tree/cameo";
@@ -164,6 +166,12 @@ export function TreeStage(props: Props) {
     return out;
   }, [props.unions]);
   const { layout, people, unions, focusId, selectedId, centerReq, fitReq, radius, onRadius, onSelectPerson, onSelectUnion, onClear, onLocate, onJump, style, onStyle, stylesLocked, poster, cameo, gzhel, boheme, taiga, flow, onFlow } = props;
+  // Подсветка линии остаётся после закрытия карточки (карточка закрывает почти весь экран телефона) и гаснет по нажатию на пустое место схемы.
+  const [litId, setLitId] = useState<string | null>(null);
+  useEffect(() => {
+    if (selectedId) setLitId(selectedId);
+  }, [selectedId]);
+  const lit = useMemo(() => (litId && people.some((person) => person.id === litId) ? lineageUnionIds(unions, litId) : null), [unions, litId, people]);
   const wrap = useRef<HTMLDivElement>(null);
   const [cam, setCam] = useState<Cam>({ x: 40, y: 40, k: 0.45 });
   const [gesturing, setGesturing] = useState(false);
@@ -233,6 +241,7 @@ export function TreeStage(props: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitReq, style, sheet.w, sheet.h]);
 
+  const centerDone = useRef(0);
   useEffect(() => {
     if (!centerReq) return;
     const el = wrap.current;
@@ -240,7 +249,9 @@ export function TreeStage(props: Props) {
     const spot =
       (style === "carved" ? poster?.nodes : style === "cameo" ? cameo?.nodes : style === "gzhel" ? gzhel?.nodes : style === "boheme" ? boheme?.nodes : style === "taiga" ? taiga?.nodes : layout.nodes)?.find((n) => n.id === centerReq.id) ??
       layout.nodes.find((n) => n.id === centerReq.id);
-    if (!spot) return;
+    const decision = centerDecision(centerReq, centerDone.current, Boolean(spot));
+    if (!decision.apply || !spot) return;
+    centerDone.current = decision.lastDone;
     setCam((c) => {
       const k = Math.max(c.k, 0.5);
       return { k, x: el.clientWidth / 2 - spot.x * k, y: el.clientHeight / 2 - spot.y * k };
@@ -355,7 +366,10 @@ export function TreeStage(props: Props) {
         const found = hit(p.x, p.y);
         if (found?.kind === "person") onSelectPerson(found.id);
         else if (found?.kind === "union") onSelectUnion(found.id);
-        else onClear();
+        else {
+          setLitId(null);
+          onClear();
+        }
       }
     }
   };
@@ -407,6 +421,17 @@ export function TreeStage(props: Props) {
               {layout.spouses.map((link) => (
                 <path key={link.unionId} d={style === "carved" ? carvedSpousePath(link) : spousePath(link)} fill="none" stroke={lineColor(link.status)} strokeWidth={2.4} strokeLinecap="round" strokeDasharray={link.status === "divorced" ? "6 7" : undefined} />
               ))}
+              {lit && lit.size > 0 ? (
+                // Выбранный человек: подсвечены его линия родства вверх (родители, братья и сёстры, предки), его браки и потомки.
+                <g fill="none" stroke="var(--color-gold)" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} pointerEvents="none">
+                  {layout.buses.filter((bus) => lit.has(bus.unionId)).map((bus) => (
+                    <path key={`lit-${bus.unionId}`} d={style === "carved" ? carvedBusPath(bus) : busPath(bus)} />
+                  ))}
+                  {layout.spouses.filter((link) => lit.has(link.unionId)).map((link) => (
+                    <path key={`lit-s-${link.unionId}`} d={style === "carved" ? carvedSpousePath(link) : spousePath(link)} />
+                  ))}
+                </g>
+              ) : null}
               {layout.labels.map((label) => (
                 <text key={label.gen} x={18} y={label.y} fill="var(--color-label)" fontFamily="var(--font-sans)" fontSize={13} fontWeight={600} dominantBaseline="middle">
                   {label.text}

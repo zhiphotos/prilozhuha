@@ -153,6 +153,12 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     if (!grands.length) return undefined;
     const pair = grands.slice(0, 2);
     if (pair.length === 1) {
+      // Супруг этого дедушки или бабушки уже есть в списке (без отметки линии): берём его, а не рисуем пустую заготовку-двойника.
+      // Супруг не обязан называться «бабушкой» или «дедушкой»: подпись могли изменить или стереть, а пара от этого не распадается.
+      const mate = people.find((q) => q.id !== pair[0] && (q.spouse === pair[0] || people.find((r) => r.id === pair[0])?.spouse === q.id));
+      if (mate) pair.push(mate.id);
+    }
+    if (pair.length === 1) {
       // Один из двоих известен: рядом ставим пустое место, чтобы пара и линия читались.
       const known = byId.get(pair[0]!);
       const id = `__grand_${line}_${known?.gender === "f" ? "m" : "f"}`;

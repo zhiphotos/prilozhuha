@@ -25,6 +25,9 @@ export type Person = {
   moreSpouses?: { id: string; status?: "married" | "divorced" | "partners" | "widowed"; from?: string; to?: string }[];
   /** Человек загружен из файла: связи берём только из ссылок, а не угадываем по слову «кем приходится». */
   fromFile?: boolean;
+  /** Идентификатор человека в загруженном файле (GEDCOM) и источник файла: по ним повторная загрузка находит того же человека. */
+  gedId?: string;
+  gedSource?: string;
   /** Годы союза (для древа), хранятся у одного из супругов. */
   unionFrom?: string;
   unionTo?: string;
@@ -59,6 +62,8 @@ export type FamilyPhoto = {
   what: string;
   photographer: string;
   personId: string;
+  /** Все привязанные люди (personId хранит первого для прежних версий приложения). */
+  personIds?: string[];
 };
 
 /** Фото или файл, прикреплённый к истории (ref на медиа). */

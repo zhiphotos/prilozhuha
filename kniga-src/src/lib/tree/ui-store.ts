@@ -8,6 +8,7 @@ import type { UnionFacts } from "./fill.ts";
 import { flipSpouse, moveBranch, type Patch } from "./arrange.ts";
 import { setLayoutSpread } from "./layout.ts";
 import { SELF_ID, roleOf, treeFromPeople } from "./from-people.ts";
+import { freezeParentsOf } from "./freeze.ts";
 import { buildRelationshipGraph, validateGraph, validatePeopleLinks } from "./relgraph.ts";
 import type { TreeScope } from "./scope.ts";
 import type { TreeStyle } from "./styles.ts";
@@ -335,6 +336,8 @@ export const useTree = create<State>((set, get) => {
       } else if (base) Object.assign(extra, siblingLinks(base));
       void (async () => {
         const photo = await storedPhoto(draft.photo);
+        // Родители, выведенные по слову «Кем приходится», записываем явно ДО добавления нового: иначе единственный явный родитель вытеснит выведенных и они оторвутся от человека.
+        if ((kind === "father" || kind === "mother") && base) useRod.setState((state) => ({ people: freezeParentsOf(state.people, base.id) }));
         const created = createPerson(draft, relation, extra, photo);
         if ((kind === "father" || kind === "mother") && base) applyAuto(onParentAdded(useRod.getState().people, base.id, created));
         if (kind === "spouse" && base) applyAuto(onSpouseAdded(useRod.getState().people, base.id, created));
@@ -352,7 +355,10 @@ export const useTree = create<State>((set, get) => {
         if (limit) return limit;
       }
       if (kind === "father" || kind === "mother") {
-        if (base) applyAuto(onParentAdded(useRod.getState().people, base.id, other.id));
+        if (base) {
+          useRod.setState((state) => ({ people: freezeParentsOf(state.people, base.id) })); // см. addRelative: выведенные родители фиксируются до добавления нового
+          applyAuto(onParentAdded(useRod.getState().people, base.id, other.id));
+        }
       } else if (kind === "spouse") {
         useRod.getState().updatePerson(other.id, { spouse: base?.id });
         if (base) applyAuto(onSpouseAdded(useRod.getState().people, base.id, other.id));

@@ -4,7 +4,8 @@ import { serverStatus } from "@/lib/rod/server";
 import { fetchInbox } from "@/lib/rod/family";
 import { FamilySheet } from "@/components/rod/family-sheet";
 import { ChevronLeft, ChevronRight, Pencil, Plus, X } from "lucide-react";
-import { SearchSelect } from "@/components/rod/search-select";
+import { PeoplePicker } from "@/components/rod/people-picker";
+import { photoCaption, photoLinkFields, photoPeopleIds } from "@/lib/rod/photo-people";
 import { Attachments } from "@/components/rod/attachments";
 import { useMedia } from "@/lib/rod/media";
 import { toast } from "sonner";
@@ -297,6 +298,7 @@ function PhotosPane() {
               ) : (
               <div className="p-4">
                 <p className="font-medium text-ink">{photo.who || "Без подписи"}</p>
+                <LinkedPeople ids={photoPeopleIds(photo)} />
                 <p className="text-sm text-muted">
                   {[photo.where, photo.year].filter(Boolean).join(" · ")}
                 </p>
@@ -321,8 +323,15 @@ function PhotosPane() {
   );
 }
 
+/** Строка «Из семьи: …» под подписью: люди, привязанные к фото. Пусто, если никто не привязан (или привязанного уже удалили из списка). */
+function LinkedPeople({ ids }: { ids: string[] }) {
+  const people = useRod((state) => state.people);
+  const names = ids.map((id) => people.find((person) => person.id === id)?.name).filter((name): name is string => Boolean(name));
+  return names.length ? <p className="text-sm text-ink/80">Из семьи: {names.join(", ")}</p> : null;
+}
+
 /** Правка подписи к фото: кто на снимке, где, когда, привязка к человеку. Само изображение не меняется. */
-function PhotoEditForm({ photo, onDone }: { photo: { id: string; who: string; where: string; year: string; what: string; photographer: string; personId: string }; onDone: () => void }) {
+function PhotoEditForm({ photo, onDone }: { photo: { id: string; who: string; where: string; year: string; what: string; photographer: string; personId: string; personIds?: string[] }; onDone: () => void }) {
   const updatePhoto = useRod((state) => state.updatePhoto);
   const people = useRod((state) => state.people);
   const [who, setWho] = useState(photo.who);
@@ -330,13 +339,13 @@ function PhotoEditForm({ photo, onDone }: { photo: { id: string; who: string; wh
   const [year, setYear] = useState(photo.year);
   const [what, setWhat] = useState(photo.what);
   const [photographer, setPhotographer] = useState(photo.photographer);
-  const [personId, setPersonId] = useState(photo.personId);
+  const [personIds, setPersonIds] = useState<string[]>(photoPeopleIds(photo));
   return (
     <form
       className="grid gap-3 p-4"
       onSubmit={(event) => {
         event.preventDefault();
-        updatePhoto(photo.id, { who: who.trim(), where: where.trim(), year: year.trim(), what: what.trim(), photographer: photographer.trim(), personId });
+        updatePhoto(photo.id, { who: photoCaption(who, personIds, people), where: where.trim(), year: year.trim(), what: what.trim(), photographer: photographer.trim(), ...photoLinkFields(personIds) });
         toast("Подпись сохранена");
         onDone();
       }}
@@ -345,8 +354,8 @@ function PhotoEditForm({ photo, onDone }: { photo: { id: string; who: string; wh
         <input className="field" value={who} onChange={(event) => setWho(event.target.value)} />
       </Field>
       {people.length > 0 ? (
-        <Field label="Привязать к человеку из семьи">
-          <SearchSelect label="Привязать к человеку" value={personId} onChange={setPersonId} empty="Не привязывать" options={people.map((person) => ({ value: person.id, label: `${person.name} · ${person.relation}` }))} />
+        <Field label="Кто из семьи на фото" hint="Можно отметить нескольких. Необязательно.">
+          <PeoplePicker value={personIds} onChange={setPersonIds} people={people} />
         </Field>
       ) : null}
       <Field label="Где?">
@@ -462,52 +471,6 @@ function PlaceCard({ place }: { place: Place }) {
         </button>
       </div>
     </li>
-  );
-}
-
-/** Выбор родственников из списка «Люди» (он же основа древа): отмеченные видны чипами, остальных ищут по имени и добавляют нажатием. */
-function PeoplePicker({ value, onChange, people }: { value: string[]; onChange: (next: string[]) => void; people: { id: string; name: string; relation: string }[] }) {
-  const [query, setQuery] = useState("");
-  const chosen = value.map((id) => people.find((person) => person.id === id)).filter((person): person is NonNullable<typeof person> => Boolean(person));
-  const q = query.trim().toLowerCase();
-  const matches = people.filter((person) => !value.includes(person.id) && (!q || `${person.name} ${person.relation}`.toLowerCase().includes(q))).slice(0, q ? 12 : 8);
-  if (!people.length) return <p className="text-sm text-muted">Пока в списке нет людей. Добавьте их во вкладке «Люди» или загрузите древо из файла, и тогда их можно будет отметить здесь.</p>;
-  return (
-    <div className="grid gap-2">
-      {chosen.length ? (
-        <div className="flex flex-wrap gap-2">
-          {chosen.map((person) => (
-            <button key={person.id} type="button" aria-label={`Убрать: ${person.name}`} className="min-h-10 rounded-full border border-ink bg-ink px-3 text-sm text-paper" onClick={() => onChange(value.filter((id) => id !== person.id))}>
-              {person.name || person.relation} ✕
-            </button>
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm text-muted">Пока никто не отмечен.</p>
-      )}
-      <input className="field" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Найти в списке (${people.length} человек)`} />
-      <ul className="grid max-h-56 gap-1 overflow-y-auto">
-        {matches.map((person) => (
-          <li key={person.id}>
-            <button
-              type="button"
-              className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-ink/15 bg-white/70 px-3 text-left text-sm text-ink"
-              // Пока открыта клавиатура, касание по списку на iPhone сначала убирало фокус из поля, список сдвигался и нажатие не попадало в кнопку.
-              onPointerDown={(event) => event.preventDefault()}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => {
-                onChange(value.includes(person.id) ? value : [...value, person.id]);
-                setQuery("");
-              }}
-            >
-              <span className="truncate">{person.name || "Без имени"}</span>
-              <span className="shrink-0 text-xs text-muted">{person.relation} · добавить</span>
-            </button>
-          </li>
-        ))}
-        {!matches.length && q ? <li className="px-1 text-sm text-muted">Никого не нашлось, проверьте написание.</li> : null}
-      </ul>
-    </div>
   );
 }
 

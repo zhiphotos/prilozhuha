@@ -1,0 +1,17 @@
+0 HEAD
+1 SOUR FAMILIO-LIKE-SYNTHETIC
+2 NAME Synthetic (не настоящий Familio)
+1 GEDC
+2 VERS 5.5.1
+0 @I1@ INDI
+1 NAME Брунгильда /Тестерова (Образцова)/
+2 SURN Образцова
+2 _MARNM Тестерова
+1 SEX F
+0 @I2@ INDI
+1 NAME Фавст /Тестеров/
+1 SEX M
+0 @F1@ FAM
+1 HUSB @I2@
+1 WIFE @I1@
+0 TRLR

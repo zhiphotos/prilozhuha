@@ -259,5 +259,10 @@ export function parseGedcom(text: string): { tree: TreeData } | { error: string 
     }
   }
   if (!people.length) return { error: "В GEDCOM нет людей" };
-  return treeFromExtract({ people, unions, keepNameless: true });
+  const result = treeFromExtract({ people, unions, keepNameless: true });
+  if ("error" in result) return result;
+  const head = records.find((r) => r.tag === "HEAD");
+  const sour = head ? child(head, "SOUR") : undefined;
+  const source = [sour?.value, sour ? child(sour, "NAME")?.value : "", head ? child(head, "_DBGUID")?.value : ""].map((x) => clean(x)).filter(Boolean).join("|");
+  return { tree: { ...result.tree, source: source || undefined } };
 }
