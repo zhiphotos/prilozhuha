@@ -11,7 +11,7 @@ import { SELF_ID, roleOf, treeFromPeople } from "./from-people.ts";
 import { buildRelationshipGraph, validateGraph, validatePeopleLinks } from "./relgraph.ts";
 import type { TreeScope } from "./scope.ts";
 import type { TreeStyle } from "./styles.ts";
-import type { Gender, Person, Union, UnionStatus } from "./types.ts";
+import type { Gender, Person, TreeData, Union, UnionStatus } from "./types.ts";
 
 export type TreeFlow = "down" | "up";
 export type ThemeName = "night" | "paper";
@@ -94,6 +94,46 @@ function saveUi(s: State) {
   } catch {
     /* оформление живёт до закрытия */
   }
+}
+
+// Пустые заготовки («Мама», «Папа», «Дедушка»), которые схема ставит сама. В списке «Люди» их нет, поэтому раньше удалить такую карточку было нельзя.
+// Убранные заготовки помним на этом устройстве и просто не рисуем.
+const HIDDEN_KEY = "kniga-tree-hidden-ghosts";
+
+function readHidden(): Set<string> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(HIDDEN_KEY) || "[]") as unknown;
+    return new Set(Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeHidden(ids: Set<string>) {
+  try {
+    localStorage.setItem(HIDDEN_KEY, JSON.stringify([...ids]));
+  } catch {
+    /* без хранилища заготовка вернётся после перезапуска */
+  }
+}
+
+export function hiddenGhostCount(): number {
+  return readHidden().size;
+}
+
+export function restoreGhosts(): void {
+  writeHidden(new Set());
+  useRod.setState({});
+}
+
+function withoutHidden(data: TreeData): TreeData {
+  const hidden = readHidden();
+  if (!hidden.size) return data;
+  return {
+    ...data,
+    people: data.people.filter((p) => !hidden.has(p.id)),
+    unions: data.unions.map((u) => ({ ...u, partnerIds: u.partnerIds.filter((id) => !hidden.has(id)) })).filter((u) => u.partnerIds.length > 0),
+  };
 }
 
 const photoUrls = new Map<string, string>();
@@ -179,10 +219,10 @@ function issuesOf(data: ReturnType<typeof treeFromPeople>): string[] {
 export const useTree = create<State>((set, get) => {
   const ui = readUi();
   setLayoutSpread(ui.spread);
-  const initial = treeFromPeople(currentPeople());
+  const initial = withoutHidden(treeFromPeople(currentPeople()));
   const persistUi = () => saveUi(get());
   const rebuild = () => {
-    const data = treeFromPeople(currentPeople());
+    const data = withoutHidden(treeFromPeople(currentPeople()));
     const focus = data.people.some((p) => p.id === get().focusId) ? get().focusId : data.focusId;
     set({ people: data.people, unions: data.unions, focusId: focus, issues: issuesOf(data) });
   };
@@ -327,6 +367,12 @@ export const useTree = create<State>((set, get) => {
     },
     removePerson: (id) => {
       if (realId(id)) useRod.getState().removePerson(id);
+      else if (id !== SELF_ID && id.startsWith("__")) {
+        const hidden = readHidden();
+        hidden.add(id);
+        writeHidden(hidden);
+        rebuild();
+      }
       set({ selectedId: null, unionId: null });
     },
   };

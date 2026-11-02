@@ -395,7 +395,7 @@ async function paintPhoto(ctx: CanvasRenderingContext2D, block: Extract<PageBloc
     if (image) coverCropped(ctx, image, border, border, w - border * 2, h - border * 2, block.crop);
     ctx.restore();
   } else {
-    const radius = block.frame === "tape" ? 0.6 * U : lit ? 1.4 * U : 0;
+    const radius = block.frame === "tape" ? 0.6 * U : lit && !block.sharp ? 1.4 * U : 0;
     const transparent = image ? hasAlpha(image) : false;
     if (transparent) {
       // Вырезанный PNG: никакой белой подложки, тень (если включена) по самому рисунку.

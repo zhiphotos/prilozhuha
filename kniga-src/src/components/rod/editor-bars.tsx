@@ -558,6 +558,9 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
           <BarBtn phoneHidden onClick={() => ops.patch({ shadow: block.shadow === false } as Partial<PageBlock>)} active={block.shadow !== false} label="Тень под фото">
             <Droplet className="size-4" /> Тень
           </BarBtn>
+          <BarBtn phoneHidden onClick={() => ops.patch({ sharp: !block.sharp || undefined } as Partial<PageBlock>)} active={!block.sharp} label="Скруглённые углы или прямые">
+            ◜ Углы
+          </BarBtn>
           <BarBtn phoneHidden onClick={ops.write}>
             <Type className="size-4" /> Надпись
           </BarBtn>
@@ -641,6 +644,9 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
               <>
                 <BarBtn onClick={() => ops.patch({ shadow: block.shadow === false } as Partial<PageBlock>)} active={block.shadow !== false}>
                   <Droplet className="size-4" /> Тень
+                </BarBtn>
+                <BarBtn onClick={() => ops.patch({ sharp: !block.sharp || undefined } as Partial<PageBlock>)} active={!block.sharp}>
+                  ◜ Углы
                 </BarBtn>
                 <BarBtn onClick={ops.write}>
                   <Type className="size-4" /> Надпись

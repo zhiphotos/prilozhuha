@@ -1,3 +1,4 @@
+import { normalizeSurnames } from "./surnames.ts";
 import type { Person as RodPerson } from "@/lib/rod/types";
 import type { Gender, Person, TreeData, Union, UnionStatus } from "./types.ts";
 
@@ -67,17 +68,18 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     const first = hasParts ? (p.firstName ?? "") : (t[0] ?? "");
     const middle = hasParts ? (p.patronymic ?? "") : t.length > 2 ? t.slice(1, -1).join(" ") : "";
     const last = hasParts ? (p.lastName ?? "") : t.length > 1 ? (t[t.length - 1] ?? "") : "";
+    const names = normalizeSurnames(last, p.maidenName);
     out.push({
       id: p.id,
       firstName: first.trim() || p.name.trim(),
       patronymic: middle.trim(),
-      lastName: last.trim() || p.maidenName?.trim() || "",
+      lastName: names.lastName || p.maidenName?.trim() || "",
       gender: genderOf(p, role),
       birthYear: p.birthYear ?? "",
       deathYear: p.deathYear ?? "",
       photo: p.photo ?? "",
       note: p.notes ?? "",
-      maidenName: last.trim() && p.maidenName?.trim() && p.maidenName.trim().toLowerCase() !== last.trim().toLowerCase() ? p.maidenName.trim() : undefined,
+      maidenName: names.lastName ? names.maidenName : undefined,
       side: p.treeSide,
       rank: p.treeRank,
     });

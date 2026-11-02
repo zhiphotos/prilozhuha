@@ -4,7 +4,7 @@ import { Button, Sheet } from "@/components/rod/chrome";
 import { useRod } from "@/lib/rod/store";
 import type { Person } from "@/lib/rod/types";
 import { buildDiagnostics, buildTreeFile, parseTreeFile, planImport, type ImportPlan, type TreeFile } from "@/lib/tree/treeFile";
-import { useTree } from "@/lib/tree/ui-store";
+import { hiddenGhostCount, restoreGhosts, useTree } from "@/lib/tree/ui-store";
 
 const build = () => document.querySelector<HTMLScriptElement>("script[src*='assets/index-']")?.src.match(/index-([^./]+)\.js/)?.[1] ?? "";
 
@@ -69,6 +69,18 @@ export function TreeFileButton() {
     setOpen(false);
   };
 
+  /** Удаляет всех людей древа. Перед этим скачивается копия, чтобы можно было вернуть. */
+  const clearAll = () => {
+    const have = useRod.getState().people;
+    if (!have.length) return toast("Древо уже пустое.");
+    if (!window.confirm(`Удалить всё древо (${have.length} чел.)? Перед удалением на устройство скачается копия: по ней древо можно вернуть кнопкой «Загрузить файл древа».`)) return;
+    download(`kniga-roda-kopiya-pered-udaleniem-${stamp()}.tree`, JSON.stringify(buildTreeFile(have, build(), view()), null, 1));
+    useRod.setState({ people: [] });
+    toast("Древо удалено. Копия скачана на устройство.", { duration: 9000 });
+    setIncoming(null);
+    setOpen(false);
+  };
+
   return (
     <>
       <button type="button" className="chip" onClick={() => setOpen(true)}>
@@ -79,6 +91,12 @@ export function TreeFileButton() {
         <Sheet title="Файл древа" onClose={() => { setOpen(false); setIncoming(null); }}>
           <div className="grid gap-3 text-sm text-ink">
             <p className="rounded-xl bg-white/70 p-3 text-muted">Файлы сохраняются только на ваше устройство и никуда не отправляются. Полный файл содержит имена и данные родственников, передавайте его только тем, кому доверяете.</p>
+            <button type="button" className="min-h-11 rounded-xl border border-rose-deep/40 px-3 font-semibold text-rose-deep" onClick={clearAll}>Удалить всё древо…</button>
+            {hiddenGhostCount() > 0 ? (
+              <button type="button" className="min-h-11 rounded-xl border border-ink/20 px-3" onClick={() => { restoreGhosts(); toast("Пустые карточки вернулись."); setOpen(false); }}>
+                Вернуть убранные пустые карточки ({hiddenGhostCount()})
+              </button>
+            ) : null}
             {incoming ? (
               <div className="grid gap-2 rounded-xl border border-ink/15 p-3">
                 <p>

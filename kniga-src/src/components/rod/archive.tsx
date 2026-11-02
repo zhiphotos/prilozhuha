@@ -4,6 +4,7 @@ import { serverStatus } from "@/lib/rod/server";
 import { fetchInbox } from "@/lib/rod/family";
 import { FamilySheet } from "@/components/rod/family-sheet";
 import { ChevronLeft, ChevronRight, Pencil, Plus, X } from "lucide-react";
+import { SearchSelect } from "@/components/rod/search-select";
 import { Attachments } from "@/components/rod/attachments";
 import { useMedia } from "@/lib/rod/media";
 import { toast } from "sonner";
@@ -103,7 +104,9 @@ function FamilyCard() {
 function PeoplePane() {
   const people = useRod((state) => state.people);
   const addPerson = useRod((state) => state.addPerson);
+  const updatePerson = useRod((state) => state.updatePerson);
   const [draft, setDraft] = useState<PersonDraft>(EMPTY_PERSON);
+  const [moreSibs, setMoreSibs] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
@@ -115,12 +118,14 @@ function PeoplePane() {
           onSubmit={(event) => {
             event.preventDefault();
             if (!draft.name.trim()) return;
-            addPerson({ ...draft, name: draft.name.trim(), maidenName: maidenAllowed(draft) ? draft.maidenName.trim() : "", birthYear: draft.birthYear.trim(), parents: (draft.parents ?? []).filter(Boolean) });
+            const newId = addPerson({ ...draft, name: draft.name.trim(), maidenName: maidenAllowed(draft) ? draft.maidenName.trim() : "", birthYear: draft.birthYear.trim(), parents: (draft.parents ?? []).filter(Boolean) });
+            for (const other of moreSibs) if (other !== draft.siblingOf) updatePerson(other, { siblingOf: newId });
+            setMoreSibs([]);
             setDraft(EMPTY_PERSON);
             toast("Человек добавлен: он на ленте и в древе");
           }}
         >
-          <PersonFields value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} others={people} />
+          <PersonFields value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} others={people} extraSiblings={moreSibs} onExtraSiblings={setMoreSibs} />
           <Button type="submit" disabled={!draft.name.trim()}>
             Добавить в семью
           </Button>
@@ -240,6 +245,7 @@ function PhotosPane() {
   const nav = useNav();
   const photos = useRod((state) => state.photos);
   const removePhoto = useRod((state) => state.removePhoto);
+  const [editId, setEditId] = useState<string | null>(null);
   const [viewAt, setViewAt] = useState<number | null>(null);
   const [view, setView] = useState<PhotoView>(savedView);
   const choose = (next: PhotoView) => {
@@ -286,6 +292,9 @@ function PhotosPane() {
               <button type="button" className="block w-full" aria-label="Открыть фото" onClick={() => setViewAt(photos.indexOf(photo))}>
                 <MediaImg src={photo.dataUrl} alt={photo.who || "Семейная фотография"} className="block h-auto max-h-[70vh] min-h-24 w-full object-contain" />
               </button>
+              {editId === photo.id ? (
+                <PhotoEditForm photo={photo} onDone={() => setEditId(null)} />
+              ) : (
               <div className="p-4">
                 <p className="font-medium text-ink">{photo.who || "Без подписи"}</p>
                 <p className="text-sm text-muted">
@@ -293,16 +302,70 @@ function PhotosPane() {
                 </p>
                 {photo.what ? <p className="mt-2 text-sm text-ink">{photo.what}</p> : null}
                 {photo.photographer ? <p className="mt-1 text-sm text-muted">Снимал: {photo.photographer}</p> : null}
-                <button type="button" className="mt-2 text-sm text-muted underline" onClick={() => removePhoto(photo.id)}>
-                  Удалить
-                </button>
+                <div className="mt-2 flex gap-4 text-sm text-muted">
+                  <button type="button" className="underline" onClick={() => setEditId(photo.id)}>
+                    Изменить подпись
+                  </button>
+                  <button type="button" className="underline" onClick={() => removePhoto(photo.id)}>
+                    Удалить
+                  </button>
+                </div>
               </div>
+              )}
             </li>
           ))}
         </ul>
       )}
       {viewAt !== null ? <PhotoViewer photos={photos} start={viewAt} onClose={() => setViewAt(null)} /> : null}
     </div>
+  );
+}
+
+/** Правка подписи к фото: кто на снимке, где, когда, привязка к человеку. Само изображение не меняется. */
+function PhotoEditForm({ photo, onDone }: { photo: { id: string; who: string; where: string; year: string; what: string; photographer: string; personId: string }; onDone: () => void }) {
+  const updatePhoto = useRod((state) => state.updatePhoto);
+  const people = useRod((state) => state.people);
+  const [who, setWho] = useState(photo.who);
+  const [where, setWhere] = useState(photo.where);
+  const [year, setYear] = useState(photo.year);
+  const [what, setWhat] = useState(photo.what);
+  const [photographer, setPhotographer] = useState(photo.photographer);
+  const [personId, setPersonId] = useState(photo.personId);
+  return (
+    <form
+      className="grid gap-3 p-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        updatePhoto(photo.id, { who: who.trim(), where: where.trim(), year: year.trim(), what: what.trim(), photographer: photographer.trim(), personId });
+        toast("Подпись сохранена");
+        onDone();
+      }}
+    >
+      <Field label="Кто на фото?">
+        <input className="field" value={who} onChange={(event) => setWho(event.target.value)} />
+      </Field>
+      {people.length > 0 ? (
+        <Field label="Привязать к человеку из семьи">
+          <SearchSelect label="Привязать к человеку" value={personId} onChange={setPersonId} empty="Не привязывать" options={people.map((person) => ({ value: person.id, label: `${person.name} · ${person.relation}` }))} />
+        </Field>
+      ) : null}
+      <Field label="Где?">
+        <input className="field" value={where} onChange={(event) => setWhere(event.target.value)} />
+      </Field>
+      <Field label="Год">
+        <input className="field" value={year} onChange={(event) => setYear(event.target.value)} />
+      </Field>
+      <Field label="История снимка">
+        <textarea className="field min-h-20" value={what} onChange={(event) => setWhat(event.target.value)} />
+      </Field>
+      <Field label="Кто фотографировал?">
+        <input className="field" value={photographer} onChange={(event) => setPhotographer(event.target.value)} />
+      </Field>
+      <Button type="submit">Сохранить</Button>
+      <button type="button" className="text-sm text-muted underline" onClick={onDone}>
+        Отмена
+      </button>
+    </form>
   );
 }
 
@@ -426,7 +489,17 @@ function PeoplePicker({ value, onChange, people }: { value: string[]; onChange: 
       <ul className="grid max-h-56 gap-1 overflow-y-auto">
         {matches.map((person) => (
           <li key={person.id}>
-            <button type="button" className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-ink/15 bg-white/70 px-3 text-left text-sm text-ink" onClick={() => onChange([...value, person.id])}>
+            <button
+              type="button"
+              className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-ink/15 bg-white/70 px-3 text-left text-sm text-ink"
+              // Пока открыта клавиатура, касание по списку на iPhone сначала убирало фокус из поля, список сдвигался и нажатие не попадало в кнопку.
+              onPointerDown={(event) => event.preventDefault()}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                onChange(value.includes(person.id) ? value : [...value, person.id]);
+                setQuery("");
+              }}
+            >
               <span className="truncate">{person.name || "Без имени"}</span>
               <span className="shrink-0 text-xs text-muted">{person.relation} · добавить</span>
             </button>

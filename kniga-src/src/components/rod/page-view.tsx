@@ -467,7 +467,7 @@ function PhotoArt({ block }: { block: Extract<PageBlock, { type: "photo" }> }) {
       </div>
     );
   }
-  return <div className={cn("photo-shadow h-full w-full overflow-hidden", block.shadow === false ? "rounded-none no-shadow" : "rounded-[1.4cqw]")}>{img}</div>;
+  return <div className={cn("photo-shadow h-full w-full overflow-hidden", block.shadow === false ? "rounded-none no-shadow" : block.sharp ? "rounded-none" : "rounded-[1.4cqw]")}>{img}</div>;
 }
 
 function SlotArt({ block }: { block: Extract<PageBlock, { type: "slot" }> }) {

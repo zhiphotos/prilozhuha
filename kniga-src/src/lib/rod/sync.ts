@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { create } from "zustand";
 import { API_BASE } from "@/lib/rod/config";
 import { DATA_KEYS, applyBookData, collectRefs } from "@/lib/rod/backup";
@@ -165,6 +166,7 @@ export async function syncNow(mode: SyncMode = "auto"): Promise<void> {
     if (todo === "conflict" && mode === "cloud") todo = "download";
     if (todo === "conflict") {
       ui.setState({ busy: false, conflict: true, message: "Книга менялась и здесь, и на другом устройстве. Выберите, какую оставить." });
+      if (mode === "auto") toast("Книга менялась и здесь, и на другом устройстве. Откройте «Главная» → «Книга на ваших устройствах» и выберите, какую оставить.", { id: "sync-conflict", duration: 20000 });
       return;
     }
     if (todo === "upload") {
@@ -186,14 +188,35 @@ export async function syncNow(mode: SyncMode = "auto"): Promise<void> {
   }
 }
 
+/** После «Открыть копию»: эта копия и есть книга. Считаем её правкой поверх текущей версии в облаке, чтобы она ушла на другие устройства. */
+export async function markImportedCopy(): Promise<void> {
+  if (!API_BASE || !useRod.getState().access?.token) return;
+  try {
+    const head = await call<{ rev?: number }>({ op: "head" });
+    if (head.status !== 200) return;
+    writeMeta({ rev: head.data.rev ?? 0, hash: "", at: readMeta().at });
+    await syncNow("auto");
+  } catch {
+    /* без сети копия просто останется на этом устройстве и уйдёт при следующей синхронизации */
+  }
+}
+
 let started = false;
 
-/** Автосинхронизация: один раз при запуске и когда приложение уходит в фон (только загрузка своих правок). */
+/** Автосинхронизация: при запуске, при возврате в приложение, раз в две минуты, при появлении сети и через 20 секунд после правок. */
 export function startAutoSync(): void {
   if (started || typeof document === "undefined") return;
   started = true;
-  window.setTimeout(() => void syncNow("auto"), 4000);
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") void syncNow("auto");
+  const run = () => void syncNow("auto");
+  window.setTimeout(run, 4000);
+  document.addEventListener("visibilitychange", run);
+  window.addEventListener("online", run);
+  window.setInterval(() => {
+    if (document.visibilityState === "visible") run();
+  }, 120_000);
+  let timer: number | undefined;
+  useRod.subscribe(() => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(run, 20_000);
   });
 }

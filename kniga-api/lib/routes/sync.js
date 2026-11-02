@@ -49,7 +49,7 @@ export default async function handler(req, res) {
         const current = Number((await redis("HGET", bookKey(id), "rev")) ?? 0);
         if (current !== baseRev) return json(res, 409, { error: "В облаке есть более новая версия.", rev: current });
         const next = baseRev + 1;
-        await redis("SET", partKey(id, next, i), data, "EX", 7 * 86400);
+        await redis("SET", partKey(id, next, i), data, "EX", 400 * 86400); // раньше 7 дней: через неделю без правок книга пропадала из облака
         if (i < parts - 1) return json(res, 200, { ok: true, committed: false });
         // Последний кусок: проверяем, что все на месте, потом переключаем версию.
         for (let k = 0; k < parts; k += 1) if ((await redis("EXISTS", partKey(id, next, k))) !== 1) return json(res, 400, { error: "Не все части дошли." });
