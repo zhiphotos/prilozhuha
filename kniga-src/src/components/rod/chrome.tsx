@@ -47,13 +47,16 @@ export function Button({
   );
 }
 
-export function Field({ label, children, hint }: { label: string; hint?: string; children: ReactNode }) {
+export function Field({ label, children, hint, group }: { label: string; hint?: string; children: ReactNode; group?: boolean }) {
+  // group: внутри несколько кнопок (выбор людей). В <label> нажатие на кнопку может уходить ещё и «управляющему» элементу подписи,
+  // и на iPhone отметка тут же снималась. Для таких полей подпись делаем обычным блоком.
+  const Wrap = group ? "div" : "label";
   return (
-    <label className="block">
+    <Wrap className="block">
       <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
       {children}
       {hint ? <span className="mt-1.5 block text-xs text-muted">{hint}</span> : null}
-    </label>
+    </Wrap>
   );
 }
 
