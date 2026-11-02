@@ -354,7 +354,7 @@ function PhotoEditForm({ photo, onDone }: { photo: { id: string; who: string; wh
         <input className="field" value={who} onChange={(event) => setWho(event.target.value)} />
       </Field>
       {people.length > 0 ? (
-        <Field label="Кто из семьи на фото" hint="Можно отметить нескольких. Необязательно.">
+        <Field group label="Кто из семьи на фото" hint="Можно отметить нескольких. Необязательно.">
           <PeoplePicker value={personIds} onChange={setPersonIds} people={people} />
         </Field>
       ) : null}
@@ -403,13 +403,14 @@ function PlaceForm({ initial, submitLabel, onSubmit, onCancel }: { initial?: Pla
       <Field label="Что там было">
         <textarea className="field min-h-20" value={note} onChange={(event) => setNote(event.target.value)} />
       </Field>
-      <Field label="Кто здесь жил или бывал">
+      <Field group label="Кто здесь жил или бывал">
         <PeoplePicker value={who} onChange={setWho} people={everyone} />
       </Field>
       <Attachments items={files} onChange={setFiles} title="Фото места" empty="Дом, двор, улица, как выглядело. Можно прикрепить несколько снимков." limitText="К одному месту" />
       <Button type="submit" disabled={!name.trim()}>
         {submitLabel}
       </Button>
+      {!name.trim() ? <p className="text-center text-sm text-muted">Впишите название места, и кнопка станет активной.</p> : null}
       {onCancel ? (
         <button type="button" className="text-sm text-muted underline" onClick={onCancel}>
           Отмена

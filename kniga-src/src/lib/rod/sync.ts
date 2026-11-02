@@ -135,14 +135,16 @@ function report(outcome: SyncOutcome, mode: SyncMode) {
   const ui = useSync.getState();
   if (outcome.kind === "conflict") {
     const message = outcome.reason === "cloud-moved" ? "Пока я загружала, в облаке появилась новая версия. Выберите, какую оставить." : "Книга менялась и здесь, и на другом устройстве. Выберите, какую оставить.";
+    // Окно показываем один раз, когда конфликт возник, а не при каждой проверке (раз в две минуты и при каждом возврате в приложение).
+    const alreadyTold = ui.conflict;
     ui.setState({ busy: false, conflict: true, message });
-    if (mode === "auto") toast("Книга менялась и здесь, и на другом устройстве. Откройте «Главная» → «Книга на ваших устройствах» и выберите, какую оставить.", { id: "sync-conflict", duration: 20000 });
+    if (mode === "auto" && !alreadyTold) toast("Книга менялась и здесь, и на другом устройстве. Откройте «Главная» → «Книга на ваших устройствах» и выберите, какую оставить. Если книга открыта на двух устройствах, выбрать нужно на каждом.", { id: "sync-conflict", duration: 20000 });
   } else if (outcome.kind === "error") {
     ui.setState({ busy: false, message: outcome.message });
   } else if (outcome.kind === "merged") {
     const { added, differing } = outcome.report.total;
     const kept = differing ? ` Записей с разным содержимым: ${differing}. Оставлены версии с этого устройства, облачные лежат в копиях.` : "";
-    ui.setState({ busy: false, conflict: false, message: `Книги объединены: из облака добавлено записей: ${added}.${kept} Удалённое на одном устройстве, но оставшееся на другом, вернулось. Обе прежние версии сохранены копиями на этом устройстве.` });
+    ui.setState({ busy: false, conflict: false, message: `Книги объединены: из облака добавлено записей: ${added}.${kept} Удалённое на одном устройстве, но оставшееся на другом, вернулось. Обе прежние версии сохранены копиями на этом устройстве. Если книга открыта на других устройствах, нажмите «Синхронизировать сейчас» и там: они возьмут объединённую.` });
   } else {
     ui.setState({ busy: false, conflict: false, message: MESSAGES[outcome.kind] });
   }

@@ -90,7 +90,7 @@ export function PhotoNewScreen() {
           <input className="field" value={who} onChange={(event) => setWho(event.target.value)} placeholder={photoCaption("", personIds, people) || "Бабушка Нина и мама"} />
         </Field>
         {people.length > 0 ? (
-          <Field label="Кто из семьи на фото" hint="Найдите по имени и отметьте, можно нескольких. Подпись подставится сама, если «Кто на фото» пусто.">
+          <Field group label="Кто из семьи на фото" hint="Найдите по имени и отметьте, можно нескольких. Подпись подставится сама, если «Кто на фото» пусто.">
             <PeoplePicker value={personIds} onChange={setPersonIds} people={people} />
           </Field>
         ) : null}
@@ -109,6 +109,9 @@ export function PhotoNewScreen() {
         <Button type="submit" disabled={!canSavePhoto({ dataUrl, who, ids: personIds, people, busy })}>
           Сохранить фотографию
         </Button>
+        {!canSavePhoto({ dataUrl, who, ids: personIds, people, busy }) && !busy ? (
+          <p className="text-center text-sm text-muted">{!dataUrl ? "Сначала выберите снимок." : "Подпишите фото или отметьте, кто на нём."}</p>
+        ) : null}
       </form>
     </ScreenFrame>
   );
