@@ -22,6 +22,7 @@ import { layoutBoheme } from "@/lib/tree/boheme";
 import { layoutTaiga } from "@/lib/tree/taiga";
 import { layoutPoster } from "@/lib/tree/poster";
 import { DEFAULT_PRINT, exportPoster, printPlan, type PrintOptions } from "@/lib/tree/exportPoster";
+import { CenterPicker } from "@/components/tree/CenterPicker";
 import { useTree, warmPhotos, type TreeStyle } from "@/lib/tree/ui-store";
 
 export function TreeTab() {
@@ -39,6 +40,8 @@ function TreeScreen() {
   const issues = useTree((s) => s.issues);
   const unions = useTree((s) => s.unions);
   const focusId = useTree((s) => s.focusId);
+  const homeId = useTree((s) => s.homeId);
+  const resetFocus = useTree((s) => s.resetFocus);
   const theme = useTree((s) => s.theme);
   // Точки на фоне можно выключить: у части людей от них укачивает.
   const [dots, setDots] = useState(() => {
@@ -109,6 +112,17 @@ function TreeScreen() {
     }
   };
   const [fitReq, setFitReq] = useState(0);
+  // Смена центра: камера встаёт на нового центра, схема подгоняется под экран. Данные книги при этом не меняются.
+  const lastFocus = useRef(focusId);
+  useEffect(() => {
+    if (lastFocus.current === focusId) return;
+    lastFocus.current = focusId;
+    selectPerson(null);
+    setFitReq((n) => n + 1);
+    const timer = window.setTimeout(() => setCenterReq({ id: focusId, n: Date.now() }), 80);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId]);
   // При входе в древо камера встаёт на «Вас»: большое древо иначе открывается на дальних предках.
   useEffect(() => {
     // Дважды: раскладка большого древа и фото подгружаются не сразу, и первая наводка может промахнуться.
@@ -244,15 +258,21 @@ function TreeScreen() {
         <button type="button" className="chip pointer-events-auto" aria-label="Назад в архив" onClick={() => nav.replace({ id: "archive", tab: "people" })}>
           <ChevronLeft className="size-5" />
         </button>
-        <div className="pointer-events-auto min-w-0 flex-1">
+        <div className="pointer-events-auto min-w-0 flex-1 self-start rounded-2xl bg-black/45 px-3 py-2 backdrop-blur-sm">
           <p className="truncate font-serif text-2xl leading-none sm:text-3xl">Книга Рода</p>
-          <p className="mt-1 truncate text-sm text-fg-soft">{focus ? displayName(focus) : "Пустое древо"}</p>
+          <p className="mt-1 truncate text-sm text-fg-soft">{focus ? `Центр: ${displayName(focus)}` : "Пустое древо"}</p>
+          {focusId !== homeId && (
+            <button type="button" className="chip mt-1" onClick={resetFocus}>
+              Вернуться к исходному дереву
+            </button>
+          )}
         </div>
         <div className="pointer-events-auto flex w-full flex-wrap gap-2">
           <button type="button" className="chip !bg-gold !text-ink" onClick={openAdd}>
             <Plus className="size-5" />
             Добавить
           </button>
+          <CenterPicker />
           <TreeSearch
             onJump={(id) => {
               setRoster(false);

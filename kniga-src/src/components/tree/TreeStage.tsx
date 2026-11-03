@@ -19,7 +19,8 @@ import { BOHEME_FRAME } from "@/lib/tree/boheme";
 import type { TaigaSheet } from "@/lib/tree/taiga";
 import { TAIGA_FRAME } from "@/lib/tree/taiga";
 import type { PosterSheet } from "@/lib/tree/poster";
-import type { TreeFlow } from "@/lib/tree/ui-store";
+import { relationCard, relationsFrom } from "@/lib/tree/recenter";
+import { useTree, type TreeFlow } from "@/lib/tree/ui-store";
 import { carvedBusPath, carvedPill, carvedSpousePath, CARVED_RX, CARVED_RY, motifs, type TreeStyle } from "@/lib/tree/styles";
 import type { Person, TreeLayout, Union, UnionStatus } from "@/lib/tree/types";
 
@@ -170,6 +171,8 @@ export function TreeStage(props: Props) {
   const drag = useRef<{ x: number; y: number; cx: number; cy: number; moved: boolean } | null>(null);
   const pinch = useRef<{ dist: number; k: number } | null>(null);
   const byId = new Map(people.map((p) => [p.id, p]));
+  const homeId = useTree((s) => s.homeId);
+  const rels = useMemo(() => relationsFrom(people, unions, focusId, homeId), [people, unions, focusId, homeId]);
   const [kinOpen, setKinOpen] = useState(false);
   // Родители, бабушки и дедушки: быстрый переход, когда в большом древе они далеко от «Я».
   const nearAncestors = (() => {
@@ -423,13 +426,13 @@ export function TreeStage(props: Props) {
               ) : null}
               {layout.labels.map((label) => (
                 <text key={label.gen} x={18} y={label.y} fill="var(--color-label)" fontFamily="var(--font-sans)" fontSize={13} fontWeight={600} dominantBaseline="middle">
-                  {label.text}
+                  {label.gen === layout.focusGen && focusId !== homeId ? "Поколение центра" : label.text}
                 </text>
               ))}
               {layout.nodes.map((node) => {
                 const person = byId.get(node.id);
                 if (!person) return null;
-                const role = kinship(people, unions, focusId, person.id).card;
+                const role = rels.get(person.id) ? relationCard(rels.get(person.id)!) : "";
                 const top = node.y + PORTRAIT_R + PLATE_GAP;
                 const initials = `${person.firstName[0] ?? ""}${person.lastName[0] ?? ""}`.toUpperCase();
                 const roleSize = role.length > 26 ? 8.5 : role.length > 18 ? 9.5 : 11;
@@ -443,7 +446,7 @@ export function TreeStage(props: Props) {
                       </text>
                     ) : null}
                     <circle cx={node.x} cy={node.y} r={PORTRAIT_R} fill="none" stroke="var(--color-ring)" strokeWidth={3} opacity={isDeceased(person) ? 0.8 : 1} />
-                    {focusId === person.id && (
+                    {homeId === person.id && (
                       <g transform={`translate(${node.x + 30} ${node.y - 32})`}>
                         <circle r={12} fill="var(--color-gold)" />
                         <text textAnchor="middle" dominantBaseline="middle" fill="var(--color-ink)" fontFamily="var(--font-sans)" fontSize={11} fontWeight={700}>

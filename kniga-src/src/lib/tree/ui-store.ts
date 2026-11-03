@@ -46,7 +46,10 @@ type State = {
   issues: string[];
   people: Person[];
   unions: Union[];
+  /** Центр дерева: только состояние экрана, в книгу не записывается и после перезагрузки возвращается к записи «я». */
   focusId: string;
+  /** Исходный центр: запись «я» (или запасное «Я»). */
+  homeId: string;
   theme: ThemeName;
   style: TreeStyle;
   banner: string;
@@ -71,6 +74,8 @@ type State = {
   /** Сдвинуть ветку человека влево или вправо среди веток своего ряда. */
   moveBranch: (id: string, dir: -1 | 1) => void;
   setFocus: (id: string) => void;
+  /** Вернуть центр к записи «я». */
+  resetFocus: () => void;
   updatePerson: (id: string, draft: Draft) => void;
   setUnionStatus: (id: string, status: UnionStatus) => void;
   setUnionYears: (id: string, startYear: string, endYear: string) => void;
@@ -84,7 +89,7 @@ const KEY = "kniga-tree-ui";
 function readUi(): { theme: ThemeName; style: TreeStyle; banner: string; flow: TreeFlow; scope: TreeScope; spread: 0 | 1 | 2 } {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || "{}") as Partial<{ theme: ThemeName; banner: string; flow: TreeFlow; scope: TreeScope; spread: number }>;
-    return { theme: raw.theme === "paper" ? "paper" : "night", style: "work", banner: typeof raw.banner === "string" ? raw.banner : "", flow: raw.flow === "up" ? "up" : "down", scope: (["direct", "direct-sib-root", "direct-sib-all", "blood"] as const).find((x) => x === raw.scope) ?? "all", spread: raw.spread === 1 || raw.spread === 2 ? raw.spread : 0 };
+    return { theme: raw.theme === "paper" ? "paper" : "night", style: "work", banner: typeof raw.banner === "string" ? raw.banner : "", flow: raw.flow === "up" ? "up" : "down", scope: (["direct", "direct-sib-root", "direct-sib-all", "blood", "siblings", "ancestors", "descendants"] as const).find((x) => x === raw.scope) ?? "all", spread: raw.spread === 1 || raw.spread === 2 ? raw.spread : 0 };
   } catch {
     return { theme: "night", style: "work", banner: "", flow: "down", scope: "all", spread: 0 };
   }
@@ -226,7 +231,7 @@ export const useTree = create<State>((set, get) => {
   const rebuild = () => {
     const data = withoutHidden(treeFromPeople(currentPeople()));
     const focus = data.people.some((p) => p.id === get().focusId) ? get().focusId : data.focusId;
-    set({ people: data.people, unions: data.unions, focusId: focus, issues: issuesOf(data) });
+    set({ people: data.people, unions: data.unions, focusId: focus, homeId: data.focusId, issues: issuesOf(data) });
   };
   useRod.subscribe(rebuild);
 
@@ -239,6 +244,7 @@ export const useTree = create<State>((set, get) => {
     people: initial.people,
     unions: initial.unions,
     focusId: initial.focusId,
+    homeId: initial.focusId,
     selectedId: null,
     unionId: null,
     roster: false,
@@ -261,7 +267,8 @@ export const useTree = create<State>((set, get) => {
       }
       applyPatches(patches);
     },
-    setFocus: (id) => set({ focusId: id }),
+    setFocus: (id) => { if (get().people.some((p) => p.id === id)) set({ focusId: id }); },
+    resetFocus: () => set({ focusId: get().homeId }),
     updatePerson: (id, draft) => {
       void (async () => {
         const photo = draft.photo ? (await storedPhoto(draft.photo)) ?? rod(id)?.photo : undefined;
