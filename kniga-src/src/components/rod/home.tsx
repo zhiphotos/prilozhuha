@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ArrowRight, BookCopy, BookOpen, Camera, Clock, GraduationCap, PenLine, Play, Search, Settings2, Users } from "lucide-react";
+import { AiHelperSheet } from "@/components/rod/ai-helper";
+import { ArrowRight, BookCopy, Sparkles, BookOpen, Camera, Clock, GraduationCap, PenLine, Play, Search, Settings2, Users } from "lucide-react";
 import { OpenCopyButton } from "@/components/rod/open-copy";
 import { requestTour } from "@/components/rod/tour";
 import { Botanica, Cut, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/botanica";
@@ -32,6 +33,7 @@ export function HomeScreen() {
   const ready = isBookReady(snapshot, overall);
   const [profile, setProfile] = useState(false);
   const [projects, setProjects] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const bookName = listProjects().length > 1 ? listProjects().find((item) => item.id === activeProjectId())?.name : null;
   const free = LESSONS.find((lesson) => lesson.free);
   const freeDone = free ? data.doneLessons.includes(free.id) : false;
@@ -182,6 +184,15 @@ export function HomeScreen() {
         ) : null}
       </section>
 
+      {data.programOpen ? (
+        <button type="button" onClick={() => setAiOpen(true)} className="glass mt-4 flex w-full items-center gap-3 rounded-2xl p-4 text-left transition active:scale-[0.99]">
+          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-rose-deep/10 text-rose-deep"><Sparkles className="size-5" aria-hidden /></span>
+          <span className="grid">
+            <span className="font-semibold text-ink">ИИ-помощник</span>
+            <span className="text-sm text-muted">Вопросы о вашей семье по данным книги</span>
+          </span>
+        </button>
+      ) : null}
       <RemindersCard />
       <BackupCard hasData={total > 0 || data.pages.length > 1} />
       {data.programOpen ? <TransferCard hasData={total > 0 || data.pages.length > 1} /> : null}
@@ -194,6 +205,7 @@ export function HomeScreen() {
 
       {profile ? <ProfileSheet onClose={() => setProfile(false)} /> : null}
       {projects ? <ProjectsSheet onClose={() => setProjects(false)} /> : null}
+      {aiOpen ? <AiHelperSheet onClose={() => setAiOpen(false)} /> : null}
     </ScreenFrame>
   );
 }

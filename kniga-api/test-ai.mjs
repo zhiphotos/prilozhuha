@@ -85,4 +85,18 @@ ok("месяц сбрасывается 1-го по МСК", period("month", Dat
 ok("кривой AI_LIMITS не ломает значения", (process.env.AI_LIMITS = "{не json", limits().text.user === 20));
 const big = await reserve("o", "audio_min", 301, Date.now(), { AI_LIMITS: "" });
 ok("минуты аудио считаются по факту, а не как один запрос", big.ok === false && big.scope === "user");
+
+// /api/layout больше не открыт всем
+const layoutText = "Дом на Еловой\n\nДом стоял на краю деревни. Зимой его заносило по окна, и дед откапывал крыльцо лопатой.";
+const L = (extra) => run(ROUTES["layout"], { text: layoutText, ...extra });
+delete process.env.AI_API_KEY;
+ok("layout без токена 401", (await L({})).status === 401);
+ok("layout с подделанным токеном 401", (await L({ token: A.slice(0, -3) + "xxx", deviceId: "d1" })).status === 401);
+ok("layout с токеном, но без ключа ИИ: 503 и без вызовов", (await (async () => { const n = cfCalls; const r = await L({ token: A, deviceId: "d1" }); return r.status === 503 && cfCalls === n; })()));
+process.env.AI_API_KEY = "k";
+const realFetch = globalThis.fetch; let layoutCalls = 0;
+globalThis.fetch = async () => { layoutCalls += 1; return { json: async () => ({ choices: [{ message: { content: JSON.stringify({ items: [{ kind: "heading", text: "Дом на Еловой" }, { kind: "body", text: "Дом стоял на краю деревни. Зимой его заносило по окна, и дед откапывал крыльцо лопатой." }] }) } }] }) }; };
+const lr = await L({ token: A, deviceId: "d1" });
+ok("layout с действующим токеном работает", lr.status === 200 && lr.json.items.length === 2 && layoutCalls === 1);
+globalThis.fetch = realFetch;
 console.log(process.exitCode ? "ЕСТЬ ОШИБКИ" : "ВСЁ ПРОШЛО");
