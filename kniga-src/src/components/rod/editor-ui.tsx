@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMedia } from "@/lib/rod/media";
 import { cn } from "@/lib/cn";
 
@@ -92,9 +92,17 @@ export function ArchiveThumb({ src, alt, onClick }: { src: string; alt: string; 
 export function Stepper({ label, value, min, max, step = 1, unit = "px", onChange }: { label: string; value: number; min: number; max: number; step?: number; unit?: string; onChange: (v: number) => void }) {
   const clamp = (v: number) => Math.min(max, Math.max(min, Math.round(v / step) * step));
   const shown = useMemo(() => (Number.isInteger(value) ? String(value) : value.toFixed(1)), [value]);
+  // Число можно набрать на клавиатуре: значение применяется, когда выходишь из поля или нажимаешь Enter; вне границ подтягивается к ближайшей.
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = () => {
+    if (draft === null) return;
+    const n = Number(draft);
+    setDraft(null);
+    if (draft.trim() !== "" && Number.isFinite(n)) onChange(clamp(n));
+  };
   return (
     <div className="flex items-center gap-2">
-      <span className="hidden w-14 shrink-0 text-xs text-muted min-[420px]:block">{label}</span>
+      <span className="hidden w-24 shrink-0 truncate text-xs text-muted min-[420px]:block">{label}</span>
       <button type="button" aria-label="Меньше" className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-lg leading-none" onClick={() => onChange(clamp(value - step))}>
         −
       </button>
@@ -102,8 +110,25 @@ export function Stepper({ label, value, min, max, step = 1, unit = "px", onChang
       <button type="button" aria-label="Больше" className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-lg leading-none" onClick={() => onChange(clamp(value + step))}>
         +
       </button>
-      <span className="w-16 shrink-0 text-right text-xs tabular-nums text-ink">
-        {shown} {unit}
+      <span className="flex w-20 shrink-0 items-center justify-end gap-1 text-xs tabular-nums text-ink">
+        <input
+          type="text"
+          inputMode="decimal"
+          aria-label={`${label}: ввести число`}
+          value={draft ?? shown}
+          onFocus={(event) => event.currentTarget.select()}
+          onChange={(event) => setDraft(event.target.value.replace(",", ".").replace(/[^0-9.-]/g, ""))}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.currentTarget.blur();
+            if (event.key === "Escape") {
+              setDraft(null);
+              event.currentTarget.blur();
+            }
+          }}
+          className="h-9 w-12 rounded-lg bg-white/80 px-1 text-right text-xs tabular-nums text-ink outline-none focus:ring-2 focus:ring-[#c9ae74]"
+        />
+        <span>{unit}</span>
       </span>
     </div>
   );
