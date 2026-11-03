@@ -61,6 +61,7 @@ import { backPage, flushBook, useRod } from "@/lib/rod/store";
 import { BACK_ID, type BookPage, type BrushKind, type InkStroke, type PageBlock, type PaperKind, type PhotoFrame, type ShapeKind, type StickerKind } from "@/lib/rod/types";
 import type { Recognized } from "@/lib/rod/ink";
 import { cn } from "@/lib/cn";
+import { resizeByEdge } from "@/lib/rod/edge-resize";
 
 type Panel = "contents" | "photo" | "pinterest" | "paste" | "stickers" | "help" | "menu" | "covers" | "layers" | "fonts" | "inspector" | "scan" | null;
 type Box = { x: number; y: number; w: number; h: number | null; rotate: number };
@@ -76,6 +77,8 @@ type Gesture = {
   center?: { x: number; y: number };
   angle0?: number;
   ratio?: number | null;
+  /** Тянут за сторону рамки (а не за угол): меняется только ширина или только высота. */
+  edge?: "l" | "r" | "t" | "b";
   last?: Box;
   crop0?: { cx: number; cy: number; z: number };
   /** Несколько выделенных блоков двигаются вместе: исходные рамки и новые. */
@@ -1339,7 +1342,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     }
   };
 
-  const beginGesture = (event: React.PointerEvent, block: PageBlock, mode: Gesture["mode"]) => {
+  const beginGesture = (event: React.PointerEvent, block: PageBlock, mode: Gesture["mode"], edge?: Gesture["edge"]) => {
     if (tool !== "hand" || pipette) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     if (block.locked) return;
@@ -1363,7 +1366,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const box = boxOf(block);
     // Рисунок и вырезанное фото растягиваются пропорционально; обычное фото свободно (так меняют рамку, в которой видна картинка), с Shift тоже пропорционально.
     const proportional = block.type === "photo" && (block.cut && block.frame === "sticker" ? true : block.whole ? !event.shiftKey : event.shiftKey);
-    const ratio = proportional || block.type === "ink" ? (block as { h: number; w: number }).h / (block as { h: number; w: number }).w : null;
+    const ratio = !edge && (proportional || block.type === "ink") ? (block as { h: number; w: number }).h / (block as { h: number; w: number }).w : null;
     const cropGesture = cropping && block.type === "photo" && selected === block.id && mode === "move";
     // Сгруппированные блоки двигаются вместе: нажатие на любой из них берёт всю группу.
     let activeGroup = group;
@@ -1393,6 +1396,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       center,
       angle0: center ? Math.atan2(event.clientY - center.y, event.clientX - center.x) : 0,
       ratio,
+      edge,
       crop0: block.type === "photo" ? (block.crop ?? { cx: 0.5, cy: 0.5, z: 1 }) : undefined,
     };
     try {
@@ -1438,7 +1442,9 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     }
     let box = g.box;
     if (g.mode === "move") box = { ...g.box, x: clamp(g.box.x + dx, -g.box.w + 6, 94), y: clamp(g.box.y + dy, -6, 96) };
-    if (g.mode === "size") {
+    if (g.mode === "size" && g.edge && g.box.h !== null) {
+      box = { ...g.box, ...resizeByEdge({ x: g.box.x, y: g.box.y, w: g.box.w, h: g.box.h }, g.edge, dx, dy) };
+    } else if (g.mode === "size") {
       const w = clamp(g.box.w + dx, 3, 160);
       const h = g.box.h === null ? null : g.ratio ? clamp(g.ratio * w, 2, 160) : clamp(g.box.h + dy, 2, 160);
       box = { ...g.box, w, h };
@@ -1504,6 +1510,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           const next = { ...b, x: round(final.x), y: round(final.y), rotate: final.rotate } as PageBlock;
           if ("w" in next) (next as { w?: number }).w = round(final.w);
           if ((next.type === "photo" || next.type === "slot" || next.type === "shape" || next.type === "ink") && final.h !== null) next.h = round(final.h);
+          // Тянули за сторону: рамка перестаёт быть «по размеру картинки», картинка не растягивается, а подрезается по рамке.
+          if (g.edge && next.type === "photo" && next.whole) next.whole = false;
           return fitSafe(next);
         }),
       }));
@@ -1992,6 +2000,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                         <Handles
                           onTurn={(event) => beginGesture(event, block, "turn")}
                           onSize={(event) => beginGesture(event, block, "size")}
+                          onEdge={block.type === "photo" && !block.cut && Math.abs(block.rotate ?? 0) < 2 ? (event, edge) => beginGesture(event, block, "size", edge) : undefined}
                           onDelete={() => removeBlock(block.id)}
                           onLock={() => {
                             patchBlock(block.id, { locked: true } as Partial<PageBlock>);
@@ -2524,7 +2533,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   );
 }
 
-function Handles({ onTurn, onSize, onDelete, onLock }: { onTurn: (event: React.PointerEvent) => void; onSize: (event: React.PointerEvent) => void; onDelete: () => void; onLock: () => void }) {
+function Handles({ onTurn, onSize, onEdge, onDelete, onLock }: { onTurn: (event: React.PointerEvent) => void; onSize: (event: React.PointerEvent) => void; onEdge?: (event: React.PointerEvent, edge: "l" | "r" | "t" | "b") => void; onDelete: () => void; onLock: () => void }) {
   return (
     <>
       <span className="pointer-events-none absolute -inset-[5px] rounded-[6px] border-2 border-dashed border-rose" />
@@ -2539,6 +2548,14 @@ function Handles({ onTurn, onSize, onDelete, onLock }: { onTurn: (event: React.P
         <Lock className="size-4" />
       </button>
       <button type="button" aria-label="Размер" className="handle pointer-events-auto absolute -bottom-9 -right-9 size-11 rounded-full border-[3px] border-rose bg-white shadow-md" onPointerDown={onSize} />
+      {onEdge ? (
+        <>
+          <button type="button" aria-label="Ширина: правая сторона" className="handle pointer-events-auto absolute -right-4 top-1/2 h-11 w-7 -translate-y-1/2 touch-none rounded-full border-2 border-rose bg-white/95 shadow-md" onPointerDown={(event) => onEdge(event, "r")} />
+          <button type="button" aria-label="Ширина: левая сторона" className="handle pointer-events-auto absolute -left-4 top-1/2 h-11 w-7 -translate-y-1/2 touch-none rounded-full border-2 border-rose bg-white/95 shadow-md" onPointerDown={(event) => onEdge(event, "l")} />
+          <button type="button" aria-label="Высота: нижняя сторона" className="handle pointer-events-auto absolute -bottom-4 left-1/2 h-7 w-11 -translate-x-1/2 touch-none rounded-full border-2 border-rose bg-white/95 shadow-md" onPointerDown={(event) => onEdge(event, "b")} />
+          <button type="button" aria-label="Высота: верхняя сторона" className="handle pointer-events-auto absolute -top-4 left-1/4 h-7 w-11 -translate-x-1/2 touch-none rounded-full border-2 border-rose bg-white/95 shadow-md" onPointerDown={(event) => onEdge(event, "t")} />
+        </>
+      ) : null}
     </>
   );
 }
