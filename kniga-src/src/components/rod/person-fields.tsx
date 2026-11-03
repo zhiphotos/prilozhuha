@@ -1,3 +1,4 @@
+import { DateInput } from "@/components/rod/date-input";
 import { SearchSelect } from "./search-select";
 import { useRef, useState } from "react";
 import { Camera, X } from "lucide-react";
@@ -143,10 +144,10 @@ export function PersonFields({ value, onChange, others, extraSiblings, onExtraSi
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Дата рождения" hint="Можно только год, 1948, или полную дату, 12.03.1948. Появится на ленте. Можно примерно.">
-          <input className="field" value={value.birthYear} onChange={(event) => onChange({ birthYear: event.target.value })} placeholder="1948" />
+          <DateInput className="field" value={value.birthYear} onChange={(next) => onChange({ birthYear: next })} placeholder="1948" />
         </Field>
         <Field label="Дата смерти" hint="Можно только год или полную дату, 12.03.1999. Если нужно. Тоже на ленте.">
-          <input className="field" value={value.deathYear ?? ""} onChange={(event) => onChange({ deathYear: event.target.value })} />
+          <DateInput className="field" value={value.deathYear ?? ""} onChange={(next) => onChange({ deathYear: next })} />
         </Field>
       </div>
       {maidenAllowed(value) ? (

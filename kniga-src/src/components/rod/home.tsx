@@ -15,7 +15,7 @@ import { cn } from "@/lib/cn";
 import { toast } from "sonner";
 import { Button, Field, ScreenFrame, Sheet, lineStyle, useNav } from "@/components/rod/chrome";
 import { changedSinceBackup, exportBook, lastBackupAt } from "@/lib/rod/backup";
-import { InstallCard, InstallSheet } from "@/components/rod/install-hint";
+import { InstallBanner, InstallCard, InstallSheet } from "@/components/rod/install-hint";
 import { TransferCard } from "@/components/rod/transfer-card";
 import { ProjectsSheet } from "@/components/rod/projects-sheet";
 import { activeProjectId, listProjects } from "@/lib/rod/projects";
@@ -57,6 +57,7 @@ export function HomeScreen() {
 
   return (
     <ScreenFrame>
+      <InstallBanner />
       <div className="mb-6 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="sun-mark grid size-12 place-items-center rounded-full" aria-hidden>

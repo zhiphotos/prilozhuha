@@ -1,3 +1,4 @@
+import { DateInput } from "@/components/rod/date-input";
 import { useState } from "react";
 import { inflectSurname } from "@/lib/tree/fill";
 import { displayName } from "@/lib/tree/kinship";
@@ -189,7 +190,7 @@ export function AddPerson({
               </label>
               <label className="field">
                 Дата рождения
-                <input inputMode="decimal" value={birthYear} placeholder="Год или дата, например 18.05.1989" onChange={(e) => setBirthYear(e.target.value.slice(0, 20))} />
+                <DateInput inputMode="decimal" value={birthYear} placeholder="Год или дата, например 18.05.1989" onChange={setBirthYear} />
               </label>
             </div>
           </div>

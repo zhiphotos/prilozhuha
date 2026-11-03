@@ -5,6 +5,7 @@ import { isMediaRef, resolveMedia, saveMedia } from "@/lib/rod/media";
 import { useRod } from "@/lib/rod/store";
 import type { Person as RodPerson } from "@/lib/rod/types";
 import type { UnionFacts } from "./fill.ts";
+import { toast } from "sonner";
 import { flipSpouse, moveBranch, type Patch } from "./arrange.ts";
 import { setLayoutSpread } from "./layout.ts";
 import { SELF_ID, roleOf, treeFromPeople } from "./from-people.ts";
@@ -251,7 +252,15 @@ export const useTree = create<State>((set, get) => {
     setScope: (scope) => { set({ scope }); persistUi(); },
     setSpread: (spread) => { setLayoutSpread(spread); set({ spread }); persistUi(); },
     flipSpouse: (id) => applyPatches(flipSpouse(get().people, get().unions, get().focusId, id)),
-    moveBranch: (id, dir) => applyPatches(moveBranch(get().people, get().unions, get().focusId, id, dir)),
+    moveBranch: (id, dir) => {
+      const patches = moveBranch(get().people, get().unions, get().focusId, id, dir);
+      // Раньше при крайней ветке ничего не происходило и не было понятно почему.
+      if (!patches.length) {
+        toast(dir < 0 ? "Эта ветка уже крайняя слева среди веток своего ряда. Сдвинуть её левее нельзя." : "Эта ветка уже крайняя справа среди веток своего ряда. Сдвинуть её правее нельзя.", { id: "branch-edge" });
+        return;
+      }
+      applyPatches(patches);
+    },
     setFocus: (id) => set({ focusId: id }),
     updatePerson: (id, draft) => {
       void (async () => {
