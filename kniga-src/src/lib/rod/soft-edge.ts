@@ -8,9 +8,9 @@ export type SoftShape = "rect" | "oval" | "rough";
 export type SoftEdge = { shape: SoftShape; /** Сила 1..100 */ amount: number };
 
 export const SOFT_SHAPES: { id: SoftShape; label: string }[] = [
-  { id: "rect", label: "Прямоугольник" },
+  { id: "rect", label: "Прямой" },
   { id: "oval", label: "Овал" },
-  { id: "rough", label: "Рисованный край" },
+  { id: "rough", label: "Рисованный" },
 ];
 
 const f = (v: number) => Math.round(v * 100) / 100;

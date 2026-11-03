@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BarBtn, Stepper } from "@/components/rod/editor-ui";
 import { FX_COLORS, FX_LIST, cleanFx, pickFx, renderFx, type FxId, type PhotoFx } from "@/lib/rod/photo-fx";
+import { Strip, StripItem } from "@/components/rod/strip";
 import { cn } from "@/lib/cn";
 
 // Миниатюры пресетов на самом фото: считаются по очереди и один раз (кэш по фото), чтобы телефон не зависал.
@@ -57,17 +58,16 @@ export function PhotoFxControls({ src, value, onChange }: { src: string; value: 
   const twoColors = fx?.id === "duotone" || fx?.id === "riso";
   return (
     <div className="grid gap-2">
-      <div className="grid grid-cols-[repeat(4,minmax(0,1fr))] gap-1.5">
-        <button type="button" onClick={() => onChange(undefined)} aria-pressed={!fx} className={cn("grid aspect-square place-items-center rounded-xl border border-ink/15 bg-white/60 px-1 text-center text-[11px] leading-tight", !fx && "ring-2 ring-ink")}>
-          Без эффекта
-        </button>
+      <Strip label="Эффекты фото">
+        <StripItem label="Без эффекта" selected={!fx} onClick={() => onChange(undefined)}>
+          {src ? <img src={src} alt="" className="absolute inset-0 size-full object-cover" draggable={false} /> : null}
+        </StripItem>
         {FX_LIST.map((def) => (
-          <button key={def.id} type="button" aria-pressed={fx?.id === def.id} onClick={() => onChange(pickFx(def.id as FxId, fx))} className={cn("relative aspect-square overflow-hidden rounded-xl border border-ink/15 bg-white/60", fx?.id === def.id && "ring-2 ring-ink")}>
+          <StripItem key={def.id} label={def.label} selected={fx?.id === def.id} onClick={() => onChange(pickFx(def.id as FxId, fx))}>
             {thumbs[def.id] ? <img src={thumbs[def.id]} alt="" className="absolute inset-0 size-full object-cover" draggable={false} /> : null}
-            <span className="absolute inset-x-0 bottom-0 bg-night/65 px-0.5 py-0.5 text-center text-[10px] leading-tight text-paper">{def.label}</span>
-          </button>
+          </StripItem>
         ))}
-      </div>
+      </Strip>
       {fx ? <Stepper label="Сила" unit="%" value={fx.amount} min={1} max={100} step={5} onChange={(amount) => onChange({ ...fx, amount }, "fx")} /> : null}
       {fx && twoColors ? (
         <div className="grid gap-1.5">

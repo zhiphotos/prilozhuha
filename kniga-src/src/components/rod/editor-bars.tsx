@@ -782,7 +782,7 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
 
         {block.type === "photo" || block.type === "sticker" ? (
           <Section title="Мягкий край">
-            <SoftEdgeControls value={block.soft} onChange={(soft, group) => ops.patch({ soft } as Partial<PageBlock>, group ? `${group}:${block.id}` : undefined)} />
+            <SoftSection block={block} ops={ops} />
           </Section>
         ) : null}
 
@@ -907,6 +907,11 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
       ) : null}
     </Sheet>
   );
+}
+
+function SoftSection({ block, ops }: { block: PageBlock; ops: BlockOps }) {
+  const src = useMedia(block.type === "photo" ? block.src : "");
+  return <SoftEdgeControls src={src} value={block.soft} onChange={(soft, group) => ops.patch({ soft } as Partial<PageBlock>, group ? `${group}:${block.id}` : undefined)} />;
 }
 
 function FxSection({ block, ops }: { block: Extract<PageBlock, { type: "photo" }>; ops: BlockOps }) {

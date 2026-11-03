@@ -3,7 +3,9 @@
 // Один конвейер для экрана, предпросмотра печати и PDF: renderFx(картинка, fx, maxSide) → холст. Результат кэшируется.
 // Все размеры зависят от размера картинки (зерно, штрих, растр), поэтому на превью 1000 px и в печати 3000 px вид одинаковый.
 
-export type FxId = "sketch" | "bw" | "sepia" | "film" | "duotone" | "halftone" | "riso" | "cyanotype" | "pastel" | "vintage" | "vignette" | "dreamy" | "xerox" | "cross";
+import { RECIPES, applyRecipe } from "@/lib/rod/photo-fx-recipes";
+
+export type FxId = "clarendon" | "gingham" | "nashville" | "valencia" | "xpro2" | "walden" | "y1977" | "earlybird" | "sketch" | "bw" | "sepia" | "film" | "duotone" | "halftone" | "riso" | "cyanotype" | "pastel" | "vintage" | "vignette" | "dreamy" | "xerox" | "cross";
 export type PhotoFx = { id: FxId; /** Сила 1..100 */ amount: number; /** Цвета для дуотона и ризографа */ c1?: string; c2?: string };
 
 type Def = { id: FxId; label: string; amount: number; colors?: [string, string] };
@@ -22,6 +24,15 @@ export const FX_LIST: Def[] = [
   { id: "dreamy", label: "Мечта", amount: 60 },
   { id: "xerox", label: "Ксерокс", amount: 55 },
   { id: "cross", label: "Кросс-процесс", amount: 60 },
+  // Фильтры по рецептам открытой библиотеки CSSgram (MIT), см. docs/photo-presets-sources.md
+  { id: "clarendon", label: "Ясный день", amount: 100 },
+  { id: "gingham", label: "Лаванда", amount: 100 },
+  { id: "nashville", label: "Закат", amount: 100 },
+  { id: "valencia", label: "Янтарь", amount: 100 },
+  { id: "xpro2", label: "Кобальт", amount: 100 },
+  { id: "walden", label: "Лазурь", amount: 100 },
+  { id: "y1977", label: "Розовый 77", amount: 100 },
+  { id: "earlybird", label: "Рассвет", amount: 100 },
 ];
 /** Цвета книги для дуотона и ризографа. */
 export const FX_COLORS = ["#2a2420", "#8e3d52", "#c45d72", "#f6d5dc", "#6f8a68", "#dce6d6", "#2a5fb0", "#e8457c", "#f2c94c", "#fbf8f3"];
@@ -117,7 +128,17 @@ function eachPixel(c: Ctx, fn: (r: number, g: number, b: number, x: number, y: n
 const gradient3 = (t: number, a: number[], m: number[], z: number[]): [number, number, number] =>
   t < 0.5 ? [lerp(a[0], m[0], t * 2), lerp(a[1], m[1], t * 2), lerp(a[2], m[2], t * 2)] : [lerp(m[0], z[0], (t - 0.5) * 2), lerp(m[1], z[1], (t - 0.5) * 2), lerp(m[2], z[2], (t - 0.5) * 2)];
 
+const recipeFx = (id: keyof typeof RECIPES) => (c: Ctx) => applyRecipe(c.d, c.w, c.h, RECIPES[id], c.s);
+
 const EFFECTS: Record<FxId, (c: Ctx) => void> = {
+  clarendon: recipeFx("clarendon"),
+  gingham: recipeFx("gingham"),
+  nashville: recipeFx("nashville"),
+  valencia: recipeFx("valencia"),
+  xpro2: recipeFx("xpro2"),
+  walden: recipeFx("walden"),
+  y1977: recipeFx("y1977"),
+  earlybird: recipeFx("earlybird"),
   sketch(c) {
     // Карандашный набросок: инверсия, размытие и «осветление» дают контуры штрихом; слабее сила – больше исходного серого.
     const n = c.w * c.h;

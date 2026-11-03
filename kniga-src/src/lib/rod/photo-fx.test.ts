@@ -81,3 +81,40 @@ test("свойства пресетов: ч/б серое, сепия тёпла
   assert.deepEqual(px(d, 0, 0).map((v) => Math.round(v / 8)), [0x10, 0x20, 0x30].map((v) => Math.round(v / 8)));
   assert.ok(px(d, W - 1, H - 1)[0] > 225);
 });
+
+import { RECIPES, applyFilter, applyRecipe, blendChannel } from "./photo-fx-recipes.ts";
+
+test("режимы смешивания и CSS-фильтры дают известные значения (спецификация W3C)", () => {
+  assert.equal(blendChannel("screen", 0.5, 0.5), 0.75);
+  assert.equal(blendChannel("multiply", 0.5, 0.5), 0.25);
+  assert.equal(blendChannel("overlay", 0.25, 0.5), 0.25);
+  assert.equal(blendChannel("exclusion", 0.5, 0.5), 0.5);
+  assert.equal(blendChannel("soft-light", 0.4, 0.5), 0.4);
+  assert.equal(blendChannel("lighten", 0.2, 0.7), 0.7);
+  assert.equal(blendChannel("color-burn", 0.5, 0.5), 0);
+  assert.deepEqual(applyFilter([0.2, 0.4, 0.6], ["brightness", 1]), [0.2, 0.4, 0.6]);
+  assert.deepEqual(applyFilter([0.5, 0.5, 0.5], ["contrast", 3]), [0.5, 0.5, 0.5]);
+  const gray = applyFilter([0.2, 0.4, 0.6], ["saturate", 0]);
+  assert.ok(Math.abs(gray[0] - gray[1]) < 1e-9 && Math.abs(gray[1] - gray[2]) < 1e-9);
+  const rot = applyFilter([0.3, 0.3, 0.3], ["hue-rotate", 90]); // серое от поворота оттенка не меняется
+  assert.ok(rot.every((v) => Math.abs(v - 0.3) < 0.01));
+  assert.deepEqual(applyFilter([1, 1, 1], ["sepia", 0]), [1, 1, 1]);
+});
+
+test("рецепты CSSgram: сила 0 – оригинал, сила 1 – изменённый кадр, повтор даёт то же", () => {
+  for (const id of Object.keys(RECIPES) as (keyof typeof RECIPES)[]) {
+    const orig = sample(), a = sample(), b = sample(), z = sample();
+    applyRecipe(a, W, H, RECIPES[id], 1); applyRecipe(b, W, H, RECIPES[id], 1); applyRecipe(z, W, H, RECIPES[id], 0);
+    assert.deepEqual(Array.from(a), Array.from(b), id);
+    assert.deepEqual(Array.from(z), Array.from(orig), `${id} сила 0`);
+    assert.notDeepEqual(Array.from(a), Array.from(orig), id);
+  }
+  const clar = sample(); applyRecipe(clar, W, H, RECIPES.clarendon, 1);
+  const spread = (d: Uint8ClampedArray) => { let lo = 255, hi = 0; for (let i = 0; i < d.length; i += 4) { lo = Math.min(lo, d[i + 1]); hi = Math.max(hi, d[i + 1]); } return hi - lo; };
+  assert.ok(spread(clar) >= spread(sample()), "кларендон не снижает контраст");
+});
+
+test("все пресеты ленты (14 своих + 8 по рецептам) зарегистрированы и проходят cleanFx", () => {
+  assert.equal(FX_LIST.length, 22);
+  for (const f of FX_LIST) assert.equal(cleanFx({ id: f.id, amount: 50 })?.id, f.id);
+});
