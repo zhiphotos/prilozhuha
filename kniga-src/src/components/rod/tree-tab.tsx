@@ -258,7 +258,7 @@ function TreeScreen() {
         <button type="button" className="chip pointer-events-auto" aria-label="Назад в архив" onClick={() => nav.replace({ id: "archive", tab: "people" })}>
           <ChevronLeft className="size-5" />
         </button>
-        <div className="pointer-events-auto min-w-0 flex-1">
+        <div className="pointer-events-auto min-w-0 flex-1 self-start rounded-2xl bg-black/45 px-3 py-2 backdrop-blur-sm">
           <p className="truncate font-serif text-2xl leading-none sm:text-3xl">Книга Рода</p>
           <p className="mt-1 truncate text-sm text-fg-soft">{focus ? `Центр: ${displayName(focus)}` : "Пустое древо"}</p>
           {focusId !== homeId && (
