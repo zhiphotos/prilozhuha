@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Paperclip } from "lucide-react";
+import { Camera, Paperclip, ScanLine } from "lucide-react";
+import { Scanner } from "@/components/rod/scanner";
 import { importImage } from "@/lib/rod/image";
 import { dropMedia, mediaBlob, saveMedia, useMedia } from "@/lib/rod/media";
 import type { Attachment } from "@/lib/rod/types";
@@ -57,8 +58,14 @@ function Thumb({ item, onRemove, onCaption }: { item: Attachment; onRemove: () =
 }
 
 /** Фото и файлы, прикреплённые к истории: видно, какие снимки к ней относятся. */
-export function Attachments({ items, onChange, title = "Фото и файлы к истории", empty = "Пока ничего. Прикрепите снимки, документы или записи, которые относятся к этой истории.", limitText = "К одной истории" }: { items: Attachment[]; onChange: (next: Attachment[]) => void; title?: string; empty?: string; limitText?: string }) {
+export function Attachments({ items, onChange, title = "Фото и файлы к истории", empty = "Пока ничего. Прикрепите снимки, документы или записи, которые относятся к этой истории.", limitText = "К одной истории", scan = false }: { scan?: boolean; items: Attachment[]; onChange: (next: Attachment[]) => void; title?: string; empty?: string; limitText?: string }) {
   const input = useRef<HTMLInputElement>(null);
+  const camera = useRef<HTMLInputElement>(null);
+  const [scanning, setScanning] = useState(false);
+  const addScanned = (ref: string) => {
+    if (items.length >= MAX_ITEMS) return toast(`${limitText} можно прикрепить до ${MAX_ITEMS} файлов`);
+    onChange([...items, { id: crypto.randomUUID(), ref, name: `Скан ${items.length + 1}`, kind: "image" }]);
+  };
 
   const add = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -108,6 +115,18 @@ export function Attachments({ items, onChange, title = "Фото и файлы �
       <button type="button" className="mt-3 rounded-full border border-ink/20 px-4 py-2 text-sm text-ink" onClick={() => input.current?.click()}>
         + Прикрепить фото или файл
       </button>
+      {scan ? (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <input ref={camera} type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => void add(event.target.files)} />
+          <button type="button" className="inline-flex items-center gap-1.5 rounded-full border border-ink/20 px-4 py-2 text-sm text-ink" onClick={() => camera.current?.click()}>
+            <Camera className="size-4" /> Снять камерой
+          </button>
+          <button type="button" className="inline-flex items-center gap-1.5 rounded-full border border-ink/20 px-4 py-2 text-sm text-ink" onClick={() => setScanning(true)}>
+            <ScanLine className="size-4" /> Сканер
+          </button>
+        </div>
+      ) : null}
+      {scanning ? <Scanner onClose={() => setScanning(false)} onDone={(ref) => { addScanned(ref); setScanning(false); }} /> : null}
     </section>
   );
 }

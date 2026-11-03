@@ -99,6 +99,8 @@ export type FamilyDoc = {
   kind: string;
   year: string;
   note: string;
+  /** Сканы и фото страниц документа (ссылки media: в том же хранилище, что и фото). У старых бумаг поля нет. */
+  attachments?: Attachment[];
 };
 
 export type CardNote = {
