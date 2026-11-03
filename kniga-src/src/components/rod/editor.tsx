@@ -61,7 +61,8 @@ import { backPage, flushBook, useRod } from "@/lib/rod/store";
 import { BACK_ID, type BookPage, type BrushKind, type InkStroke, type PageBlock, type PaperKind, type PhotoFrame, type ShapeKind, type StickerKind } from "@/lib/rod/types";
 import type { Recognized } from "@/lib/rod/ink";
 import { cn } from "@/lib/cn";
-import { resizeByEdge } from "@/lib/rod/edge-resize";
+import { applyEdge, edgesFor } from "@/lib/rod/edge-handles";
+import { snapBox, type Guides, type SnapTarget } from "@/lib/rod/snap";
 
 type Panel = "contents" | "photo" | "pinterest" | "paste" | "stickers" | "help" | "menu" | "covers" | "layers" | "fonts" | "inspector" | "scan" | null;
 type Box = { x: number; y: number; w: number; h: number | null; rotate: number };
@@ -84,6 +85,8 @@ type Gesture = {
   /** Несколько выделенных блоков двигаются вместе: исходные рамки и новые. */
   members?: { id: string; box: Box }[];
   lastMembers?: Record<string, Box>;
+  /** Линии для прилипания (в % страницы), снятые с экрана при нажатии, и размер самого блока. */
+  snap?: { targets: SnapTarget[]; w: number; h: number };
 };
 type Draw = {
   pointerId: number;
@@ -243,6 +246,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const [pickMode, setPickMode] = useState(false);
   const [groupColors, setGroupColors] = useState(false);
   const [, setClipTick] = useState(0);
+  const [guides, setGuides] = useState<Guides | null>(null);
   const [ghostGroup, setGhostGroup] = useState<Record<string, Box> | null>(null);
   const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const marqueeRef = useRef<{ pointerId: number; x0: number; y0: number; x1: number; y1: number } | null>(null);
@@ -1379,11 +1383,27 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       }
     }
     const inGroup = mode === "move" && activeGroup.length > 1 && activeGroup.includes(block.id);
+    // Прилипание к центру страницы и к краям других блоков: рамки берём с экрана, потому что высота текста и стикера считается в браузере.
+    let snap: Gesture["snap"];
+    const sheet = sheetRef.current?.getBoundingClientRect();
+    if (mode === "move" && !inGroup && sheet && sheet.width > 0 && rect) {
+      const firstText = (current()?.blocks ?? []).find((b) => b.type === "text" && b.id !== block.id && b.text.trim())?.id;
+      const targets: SnapTarget[] = [];
+      sheetRef.current?.querySelectorAll<HTMLElement>("[data-block]").forEach((el) => {
+        const id = el.dataset.block;
+        if (!id || id === block.id) return;
+        const r = el.getBoundingClientRect();
+        if (r.width < 1 || r.height < 1) return;
+        targets.push({ x: ((r.left - sheet.left) / sheet.width) * 100, y: ((r.top - sheet.top) / sheet.height) * 100, w: (r.width / sheet.width) * 100, h: (r.height / sheet.height) * 100, first: id === firstText });
+      });
+      snap = { targets, w: (rect.width / sheet.width) * 100, h: (rect.height / sheet.height) * 100 };
+    }
     const members = inGroup
       ? (current()?.blocks ?? []).filter((b) => activeGroup.includes(b.id) && !b.locked).map((b) => ({ id: b.id, box: boxOf(b) }))
       : undefined;
     if (!inGroup && activeGroup.length) setGroup([]);
     gesture.current = {
+      snap,
       members,
       id: block.id,
       mode: cropGesture ? "crop" : mode,
@@ -1441,9 +1461,17 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       return;
     }
     let box = g.box;
-    if (g.mode === "move") box = { ...g.box, x: clamp(g.box.x + dx, -g.box.w + 6, 94), y: clamp(g.box.y + dy, -6, 96) };
-    if (g.mode === "size" && g.edge && g.box.h !== null) {
-      box = { ...g.box, ...resizeByEdge({ x: g.box.x, y: g.box.y, w: g.box.w, h: g.box.h }, g.edge, dx, dy) };
+    if (g.mode === "move") {
+      box = { ...g.box, x: clamp(g.box.x + dx, -g.box.w + 6, 94), y: clamp(g.box.y + dy, -6, 96) };
+      // Alt (на компьютере) отключает прилипание.
+      if (g.snap && !event.altKey) {
+        const hit = snapBox({ x: box.x, y: box.y, w: g.snap.w, h: g.snap.h }, g.snap.targets, { w: 100, h: 100 });
+        box = { ...box, x: hit.x, y: hit.y };
+        setGuides(hit.guides.v.length || hit.guides.h.length ? hit.guides : null);
+      } else setGuides(null);
+    }
+    if (g.mode === "size" && g.edge) {
+      box = { ...g.box, ...applyEdge({ x: g.box.x, y: g.box.y, w: g.box.w, h: g.box.h }, g.edge, dx, dy) };
     } else if (g.mode === "size") {
       const w = clamp(g.box.w + dx, 3, 160);
       const h = g.box.h === null ? null : g.ratio ? clamp(g.ratio * w, 2, 160) : clamp(g.box.h + dy, 2, 160);
@@ -1466,6 +1494,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     gesture.current = null;
     const final = g.last ?? null;
     setGhost(null);
+    setGuides(null);
     if (g.members) {
       const moved = g.lastMembers;
       setGhostGroup(null);
@@ -2000,7 +2029,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                         <Handles
                           onTurn={(event) => beginGesture(event, block, "turn")}
                           onSize={(event) => beginGesture(event, block, "size")}
-                          onEdge={block.type === "photo" && !block.cut && Math.abs(block.rotate ?? 0) < 2 ? (event, edge) => beginGesture(event, block, "size", edge) : undefined}
+                          edges={edgesFor(block)}
+                          onEdge={(event, edge) => beginGesture(event, block, "size", edge)}
                           onDelete={() => removeBlock(block.id)}
                           onLock={() => {
                             patchBlock(block.id, { locked: true } as Partial<PageBlock>);
@@ -2016,6 +2046,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
               <svg viewBox={`0 0 100 ${PAGE_H}`} className="pointer-events-none absolute inset-0 z-30 h-full w-full overflow-visible">
                 <g ref={livePath} />
               </svg>
+              {guides ? (
+                <>
+                  {guides.v.map((at) => <span key={`v${at}`} className="pointer-events-none absolute inset-y-0 z-40 w-px bg-rose" style={{ left: `${at}%` }} data-guide="v" />)}
+                  {guides.h.map((at) => <span key={`h${at}`} className="pointer-events-none absolute inset-x-0 z-40 h-px bg-rose" style={{ top: `${at}%` }} data-guide="h" />)}
+                </>
+              ) : null}
               {marquee ? (
                 <div
                   className="pointer-events-none absolute z-40 border border-rose bg-rose/10"
@@ -2023,7 +2059,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                 />
               ) : null}
               {group.length > 1 || pickMode ? (
-                <div className="absolute left-1/2 top-2 z-[45] flex -translate-x-1/2 items-center gap-1 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-ink shadow-md" onPointerDown={(event) => event.stopPropagation()}>
+                <div className="no-scrollbar absolute left-1/2 top-2 z-[45] flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-ink shadow-md [&>*]:shrink-0" onPointerDown={(event) => event.stopPropagation()}>
                   {group.length > 1 ? (
                     <>
                       <span className="whitespace-nowrap">Выбрано: {group.length}</span>
@@ -2533,7 +2569,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   );
 }
 
-function Handles({ onTurn, onSize, onEdge, onDelete, onLock }: { onTurn: (event: React.PointerEvent) => void; onSize: (event: React.PointerEvent) => void; onEdge?: (event: React.PointerEvent, edge: "l" | "r" | "t" | "b") => void; onDelete: () => void; onLock: () => void }) {
+function Handles({ onTurn, onSize, onEdge, edges = [], onDelete, onLock }: { onTurn: (event: React.PointerEvent) => void; onSize: (event: React.PointerEvent) => void; onEdge?: (event: React.PointerEvent, edge: "l" | "r" | "t" | "b") => void; edges?: ("l" | "r" | "t" | "b")[]; onDelete: () => void; onLock: () => void }) {
   return (
     <>
       <span className="pointer-events-none absolute -inset-[5px] rounded-[6px] border-2 border-dashed border-rose" />
@@ -2548,12 +2584,12 @@ function Handles({ onTurn, onSize, onEdge, onDelete, onLock }: { onTurn: (event:
         <Lock className="size-4" />
       </button>
       <button type="button" aria-label="Размер" className="handle pointer-events-auto absolute -bottom-9 -right-9 size-11 rounded-full border-[3px] border-rose bg-white shadow-md" onPointerDown={onSize} />
-      {onEdge ? (
+      {onEdge && edges.length ? (
         <>
-          <button type="button" aria-label="Ширина: правая сторона" className="handle pointer-events-auto absolute -right-4 top-1/2 h-11 w-7 -translate-y-1/2 touch-none rounded-full border-2 border-rose bg-white/95 shadow-md" onPointerDown={(event) => onEdge(event, "r")} />
-          <button type="button" aria-label="Ширина: левая сторона" className="handle pointer-events-auto absolute -left-4 top-1/2 h-11 w-7 -translate-y-1/2 touch-none rounded-full border-2 border-rose bg-white/95 shadow-md" onPointerDown={(event) => onEdge(event, "l")} />
-          <button type="button" aria-label="Высота: нижняя сторона" className="handle pointer-events-auto absolute -bottom-4 left-1/2 h-7 w-11 -translate-x-1/2 touch-none rounded-full border-2 border-rose bg-white/95 shadow-md" onPointerDown={(event) => onEdge(event, "b")} />
-          <button type="button" aria-label="Высота: верхняя сторона" className="handle pointer-events-auto absolute -top-4 left-1/4 h-7 w-11 -translate-x-1/2 touch-none rounded-full border-2 border-rose bg-white/95 shadow-md" onPointerDown={(event) => onEdge(event, "t")} />
+          {edges.includes("r") ? <button type="button" aria-label="Ширина: правая сторона" className="handle pointer-events-auto absolute -right-4 top-1/2 h-11 w-7 -translate-y-1/2 touch-none rounded-full border-2 border-rose bg-white/95 shadow-md" onPointerDown={(event) => onEdge(event, "r")} /> : null}
+          {edges.includes("l") ? <button type="button" aria-label="Ширина: левая сторона" className="handle pointer-events-auto absolute -left-4 top-1/2 h-11 w-7 -translate-y-1/2 touch-none rounded-full border-2 border-rose bg-white/95 shadow-md" onPointerDown={(event) => onEdge(event, "l")} /> : null}
+          {edges.includes("b") ? <button type="button" aria-label="Высота: нижняя сторона" className="handle pointer-events-auto absolute -bottom-4 left-1/2 h-7 w-11 -translate-x-1/2 touch-none rounded-full border-2 border-rose bg-white/95 shadow-md" onPointerDown={(event) => onEdge(event, "b")} /> : null}
+          {edges.includes("t") ? <button type="button" aria-label="Высота: верхняя сторона" className="handle pointer-events-auto absolute -top-4 left-1/4 h-7 w-11 -translate-x-1/2 touch-none rounded-full border-2 border-rose bg-white/95 shadow-md" onPointerDown={(event) => onEdge(event, "t")} /> : null}
         </>
       ) : null}
     </>

@@ -16,6 +16,7 @@ import { UnlockCarousel } from "@/components/rod/unlock-carousel";
 import { ReelButton } from "@/components/rod/reel-modal";
 import { Hint } from "@/components/rod/hint";
 import { ContentsSheet } from "@/components/rod/contents-sheet";
+import { AllPagesColor } from "@/components/rod/all-pages-color";
 import { downloadFamilyBook, downloadPrintBlock, downloadPrintCover } from "@/lib/rod/print-book";
 import { useRod } from "@/lib/rod/store";
 import type { BookPage, PaperKind } from "@/lib/rod/types";
@@ -373,6 +374,7 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
   const [arrange, setArrange] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const [confirmAll, setConfirmAll] = useState(false);
+  const [allColor, setAllColor] = useState(false);
   const [moving, setMoving] = useState(false);
   const [moveTo, setMoveTo] = useState("");
   const movePages = useRod((state) => state.movePages);
@@ -516,6 +518,10 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
             <Button variant={arrange ? "primary" : "soft"} className="min-h-10 px-4" onClick={() => { setArrange((v) => !v); setPicked([]); setConfirmAll(false); setMoving(false); }}>
               {arrange ? "Готово" : <><ArrowLeftRight className="size-4" /> Порядок и удаление</>}
             </Button>
+            <Button variant="soft" className="min-h-10 px-3" onClick={() => setAllColor(true)}>
+              <Palette className="size-4" /> Цвет всех страниц
+            </Button>
+            {allColor ? <AllPagesColor onClose={() => setAllColor(false)} /> : null}
           </span>
         ) : null}
       </div>

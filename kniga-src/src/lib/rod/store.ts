@@ -2,9 +2,12 @@ import { applyPatch, onSiblingSet, syncRelations, withoutPerson } from "@/lib/tr
 import { toast } from "sonner";
 import { bumpUsage, searchesLeft, type SearchUsage } from "@/lib/rod/search-limit";
 import { create } from "zustand";
+import { freezeTextSizes } from "@/lib/rod/freeze-text";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import { applyFormat } from "@/lib/rod/book-format";
 import { noteEdit } from "@/lib/rod/edit-counter";
+import { dropMedia } from "@/lib/rod/media";
+import { recolorPages, revertRecolor, type RecolorOptions, type RecolorResult, type RecolorUndo } from "@/lib/rod/page-colors";
 import { DEFAULT_PRINT, isDark, type PrintSetup } from "@/lib/rod/page-style";
 import { freezeDerivedParents } from "@/lib/tree/freeze.ts";
 import { MEDIA_STORE, STATE_STORE, idbClear, idbGet, idbSet } from "@/lib/rod/idb";
@@ -95,6 +98,9 @@ type RodState = {
   removeEvent: (id: string) => void;
   addDocument: (input: Omit<FamilyDoc, "id">) => void;
   removeDocument: (id: string) => void;
+  updateDocument: (id: string, patch: Partial<Pick<FamilyDoc, "attachments">>) => void;
+  recolorAllPages: (options: RecolorOptions) => RecolorResult;
+  revertRecolor: (undo: RecolorUndo) => void;
   addNote: (input: Omit<CardNote, "id" | "createdAt">) => void;
   removeNote: (id: string) => void;
   addPage: (input: Omit<BookPage, "id">) => string;
@@ -330,7 +336,23 @@ export const useRod = create<RodState>()(
       addEvent: (input) => set((state) => ({ events: [{ ...input, id: uid() }, ...state.events] })),
       removeEvent: (id) => set((state) => ({ events: state.events.filter((event) => event.id !== id) })),
       addDocument: (input) => set((state) => ({ documents: [{ ...input, id: uid() }, ...state.documents] })),
-      removeDocument: (id) => set((state) => ({ documents: state.documents.filter((doc) => doc.id !== id) })),
+      removeDocument: (id) => {
+        for (const file of get().documents.find((doc) => doc.id === id)?.attachments ?? []) dropMedia(file.ref);
+        set((state) => ({ documents: state.documents.filter((doc) => doc.id !== id) }));
+      },
+      updateDocument: (id, patch) => set((state) => ({ documents: state.documents.map((doc) => (doc.id === id ? { ...doc, ...patch } : doc)) })),
+      recolorAllPages: (options) => {
+        const result = recolorPages(get().pages, options);
+        if (result.pageCount || result.textCount) {
+          noteEdit();
+          set({ pages: result.pages });
+        }
+        return result;
+      },
+      revertRecolor: (undo) => {
+        noteEdit();
+        set((state) => ({ pages: revertRecolor(state.pages, undo) }));
+      },
       addNote: (input) =>
         set((state) => ({
           notes: [{ ...input, id: uid(), createdAt: new Date().toISOString() }, ...state.notes],
@@ -490,4 +512,11 @@ export const useRod = create<RodState>()(
 // Формат страницы (пропорция) живёт в настройках печати: при смене или загрузке книги пересчитываем размеры.
 useRod.subscribe((state, prev) => {
   if (state.print !== prev.print) applyFormat(state.print);
+});
+
+// Закрепляем размер букв у каждого текста (см. freeze-text.ts): обновления приложения больше не меняют уже сделанные страницы.
+useRod.subscribe((state, prev) => {
+  if (state.pages === prev.pages) return;
+  const frozen = freezeTextSizes(state.pages);
+  if (frozen !== state.pages) useRod.setState({ pages: frozen });
 });

@@ -538,6 +538,8 @@ function DocsPane() {
   const documents = useRod((state) => state.documents);
   const addDocument = useRod((state) => state.addDocument);
   const removeDocument = useRod((state) => state.removeDocument);
+  const updateDocument = useRod((state) => state.updateDocument);
+  const [files, setFiles] = useState<Attachment[]>([]);
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState(DOC_KINDS[0] ?? "другое");
   const [year, setYear] = useState("");
@@ -550,7 +552,8 @@ function DocsPane() {
         onSubmit={(event) => {
           event.preventDefault();
           if (!title.trim()) return;
-          addDocument({ title: title.trim(), kind, year: year.trim(), note: note.trim() });
+          addDocument({ title: title.trim(), kind, year: year.trim(), note: note.trim(), ...(files.length ? { attachments: files } : {}) });
+          setFiles([]);
           setTitle("");
           setYear("");
           setNote("");
@@ -575,6 +578,7 @@ function DocsPane() {
         <Field label="Где лежит">
           <input className="field" value={note} onChange={(event) => setNote(event.target.value)} placeholder="У мамы, в синей коробке" />
         </Field>
+        <Attachments scan items={files} onChange={setFiles} title="Скан или фото документа" empty="Можно приложить снимок, скан или несколько страниц. Не обязательно." limitText="К одному документу" />
         <Button type="submit" disabled={!title.trim()}>
           Записать документ
         </Button>
@@ -589,8 +593,9 @@ function DocsPane() {
               {doc.year ? ` · ${doc.year}` : ""}
               {doc.note ? ` · ${doc.note}` : ""}
             </p>
+            <Attachments scan items={doc.attachments ?? []} onChange={(next) => updateDocument(doc.id, { attachments: next })} title={doc.attachments?.length ? `Страницы и сканы: ${doc.attachments.length}` : "Скан или фото"} empty="Файлов пока нет." limitText="К одному документу" />
             <button type="button" className="mt-2 text-sm text-muted underline" onClick={() => removeDocument(doc.id)}>
-              Удалить
+              Удалить документ
             </button>
           </li>
         ))}

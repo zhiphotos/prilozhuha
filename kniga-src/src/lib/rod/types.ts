@@ -99,6 +99,8 @@ export type FamilyDoc = {
   kind: string;
   year: string;
   note: string;
+  /** Сканы и фото страниц документа (ссылки media: в том же хранилище, что и фото). У старых бумаг поля нет. */
+  attachments?: Attachment[];
 };
 
 export type CardNote = {
@@ -139,6 +141,8 @@ type Placed = {
   opacity?: number;
   blend?: BlendKind;
   mask?: EraseMask;
+  /** Мягкий край (растушёвка) у фото, картины или стикера. Нет поля: как раньше, чёткий край. */
+  soft?: import("@/lib/rod/soft-edge").SoftEdge;
   /** Лежит через разворот: часть на соседней странице (фото, рисунок, стикер, фигура). */
   spread?: boolean;
   /** Рисунок обрезан по краям этого листа: всё, что вышло за край, скрыто (на соседней странице не показывается). */
@@ -208,7 +212,7 @@ export type PageBlock =
       /** Свой цвет букв и фона карточки/плашки. */
       color?: string;
       bg?: string;
-      align?: "left" | "center" | "right";
+      align?: "left" | "center" | "right" | "justify";
       /** Текст обтекает фото и стикеры на странице. */
       wrap?: boolean;
       placeholder?: string;
@@ -233,6 +237,8 @@ export type PageBlock =
       sharp?: boolean;
       /** Рамка подогнана под размер картинки: углом тянется пропорционально, и фото остаётся целым (Shift – свободно). */
       whole?: boolean;
+      /** Пресет обработки фото (рисунок, плёнка, дуотон…): хранится только параметр, оригинал не меняется. */
+      fx?: import("@/lib/rod/photo-fx").PhotoFx;
     } & Placed)
   | ({ id: string; type: "sticker"; x: number; y: number; kind: StickerKind; w?: number; text?: string } & Placed)
   | ({ id: string; type: "chip"; x: number; y: number; kind: "place" | "date"; text: string } & Placed)
