@@ -5,8 +5,10 @@ import { createContext, useContext, useEffect, useMemo, useState, type CSSProper
 import { ImagePlus } from "lucide-react";
 import { isStampBrush, stampRaster } from "@/lib/rod/stamp-brush";
 import { PAGE_H as INK_PAGE_H, inkColor as inkColorOf, strokeGeom } from "@/lib/rod/ink";
-import { maskDataUrl, maskStyleFromUrl } from "@/lib/rod/mask";
+import { maskDataUrl } from "@/lib/rod/mask";
+import { boxHeight, cleanSoft, maskStyleFromUrls, softDataUrl, type SoftEdge } from "@/lib/rod/soft-edge";
 import { useMedia } from "@/lib/rod/media";
+import { useFxSrc } from "@/lib/rod/use-photo-fx";
 import {
   FONT_FAMILY,
   PAGE_RATIO,
@@ -233,35 +235,42 @@ export function BlockArt({ block, editing = false }: { block: PageBlock; editing
     );
   }
   const hasMask = Boolean(block.mask && block.mask.strokes.length);
-  if (!hasMask && block.opacity === undefined) return <BlockArtInner block={block} editing={editing} />;
+  const soft = cleanSoft(block.soft);
+  if (!hasMask && !soft && block.opacity === undefined) return <BlockArtInner block={block} editing={editing} />;
+  const ratio = block.type === "sticker" ? stickerRatio(block.kind) : 0.75;
   return (
-    <Masked mask={hasMask ? block.mask : undefined} opacity={block.opacity}>
+    <Masked mask={hasMask ? block.mask : undefined} soft={soft} softH={soft ? boxHeight(block as { w?: number; h?: number }, ratio) : 0} opacity={block.opacity}>
       <BlockArtInner block={block} editing={editing} />
     </Masked>
   );
 }
 
-/** Маска ластика. Новая маска сначала декодируется и только потом подменяет старую: так при стирании ничего не мигает. */
-function Masked({ mask, opacity, children }: { mask: import("@/lib/rod/types").EraseMask | undefined; opacity: number | undefined; children: ReactNode }) {
-  const url = useMemo(() => (mask ? maskDataUrl(mask) : ""), [mask]);
+/** Маска ластика и мягкий край. Новая маска сначала декодируется и только потом подменяет старую: так при стирании ничего не мигает. */
+function Masked({ mask, soft, softH, opacity, children }: { mask: import("@/lib/rod/types").EraseMask | undefined; soft: SoftEdge | undefined; softH: number; opacity: number | undefined; children: ReactNode }) {
+  const eraseUrl = useMemo(() => (mask ? maskDataUrl(mask) : ""), [mask]);
+  const softUrl = useMemo(() => (soft ? softDataUrl(soft, softH) : ""), [soft, softH]);
+  const url = `${eraseUrl}\n${softUrl}`;
   const [shown, setShown] = useState(url);
   useEffect(() => {
-    if (!url) {
+    if (!eraseUrl && !softUrl) {
       setShown("");
       return;
     }
     let alive = true;
-    const img = new Image();
-    img.src = url;
     const done = () => alive && setShown(url);
-    if (typeof img.decode === "function") void img.decode().then(done, done);
-    else img.onload = done;
+    const imgs = [eraseUrl, softUrl].filter(Boolean).map((u) => {
+      const img = new Image();
+      img.src = u;
+      return typeof img.decode === "function" ? img.decode() : new Promise<void>((r) => (img.onload = () => r()));
+    });
+    void Promise.all(imgs).then(done, done);
     return () => {
       alive = false;
     };
-  }, [url]);
+  }, [url, eraseUrl, softUrl]);
+  const urls = shown.split("\n").filter(Boolean);
   return (
-    <div className="h-full w-full" style={{ opacity, ...(shown ? maskStyleFromUrl(shown) : undefined) }}>
+    <div className="h-full w-full" style={{ opacity, ...maskStyleFromUrls(urls) }}>
       {children}
     </div>
   );
@@ -433,10 +442,12 @@ function PhotoImage({ block, src, alt }: { block: Extract<PageBlock, { type: "ph
 }
 
 function PhotoArt({ block }: { block: Extract<PageBlock, { type: "photo" }> }) {
-  const src = useMedia(block.frame === "sticker" && block.cut ? block.cut : block.src);
+  const lifted = block.frame === "sticker" && Boolean(block.cut);
+  const src = useMedia(lifted && block.cut ? block.cut : block.src);
+  const shown = useFxSrc(src, lifted ? undefined : block.fx);
   const flat = block.shadow === false ? "no-shadow" : "";
   const alt = block.caption || "Фотография";
-  const img = <PhotoImage block={block} src={src} alt={alt} />;
+  const img = <PhotoImage block={block} src={shown} alt={alt} />;
   if (block.frame === "sticker" && block.cut) {
     return src ? <img src={src} alt={alt} draggable={false} className={cn("sticker-art block h-full w-full select-none object-contain", flat)} /> : null;
   }

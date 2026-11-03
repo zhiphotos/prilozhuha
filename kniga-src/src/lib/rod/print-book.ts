@@ -1,9 +1,14 @@
 // Печатная версия: каждая страница рисуется на холсте 300 dpi по тем же правилам, что и на экране.
+import { justifyGap, lastLinesOf } from "@/lib/rod/justify";
 import { ensureLibraryFont, libraryIdsIn } from "@/lib/rod/fonts";
 import { resolveMedia } from "@/lib/rod/media";
 import { cropGeom } from "@/lib/rod/crop";
 import { PAGE_H, strokeGeom } from "@/lib/rod/ink";
 import { maskImageUrl } from "@/lib/rod/mask";
+import { boxHeight, cleanSoft, softDataUrl } from "@/lib/rod/soft-edge";
+import { PRINT_SIDE, cachedFx, cleanFx } from "@/lib/rod/photo-fx";
+
+type Img = HTMLImageElement | HTMLCanvasElement;
 import {
   COLORS,
   FONT_FAMILY,
@@ -150,17 +155,17 @@ function rounded(ctx: CanvasRenderingContext2D, x: number, y: number, w: number,
 }
 
 /** Рисует картинку «обрезкой по рамке», без растягивания. */
-function cover(ctx: CanvasRenderingContext2D, image: HTMLImageElement, x: number, y: number, w: number, h: number) {
+function cover(ctx: CanvasRenderingContext2D, image: Img, x: number, y: number, w: number, h: number) {
   const scale = Math.max(w / image.width, h / image.height);
   const sw = w / scale;
   const sh = h / scale;
   ctx.drawImage(image, (image.width - sw) / 2, (image.height - sh) / 2, sw, sh, x, y, w, h);
 }
 
-const alphaCache = new WeakMap<HTMLImageElement, boolean>();
+const alphaCache = new WeakMap<Img, boolean>();
 
 /** Есть ли у картинки прозрачные места (вырезанный PNG). Под такой не кладём белую подложку. */
-function hasAlpha(image: HTMLImageElement): boolean {
+function hasAlpha(image: Img): boolean {
   const known = alphaCache.get(image);
   if (known !== undefined) return known;
   const c = document.createElement("canvas");
@@ -183,7 +188,7 @@ function hasAlpha(image: HTMLImageElement): boolean {
 }
 
 /** «Обрезка по рамке» с учётом кадрирования: то, что выбрано пальцем. */
-function coverCropped(ctx: CanvasRenderingContext2D, image: HTMLImageElement, x: number, y: number, w: number, h: number, crop?: { cx: number; cy: number; z: number }) {
+function coverCropped(ctx: CanvasRenderingContext2D, image: Img, x: number, y: number, w: number, h: number, crop?: { cx: number; cy: number; z: number }) {
   if (!crop) {
     cover(ctx, image, x, y, w, h);
     return;
@@ -197,7 +202,7 @@ function coverCropped(ctx: CanvasRenderingContext2D, image: HTMLImageElement, x:
   ctx.restore();
 }
 
-function contain(ctx: CanvasRenderingContext2D, image: HTMLImageElement, x: number, y: number, w: number, h: number) {
+function contain(ctx: CanvasRenderingContext2D, image: Img, x: number, y: number, w: number, h: number) {
   const scale = Math.min(w / image.width, h / image.height);
   const dw = image.width * scale;
   const dh = image.height * scale;
@@ -344,9 +349,13 @@ function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { ty
   const center = block.align === "center";
   const right = block.align === "right";
   ctx.textAlign = center ? "center" : right ? "right" : "left";
+  const justify = block.align === "justify";
+  const ends = justify ? lastLinesOf(explodeBold(block.text), lines) : [];
   lines.forEach((line, index) => {
     const ly = pad.y * U + index * lh + lh / 2;
-    fillLine(ctx, line, center ? bgW / 2 : right ? bgW - pad.x * U : pad.x * U, ly, gap);
+    // По ширине: все строки, кроме последней в абзаце, растягиваются за счёт пробелов до края блока (как на экране).
+    const extra = justify && !ends[index] ? justifyGap(widthWith(ctx, line, gap), innerW, line, px) : 0;
+    fillLine(ctx, line, center ? bgW / 2 : right ? bgW - pad.x * U : pad.x * U, ly, gap + extra);
   });
   ctx.restore();
 }
@@ -357,7 +366,10 @@ async function paintPhoto(ctx: CanvasRenderingContext2D, block: Extract<PageBloc
   const w = (block.w / 100) * W;
   const h = (block.h / 100) * H;
   const lifted = block.frame === "sticker" && Boolean(block.cut);
-  const image = await loadMedia(lifted && block.cut ? block.cut : block.src);
+  const raw = await loadMedia(lifted && block.cut ? block.cut : block.src);
+  // Пресет обработки (рисунок, плёнка и т.д.): тот же расчёт, что и на экране, но в печатном размере.
+  const fx = lifted ? undefined : cleanFx(block.fx);
+  const image: Img | null = raw && fx ? cachedFx(block.src, raw, fx, PRINT_SIDE) : raw;
   const lit = block.shadow !== false;
   ctx.save();
   rotateAround(ctx, x, y, w, h, block.rotate ?? 0);
@@ -544,7 +556,8 @@ async function paintBlock(ctx: CanvasRenderingContext2D, block: PageBlock, dark:
     else if (block.type === "ink") await paintInk(target, block);
   };
   const mask = block.mask && block.mask.strokes.length ? block.mask : null;
-  if (!mask && block.opacity === undefined && !block.blend) {
+  const soft = cleanSoft(block.soft);
+  if (!mask && !soft && block.opacity === undefined && !block.blend) {
     await draw(ctx);
     return;
   }
@@ -568,6 +581,21 @@ async function paintBlock(ctx: CanvasRenderingContext2D, block: PageBlock, dark:
       lc.save();
       lc.globalCompositeOperation = "destination-in";
       lc.translate(bx + bw / 2, by + bh / 2);
+      lc.rotate(((block.rotate ?? 0) * Math.PI) / 180);
+      lc.drawImage(image, -bw / 2, -bh / 2, bw, bh);
+      lc.restore();
+    }
+  }
+  if (soft) {
+    // Мягкий край: та же картинка-маска, что и на экране, вырезает слой по форме (вместе с ластиком даёт пересечение).
+    const bw = (blockW(block as { type: string; w?: number }) / 100) * W;
+    const ratio = block.type === "sticker" ? stickerRatio(block.kind) : 0.75;
+    const bh = "h" in block && typeof block.h === "number" ? (block.h / 100) * H : (boxHeight(block as { w?: number; h?: number }, ratio) / 100) * bw;
+    const image = await loadImage(softDataUrl(soft, boxHeight(block as { w?: number; h?: number }, ratio)));
+    if (image) {
+      lc.save();
+      lc.globalCompositeOperation = "destination-in";
+      lc.translate((block.x / 100) * W + bw / 2, (block.y / 100) * H + bh / 2);
       lc.rotate(((block.rotate ?? 0) * Math.PI) / 180);
       lc.drawImage(image, -bw / 2, -bh / 2, bw, bh);
       lc.restore();

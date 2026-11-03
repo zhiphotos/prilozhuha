@@ -687,7 +687,7 @@ export function mergeInk(block: InkBlock, stroke: InkStroke): InkBlock {
   if (!untouched) return makeInkBlock([stroke], () => crypto.randomUUID());
   const mine = shiftStrokes(block.strokes, block.x, block.y);
   const merged = makeInkBlock([...mine, stroke], () => block.id);
-  return { ...merged, locked: block.locked, opacity: block.opacity, blend: block.blend, mask: block.mask, spread: block.spread, clip: block.clip, groupId: block.groupId };
+  return { ...merged, locked: block.locked, opacity: block.opacity, blend: block.blend, mask: block.mask, soft: block.soft, spread: block.spread, clip: block.clip, groupId: block.groupId };
 }
 
 /** Старые страницы хранили чернила поверх всего листа; переносим их в блоки, чтобы с ними можно было работать. */
