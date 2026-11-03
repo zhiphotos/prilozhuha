@@ -1,5 +1,6 @@
 import { DateInput } from "@/components/rod/date-input";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { AncestorGate } from "@/components/tree/AncestorGate";
 import { familyOf, inflectSurname } from "@/lib/tree/fill";
 import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
@@ -121,6 +122,17 @@ function PersonBody({ person, people, unions, focusId, onNewBook }: { person: Pe
           Дата смерти
           <DateInput inputMode="decimal" placeholder="год или 04.11.1968" value={person.deathYear} onChange={(next) => useTree.getState().updatePerson(person.id, { ...draftFrom(person), deathYear: next })} />
         </label>
+        <button
+          type="button"
+          className="chip !bg-sheet !text-ink col-span-2 justify-center"
+          onClick={() => {
+            toast("Сохранено");
+            selectPerson(null);
+          }}
+        >
+          Сохранить
+        </button>
+        <p className="col-span-2 -mt-1 text-xs text-muted">Изменения записываются сразу, кнопка закрывает карточку.</p>
       </div>
       )}
 
