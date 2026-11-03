@@ -1,3 +1,4 @@
+import { needsMaidenName } from "@/lib/rod/person";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeftRight, BookOpen, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -50,7 +51,7 @@ export function BookScreen() {
   const storyOut = stories.filter((story) => !usedPrompts.has(`story:${story.id}`));
   const usedSrc = new Set(pages.flatMap((page) => page.blocks.map((block) => (block.type === "photo" ? block.src : ""))));
   const photoOut = photos.filter((photo) => !usedSrc.has(photo.dataUrl));
-  const noMaiden = people.filter((person) => /бабуш|мам/i.test(person.relation) && !person.maidenName.trim());
+  const noMaiden = people.filter(needsMaidenName);
   const hasCover = pages.some((page) => page.kind === "cover");
 
 
@@ -152,7 +153,8 @@ export function BookScreen() {
         </div>
       </section>
 
-      {data.programOpen ? (
+      {/* Напоминание о программе только тем, у кого она ещё не открыта: у платных и у открывших по коду рекламы курса нет. */}
+      {!data.programOpen ? (
       <section className={cn("mt-4 rounded-2xl p-5", ready ? "aurora" : "glass")}>
         <h2 className="text-lg font-semibold text-ink">
           {ready ? "Ты собрал(а) материал для первой Книги рода" : "Когда страниц станет больше"}

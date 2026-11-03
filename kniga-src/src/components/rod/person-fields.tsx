@@ -12,7 +12,7 @@ import type { Person } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
 import { roleOf } from "@/lib/tree/from-people";
 import { applyMarriages, withMarriages } from "@/lib/tree/marriages";
-import { Field } from "@/components/rod/chrome";
+import { Button, Field } from "@/components/rod/chrome";
 import { CircleCrop } from "@/components/rod/circle-crop";
 
 export type PersonDraft = Omit<Person, "id">;
@@ -251,7 +251,7 @@ export function PersonFields({ value, onChange, others, extraSiblings, onExtraSi
 }
 
 /** Карточка человека: правим сразу в списке людей. */
-export function PersonEditor({ person, onRemoved }: { person: Person; onRemoved?: () => void }) {
+export function PersonEditor({ person, onRemoved, onSaved }: { person: Person; onRemoved?: () => void; onSaved?: () => void }) {
   const people = useRod((state) => state.people);
   const updatePerson = useRod((state) => state.updatePerson);
   const removePerson = useRod((state) => state.removePerson);
@@ -274,6 +274,16 @@ export function PersonEditor({ person, onRemoved }: { person: Person; onRemoved?
         }}
         others={people.filter((item) => item.id !== person.id)}
       />
+      <Button
+        type="button"
+        onClick={() => {
+          toast("Сохранено");
+          onSaved?.();
+        }}
+      >
+        Сохранить
+      </Button>
+      <p className="-mt-1 text-xs text-muted">Изменения записываются сразу, кнопка нужна для спокойствия: она закрывает карточку и показывает, что всё на месте.</p>
       <button
         type="button"
         className="text-left text-sm text-muted underline"

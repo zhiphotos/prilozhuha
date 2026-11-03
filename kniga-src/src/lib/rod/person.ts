@@ -43,3 +43,10 @@ export function personEvents(people: Person[]): { id: string; year: string; titl
   }
   return out;
 }
+
+/** Кого спрашивать про девичью фамилию на странице «Книга»: женщин-родственниц по маме и бабушке; мужчин (в том числе «дедушка по маме») и тех, у кого она уже записана, нет. */
+export function needsMaidenName(person: Pick<Person, "gender" | "relation" | "maidenName">): boolean {
+  if ((person.maidenName ?? "").trim()) return false;
+  if (genderOf(person) !== "f") return false;
+  return /бабуш|мам/i.test(person.relation);
+}
