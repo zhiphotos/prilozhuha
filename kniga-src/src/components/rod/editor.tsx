@@ -2023,7 +2023,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                 />
               ) : null}
               {group.length > 1 || pickMode ? (
-                <div className="absolute left-1/2 top-2 z-[45] flex -translate-x-1/2 items-center gap-1 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-ink shadow-md" onPointerDown={(event) => event.stopPropagation()}>
+                <div className="no-scrollbar absolute left-1/2 top-2 z-[45] flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-ink shadow-md [&>*]:shrink-0" onPointerDown={(event) => event.stopPropagation()}>
                   {group.length > 1 ? (
                     <>
                       <span className="whitespace-nowrap">Выбрано: {group.length}</span>
