@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { AncestorGate } from "@/components/tree/AncestorGate";
 import { familyOf, inflectSurname } from "@/lib/tree/fill";
 import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
+import { relationCard, relationNote, relationOf } from "@/lib/tree/recenter";
 import { fileToPhoto } from "@/lib/tree/photo";
 import { draftFrom, emptyDraft, useTree, type Draft, type RelKind } from "@/lib/tree/ui-store";
 import type { Person, Union, UnionStatus } from "@/lib/tree/types";
@@ -88,6 +89,8 @@ function PersonBody({ person, people, unions, focusId, onNewBook }: { person: Pe
   const [intent, setIntent] = useState<Intent | null>(null);
   const [search, setSearch] = useState(false);
   const selectPerson = useTree((s) => s.selectPerson);
+  const homeId = useTree((s) => s.homeId);
+  const rel = relationOf(people, unions, focusId, person.id, homeId);
   const kin = kinship(people, unions, focusId, person.id);
   const family = useMemo(() => familyOf(people, unions, person.id), [people, unions, person.id]);
 
@@ -101,12 +104,13 @@ function PersonBody({ person, people, unions, focusId, onNewBook }: { person: Pe
       <header className="flex items-start gap-4">
         <Portrait person={person} />
         <div className="min-w-0 flex-1">
-          <p className="text-xs tracking-widest text-role uppercase">{kin.card}</p>
+          <p className="text-xs tracking-widest text-role uppercase">{relationCard(rel)}</p>
           <h2 className="font-serif text-3xl leading-none">{displayName(person, "full")}</h2>
           <p className="mt-1 text-sm text-muted">
             {yearsOf(person)}
             {kin.degree != null && kin.kind !== "self" ? ` · ${kin.degree} колено` : ""}
           </p>
+          {(rel.also.length > 0 || rel.paths > 1 || rel.undetermined) && <p className="mt-1 text-xs text-muted">{relationNote(rel)}</p>}
         </div>
         <button type="button" className="chip !bg-sheet !text-ink shrink-0" onClick={() => selectPerson(null)}>
           Закрыть
@@ -178,6 +182,7 @@ function FamilySheet({
   onSearch: () => void;
 }) {
   const setFocus = useTree((s) => s.setFocus);
+  const homeId = useTree((s) => s.homeId);
   const removePerson = useTree((s) => s.removePerson);
   const setUnionStatus = useTree((s) => s.setUnionStatus);
   const setUnionYears = useTree((s) => s.setUnionYears);
@@ -250,7 +255,7 @@ function FamilySheet({
             {spouse ? (
               <button type="button" className="w-full text-left" onClick={() => selectPerson(spouse.id)}>
                 <span className="block font-serif text-2xl leading-tight">{displayName(spouse)}</span>
-                <span className="text-sm text-muted">{kinship(people, unions, focusId, spouse.id).card}</span>
+                <span className="text-sm text-muted">{relationCard(relationOf(people, unions, focusId, spouse.id, homeId))}</span>
               </button>
             ) : (
               <p className="font-serif text-2xl">Без второго супруга</p>
@@ -287,7 +292,7 @@ function FamilySheet({
               {children.map((child) => (
                 <button key={child.id} type="button" className="min-h-11 rounded-xl px-2 text-left hover:bg-sheet" onClick={() => selectPerson(child.id)}>
                   <span className="font-serif text-xl">{displayName(child)}</span>
-                  <span className="ml-2 text-sm text-muted">{kinship(people, unions, focusId, child.id).card}</span>
+                  <span className="ml-2 text-sm text-muted">{relationCard(relationOf(people, unions, focusId, child.id, homeId))}</span>
                 </button>
               ))}
               <button type="button" className="min-h-11 rounded-xl border border-dashed border-line text-sm font-semibold" onClick={() => onAdd("son", union.id)}>
@@ -310,7 +315,7 @@ function FamilySheet({
         {family.siblings.map((sib) => (
           <button key={sib.id} type="button" className="min-h-12 rounded-2xl border border-line bg-white px-3 text-left" onClick={() => selectPerson(sib.id)}>
             <span className="font-serif text-xl">{displayName(sib)}</span>
-            <span className="ml-2 text-sm text-muted">{kinship(people, unions, focusId, sib.id).card}</span>
+            <span className="ml-2 text-sm text-muted">{relationCard(relationOf(people, unions, focusId, sib.id, homeId))}</span>
           </button>
         ))}
         <button type="button" className="min-h-12 rounded-2xl border border-dashed border-line bg-white text-sm font-semibold" onClick={() => onAdd("brother")}>
@@ -322,7 +327,7 @@ function FamilySheet({
           Править карточку
         </button>
         <button type="button" className="min-h-11 rounded-2xl border border-line bg-white px-3 text-sm font-semibold" onClick={() => setFocus(person.id)} disabled={focusId === person.id}>
-          {focusId === person.id ? "Родство отсюда" : "Считать родство отсюда"}
+          {focusId === person.id ? "Центр дерева" : "Сделать центром дерева"}
         </button>
         {confirm ? (
           <button type="button" className="col-span-2 min-h-11 rounded-2xl bg-rose px-3 text-sm font-semibold text-ink" onClick={() => removePerson(person.id)}>
@@ -355,6 +360,7 @@ function KinSlot({
   onOpen: (id: string) => void;
   onAdd: () => void;
 }) {
+  const homeId = useTree((s) => s.homeId);
   if (!person) {
     return (
       <button type="button" className="flex min-h-24 flex-col items-start justify-between rounded-2xl border border-dashed border-line bg-white px-3 py-3 text-left" onClick={onAdd}>
@@ -363,12 +369,11 @@ function KinSlot({
       </button>
     );
   }
-  const kin = kinship(people, unions, focusId, person.id);
   return (
     <button type="button" className="flex min-h-24 flex-col items-start justify-between rounded-2xl border border-line bg-white px-3 py-3 text-left" onClick={() => onOpen(person.id)}>
       <span className="text-xs tracking-widest text-muted uppercase">{title}</span>
       <span className="w-full truncate font-serif text-2xl leading-tight">{displayName(person)}</span>
-      <span className="text-sm text-muted">{kin.card}</span>
+      <span className="text-sm text-muted">{relationCard(relationOf(people, unions, focusId, person.id, homeId))}</span>
     </button>
   );
 }
@@ -478,7 +483,7 @@ function AddRelative({
                 }}
               >
                 <span className="font-serif text-xl">{displayName(candidate)}</span>
-                <span className="ml-2 text-sm text-muted">{kinship(people, unions, useTree.getState().focusId, candidate.id).card}</span>
+                <span className="ml-2 text-sm text-muted">{relationCard(relationOf(people, unions, useTree.getState().focusId, candidate.id, useTree.getState().homeId))}</span>
               </button>
             ))}
           </div>

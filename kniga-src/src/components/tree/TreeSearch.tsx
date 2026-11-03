@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
-import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
+import { displayName, yearsOf } from "@/lib/tree/kinship";
+import { relationCard, relationsFrom } from "@/lib/tree/recenter";
 import { searchPeople } from "@/lib/tree/search";
 import { useTree } from "@/lib/tree/ui-store";
 
@@ -9,6 +10,8 @@ export function TreeSearch({ onJump }: { onJump: (id: string) => void }) {
   const people = useTree((s) => s.people);
   const unions = useTree((s) => s.unions);
   const focusId = useTree((s) => s.focusId);
+  const homeId = useTree((s) => s.homeId);
+  const rels = useMemo(() => relationsFrom(people, unions, focusId, homeId), [people, unions, focusId, homeId]);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const found = useMemo(() => (open ? searchPeople(people, query, 8) : []), [open, people, query]);
@@ -61,7 +64,7 @@ export function TreeSearch({ onJump }: { onJump: (id: string) => void }) {
                 >
                   <span className="truncate font-serif text-lg leading-tight">{displayName(person)}</span>
                   <span className="truncate text-sm text-muted">
-                    {kinship(people, unions, focusId, person.id).card} · {yearsOf(person)}
+                    {rels.get(person.id) ? relationCard(rels.get(person.id)!) : ""} · {yearsOf(person)}
                   </span>
                 </button>
               </li>

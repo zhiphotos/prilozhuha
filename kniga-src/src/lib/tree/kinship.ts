@@ -343,9 +343,15 @@ function withCard(kin: Kinship): Kinship {
   return { ...kin, card: kin.title };
 }
 
-export function kinship(people: Person[], unions: Union[], focusId: string, personId: string): Kinship {
+export type KinIndex = Index;
+
+/** Индекс связей строится один раз: так родство от центра считается для всей книги без повторной сборки. */
+export function buildKinIndex(people: Person[], unions: Union[]): KinIndex {
+  return build(people, unions);
+}
+
+export function kinshipIn(index: KinIndex, focusId: string, personId: string): Kinship {
   if (focusId === personId) return { kind: "self", title: "Я", degree: 0, card: "Я" };
-  const index = build(people, unions);
   if (!index.people.has(focusId) || !index.people.has(personId)) {
     return { kind: "other", title: "Родственник", degree: null, card: "Родственник" };
   }
@@ -362,6 +368,86 @@ export function kinship(people: Person[], unions: Union[], focusId: string, pers
     inLawViaBlood(index, focusId, personId) ??
     inLawViaSpouse(index, focusId, personId) ?? { kind: "other", title: "Родственник", degree: null, card: "Родственник" }
   );
+}
+
+/** Название брака, если центр и человек записаны в одном союзе (иначе null). */
+export function spouseWordIn(index: KinIndex, focusId: string, personId: string): string | null {
+  const direct = (index.unionsOf.get(focusId) ?? []).find((u) => u.partnerIds.includes(personId));
+  return direct ? spouseTitle(index, direct, personId) : null;
+}
+
+export function kinship(people: Person[], unions: Union[], focusId: string, personId: string): Kinship {
+  if (focusId === personId) return { kind: "self", title: "Я", degree: 0, card: "Я" };
+  return kinshipIn(build(people, unions), focusId, personId);
+}
+
+/** Сколько путей длиной ровно k вверх ведёт от `from` к `to` (по родителям); k ограничен, поэтому кривые данные с кругами не зависают. */
+function upPathCounts(index: Index, from: string, to: string, maxLen: number): Map<number, number> {
+  const out = new Map<number, number>();
+  let level = new Map<string, number>([[from, 1]]);
+  for (let k = 1; k <= maxLen && level.size; k++) {
+    const next = new Map<string, number>();
+    for (const [id, n] of level) for (const p of parents(index, id)) next.set(p, Math.min(1e6, (next.get(p) ?? 0) + n));
+    const hit = next.get(to);
+    if (hit) out.set(k, hit);
+    level = next;
+  }
+  return out;
+}
+
+/** Все варианты названия кровного родства: кроме основного, если к тому же человеку ведёт другой путь (через другого общего предка). */
+export type KinPath = { title: string; degree: number; count: number };
+
+export function bloodPaths(index: KinIndex, focusId: string, otherId: string): KinPath[] {
+  if (focusId === otherId || !index.people.has(focusId) || !index.people.has(otherId)) return [];
+  const cap2 = Math.min(index.people.size, 40);
+  const upFocus = ancestorDist(index, focusId);
+  const upOther = ancestorDist(index, otherId);
+  const g = genderOf(index, otherId);
+  const byTitle = new Map<string, KinPath>();
+  const add = (title: string, degree: number, count: number) => {
+    const have = byTitle.get(title);
+    if (have) have.count += count;
+    else byTitle.set(title, { title, degree, count });
+  };
+  const sorted = () => [...byTitle.values()].sort((a, b) => a.degree - b.degree || (a.title < b.title ? -1 : a.title > b.title ? 1 : 0));
+  if (upFocus.has(otherId)) {
+    for (const [d, n] of upPathCounts(index, focusId, otherId, cap2)) add(ancestorTitle(d, g), d, n);
+    return sorted();
+  }
+  if (upOther.has(focusId)) {
+    for (const [d, n] of upPathCounts(index, otherId, focusId, cap2)) add(descendantTitle(d, g), d, n);
+    return sorted();
+  }
+  const sib = sharedParents(index, focusId, otherId);
+  if (sib) {
+    add(siblingWord(index, focusId, otherId, sib.half), 1, 1);
+    return sorted();
+  }
+  // Общие предки; «нижние» из них (не предки другого общего предка) задают отдельные пути.
+  const common = [...upFocus.keys()].filter((id) => id !== focusId && upOther.has(id) && id !== otherId);
+  const notLowest = new Set<string>();
+  for (const c of common) for (const a of ancestorDist(index, c).keys()) if (a !== c) notLowest.add(a);
+  const lowest = common.filter((c) => !notLowest.has(c)).sort();
+  // Двое предков из одной пары (дедушка и бабушка) – один путь.
+  const root = new Map(lowest.map((c) => [c, c]));
+  const find = (x: string): string => (root.get(x) === x ? x : find(root.get(x)!));
+  for (const u of new Set([...index.unionsOf.values()].flat())) {
+    const inside = u.partnerIds.filter((id) => root.has(id));
+    for (let i = 1; i < inside.length; i++) root.set(find(inside[i]!), find(inside[0]!));
+  }
+  const groups = new Map<string, string[]>();
+  for (const c of lowest) groups.set(find(c), [...(groups.get(find(c)) ?? []), c]);
+  for (const members of groups.values()) {
+    const best = members.slice().sort((a, b) => upFocus.get(a)! + upOther.get(a)! - (upFocus.get(b)! + upOther.get(b)!) || (a < b ? -1 : 1))[0]!;
+    const dF = upFocus.get(best)!;
+    const dO = upOther.get(best)!;
+    const sideF = childToward(index, best, focusId);
+    const sideO = childToward(index, best, otherId);
+    const half = sideF && sideO ? (sharedParents(index, sideF, sideO)?.half ?? false) : false;
+    add(collateralTitle(index, dF, dO, otherId, half), dF + dO, 1);
+  }
+  return sorted();
 }
 
 export function displayName(person: Person, style: "card" | "full" = "card"): string {
