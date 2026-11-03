@@ -210,7 +210,7 @@ export type PageBlock =
       /** Свой цвет букв и фона карточки/плашки. */
       color?: string;
       bg?: string;
-      align?: "left" | "center" | "right";
+      align?: "left" | "center" | "right" | "justify";
       /** Текст обтекает фото и стикеры на странице. */
       wrap?: boolean;
       placeholder?: string;
