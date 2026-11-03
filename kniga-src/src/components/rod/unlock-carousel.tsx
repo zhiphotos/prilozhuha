@@ -3,10 +3,11 @@ import { ChevronDown, Play, ShoppingBag, Sparkles, X } from "lucide-react";
 import { Button, useNav } from "@/components/rod/chrome";
 import { PaySheet } from "@/components/rod/lessons";
 import { AI_NOTE } from "@/lib/rod/lesson-pitch";
+import { ReelModal } from "@/components/rod/reel-modal";
 
 const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
 
-type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; video?: { src: string; poster: string }; price?: boolean; buy?: boolean; pos?: string; reviews?: boolean };
+type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; video?: { src: string; poster: string }; price?: boolean; buy?: boolean; pos?: string; reviews?: boolean; reel?: boolean };
 
 const SLIDES: Slide[] = [
   {
@@ -39,6 +40,14 @@ const SLIDES: Slide[] = [
     title: "У книги уже есть каркас",
     text: "Шаблон на 100 страниц: одна ветка рода по главам, и на каждой странице подсказка, что сюда внести. Пустого листа перед вами не будет.",
     image: "course/site/extra1.jpg",
+  },
+  {
+    kicker: "Шаблон «Мемуары любви»",
+    title: "Книга про вас двоих, разложенная по годам",
+    text: "Нажмите на ролик: Дарина показывает свою книгу о десяти годах вместе. Из переписок, фотографий и воспоминаний получилась история, которую можно передать детям. Такой шаблон уже есть в приложении: подсказки, фото-места и главы по годам.",
+    image: "course/site/memoirs-reel.jpg",
+    pos: "50% 30%",
+    reel: true,
   },
   {
     kicker: "Приложение",
@@ -179,6 +188,7 @@ export function UnlockCarousel() {
   const [pay, setPay] = useState(false);
   const [soon, setSoon] = useState(false);
   const [reviews, setReviews] = useState(false);
+  const [reel, setReel] = useState(false);
 
   useEffect(() => {
     const el = track.current;
@@ -235,6 +245,13 @@ export function UnlockCarousel() {
               ) : (
                 <img src={asset(slide.image ?? "")} alt="" loading="lazy" draggable={false} className="size-full object-cover" style={slide.pos ? { objectPosition: slide.pos } : undefined} />
               )}
+              {slide.reel ? (
+                <button type="button" onClick={() => setReel(true)} aria-label="Смотреть ролик про шаблон «Мемуары любви»" className="absolute inset-0 z-[5] grid place-items-center bg-black/25">
+                  <span className="grid size-14 place-items-center rounded-full bg-black/55 text-[#e6cf9c] ring-1 ring-[#c9ae74]/60 backdrop-blur-sm">
+                    <Play className="ml-0.5 size-6 fill-current" />
+                  </span>
+                </button>
+              ) : null}
               {slide.reviews ? (
                 <button type="button" onClick={() => setReviews(true)} aria-label="Читать отзывы" className="absolute inset-0 z-[5]">
                   <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-3 py-1.5 text-xs font-semibold text-[#e6cf9c] ring-1 ring-[#c9ae74]/50">Нажмите, чтобы прочитать</span>
@@ -306,6 +323,7 @@ export function UnlockCarousel() {
       </div>
       {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
       {reviews ? <ReviewsPopup onClose={() => setReviews(false)} /> : null}
+      {reel ? <ReelModal onClose={() => setReel(false)} /> : null}
     </section>
   );
 }
