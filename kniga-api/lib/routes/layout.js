@@ -1,4 +1,5 @@
-import { bodyOf, cors, json } from "../config.js";
+import { requireAccess } from "../ai/access.js";
+import { json } from "../config.js";
 
 /**
  * POST /api/layout { text } -> { items: [{ kind: "heading"|"body"|"quote", text }] }
@@ -20,9 +21,10 @@ const PROMPT = `Ты помощник по вёрстке семейной кн�
 const words = (text) => String(text).toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
 
 export default async function handler(req, res) {
-  if (cors(req, res)) return;
-  if (req.method !== "POST") return json(res, 405, { error: "method" });
-  const text = String(bodyOf(req).text ?? "").trim();
+  // Раньше адрес был открыт всем и тратил платный ключ: теперь нужен действующий доступ (как у ИИ-помощника).
+  const ctx = await requireAccess(req, res);
+  if (!ctx) return;
+  const text = String(ctx.body.text ?? "").trim();
   if (text.length < 40) return json(res, 400, { error: "Текст слишком короткий." });
   if (text.length > MAX_CHARS) return json(res, 413, { error: "Текст слишком длинный. Вставляйте по частям, до 24 000 знаков." });
   const key = process.env.AI_API_KEY;
