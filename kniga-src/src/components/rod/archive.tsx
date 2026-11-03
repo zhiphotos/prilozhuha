@@ -3,9 +3,10 @@ import { createPortal } from "react-dom";
 import { serverStatus } from "@/lib/rod/server";
 import { fetchInbox } from "@/lib/rod/family";
 import { FamilySheet } from "@/components/rod/family-sheet";
-import { ChevronLeft, ChevronRight, Pencil, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Plus, Search, X } from "lucide-react";
 import { PeoplePicker } from "@/components/rod/people-picker";
 import { photoCaption, photoLinkFields, photoPeopleIds } from "@/lib/rod/photo-people";
+import { filterPeople } from "@/lib/rod/people-filter";
 import { Attachments } from "@/components/rod/attachments";
 import { useMedia } from "@/lib/rod/media";
 import { toast } from "sonner";
@@ -109,6 +110,8 @@ function PeoplePane() {
   const [draft, setDraft] = useState<PersonDraft>(EMPTY_PERSON);
   const [moreSibs, setMoreSibs] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const shown = filterPeople(people, query);
 
   return (
     <div className="grid gap-4">
@@ -132,8 +135,27 @@ function PeoplePane() {
           </Button>
         </form>
       </AddFold>
+      {people.length > 4 ? (
+        <label className="glass flex items-center gap-2 rounded-2xl px-4 py-3">
+          <Search className="size-5 shrink-0 text-muted" aria-hidden />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Найти человека: имя, фамилия, год"
+            aria-label="Найти человека в списке"
+            className="min-w-0 flex-1 bg-transparent outline-none"
+          />
+          {query ? (
+            <button type="button" aria-label="Очистить поиск" onClick={() => setQuery("")}>
+              <X className="size-5" />
+            </button>
+          ) : null}
+        </label>
+      ) : null}
+      {query.trim() && shown.length === 0 ? <p className="text-sm text-muted">Никого не нашлось. Проверьте написание или попробуйте только фамилию.</p> : null}
       <ul className="grid gap-2">
-        {people.map((person) => (
+        {shown.map((person) => (
           <li key={person.id} className="glass rounded-2xl p-4">
             <button type="button" className="flex w-full items-center gap-3 text-left" onClick={() => setOpenId((value) => (value === person.id ? null : person.id))}>
               <PersonAvatar person={person} size={48} />
@@ -149,7 +171,7 @@ function PeoplePane() {
             </button>
             {openId === person.id ? (
               <div className="mt-3">
-                <PersonEditor person={person} onRemoved={() => setOpenId(null)} />
+                <PersonEditor person={person} onRemoved={() => setOpenId(null)} onSaved={() => setOpenId(null)} />
               </div>
             ) : null}
           </li>

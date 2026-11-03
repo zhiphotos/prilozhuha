@@ -39,7 +39,8 @@ import { toggleBold } from "@/lib/rod/rich";
 import { startDictation, type Dictation } from "@/lib/rod/dictate";
 import { FONT_FAMILY, fontFamily, lookColors, textMetrics } from "@/lib/rod/page-style";
 import { FontLibrarySheet } from "@/components/rod/font-library";
-import { libFont } from "@/lib/rod/fonts";
+import { ensureLibraryFont, libFont } from "@/lib/rod/fonts";
+import { useFavFonts } from "@/lib/rod/font-favs";
 import { SHAPES, isStrokedShape, shapeStyle } from "@/lib/rod/shapes";
 import { FONT_LABEL } from "@/lib/rod/pages";
 import { useRod } from "@/lib/rod/store";
@@ -97,6 +98,14 @@ export function FontChips({ value, onPick, onMore, sample }: { value: FontRef; o
   const [library, setLibrary] = useState(false);
   const chosen = typeof value === "string" && value.startsWith("custom:") ? libFont(value.slice(7)) : undefined;
   const builtin: FontKind[] = ["sans", "script"];
+  // Избранные шрифты (звёздочка в окне «Шрифты»): стоят сразу после «Почерк бабушки».
+  const favs = useFavFonts();
+  const favFonts = favs.flatMap((ref) => (ref.startsWith("custom:") && libFont(ref.slice(7)) ? [{ ref: ref as FontRef, font: libFont(ref.slice(7))! }] : []));
+  const favKey = favFonts.map((item) => item.font.id).join(",");
+  useEffect(() => {
+    favFonts.forEach((item) => void ensureLibraryFont(item.font.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [favKey]);
   return (
     <>
       {builtin.map((font) => (
@@ -109,7 +118,12 @@ export function FontChips({ value, onPick, onMore, sample }: { value: FontRef; o
           <span style={{ fontFamily: fontFamily(`custom:${font.id}`) }}>{font.name}</span>
         </BarBtn>
       ))}
-      {chosen ? (
+      {favFonts.map((item) => (
+        <BarBtn key={item.ref} active={value === item.ref} onClick={() => onPick(item.ref)} label={`${item.font.name}, избранный шрифт`}>
+          <span style={{ fontFamily: fontFamily(item.ref) }}>{item.font.name}</span>
+        </BarBtn>
+      ))}
+      {chosen && !favs.includes(value as string) ? (
         <BarBtn active onClick={() => setLibrary(true)}>
           <span style={{ fontFamily: fontFamily(value) }}>{chosen.name}</span>
         </BarBtn>
@@ -748,10 +762,10 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
   const px = block.type === "text" ? (block.px ?? Math.round(textMetrics(block.font, block.size).size * 10)) : 0;
   return (
     <Sheet title="Свойства" onClose={onClose} dim={false}>
-      <div className="grid gap-4">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
         <Section title="Вид">
           <Stepper label="Прозрачность" unit="%" value={Math.round((block.opacity ?? 1) * 100)} min={5} max={100} step={5} onChange={(v) => ops.patch({ opacity: v >= 100 ? undefined : v / 100 } as Partial<PageBlock>, `op:${block.id}`)} />
-          <div className="no-scrollbar -mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1">
+          <div className="mt-2 flex flex-wrap gap-1.5">
             {BLENDS.map((item) => (
               <BarBtn key={item.label} active={block.blend === item.id} onClick={() => ops.patch({ blend: item.id } as Partial<PageBlock>)}>
                 {item.label}
@@ -763,7 +777,7 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
 
         {block.type === "text" ? (
           <Section title="Текст">
-            <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1">
+            <div className="flex flex-wrap gap-1.5">
               <FontChips value={block.font} onPick={(font) => ops.patch({ font } as Partial<PageBlock>)} onMore={ops.openFonts} sample={block.text} />
             </div>
             <div className="mt-2">
@@ -771,29 +785,6 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
               <div className="mt-1.5">
                 <Stepper label="Пробелы" unit="%" value={Math.round((block.wordGap ?? 0) * 100)} min={-20} max={250} step={5} onChange={(v) => ops.patch({ wordGap: v === 0 ? undefined : v / 100 } as Partial<PageBlock>, `gap:${block.id}`)} />
               </div>
-              <button
-                type="button"
-                className="mt-1.5 text-sm text-rose-deep underline"
-                onClick={() => {
-                  const state = useRod.getState();
-                  let count = 0;
-                  for (const page of state.pages) {
-                    if (!page.blocks.some((item) => item.type === "text" && item.id !== block.id)) continue;
-                    state.updatePage(page.id, (current) => ({
-                      ...current,
-                      blocks: current.blocks.map((item) => {
-                        if (item.type !== "text") return item;
-                        count += 1;
-                        return { ...item, px };
-                      }),
-                    }));
-                  }
-                  ops.patch({ px } as Partial<PageBlock>);
-                  toast(`Размер ${px} px поставлен на ${count + 1} текстах книги`);
-                }}
-              >
-                Поставить {px} px на все тексты книги
-              </button>
               <button
                 type="button"
                 className="mt-1 block text-sm text-rose-deep underline"
@@ -806,7 +797,7 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
                 Что не поместилось, перенести на следующую страницу
               </button>
             </div>
-            <div className="no-scrollbar -mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {(["plain", "card", "pill"] as TextLook[]).map((look) => (
                 <BarBtn key={look} active={(block.look ?? "plain") === look} onClick={() => ops.patch({ look } as Partial<PageBlock>)}>
                   {look === "plain" ? "Без фона" : look === "card" ? "Карточка" : "Плашка"}
@@ -820,14 +811,14 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
 
         {block.type === "photo" ? (
           <Section title="Фото">
-            <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1">
+            <div className="flex flex-wrap gap-1.5">
               {(["polaroid", "sticker", "tape", "none"] as PhotoFrame[]).map((frame) => (
                 <BarBtn key={frame} active={block.frame === frame && !(frame === "sticker" && block.cut)} onClick={() => ops.patch({ frame } as Partial<PageBlock>)}>
                   {frame === "polaroid" ? "Полароид" : frame === "sticker" ? "Кайма" : frame === "tape" ? "Скотч" : "Просто фото"}
                 </BarBtn>
               ))}
             </div>
-            <div className="no-scrollbar -mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               <BarBtn onClick={() => ops.cut("auto")}>
                 <Scissors className="size-4" /> Убрать фон
               </BarBtn>
@@ -855,14 +846,14 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
 
         {block.type === "shape" ? (
           <Section title="Фигура">
-            <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1">
+            <div className="flex flex-wrap gap-1.5">
               {SHAPES.map((item) => (
                 <BarBtn key={item.id} active={block.shape === item.id} onClick={() => ops.patch({ shape: item.id as ShapeKind } as Partial<PageBlock>)}>
                   {item.label}
                 </BarBtn>
               ))}
             </div>
-            <div className="no-scrollbar -mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {!isStrokedShape(block.shape) ? <BarBtn onClick={() => setColors("fill")}>Заливка</BarBtn> : null}
               <BarBtn onClick={() => setColors("stroke")}>{isStrokedShape(block.shape) ? "Цвет" : "Контур"}</BarBtn>
             </div>
@@ -873,7 +864,7 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
         ) : null}
 
         <Section title="Положение">
-          <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1">
+          <div className="flex flex-wrap gap-1.5">
             <BarBtn onClick={ops.centerH}>↔ По центру страницы</BarBtn>
             <BarBtn onClick={ops.centerV}>↕ По центру по высоте</BarBtn>
             {block.rotate ? <BarBtn onClick={() => ops.patch({ rotate: 0 } as Partial<PageBlock>)}>Выпрямить</BarBtn> : null}

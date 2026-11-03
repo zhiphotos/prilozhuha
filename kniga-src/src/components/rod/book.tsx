@@ -1,3 +1,4 @@
+import { needsMaidenName } from "@/lib/rod/person";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeftRight, BookOpen, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ import { CoverSetup } from "@/components/rod/cover-setup";
 import { PlanSheet } from "@/components/rod/plan-sheet";
 import { TextToPagesSheet } from "@/components/rod/text-to-pages";
 import { UnlockCarousel } from "@/components/rod/unlock-carousel";
+import { ReelButton } from "@/components/rod/reel-modal";
 import { Hint } from "@/components/rod/hint";
 import { ContentsSheet } from "@/components/rod/contents-sheet";
 import { downloadFamilyBook, downloadPrintBlock, downloadPrintCover } from "@/lib/rod/print-book";
@@ -50,7 +52,7 @@ export function BookScreen() {
   const storyOut = stories.filter((story) => !usedPrompts.has(`story:${story.id}`));
   const usedSrc = new Set(pages.flatMap((page) => page.blocks.map((block) => (block.type === "photo" ? block.src : ""))));
   const photoOut = photos.filter((photo) => !usedSrc.has(photo.dataUrl));
-  const noMaiden = people.filter((person) => /бабуш|мам/i.test(person.relation) && !person.maidenName.trim());
+  const noMaiden = people.filter(needsMaidenName);
   const hasCover = pages.some((page) => page.kind === "cover");
 
 
@@ -101,8 +103,18 @@ export function BookScreen() {
         </button>
       ) : null}
 
-      <FullTemplate pages={pages} meta={meta} tpl={FULL_SPEC} />
-      <FullTemplate pages={pages} meta={meta} tpl={LOVE_SPEC} />
+      {data.programOpen ? (
+        // У платных готовые шаблоны листаются вбок и занимают одну строку, а не две длинные карточки друг под другом.
+        <div className="no-scrollbar -mx-1 mb-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2" role="group" aria-label="Готовые шаблоны книги">
+          <FullTemplate pages={pages} meta={meta} tpl={FULL_SPEC} carousel />
+          <FullTemplate pages={pages} meta={meta} tpl={LOVE_SPEC} carousel />
+        </div>
+      ) : (
+        <>
+          <FullTemplate pages={pages} meta={meta} tpl={FULL_SPEC} />
+          <FullTemplate pages={pages} meta={meta} tpl={LOVE_SPEC} />
+        </>
+      )}
 
       <PageGrid pages={pages} meta={meta} onOpen={(id) => nav.go({ id: "editor", pageId: id })} onAdd={() => setLibrary(true)} />
 
@@ -152,7 +164,8 @@ export function BookScreen() {
         </div>
       </section>
 
-      {data.programOpen ? (
+      {/* Напоминание о программе только тем, у кого она ещё не открыта: у платных и у открывших по коду рекламы курса нет. */}
+      {!data.programOpen ? (
       <section className={cn("mt-4 rounded-2xl p-5", ready ? "aurora" : "glass")}>
         <h2 className="text-lg font-semibold text-ink">
           {ready ? "Ты собрал(а) материал для первой Книги рода" : "Когда страниц станет больше"}
@@ -493,10 +506,10 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
 
   return (
     <>
-      <div className="mb-3 flex items-center justify-between gap-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted">{arrange ? "Тащите страницу мышью или за ручку под ней – поменять место. Нажмите на страницу – выбрать." : `${plural(pages.length, "страница", "страницы", "страниц")}`}</p>
         {pages.length > 0 ? (
-          <span className="flex shrink-0 gap-2">
+          <span className="flex flex-wrap gap-2">
             <Button variant="soft" className="min-h-10 px-3" onClick={onAdd}>
               <Plus className="size-4" /> Страница
             </Button>
@@ -672,7 +685,7 @@ const FULL_SPEC: TemplateSpec = {
   tag: "full",
   label: "Для участников программы",
   title: "Полный шаблон Книги рода · 100 страниц",
-  intro: "Одна ветка рода по главам: дома, любовь, судьбы, кухня, находки и наследие. На каждой странице подсказка, что туда внести.",
+  intro: "Книга об одной семейной ветви, например о роде бабушки и дедушки, в восьми частях: начало, родные места, предки, любовь, дом и быт, испытания, находки и наследие. Заполнять все страницы не нужно: где сведений мало, оставьте место для будущих поисков или уберите страницу. На каждой странице подсказка, что сюда внести.",
   chapters: FULL_BOOK,
   total: FULL_BOOK_PAGES,
   build: fullBookPages,
@@ -689,7 +702,7 @@ const LOVE_SPEC: TemplateSpec = {
 };
 
 /** Готовый шаблон книги – только для тех, у кого открыта программа. */
-function FullTemplate({ pages, meta, tpl }: { pages: BookPage[]; meta: { dedicatee: string; collector: string }; tpl: TemplateSpec }) {
+function FullTemplate({ pages, meta, tpl, carousel = false }: { pages: BookPage[]; meta: { dedicatee: string; collector: string }; tpl: TemplateSpec; carousel?: boolean }) {
   const nav = useNav();
   const open = useRod((state) => state.programOpen);
   const addPage = useRod((state) => state.addPage);
@@ -716,7 +729,7 @@ function FullTemplate({ pages, meta, tpl }: { pages: BookPage[]; meta: { dedicat
   });
 
   return (
-    <section className={cn("mb-6 rounded-2xl p-5", open ? "aurora" : "glass")}>
+    <section className={cn("rounded-2xl p-5", open ? "aurora" : "glass", carousel ? "w-[86%] max-w-sm shrink-0 snap-center" : "mb-6")}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">{tpl.label}</p>
@@ -729,16 +742,34 @@ function FullTemplate({ pages, meta, tpl }: { pages: BookPage[]; meta: { dedicat
         ) : null}
       </div>
       <p className="mt-2 text-sm text-ink/70">{tpl.intro}</p>
-      <ol className="mt-3 grid gap-1 text-sm text-ink">
-        {chapters.map((chapter) => (
-          <li key={chapter.n} className="flex gap-2">
-            <span className="w-14 shrink-0 tabular-nums text-ink/75">{chapter.range}</span>
-            <span>
-              {chapter.n}. {chapter.title}
-            </span>
-          </li>
-        ))}
-      </ol>
+      {tpl.tag === "love" ? <ReelButton className="mt-3 w-full max-w-[16rem]" /> : null}
+      {carousel ? (
+        <details className="mt-3 text-sm text-ink">
+          <summary className="cursor-pointer font-medium">Главы: {chapters.length}</summary>
+          <ol className="mt-2 grid gap-1">
+            {chapters.map((chapter) => (
+              <li key={chapter.n} className="flex gap-2">
+                <span className="w-14 shrink-0 tabular-nums text-ink/75">{chapter.range}</span>
+                <span>
+                  {chapter.n}. {chapter.title}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </details>
+      ) : null}
+      {carousel ? null : (
+        <ol className="mt-3 grid gap-1 text-sm text-ink">
+          {chapters.map((chapter) => (
+            <li key={chapter.n} className="flex gap-2">
+              <span className="w-14 shrink-0 tabular-nums text-ink/75">{chapter.range}</span>
+              <span>
+                {chapter.n}. {chapter.title}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
       {open ? (
         added ? (
           <p className="mt-4 text-sm font-medium text-ink">Шаблон уже в книге – листайте и заполняйте страницы.</p>
