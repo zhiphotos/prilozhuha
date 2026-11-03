@@ -17,3 +17,14 @@ test("мама и бабушки без записанной фамилии по
   assert.equal(needsMaidenName(p("бабушка по папе")), true);
   assert.equal(needsMaidenName(p("бабушка", { maidenName: "Петрова" })), false);
 });
+test("прапрабабушка без выбранного пола получает вопрос, прапрадедушка нет", () => {
+  assert.equal(needsMaidenName(p("прапрабабушка")), true);
+  assert.equal(needsMaidenName(p("прапрадедушка")), false);
+});
+test("родственник по маме, но мужчина, вопроса не получает; женщина по маме получает", () => {
+  assert.equal(needsMaidenName(p("мамин брат")), false);
+  assert.equal(needsMaidenName(p("дедушка по маме")), false);
+  assert.equal(needsMaidenName(p("прадедушка по маме")), false);
+  assert.equal(needsMaidenName(p("бабушка по маме")), true);
+  assert.equal(needsMaidenName(p("мама мужа")), true);
+});

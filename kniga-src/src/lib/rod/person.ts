@@ -47,6 +47,8 @@ export function personEvents(people: Person[]): { id: string; year: string; titl
 /** Кого спрашивать про девичью фамилию на странице «Книга»: женщин-родственниц по маме и бабушке; мужчин (в том числе «дедушка по маме») и тех, у кого она уже записана, нет. */
 export function needsMaidenName(person: Pick<Person, "gender" | "relation" | "maidenName">): boolean {
   if ((person.maidenName ?? "").trim()) return false;
-  if (genderOf(person) !== "f") return false;
+  // Пол по первому слову: «мамин брат» это мужчина, а «прапрабабушка» женщина, хотя в общих правилах «пра» повторяется не везде.
+  const relation = person.relation.trim().replace(/^(мамин|папин|бабушкин|дедушкин)\s+/i, "").replace(/^(?:пра)+(?=бабуш|дед)/i, "пра");
+  if (genderOf({ gender: person.gender, relation }) !== "f") return false;
   return /бабуш|мам/i.test(person.relation);
 }
