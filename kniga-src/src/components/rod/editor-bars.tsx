@@ -773,29 +773,6 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
               </div>
               <button
                 type="button"
-                className="mt-1.5 text-sm text-rose-deep underline"
-                onClick={() => {
-                  const state = useRod.getState();
-                  let count = 0;
-                  for (const page of state.pages) {
-                    if (!page.blocks.some((item) => item.type === "text" && item.id !== block.id)) continue;
-                    state.updatePage(page.id, (current) => ({
-                      ...current,
-                      blocks: current.blocks.map((item) => {
-                        if (item.type !== "text") return item;
-                        count += 1;
-                        return { ...item, px };
-                      }),
-                    }));
-                  }
-                  ops.patch({ px } as Partial<PageBlock>);
-                  toast(`Размер ${px} px поставлен на ${count + 1} текстах книги`);
-                }}
-              >
-                Поставить {px} px на все тексты книги
-              </button>
-              <button
-                type="button"
                 className="mt-1 block text-sm text-rose-deep underline"
                 onClick={() => {
                   const owner = useRod.getState().pages.find((page) => page.blocks.some((item) => item.id === block.id));
