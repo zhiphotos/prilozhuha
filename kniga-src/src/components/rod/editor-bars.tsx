@@ -33,6 +33,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/cn";
 import { BarBtn, Stepper } from "@/components/rod/editor-ui";
 import { SoftEdgeControls } from "@/components/rod/soft-edge-controls";
+import { PhotoFxControls } from "@/components/rod/photo-fx-controls";
+import { useMedia } from "@/lib/rod/media";
 import { ColorSheet } from "@/components/rod/color-sheet";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { BRUSHES, px2w, w2px } from "@/lib/rod/ink";
@@ -776,9 +778,11 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
           <p className="mt-1 text-xs text-muted">«Умножение» хорошо для текстур и бумажных футажей: белое исчезает, остаётся рисунок.</p>
         </Section>
 
+        {block.type === "photo" && !(block.frame === "sticker" && block.cut) ? <FxSection block={block} ops={ops} /> : null}
+
         {block.type === "photo" || block.type === "sticker" ? (
           <Section title="Мягкий край">
-            <SoftEdgeControls value={block.soft} onChange={(soft, group) => ops.patch({ soft } as Partial<PageBlock>, group ? `${group}:${block.id}` : undefined)} />
+            <SoftSection block={block} ops={ops} />
           </Section>
         ) : null}
 
@@ -902,6 +906,20 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
         />
       ) : null}
     </Sheet>
+  );
+}
+
+function SoftSection({ block, ops }: { block: PageBlock; ops: BlockOps }) {
+  const src = useMedia(block.type === "photo" ? block.src : "");
+  return <SoftEdgeControls src={src} value={block.soft} onChange={(soft, group) => ops.patch({ soft } as Partial<PageBlock>, group ? `${group}:${block.id}` : undefined)} />;
+}
+
+function FxSection({ block, ops }: { block: Extract<PageBlock, { type: "photo" }>; ops: BlockOps }) {
+  const src = useMedia(block.src);
+  return (
+    <Section title="Эффект фото">
+      <PhotoFxControls src={src} value={block.fx} onChange={(fx, group) => ops.patch({ fx } as Partial<PageBlock>, group ? `${group}:${block.id}` : undefined)} />
+    </Section>
   );
 }
 

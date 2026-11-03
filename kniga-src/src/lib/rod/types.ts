@@ -237,6 +237,8 @@ export type PageBlock =
       sharp?: boolean;
       /** Рамка подогнана под размер картинки: углом тянется пропорционально, и фото остаётся целым (Shift – свободно). */
       whole?: boolean;
+      /** Пресет обработки фото (рисунок, плёнка, дуотон…): хранится только параметр, оригинал не меняется. */
+      fx?: import("@/lib/rod/photo-fx").PhotoFx;
     } & Placed)
   | ({ id: string; type: "sticker"; x: number; y: number; kind: StickerKind; w?: number; text?: string } & Placed)
   | ({ id: string; type: "chip"; x: number; y: number; kind: "place" | "date"; text: string } & Placed)
