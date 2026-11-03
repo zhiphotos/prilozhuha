@@ -102,7 +102,7 @@ export function Stepper({ label, value, min, max, step = 1, unit = "px", onChang
   };
   return (
     <div className="flex items-center gap-2">
-      <span className="hidden w-14 shrink-0 text-xs text-muted min-[420px]:block">{label}</span>
+      <span className="hidden w-24 shrink-0 truncate text-xs text-muted min-[420px]:block">{label}</span>
       <button type="button" aria-label="Меньше" className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-lg leading-none" onClick={() => onChange(clamp(value - step))}>
         −
       </button>
