@@ -189,6 +189,9 @@ export function UnlockCarousel() {
   const [soon, setSoon] = useState(false);
   const [reviews, setReviews] = useState(false);
   const [reel, setReel] = useState(false);
+  // Слайды одинакового размера 4:5, текст свёрнут. «Развернуть» раскрывает текст только у этого слайда.
+  const [openSlides, setOpenSlides] = useState<number[]>([]);
+  const toggleSlide = (i: number) => setOpenSlides((list) => (list.includes(i) ? list.filter((n) => n !== i) : [...list, i]));
 
   useEffect(() => {
     const el = track.current;
@@ -227,10 +230,10 @@ export function UnlockCarousel() {
             key={`${slide.kicker}-${i}`}
             aria-roledescription="слайд"
             aria-label={`${i + 1} из ${SLIDES.length}`}
-            className={`flex w-[84%] max-w-sm shrink-0 snap-center flex-col overflow-hidden rounded-[1.75rem] text-paper shadow-md ring-1 ring-[#c9ae74]/35 transition-opacity duration-300 motion-reduce:transition-none ${i === index ? "opacity-100" : "opacity-80"}`}
+            className={`flex w-[84%] max-w-sm shrink-0 snap-center flex-col overflow-hidden rounded-[1.75rem] text-paper shadow-md ring-1 ring-[#c9ae74]/35 transition-opacity duration-300 motion-reduce:transition-none ${openSlides.includes(i) ? "" : "aspect-[4/5]"} ${i === index ? "opacity-100" : "opacity-80"}`}
             style={{ background: "linear-gradient(180deg,#0d0c0a 0%,#1a1d0e 55%,#3f4a22 160%)" }}
           >
-            <div className="relative aspect-[4/3] w-full bg-black">
+            <div className={`relative w-full bg-black ${openSlides.includes(i) ? "aspect-[4/3]" : "min-h-0 flex-1 basis-0"}`}>
               <span className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-full bg-black/60 px-2.5 py-1 font-mono text-[11px] tracking-[0.14em] text-[#e6cf9c] ring-1 ring-[#c9ae74]/40">
                 {String(i + 1).padStart(2, "0")} / {String(SLIDES.length).padStart(2, "0")}
               </span>
@@ -264,11 +267,14 @@ export function UnlockCarousel() {
                 </span>
               ) : null}
             </div>
-            <div className="flex flex-1 flex-col border-t border-[#c9ae74]/40 p-5">
+            <div className={`flex flex-col border-t border-[#c9ae74]/40 p-4 ${openSlides.includes(i) ? "flex-1" : "shrink-0"}`}>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">{slide.kicker}</p>
-              <h3 className="mt-1 text-[1.2rem] font-semibold leading-tight">{slide.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-paper/85">{slide.text}</p>
-              {slide.buy ? (
+              <h3 className={`mt-1 font-semibold leading-tight ${openSlides.includes(i) ? "text-[1.2rem]" : "line-clamp-2 text-[1.05rem]"}`}>{slide.title}</h3>
+              <p className={`mt-1.5 text-sm leading-relaxed text-paper/85 ${openSlides.includes(i) ? "" : "line-clamp-2"}`}>{slide.text}</p>
+              <button type="button" aria-expanded={openSlides.includes(i)} onClick={() => toggleSlide(i)} className="mt-1 self-start text-xs font-semibold text-[#e6cf9c] underline">
+                {openSlides.includes(i) ? "Свернуть" : "Развернуть"}
+              </button>
+              {slide.buy && openSlides.includes(i) ? (
                 <Button className="mt-4 w-full" onClick={() => setPay(true)}>
                   <ShoppingBag className="size-4" /> Купить мини-уроки и полный доступ
                 </Button>
