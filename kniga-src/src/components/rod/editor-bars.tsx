@@ -1,7 +1,7 @@
 import { Hint } from "@/components/rod/hint";
 import { useEffect, useRef, useState } from "react";
 import {
-  AlignCenter,
+  AlignCenter, AlignJustify,
   AlignLeft,
   AlignRight,
   BringToFront,
@@ -302,9 +302,9 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
           <BarBtn active={more} onClick={() => setMore(!more)} label="Шрифт и размер">
             Aa
           </BarBtn>
-          {more ? (<>{(["left", "center", "right"] as const).map((align) => (
-            <BarBtn key={align} wide={false} label={align === "left" ? "По левому краю" : align === "center" ? "По центру" : "По правому краю"} active={(block.align ?? "left") === align} onClick={() => ops.patch({ align } as Partial<PageBlock>)}>
-              {align === "left" ? <AlignLeft className="size-4" /> : align === "center" ? <AlignCenter className="size-4" /> : <AlignRight className="size-4" />}
+          {more ? (<>{(["left", "center", "right", "justify"] as const).map((align) => (
+            <BarBtn key={align} wide={false} label={align === "left" ? "По левому краю" : align === "center" ? "По центру" : align === "right" ? "По правому краю" : "По ширине"} active={(block.align ?? "left") === align} onClick={() => ops.patch({ align } as Partial<PageBlock>)}>
+              {align === "left" ? <AlignLeft className="size-4" /> : align === "center" ? <AlignCenter className="size-4" /> : align === "right" ? <AlignRight className="size-4" /> : <AlignJustify className="size-4" />}
             </BarBtn>
           ))}
           {block.look !== "card" && block.look !== "pill" ? (
@@ -539,9 +539,9 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
           <BarBtn onClick={() => setColors("text")}>
             <span className="size-4 rounded-full border border-ink/20" style={{ background: lookColors(block.look, block.color, block.bg)[block.look === "card" || block.look === "pill" ? "bg" : "fg"] }} /> Цвет
           </BarBtn>
-          {(["left", "center", "right"] as const).map((align) => (
-            <BarBtn key={align} wide={false} label={align === "left" ? "По левому краю" : align === "center" ? "По центру" : "По правому краю"} active={(block.align ?? "left") === align} onClick={() => ops.patch({ align } as Partial<PageBlock>)}>
-              {align === "left" ? <AlignLeft className="size-4" /> : align === "center" ? <AlignCenter className="size-4" /> : <AlignRight className="size-4" />}
+          {(["left", "center", "right", "justify"] as const).map((align) => (
+            <BarBtn key={align} wide={false} label={align === "left" ? "По левому краю" : align === "center" ? "По центру" : align === "right" ? "По правому краю" : "По ширине"} active={(block.align ?? "left") === align} onClick={() => ops.patch({ align } as Partial<PageBlock>)}>
+              {align === "left" ? <AlignLeft className="size-4" /> : align === "center" ? <AlignCenter className="size-4" /> : align === "right" ? <AlignRight className="size-4" /> : <AlignJustify className="size-4" />}
             </BarBtn>
           ))}
           {block.look !== "card" && block.look !== "pill" ? (

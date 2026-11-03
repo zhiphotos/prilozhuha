@@ -1,4 +1,5 @@
 // Печатная версия: каждая страница рисуется на холсте 300 dpi по тем же правилам, что и на экране.
+import { justifyGap, lastLinesOf } from "@/lib/rod/justify";
 import { ensureLibraryFont, libraryIdsIn } from "@/lib/rod/fonts";
 import { resolveMedia } from "@/lib/rod/media";
 import { cropGeom } from "@/lib/rod/crop";
@@ -344,9 +345,13 @@ function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { ty
   const center = block.align === "center";
   const right = block.align === "right";
   ctx.textAlign = center ? "center" : right ? "right" : "left";
+  const justify = block.align === "justify";
+  const ends = justify ? lastLinesOf(explodeBold(block.text), lines) : [];
   lines.forEach((line, index) => {
     const ly = pad.y * U + index * lh + lh / 2;
-    fillLine(ctx, line, center ? bgW / 2 : right ? bgW - pad.x * U : pad.x * U, ly, gap);
+    // По ширине: все строки, кроме последней в абзаце, растягиваются за счёт пробелов до края блока (как на экране).
+    const extra = justify && !ends[index] ? justifyGap(widthWith(ctx, line, gap), innerW, line, px) : 0;
+    fillLine(ctx, line, center ? bgW / 2 : right ? bgW - pad.x * U : pad.x * U, ly, gap + extra);
   });
   ctx.restore();
 }

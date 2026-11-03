@@ -2,6 +2,7 @@ import { applyPatch, onSiblingSet, syncRelations, withoutPerson } from "@/lib/tr
 import { toast } from "sonner";
 import { bumpUsage, searchesLeft, type SearchUsage } from "@/lib/rod/search-limit";
 import { create } from "zustand";
+import { freezeTextSizes } from "@/lib/rod/freeze-text";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import { applyFormat } from "@/lib/rod/book-format";
 import { noteEdit } from "@/lib/rod/edit-counter";
@@ -490,4 +491,11 @@ export const useRod = create<RodState>()(
 // Формат страницы (пропорция) живёт в настройках печати: при смене или загрузке книги пересчитываем размеры.
 useRod.subscribe((state, prev) => {
   if (state.print !== prev.print) applyFormat(state.print);
+});
+
+// Закрепляем размер букв у каждого текста (см. freeze-text.ts): обновления приложения больше не меняют уже сделанные страницы.
+useRod.subscribe((state, prev) => {
+  if (state.pages === prev.pages) return;
+  const frozen = freezeTextSizes(state.pages);
+  if (frozen !== state.pages) useRod.setState({ pages: frozen });
 });
