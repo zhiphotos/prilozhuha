@@ -39,7 +39,8 @@ import { toggleBold } from "@/lib/rod/rich";
 import { startDictation, type Dictation } from "@/lib/rod/dictate";
 import { FONT_FAMILY, fontFamily, lookColors, textMetrics } from "@/lib/rod/page-style";
 import { FontLibrarySheet } from "@/components/rod/font-library";
-import { libFont } from "@/lib/rod/fonts";
+import { ensureLibraryFont, libFont } from "@/lib/rod/fonts";
+import { useFavFonts } from "@/lib/rod/font-favs";
 import { SHAPES, isStrokedShape, shapeStyle } from "@/lib/rod/shapes";
 import { FONT_LABEL } from "@/lib/rod/pages";
 import { useRod } from "@/lib/rod/store";
@@ -97,6 +98,14 @@ export function FontChips({ value, onPick, onMore, sample }: { value: FontRef; o
   const [library, setLibrary] = useState(false);
   const chosen = typeof value === "string" && value.startsWith("custom:") ? libFont(value.slice(7)) : undefined;
   const builtin: FontKind[] = ["sans", "script"];
+  // Избранные шрифты (звёздочка в окне «Шрифты»): стоят сразу после «Почерк бабушки».
+  const favs = useFavFonts();
+  const favFonts = favs.flatMap((ref) => (ref.startsWith("custom:") && libFont(ref.slice(7)) ? [{ ref: ref as FontRef, font: libFont(ref.slice(7))! }] : []));
+  const favKey = favFonts.map((item) => item.font.id).join(",");
+  useEffect(() => {
+    favFonts.forEach((item) => void ensureLibraryFont(item.font.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [favKey]);
   return (
     <>
       {builtin.map((font) => (
@@ -109,7 +118,12 @@ export function FontChips({ value, onPick, onMore, sample }: { value: FontRef; o
           <span style={{ fontFamily: fontFamily(`custom:${font.id}`) }}>{font.name}</span>
         </BarBtn>
       ))}
-      {chosen ? (
+      {favFonts.map((item) => (
+        <BarBtn key={item.ref} active={value === item.ref} onClick={() => onPick(item.ref)} label={`${item.font.name}, избранный шрифт`}>
+          <span style={{ fontFamily: fontFamily(item.ref) }}>{item.font.name}</span>
+        </BarBtn>
+      ))}
+      {chosen && !favs.includes(value as string) ? (
         <BarBtn active onClick={() => setLibrary(true)}>
           <span style={{ fontFamily: fontFamily(value) }}>{chosen.name}</span>
         </BarBtn>
