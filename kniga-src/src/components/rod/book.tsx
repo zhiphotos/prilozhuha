@@ -12,6 +12,7 @@ import { CoverSetup } from "@/components/rod/cover-setup";
 import { PlanSheet } from "@/components/rod/plan-sheet";
 import { TextToPagesSheet } from "@/components/rod/text-to-pages";
 import { UnlockCarousel } from "@/components/rod/unlock-carousel";
+import { ReelButton } from "@/components/rod/reel-modal";
 import { Hint } from "@/components/rod/hint";
 import { ContentsSheet } from "@/components/rod/contents-sheet";
 import { downloadFamilyBook, downloadPrintBlock, downloadPrintCover } from "@/lib/rod/print-book";
@@ -729,6 +730,7 @@ function FullTemplate({ pages, meta, tpl }: { pages: BookPage[]; meta: { dedicat
         ) : null}
       </div>
       <p className="mt-2 text-sm text-ink/70">{tpl.intro}</p>
+      {tpl.tag === "love" ? <ReelButton className="mt-3 w-full max-w-[16rem]" /> : null}
       <ol className="mt-3 grid gap-1 text-sm text-ink">
         {chapters.map((chapter) => (
           <li key={chapter.n} className="flex gap-2">
