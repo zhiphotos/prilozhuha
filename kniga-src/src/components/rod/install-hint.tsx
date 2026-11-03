@@ -106,7 +106,7 @@ export function InstallCard() {
       return false;
     }
   });
-  if (hidden || isStandalone()) return null;
+  if (hidden || isStandalone() || bannerVisible()) return null;
   return (
     <>
       <section className="glass mt-9 flex items-center gap-4 rounded-2xl p-4">
@@ -132,6 +132,64 @@ export function InstallCard() {
               Не сейчас
             </button>
           </div>
+        </div>
+      </section>
+      {open ? <InstallSheet onClose={() => setOpen(false)} /> : null}
+    </>
+  );
+}
+
+const SNOOZE_KEY = "kniga-install-banner-snooze";
+const SNOOZE_MS = 3 * 24 * 60 * 60 * 1000;
+
+/**
+ * Заметная плашка вверху главной, пока приложение открыто в браузере, а не с иконки «Домой».
+ * Браузер может стереть данные сайта (на iPhone, например, после недели без захода), а книга у бесплатных пользователей хранится только на телефоне.
+ * «Напомнить позже» откладывает плашку на три дня, а не навсегда.
+ */
+/** Отложена ли плашка. Метка из будущего (часы телефона ушли вперёд) не считается: плашка не должна пропадать на месяцы из-за неверных часов. */
+function bannerSnoozed(): boolean {
+  try {
+    const at = Number(localStorage.getItem(SNOOZE_KEY) || 0);
+    const age = Date.now() - at;
+    return at > 0 && age >= 0 && age < SNOOZE_MS;
+  } catch {
+    return false;
+  }
+}
+
+/** Плашка сейчас на экране: тогда прежняя карточка внизу главной не показывается, чтобы не дублировать подсказку. */
+export function bannerVisible(): boolean {
+  return !isStandalone() && !bannerSnoozed();
+}
+
+export function InstallBanner() {
+  const [open, setOpen] = useState(false);
+  const [snoozed, setSnoozed] = useState(bannerSnoozed);
+  if (snoozed || isStandalone()) return null;
+  return (
+    <>
+      <section role="note" className="mb-5 rounded-2xl border border-gold/60 bg-gold/15 p-4">
+        <p className="text-[15px] font-semibold text-ink">Книга открыта в браузере</p>
+        <p className="mt-1 text-sm text-ink/80">Браузер может стереть её данные, например если вы долго не заходили. Поставьте значок на экран «Домой» и открывайте книгу с него: так данные хранятся надёжнее.</p>
+        <div className="mt-2 flex flex-wrap gap-x-4">
+          <button type="button" onClick={() => setOpen(true)} className="min-h-10 text-sm font-semibold text-moss underline">
+            Как это сделать
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                localStorage.setItem(SNOOZE_KEY, String(Date.now()));
+              } catch {
+                /* плашка просто покажется снова */
+              }
+              setSnoozed(true);
+            }}
+            className="min-h-10 text-sm text-muted"
+          >
+            Напомнить позже
+          </button>
         </div>
       </section>
       {open ? <InstallSheet onClose={() => setOpen(false)} /> : null}

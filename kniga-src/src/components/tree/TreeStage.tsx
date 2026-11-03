@@ -7,6 +7,7 @@ import { TaigaView } from "@/components/tree/TaigaView";
 import { PosterView } from "@/components/tree/PosterView";
 import { fitText, isDeceased, kinship, nameLines, yearsOf } from "@/lib/tree/kinship";
 import { lineageUnionIds } from "@/lib/tree/lineage";
+import { halfUnionIds } from "@/lib/tree/half-unions";
 import { centerDecision } from "@/lib/tree/camera";
 import { MAX_ZOOM, MIN_ZOOM, PLATE_GAP, PLATE_H, PLATE_W, PORTRAIT_R } from "@/lib/tree/metrics";
 import type { CameoSheet } from "@/lib/tree/cameo";
@@ -152,19 +153,7 @@ function Leaf({ motif }: { motif: { x: number; y: number; r: number; rot: number
 
 export function TreeStage(props: Props) {
   // Сводные братья и сёстры: у родителя несколько союзов с детьми, детей от следующих союзов ведём пунктиром.
-  const halfUnions = useMemo(() => {
-    const seen = new Map<string, number>();
-    const out = new Set<string>();
-    for (const u of props.unions) {
-      if (!u.childIds.length) continue;
-      for (const id of u.partnerIds) {
-        const count = (seen.get(id) ?? 0) + 1;
-        seen.set(id, count);
-        if (count > 1) out.add(u.id);
-      }
-    }
-    return out;
-  }, [props.unions]);
+  const halfUnions = useMemo(() => halfUnionIds(props.unions, props.people), [props.unions, props.people]);
   const { layout, people, unions, focusId, selectedId, centerReq, fitReq, radius, onRadius, onSelectPerson, onSelectUnion, onClear, onLocate, onJump, style, onStyle, stylesLocked, poster, cameo, gzhel, boheme, taiga, flow, onFlow } = props;
   // Подсветка линии остаётся после закрытия карточки (карточка закрывает почти весь экран телефона) и гаснет по нажатию на пустое место схемы.
   const [litId, setLitId] = useState<string | null>(null);
