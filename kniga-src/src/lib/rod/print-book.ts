@@ -4,6 +4,7 @@ import { resolveMedia } from "@/lib/rod/media";
 import { cropGeom } from "@/lib/rod/crop";
 import { PAGE_H, strokeGeom } from "@/lib/rod/ink";
 import { maskImageUrl } from "@/lib/rod/mask";
+import { boxHeight, cleanSoft, softDataUrl } from "@/lib/rod/soft-edge";
 import {
   COLORS,
   FONT_FAMILY,
@@ -544,7 +545,8 @@ async function paintBlock(ctx: CanvasRenderingContext2D, block: PageBlock, dark:
     else if (block.type === "ink") await paintInk(target, block);
   };
   const mask = block.mask && block.mask.strokes.length ? block.mask : null;
-  if (!mask && block.opacity === undefined && !block.blend) {
+  const soft = cleanSoft(block.soft);
+  if (!mask && !soft && block.opacity === undefined && !block.blend) {
     await draw(ctx);
     return;
   }
@@ -568,6 +570,21 @@ async function paintBlock(ctx: CanvasRenderingContext2D, block: PageBlock, dark:
       lc.save();
       lc.globalCompositeOperation = "destination-in";
       lc.translate(bx + bw / 2, by + bh / 2);
+      lc.rotate(((block.rotate ?? 0) * Math.PI) / 180);
+      lc.drawImage(image, -bw / 2, -bh / 2, bw, bh);
+      lc.restore();
+    }
+  }
+  if (soft) {
+    // Мягкий край: та же картинка-маска, что и на экране, вырезает слой по форме (вместе с ластиком даёт пересечение).
+    const bw = (blockW(block as { type: string; w?: number }) / 100) * W;
+    const ratio = block.type === "sticker" ? stickerRatio(block.kind) : 0.75;
+    const bh = "h" in block && typeof block.h === "number" ? (block.h / 100) * H : (boxHeight(block as { w?: number; h?: number }, ratio) / 100) * bw;
+    const image = await loadImage(softDataUrl(soft, boxHeight(block as { w?: number; h?: number }, ratio)));
+    if (image) {
+      lc.save();
+      lc.globalCompositeOperation = "destination-in";
+      lc.translate((block.x / 100) * W + bw / 2, (block.y / 100) * H + bh / 2);
       lc.rotate(((block.rotate ?? 0) * Math.PI) / 180);
       lc.drawImage(image, -bw / 2, -bh / 2, bw, bh);
       lc.restore();

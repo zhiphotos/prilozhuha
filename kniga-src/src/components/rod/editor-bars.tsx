@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/cn";
 import { BarBtn, Stepper } from "@/components/rod/editor-ui";
+import { SoftEdgeControls } from "@/components/rod/soft-edge-controls";
 import { ColorSheet } from "@/components/rod/color-sheet";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { BRUSHES, px2w, w2px } from "@/lib/rod/ink";
@@ -774,6 +775,12 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
           </div>
           <p className="mt-1 text-xs text-muted">«Умножение» хорошо для текстур и бумажных футажей: белое исчезает, остаётся рисунок.</p>
         </Section>
+
+        {block.type === "photo" || block.type === "sticker" ? (
+          <Section title="Мягкий край">
+            <SoftEdgeControls value={block.soft} onChange={(soft, group) => ops.patch({ soft } as Partial<PageBlock>, group ? `${group}:${block.id}` : undefined)} />
+          </Section>
+        ) : null}
 
         {block.type === "text" ? (
           <Section title="Текст">
