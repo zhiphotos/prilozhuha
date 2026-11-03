@@ -51,7 +51,7 @@ export async function importFont(file: File): Promise<CustomFontEntry> {
 const CYR = "U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116";
 const LAT = "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215";
 
-export type LibFont = { id: string; name: string; group: "Рукописные" | "Заголовочные" | "С засечками"; files: { file: string; range?: string }[] };
+export type LibFont = { id: string; name: string; group: "Рукописные" | "Заголовочные" | "С засечками"; /** Подпись автора, если лицензия её требует. */ credit?: string; files: { file: string; range?: string }[] };
 
 const two = (name: string) => [
   { file: `fonts/lib/${name}-cyrillic.woff2`, range: CYR },
@@ -66,11 +66,16 @@ export const FONT_LIBRARY: LibFont[] = [
   { id: "bad-script", name: "Bad Script", group: "Рукописные", files: two("bad-script") },
   { id: "pacifico", name: "Pacifico", group: "Рукописные", files: two("pacifico") },
   { id: "amatic-sc", name: "Amatic SC", group: "Рукописные", files: two("amatic-sc") },
+  { id: "bristol", name: "Bristol", group: "Рукописные", files: [{ file: "fonts/lib/bristol.otf" }] },
+  { id: "excalifont", name: "Excalifont", group: "Рукописные", files: [{ file: "fonts/lib/excalifont.woff2" }] },
   { id: "yauza", name: "Яуза", group: "Заголовочные", files: [{ file: "fonts/lib/yauza.ttf" }] },
   { id: "santa-catarina", name: "Santa Catarina", group: "Заголовочные", files: [{ file: "fonts/lib/santa-catarina.ttf" }] },
   { id: "akony", name: "Akony", group: "Заголовочные", files: [{ file: "fonts/lib/akony.woff2" }] },
+  { id: "sacco", name: "Sacco", group: "Заголовочные", files: [{ file: "fonts/lib/sacco.woff2" }] },
   { id: "old-standard", name: "Old Standard", group: "С засечками", files: [{ file: "fonts/lib/old-standard.ttf" }] },
   { id: "playfair-display", name: "Playfair Display", group: "С засечками", files: two("playfair-display") },
+  { id: "oranienbaum", name: "Oranienbaum", group: "С засечками", files: two("oranienbaum") },
+  { id: "gatchina", name: "Gatchina", group: "С засечками", credit: "Автор: Dimitri Antonov / Blue Curve Designstudio, лицензия CC BY 4.0", files: [{ file: "fonts/lib/gatchina.ttf" }] },
   { id: "lora", name: "Lora", group: "С засечками", files: two("lora") },
 ];
 
