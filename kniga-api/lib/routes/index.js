@@ -1,4 +1,6 @@
 // Все адреса сервера в одном месте: на бесплатном Vercel можно не больше 12 функций, поэтому они собраны в одну (api/[...path].js).
+import aiRun from "./ai-run.js";
+import aiStatus from "./ai-status.js";
 import checkout from "./checkout.js";
 import claim from "./claim.js";
 import grantsAdmin from "./grants-admin.js";
@@ -23,6 +25,8 @@ import sync from "./sync.js";
 import verify from "./verify.js";
 
 export const ROUTES = {
+  "ai-run": aiRun,
+  "ai-status": aiStatus,
   checkout,
   claim,
   "grants-admin": grantsAdmin,

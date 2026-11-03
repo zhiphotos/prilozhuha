@@ -11,6 +11,7 @@ function memory(args) {
     case "SET": if (rest.slice(1).map((x) => x.toUpperCase()).includes("NX") && mem.kv.has(key)) return null; mem.kv.set(key, rest[0]); return "OK";
     case "DEL": return mem.kv.delete(key) | mem.hash.delete(key) | mem.set.delete(key) ? 1 : 0;
     case "INCR": { const n = Number(mem.kv.get(key) ?? 0) + 1; mem.kv.set(key, String(n)); return n; }
+    case "INCRBY": { const n = Number(mem.kv.get(key) ?? 0) + Number(rest[0]); mem.kv.set(key, String(n)); return n; }
     case "EXPIRE": return 1;
     case "HSET": for (let i = 0; i + 1 < rest.length; i += 2) h().set(rest[i], rest[i + 1]); return 1;
     case "HMGET": return rest.map((f) => h().get(f) ?? null);
