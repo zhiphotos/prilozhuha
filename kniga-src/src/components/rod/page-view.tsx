@@ -8,6 +8,7 @@ import { PAGE_H as INK_PAGE_H, inkColor as inkColorOf, strokeGeom } from "@/lib/
 import { maskDataUrl } from "@/lib/rod/mask";
 import { boxHeight, cleanSoft, maskStyleFromUrls, softDataUrl, type SoftEdge } from "@/lib/rod/soft-edge";
 import { useMedia } from "@/lib/rod/media";
+import { useFxSrc } from "@/lib/rod/use-photo-fx";
 import {
   FONT_FAMILY,
   PAGE_RATIO,
@@ -441,10 +442,12 @@ function PhotoImage({ block, src, alt }: { block: Extract<PageBlock, { type: "ph
 }
 
 function PhotoArt({ block }: { block: Extract<PageBlock, { type: "photo" }> }) {
-  const src = useMedia(block.frame === "sticker" && block.cut ? block.cut : block.src);
+  const lifted = block.frame === "sticker" && Boolean(block.cut);
+  const src = useMedia(lifted && block.cut ? block.cut : block.src);
+  const shown = useFxSrc(src, lifted ? undefined : block.fx);
   const flat = block.shadow === false ? "no-shadow" : "";
   const alt = block.caption || "Фотография";
-  const img = <PhotoImage block={block} src={src} alt={alt} />;
+  const img = <PhotoImage block={block} src={shown} alt={alt} />;
   if (block.frame === "sticker" && block.cut) {
     return src ? <img src={src} alt={alt} draggable={false} className={cn("sticker-art block h-full w-full select-none object-contain", flat)} /> : null;
   }
