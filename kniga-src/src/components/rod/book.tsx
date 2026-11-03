@@ -506,10 +506,10 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
 
   return (
     <>
-      <div className="mb-3 flex items-center justify-between gap-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted">{arrange ? "Тащите страницу мышью или за ручку под ней – поменять место. Нажмите на страницу – выбрать." : `${plural(pages.length, "страница", "страницы", "страниц")}`}</p>
         {pages.length > 0 ? (
-          <span className="flex shrink-0 gap-2">
+          <span className="flex flex-wrap gap-2">
             <Button variant="soft" className="min-h-10 px-3" onClick={onAdd}>
               <Plus className="size-4" /> Страница
             </Button>
