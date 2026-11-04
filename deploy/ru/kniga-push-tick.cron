@@ -1,0 +1,2 @@
+# Раз в час (в 7-ю минуту) проверка напоминаний. Ключ берётся из /etc/kniga-api.env, в адрес не попадает.
+7 * * * * root . /etc/kniga-api.env && curl -fsS -m 50 -H "x-cron-key: $CRON_SECRET" http://127.0.0.1:3000/api/push-tick >/dev/null 2>&1
