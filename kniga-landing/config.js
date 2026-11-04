@@ -4,7 +4,7 @@
 window.KR_CONFIG = {
   BUY_URL: "https://web.tribute.tg/p/HMi",
   // Ссылка на личный Телеграм Дарины, например "https://t.me/ИМЯ". Пока пусто, ссылка «в Телеграм» скрыта.
-  TELEGRAM_URL: "",
+  TELEGRAM_URL: "https://t.me/zhiphotos",
   // Адрес приложения (лендинг стоит на главной, приложение по /app/)
   APP_URL: "/app/",
   // Почта для вопросов (из реквизитов на Tilda)
