@@ -445,3 +445,16 @@ main:focus{outline:none}
 
 .price__small{white-space:nowrap;font-size:clamp(13px,3.6vw,16.5px)}
 .price__help a,.soon__help a{color:#6b4c19;font-weight:600}.soon__help a{color:var(--gold2)}
+
+/* вайб уроков: подпись-ярлык прямо на видео */
+.vibe{display:block;max-width:900px}
+.vibe__video{position:relative;margin:0 0 54px;aspect-ratio:auto;overflow:visible;background:none;box-shadow:none;border-radius:0}
+.vibe__video video{border-radius:var(--r);box-shadow:0 14px 0 rgba(40,28,10,.18);aspect-ratio:720/404;background:#000}
+.vibe__tag{position:absolute;left:-14px;bottom:-40px;max-width:min(420px,88%);background:var(--moss);color:var(--paper);padding:20px 24px 18px;border-radius:6px;transform:rotate(-2deg);box-shadow:0 8px 0 rgba(0,0,0,.2);display:grid;gap:6px}
+.vibe__tag::before{content:"";position:absolute;left:50%;top:-12px;width:90px;height:24px;margin-left:-45px;background:rgba(225,196,137,.85);transform:rotate(3deg)}
+.vibe__kick{font:600 11px var(--body);letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.vibe__tag b{font:400 clamp(24px,4vw,34px)/1.1 var(--display);color:var(--gold2);text-transform:uppercase}
+.vibe__tag em{font-style:normal;font-size:15px;color:#d6d0c0}
+@media (max-width:860px){.vibe__tag{left:-6px;bottom:-46px;padding:16px 18px}.vibe__video{margin-bottom:64px}}
+.app__note{margin-top:48px}
+.demo__progress{margin-bottom:6px}

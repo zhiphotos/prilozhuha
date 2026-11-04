@@ -64,28 +64,31 @@
   addEventListener("resize", function () { vw = innerWidth; vh = innerHeight; });
   addEventListener("scroll", function () { lastScroll = performance.now(); if (!shown) { shown = true; fly.classList.add("on"); } }, { passive: true });
   setTimeout(function () { shown = true; fly.classList.add("on"); }, 1800);
-  var btns = Array.prototype.slice.call(document.querySelectorAll(".btn--big,.hero__cta .btn:first-child,.price .btn"));
+  /* места, где бабочка садится и ждёт: туда нужно обратить внимание */
+  var PERCH = [[".price .btn", 5], [".hero__cta .btn:first-child", 5], [".ctaband .btn", 5], [".price__nums", 4], [".demo", 3], [".vibe__tag", 3], [".player", 3], [".offer__card", 2], [".split__text .h2", 2], [".h2--center", 1]];
   function frame(now) {
     t = now / 1000;
     var max = Math.max(1, doc.scrollHeight - vh), p = scrollY / max;
-    var small = vw < 700, margin = small ? 16 : 40;
-    /* летаем только по полям, чтобы не закрывать текст: на узком экране по правому краю, на широком по боковым полям */
-    var gut = (vw - 1120) / 2, tx, ty = vh * (.5 + .25 * Math.sin(p * 9 + 1.3));
-    if (small || gut < 70) tx = vw - 20 - 6 * (1 + Math.sin(p * 16));
-    else tx = (Math.sin(p * 7) > 0) ? vw - gut / 2 : gut / 2;
-    ty = Math.max(90, Math.min(vh - 70, ty));
+    var small = vw < 700, margin = small ? 20 : 40;
+    var tx = vw * (.5 + .4 * Math.sin(p * 16 + .6)), ty = vh * (.5 + .22 * Math.sin(p * 9 + 1.3));
+    tx = Math.max(margin, Math.min(vw - margin, tx)); ty = Math.max(90, Math.min(vh - 70, ty));
     var rest = false;
-    if (now - lastScroll > 1100) {
-      for (var i = 0; i < btns.length; i++) {
-        var r = btns[i].getBoundingClientRect();
-        if (r.top > vh * .25 && r.bottom < vh * .85 && r.width > 0) { tx = Math.min(vw - margin, r.right - 18); ty = r.top - 26; rest = true; break; }
+    if (now - lastScroll > 500) {
+      var best = null, bp = 0;
+      for (var i = 0; i < PERCH.length; i++) {
+        var els = document.querySelectorAll(PERCH[i][0]);
+        for (var k = 0; k < els.length; k++) {
+          var r = els[k].getBoundingClientRect();
+          if (r.width > 0 && r.top > vh * .12 && r.top < vh * .7 && PERCH[i][1] > bp) { best = r; bp = PERCH[i][1]; break; }
+        }
       }
+      if (best) { tx = Math.max(margin, Math.min(vw - margin, best.right - 14)); ty = Math.max(80, best.top - 24); rest = true; }
     }
-    tx += Math.sin(t * 2.1) * (rest ? 2 : (small ? 4 : 14)); ty += Math.cos(t * 2.7) * (rest ? 2 : 10);
+    tx += Math.sin(t * 2.1) * (rest ? 1.5 : (small ? 6 : 16)); ty += Math.cos(t * 2.7) * (rest ? 1.5 : 10);
     x += (tx - x) * (rest ? .05 : .035); y += (ty - y) * (rest ? .05 : .035);
-    var vx = x - px, vy = y - py; px = x; py = y;
+    var vx = x - px; px = x; py = y;
     var a = Math.max(-35, Math.min(35, vx * 3.2)); ang += (a - ang) * .1;
-    fly.style.transform = "translate(" + (x - 28) + "px," + (y - 22) + "px) rotate(" + ang.toFixed(1) + "deg)";
+    fly.style.transform = "translate(" + (x - 28) + "px," + (y - 22) + "px) rotate(" + (rest ? 0 : ang).toFixed(1) + "deg)";
     fly.classList.toggle("rest", rest);
     requestAnimationFrame(frame);
   }
