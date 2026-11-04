@@ -14,6 +14,7 @@ import { Hint } from "@/components/rod/hint";
 import { TreeSearch } from "@/components/tree/TreeSearch";
 import { searchPeople } from "@/lib/tree/search";
 import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
+import { setCardFields, useCardFields } from "@/lib/tree/card-fields";
 import { layoutTree, sliceByRadius } from "@/lib/tree/layout";
 import { SCOPES, scopeFilter } from "@/lib/tree/scope";
 import { layoutCameo } from "@/lib/tree/cameo";
@@ -139,6 +140,7 @@ function TreeScreen() {
   const view = useMemo(() => sliceByRadius(shown.people, shown.unions, focusId, radius), [shown, focusId, radius]);
   const spread = useTree((s) => s.spread);
   const setSpread = useTree((s) => s.setSpread);
+  const cardFields = useCardFields();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const layout = useMemo(() => layoutTree(view.people, view.unions, focusId, flow), [view, focusId, flow, spread]);
   const poster = useMemo(() => (style === "carved" ? layoutPoster(view.people, view.unions, focusId, flow) : null), [style, view, focusId, flow]);
@@ -336,6 +338,22 @@ function TreeScreen() {
                             setSpread(value);
                             setFitReq((n) => n + 1);
                           }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-1 border-t border-chip-line px-3 pt-2 pb-1">
+                    <p className="text-sm font-semibold text-chip-fg">Что показывать на карточке</p>
+                    <div className="mt-1 flex gap-1">
+                      {([["years", "Годы"], ["age", "Возраст"], ["place", "Место рождения"]] as const).map(([key, label]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          aria-pressed={cardFields[key]}
+                          className={`min-h-9 flex-1 rounded-xl px-2 text-xs font-semibold ${cardFields[key] ? "bg-gold text-ink" : "text-chip-fg"}`}
+                          onClick={() => setCardFields({ [key]: !cardFields[key] })}
                         >
                           {label}
                         </button>

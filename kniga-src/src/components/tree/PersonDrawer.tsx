@@ -571,6 +571,10 @@ function PersonForm({
           <DateInput inputMode="decimal" placeholder="год или 12.03.1891" value={draft.birthYear} onChange={(next) => set({ birthYear: next })} />
         </label>
         <label className="field">
+          Место рождения
+          <input value={draft.birthPlace ?? ""} placeholder="Например, Тбилиси" onChange={(e) => set({ birthPlace: e.target.value })} />
+        </label>
+        <label className="field">
           Дата смерти
           <DateInput inputMode="decimal" placeholder="год или 04.11.1968" value={draft.deathYear} onChange={(next) => set({ deathYear: next })} />
         </label>

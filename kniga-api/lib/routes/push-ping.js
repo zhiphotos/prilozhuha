@@ -1,7 +1,7 @@
 import { bodyOf, cors, json } from "../config.js";
 import { subId } from "../push.js";
 import { redis, redisConfigured } from "../redis.js";
-import { cleanStats } from "./push-subscribe.js";
+import { cleanBirthdays, cleanStats } from "./push-subscribe.js";
 
 // POST /api/push-ping { endpoint, stats }  – человек открыл приложение: напоминание в этот день не нужно, статистика для выбора текста обновляется.
 export default async function handler(req, res) {
@@ -15,6 +15,7 @@ export default async function handler(req, res) {
   const record = JSON.parse(raw);
   record.lastSeen = Date.now();
   record.stats = cleanStats(body.stats ?? record.stats);
+  if (Array.isArray(body.birthdays)) record.birthdays = cleanBirthdays(body.birthdays);
   await redis("HSET", "kr:push", id, JSON.stringify(record));
   return json(res, 200, { ok: true });
 }

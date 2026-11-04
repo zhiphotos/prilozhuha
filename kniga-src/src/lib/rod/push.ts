@@ -1,9 +1,10 @@
 import { API_BASE } from "@/lib/rod/config";
 import { useRod } from "@/lib/rod/store";
+import { birthdayList } from "@/lib/rod/birthdays";
 
 const KEY = "kniga-push";
-export type PushPrefs = { on: boolean; hour: number; days: number[] };
-export const DEFAULT_PUSH: PushPrefs = { on: false, hour: 19, days: [2, 4, 0] };
+export type PushPrefs = { on: boolean; hour: number; days: number[]; bday: boolean };
+export const DEFAULT_PUSH: PushPrefs = { on: false, hour: 19, days: [2, 4, 0], bday: false };
 export const DAY_CHOICES: { label: string; days: number[] }[] = [
   { label: "Три раза в неделю", days: [2, 4, 0] },
   { label: "Каждый день", days: [0, 1, 2, 3, 4, 5, 6] },
@@ -59,7 +60,10 @@ function keyBytes(base64: string): Uint8Array<ArrayBuffer> {
 }
 
 /** Включает напоминания: разрешение, подписка в браузере, запись на сервере. */
-export async function enablePush(hour: number, days: number[]): Promise<void> {
+/** Дни рождения уходят на сервер только если человек включил этот пункт: имя и «месяц-день», больше ничего. */
+const birthdaysFor = (bday: boolean) => (bday ? birthdayList(useRod.getState().people) : []);
+
+export async function enablePush(hour: number, days: number[], bday = false): Promise<void> {
   const config = await fetch(`${API_BASE}/api/push-config`).then((r) => r.json() as Promise<{ enabled?: boolean; publicKey?: string }>);
   if (!config.enabled || !config.publicKey) throw new Error("Напоминания пока не подключены.");
   const permission = await Notification.requestPermission();
@@ -68,9 +72,9 @@ export async function enablePush(hour: number, days: number[]): Promise<void> {
   await navigator.serviceWorker.ready;
   const existing = await registration.pushManager.getSubscription();
   const subscription = existing ?? (await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(config.publicKey) }));
-  const answer = await post<{ ok?: boolean }>("/api/push-subscribe", { subscription: subscription.toJSON(), hour, days, offsetMin: -new Date().getTimezoneOffset(), app: appAddress(), stats: stats() });
+  const answer = await post<{ ok?: boolean }>("/api/push-subscribe", { subscription: subscription.toJSON(), hour, days, offsetMin: -new Date().getTimezoneOffset(), app: appAddress(), stats: stats(), birthdays: birthdaysFor(bday) });
   if (!answer.ok) throw new Error(answer.error || "Не получилось включить напоминания.");
-  save({ on: true, hour, days });
+  save({ on: true, hour, days, bday });
 }
 
 export async function disablePush(): Promise<void> {
@@ -92,7 +96,7 @@ export async function pingPush(): Promise<void> {
   try {
     const registration = await navigator.serviceWorker.getRegistration(`${import.meta.env.BASE_URL}push-sw.js`);
     const subscription = await registration?.pushManager.getSubscription();
-    if (subscription) await post("/api/push-ping", { endpoint: subscription.endpoint, stats: stats() });
+    if (subscription) await post("/api/push-ping", { endpoint: subscription.endpoint, stats: stats(), birthdays: birthdaysFor(pushPrefs().bday) });
   } catch {
     /* без связи не страшно */
   }

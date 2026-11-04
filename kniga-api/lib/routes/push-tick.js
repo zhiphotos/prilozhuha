@@ -32,6 +32,27 @@ export default async function handler(req, res) {
     const local = new Date(now + record.offsetMin * 60000);
     const dateKey = local.toISOString().slice(0, 10);
     const dayKey = (t) => new Date(t + record.offsetMin * 60000).toISOString().slice(0, 10);
+    // День рождения родных: раз в сутки в выбранный час, независимо от дней недели напоминаний
+    const md = dateKey.slice(5);
+    const today = (record.birthdays ?? []).filter((b) => b.d === md);
+    if (today.length && local.getUTCHours() === record.hour && record.lastBday !== dateKey) {
+      const names = today.map((b) => b.n).slice(0, 3).join(", ");
+      try {
+        const payload = JSON.stringify({ title: `Сегодня день рождения: ${names}`, body: "Загляните в книгу: напишите или позвоните, и расскажите об этом человеке.", url: `${record.app}#/go/archive` });
+        if (!dry) await web.sendNotification(record.sub, payload, { TTL: 6 * 3600 });
+        record.lastBday = dateKey;
+        record.lastSent = now;
+        await redis("HSET", "kr:push", id, JSON.stringify(record));
+        result.sent += 1;
+        if (dry) result.sample.push(`birthday:${names}`);
+      } catch (error) {
+        if (error?.statusCode === 404 || error?.statusCode === 410) {
+          await redis("HDEL", "kr:push", id);
+          result.removed += 1;
+        } else result.errors += 1;
+      }
+      return;
+    }
     if (local.getUTCHours() !== record.hour || !record.days.includes(local.getUTCDay()) || (record.lastSent && dayKey(record.lastSent) === dateKey) || (record.lastSeen && dayKey(record.lastSeen) === dateKey)) {
       result.skipped += 1;
       return;
