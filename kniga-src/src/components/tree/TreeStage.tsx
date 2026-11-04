@@ -222,16 +222,31 @@ export function TreeStage(props: Props) {
     const focusNode = layout.nodes.find((n) => n.id === focusId);
     if (k < UNREADABLE_ZOOM && focusNode && style === "work") {
       const kr = READABLE_ZOOM;
-      setCam({ k: kr, x: el.clientWidth / 2 - focusNode.x * kr, y: el.clientHeight / 2 - focusNode.y * kr });
+      const next = { k: kr, x: el.clientWidth / 2 - focusNode.x * kr, y: el.clientHeight / 2 - focusNode.y * kr };
+      autoCam.current = next;
+      setCam(next);
       return;
     }
-    setCam({ k, x: (el.clientWidth - w * k) / 2, y: (el.clientHeight - h * k) / 2 });
+    const next = { k, x: (el.clientWidth - w * k) / 2, y: (el.clientHeight - h * k) / 2 };
+    autoCam.current = next;
+    setCam(next);
   };
 
+  // Камера, которую выставила сама подгонка. Если человек потом двигал или приближал древо, размер листа (например, после правки карточки) её уже не сбрасывает: иначе после закрытия карточки вид прыгает.
+  const autoCam = useRef<Cam | null>(null);
+  const camNow = useRef(cam);
+  camNow.current = cam;
   useEffect(() => {
     fit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fitReq, style, sheet.w, sheet.h]);
+  }, [fitReq, style]);
+  useEffect(() => {
+    const auto = autoCam.current;
+    const c = camNow.current;
+    if (auto && (Math.abs(auto.x - c.x) > 0.5 || Math.abs(auto.y - c.y) > 0.5 || Math.abs(auto.k - c.k) > 0.001)) return;
+    fit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheet.w, sheet.h]);
 
   const centerDone = useRef(0);
   useEffect(() => {

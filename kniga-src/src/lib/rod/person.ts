@@ -38,7 +38,7 @@ export function personEvents(people: Person[]): { id: string; year: string; titl
   const out: { id: string; year: string; title: string; detail: string; personId: string }[] = [];
   for (const person of people) {
     const female = genderOf(person) === "f";
-    if (person.birthYear.trim()) out.push({ id: `b-${person.id}`, year: person.birthYear.trim(), title: `${female ? "Родилась" : genderOf(person) === "m" ? "Родился" : "Родился(ась)"} ${person.name}`, detail: person.relation, personId: person.id });
+    if (person.birthYear.trim()) out.push({ id: `b-${person.id}`, year: person.birthYear.trim(), title: `${female ? "Родилась" : genderOf(person) === "m" ? "Родился" : "Родился(ась)"} ${person.name}`, detail: [person.relation, person.birthPlace?.trim()].filter(Boolean).join(" · "), personId: person.id });
     if (person.deathYear?.trim()) out.push({ id: `d-${person.id}`, year: person.deathYear.trim(), title: `${female ? "Ушла из жизни" : genderOf(person) === "m" ? "Ушёл из жизни" : "Ушёл(ушла) из жизни"} ${person.name}`, detail: person.relation, personId: person.id });
   }
   return out;
