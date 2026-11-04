@@ -10,7 +10,7 @@ say() { printf '\n== %s\n' "$*"; }
 say "1. Проверка перед установкой (ничего не меняет)"
 command -v nginx >/dev/null || { echo "nginx не найден"; exit 1; }
 node -v | grep -E '^v(2[0-9]|[3-9][0-9])' >/dev/null || { echo "нужен Node 20 или новее"; exit 1; }
-ss -ltn | awk '{print $4}' | grep -E ':3000$' >/dev/null && { echo "порт 3000 уже занят: остановитесь и сообщите"; exit 1; } || true
+ss -ltn | awk '{print $4}' | grep -E ':3100$' >/dev/null && { echo "порт 3100 уже занят: остановитесь и сообщите"; exit 1; } || true
 ss -ltn | awk '{print $4}' | grep -E ':6379$' >/dev/null && echo "порт 6379 уже занят (Redis уже стоит, продолжаем осторожно)" || true
 [ -f "$UP/kniga-api.env" ] || { echo "нет $UP/kniga-api.env"; exit 1; }
 
@@ -56,7 +56,7 @@ systemctl daemon-reload
 systemctl enable kniga-api >/dev/null 2>&1
 systemctl restart kniga-api
 sleep 2
-curl -fsS http://127.0.0.1:3000/health >/dev/null && echo "API отвечает на /health" || { echo "API НЕ ответил: journalctl -u kniga-api -n 30"; exit 1; }
+curl -fsS http://127.0.0.1:3100/health >/dev/null && echo "API отвечает на /health" || { echo "API НЕ ответил: journalctl -u kniga-api -n 30"; exit 1; }
 
 say "6. nginx (отдельный файл, файлы Кики не трогаем)"
 install -m 644 "$UP/deploy/ru/nginx-kniga-http.conf" /etc/nginx/conf.d/kniga.conf
