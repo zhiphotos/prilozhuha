@@ -433,3 +433,12 @@ main:focus{outline:none}
 .scene--wedshots{padding-bottom:52px}
 @media (max-width:860px){.vibe{grid-template-columns:1fr;gap:24px}.scene--treeshots .shot,.scene--loveshots .shot{max-height:230px}.scene--wedshots .shot.tall{max-height:240px}}
 @media (prefers-reduced-motion:reduce){.scene--shots .shot{opacity:1!important;transform:rotate(var(--r,0deg))!important}}
+
+/* читаемость: длинные фразы не декоративным шрифтом */
+.lesson__text .h2{font:700 clamp(24px,3.2vw,32px)/1.25 var(--body);letter-spacing:0;color:#2c2216}
+.punch{font:600 clamp(19px,2.4vw,23px)/1.4 var(--body);color:#2c2216}
+.h3{font:700 clamp(21px,2.6vw,26px)/1.25 var(--body);letter-spacing:0}
+.vibe__text .h2{font-size:clamp(26px,4vw,38px)}
+/* подпись и ярлык в сцене свадьбы не накладываются */
+.scene--wedshots{padding-bottom:96px}
+.scene--wedshots .cap{left:0;right:0;bottom:62px;text-align:center}

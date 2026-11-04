@@ -68,17 +68,20 @@
   function frame(now) {
     t = now / 1000;
     var max = Math.max(1, doc.scrollHeight - vh), p = scrollY / max;
-    var small = vw < 700, margin = small ? 30 : 60;
-    var tx = vw * (.5 + .36 * Math.sin(p * 16 + .6)), ty = vh * (.5 + .2 * Math.sin(p * 9 + 1.3));
-    tx = Math.max(margin, Math.min(vw - margin, tx)); ty = Math.max(90, Math.min(vh - 70, ty));
+    var small = vw < 700, margin = small ? 16 : 40;
+    /* летаем только по полям, чтобы не закрывать текст: на узком экране по правому краю, на широком по боковым полям */
+    var gut = (vw - 1120) / 2, tx, ty = vh * (.5 + .25 * Math.sin(p * 9 + 1.3));
+    if (small || gut < 70) tx = vw - 20 - 6 * (1 + Math.sin(p * 16));
+    else tx = (Math.sin(p * 7) > 0) ? vw - gut / 2 : gut / 2;
+    ty = Math.max(90, Math.min(vh - 70, ty));
     var rest = false;
     if (now - lastScroll > 1100) {
       for (var i = 0; i < btns.length; i++) {
         var r = btns[i].getBoundingClientRect();
-        if (r.top > vh * .25 && r.bottom < vh * .85 && r.width > 0) { tx = Math.min(vw - margin, r.right - 18); ty = r.top - 22; rest = true; break; }
+        if (r.top > vh * .25 && r.bottom < vh * .85 && r.width > 0) { tx = Math.min(vw - margin, r.right - 18); ty = r.top - 26; rest = true; break; }
       }
     }
-    tx += Math.sin(t * 2.1) * (rest ? 2 : 14); ty += Math.cos(t * 2.7) * (rest ? 2 : 10);
+    tx += Math.sin(t * 2.1) * (rest ? 2 : (small ? 4 : 14)); ty += Math.cos(t * 2.7) * (rest ? 2 : 10);
     x += (tx - x) * (rest ? .05 : .035); y += (ty - y) * (rest ? .05 : .035);
     var vx = x - px, vy = y - py; px = x; py = y;
     var a = Math.max(-35, Math.min(35, vx * 3.2)); ang += (a - ang) * .1;
