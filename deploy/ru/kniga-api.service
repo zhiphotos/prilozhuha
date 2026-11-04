@@ -1,0 +1,21 @@
+[Unit]
+Description=Книга рода: API
+After=network-online.target redis-server.service
+Wants=redis-server.service
+
+[Service]
+Type=simple
+User=kniga
+WorkingDirectory=/opt/kniga/kniga-api
+EnvironmentFile=/etc/kniga-api.env
+ExecStart=/usr/bin/node server.mjs
+Restart=always
+RestartSec=3
+# Защита: сервис не видит чужие файлы и не может повышать права
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

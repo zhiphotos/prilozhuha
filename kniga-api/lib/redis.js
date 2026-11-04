@@ -1,4 +1,5 @@
 // Upstash Redis по REST (без лишних зависимостей). Для проверок без интернета: MEMORY_STORE=1, всё живёт в памяти.
+import { createNativeRedis } from "./redis-native.js";
 const mem = { kv: new Map(), hash: new Map(), set: new Map() };
 
 function memory(args) {
@@ -32,7 +33,14 @@ function memory(args) {
 const restUrl = () => process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
 const restToken = () => process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 
+let native = null;
+/** Свой Redis (REDIS_URL=redis://…): так работает российский сервер. Upstash по REST остаётся запасным вариантом. */
+const nativeUrl = () => process.env.REDIS_URL;
+
+export { memory as memoryRedis };
+
 export async function redis(...args) {
+  if (process.env.MEMORY_STORE !== "1" && nativeUrl()) return (native ??= createNativeRedis(nativeUrl())).command(...args);
   const url = restUrl();
   const token = restToken();
   if (process.env.MEMORY_STORE === "1") return memory(args);
@@ -43,7 +51,7 @@ export async function redis(...args) {
   return data.result;
 }
 
-export const redisConfigured = () => process.env.MEMORY_STORE === "1" || Boolean(restUrl() && restToken());
+export const redisConfigured = () => process.env.MEMORY_STORE === "1" || Boolean(nativeUrl()) || Boolean(restUrl() && restToken());
 
 /** HGETALL → объект. */
 export const pairs = (flat) => {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ArrowRight, BookCopy, BookOpen, Camera, Clock, GraduationCap, PenLine, Play, Search, Settings2, Users } from "lucide-react";
+import { MovedBanner } from "@/components/rod/moved-banner";
 import { OpenCopyButton } from "@/components/rod/open-copy";
 import { requestTour } from "@/components/rod/tour";
 import { Botanica, Cut, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/botanica";
@@ -108,6 +109,7 @@ export function HomeScreen() {
 
   return (
     <ScreenFrame>
+      <MovedBanner />
       <InstallBanner />
       <div className="mb-6 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
