@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "vite dev --host 0.0.0.0 --port 8080 -c vite.pages.config.ts",
+    "build:ru": "VITE_API_BASE=https://kniga-balanuca.ru OUT_DIR=${OUT_DIR:-../_build-ru} vite build -c vite.pages.config.ts",
+    "build:pages:moved": "VITE_MOVED_TO=https://kniga-balanuca.ru OUT_DIR=../kr-k3nu7rmszt vite build -c vite.pages.config.ts",
     "build:pages": "OUT_DIR=../kr-k3nu7rmszt vite build -c vite.pages.config.ts",
     "typecheck": "tsc --noEmit",
     "test:api": "node ../kniga-api/test-sync.mjs",

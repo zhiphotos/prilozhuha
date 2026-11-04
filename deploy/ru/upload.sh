@@ -11,8 +11,11 @@ ENV_FILE="${KNIGA_ENV:-$HOME/Documents/Книга рода – секреты/К
 SSHO="-i $KEY -o ConnectTimeout=60 -o ServerAliveInterval=10 -o ControlMaster=auto -o ControlPath=/tmp/kniga-ssh-%C -o ControlPersist=900"
 retry() { n=0; until "$@"; do n=$((n+1)); [ "$n" -ge 12 ] && { echo "не удалось после $n попыток"; return 1; }; echo "повтор $n через 15 секунд..."; sleep 15; done; }
 TMP=$(mktemp -d)
-sh scripts/build-site.sh "$TMP/site"
-tar czf "$TMP/site.tgz" --no-xattrs -C "$TMP/site/kr-k3nu7rmszt" .
+# Сайт для нового адреса собирается отдельно: API берётся с самого сервера (VITE_API_BASE=https://kniga-balanuca.ru), баннера «переехали» нет
+( cd kniga-src && OUT_DIR="$TMP/site" npm run build:ru >/dev/null )
+[ -f "$TMP/site/index.html" ] && [ -d "$TMP/site/assets" ] || { echo "сборка сайта не получилась"; exit 1; }
+grep -q "kniga-balanuca.ru" "$TMP"/site/assets/index-*.js || { echo "в сборке нет адреса нового API"; exit 1; }
+tar czf "$TMP/site.tgz" --no-xattrs -C "$TMP/site" .
 # На сервере нет npm: зависимости (пакет web-push, чистый JS) ставим здесь и кладём готовыми
 mkdir "$TMP/api" && tar -C kniga-api --exclude node_modules --exclude 'test-*' --exclude '*.docx' -cf - . | tar -C "$TMP/api" -xf -
 ( cd "$TMP/api" && npm ci --omit=dev --no-audit --no-fund --silent )
