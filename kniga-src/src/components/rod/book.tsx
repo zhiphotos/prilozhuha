@@ -12,6 +12,7 @@ import { isBookReady, overallOf, partsOf, plural } from "@/lib/rod/progress";
 import { CoverSetup } from "@/components/rod/cover-setup";
 import { PlanSheet } from "@/components/rod/plan-sheet";
 import { TextToPagesSheet } from "@/components/rod/text-to-pages";
+import { WEDDING_EXTRA, WEDDING_EXTRA_PAGES, WEDDING_MODERN, WEDDING_MODERN_PAGES, WEDDING_TRADITIONAL, WEDDING_TRADITIONAL_PAGES, weddingExtraPages, weddingModernPages, weddingTraditionalPages } from "@/lib/rod/wedding-book";
 import { UnlockCarousel } from "@/components/rod/unlock-carousel";
 import { ReelButton } from "@/components/rod/reel-modal";
 import { Hint } from "@/components/rod/hint";
@@ -108,11 +109,16 @@ export function BookScreen() {
         // У платных готовые шаблоны листаются вбок и занимают одну строку, а не две длинные карточки друг под другом.
         <div className="no-scrollbar -mx-1 mb-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2" role="group" aria-label="Готовые шаблоны книги">
           <FullTemplate pages={pages} meta={meta} tpl={LOVE_SPEC} carousel />
+          <FullTemplate pages={pages} meta={meta} tpl={WEDDING_TRADITIONAL_SPEC} carousel />
+          <FullTemplate pages={pages} meta={meta} tpl={WEDDING_MODERN_SPEC} carousel />
           <FullTemplate pages={pages} meta={meta} tpl={FULL_SPEC} carousel />
+          <FullTemplate pages={pages} meta={meta} tpl={WEDDING_EXTRA_SPEC} carousel />
         </div>
       ) : (
         <>
           <FullTemplate pages={pages} meta={meta} tpl={LOVE_SPEC} />
+          <FullTemplate pages={pages} meta={meta} tpl={WEDDING_TRADITIONAL_SPEC} />
+          <FullTemplate pages={pages} meta={meta} tpl={WEDDING_MODERN_SPEC} />
           <FullTemplate pages={pages} meta={meta} tpl={FULL_SPEC} />
         </>
       )}
@@ -701,10 +707,40 @@ const LOVE_SPEC: TemplateSpec = {
   tag: "love",
   label: "Для участников программы",
   title: `Мемуары любви · ${LOVE_BOOK_PAGES} страниц`,
-  intro: "История одной пары по главам: как всё началось, первые шаги, жизнь вместе, большой шаг, семья и любовь в мелочах. На каждой странице подсказка, что сюда написать и какую фотографию поставить.",
+  intro: "История любви для любой пары, по словам, а не по годам: начало, знакомство, жизнь вместе, свадьба, дом, семья, письмо в будущее. На каждой странице подсказка, что написать и какую фотографию поставить.",
   chapters: LOVE_BOOK,
   total: LOVE_BOOK_PAGES,
   build: loveBookPages,
+};
+
+const WEDDING_TRADITIONAL_SPEC: TemplateSpec = {
+  tag: "wedtrad",
+  label: "Свадебная фотокнига на выбор",
+  title: `Свадьба, традиционная · ${WEDDING_TRADITIONAL_PAGES} страницы`,
+  intro: "История одного дня от утра невесты до последнего танца, с обрядами: выкуп, благословение, каравай. Около 80% страницы под фото, подписи короткие. Лишние обряды можно удалить.",
+  chapters: WEDDING_TRADITIONAL,
+  total: WEDDING_TRADITIONAL_PAGES,
+  build: weddingTraditionalPages,
+};
+
+const WEDDING_MODERN_SPEC: TemplateSpec = {
+  tag: "wedmod",
+  label: "Свадебная фотокнига на выбор",
+  title: `Свадьба, современная · ${WEDDING_MODERN_PAGES} страницы`,
+  intro: "Сборы, First Look, церемония, фотосессия, гости, банкет, первый танец, финал. Для свадьбы без обрядов. Выберите одну из двух свадебных книг.",
+  chapters: WEDDING_MODERN,
+  total: WEDDING_MODERN_PAGES,
+  build: weddingModernPages,
+};
+
+const WEDDING_EXTRA_SPEC: TemplateSpec = {
+  tag: "wedextra",
+  label: "К свадебной книге по желанию",
+  title: `Свадьба: страницы по желанию · ${WEDDING_EXTRA_PAGES}`,
+  intro: "История предложения, приглашения, меню, плейлист, письма, послание родителей, пожелания гостей, память о тех, кого не хватало, свадебный маршрут. Добавьте к любой из двух свадебных книг.",
+  chapters: WEDDING_EXTRA,
+  total: WEDDING_EXTRA_PAGES,
+  build: weddingExtraPages,
 };
 
 /** Готовый шаблон книги – только для тех, у кого открыта программа. */
