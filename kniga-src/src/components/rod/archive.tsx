@@ -122,6 +122,12 @@ function PeoplePane() {
           onSubmit={(event) => {
             event.preventDefault();
             if (!draft.name.trim()) return;
+            // Защита от двойного нажатия и повторного ввода: тот же человек (имя, «кем приходится», дата) не добавляется второй раз
+            const same = (p: (typeof people)[number]) => p.name.trim().toLowerCase() === draft.name.trim().toLowerCase() && p.relation === draft.relation && p.birthYear.trim() === draft.birthYear.trim();
+            if (people.some(same)) {
+              toast("Такой человек уже добавлен: найдите его в списке ниже");
+              return;
+            }
             const newId = addPerson({ ...draft, name: draft.name.trim(), maidenName: maidenAllowed(draft) ? draft.maidenName.trim() : "", birthYear: draft.birthYear.trim(), parents: (draft.parents ?? []).filter(Boolean) });
             for (const other of moreSibs) if (other !== draft.siblingOf) updatePerson(other, { siblingOf: newId });
             setMoreSibs([]);
