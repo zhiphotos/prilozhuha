@@ -442,3 +442,6 @@ main:focus{outline:none}
 /* подпись и ярлык в сцене свадьбы не накладываются */
 .scene--wedshots{padding-bottom:96px}
 .scene--wedshots .cap{left:0;right:0;bottom:62px;text-align:center}
+
+.price__small{white-space:nowrap;font-size:clamp(13px,3.6vw,16.5px)}
+.price__help a,.soon__help a{color:#6b4c19;font-weight:600}.soon__help a{color:var(--gold2)}

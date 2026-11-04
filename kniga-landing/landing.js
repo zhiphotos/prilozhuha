@@ -6,6 +6,9 @@
   /* ---- Кнопки «Купить»: ссылка Tribute берётся из config.js ---- */
   var soon = document.getElementById("soon");
   var buy = (cfg.BUY_URL || "").trim();
+  var tg = (cfg.TELEGRAM_URL || "").trim();
+  document.querySelectorAll(".js-tg").forEach(function (a) { if (tg) a.href = tg; else a.style.display = "none"; });
+  document.querySelectorAll(".js-tg-or").forEach(function (s) { if (!tg) s.style.display = "none"; });
   if (cfg.CONTACT_EMAIL) {
     var m = document.getElementById("soonMail");
     if (m) { m.href = "mailto:" + cfg.CONTACT_EMAIL; m.textContent = cfg.CONTACT_EMAIL; }
