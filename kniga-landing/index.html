@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Книга Рода – семейная книга с ИИ-помощником</title>
+<meta name="description" content="Начни сохранять историю твоей семьи прямо сейчас: мини-курс из шести уроков, личный семейный ИИ-исследователь и приложение для древа, архива и книги.">
+<meta name="theme-color" content="#0e1511">
+<meta property="og:title" content="Книга Рода">
+<meta property="og:description" content="Семейная книга, которую однажды откроют ваши дети. Первый урок бесплатно.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="/media/hero.webp">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<link rel="preload" href="/fonts/yauza.ttf" as="font" type="font/ttf" crossorigin>
+<script>
+/* Уже выданные ссылки и иконки «Домой» открывали приложение прямо на главной.
+   Теперь приложение живёт по /app/, поэтому тех, кто пришёл «как в приложение», отправляем туда сразу, до отрисовки.
+   Посетителю с рекламы или из поиска лендинг показывается как обычно. Принудительно лендинг: /?landing=1 */
+(function () {
+  try {
+    var q = location.search, h = location.hash;
+    if (/[?&]landing=1/.test(q)) return;
+    var standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+    var used = false;
+    try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && (k.indexOf("kniga-") === 0 || k.indexOf("kr-") === 0)) { used = true; break; } } } catch (e) {}
+    var rest = q.replace(/^\?/, "").split("&").filter(function (p) { return p && !/^(utm_|fbclid|gclid|yclid|ysclid|_openstat|from=)/i.test(p); });
+    var deep = h.length > 1 || rest.length > 0;
+    if (standalone || used || deep) location.replace("/app/" + q + h);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="/landing.css">
+</head>
+<body>
+<a class="skip" href="#main">К содержимому</a>
+
+<header class="top" id="top">
+  <a class="top__brand" href="#top" aria-label="Книга Рода, на начало"><span class="top__mark" aria-hidden="true">❦</span> Книга Рода</a>
+  <nav class="top__nav" aria-label="Разделы">
+    <a href="#lesson">Урок</a>
+    <a href="#app">Приложение</a>
+    <a href="#offer">Цена</a>
+    <a href="#faq">Вопросы</a>
+  </nav>
+  <a class="btn btn--small js-buy" href="#buy">Купить за 2 026 ₽</a>
+</header>
+
+<main id="main" tabindex="-1">
+
+<!-- 1. Главный экран -->
+<section class="hero">
+  <div class="wrap hero__grid">
+    <figure class="hero__frame">
+      <img src="/media/hero.webp" width="1200" height="766" alt="Старинная рама, а в ней уютная комната со столом и книгой: лаборатория рода" fetchpriority="high">
+    </figure>
+    <div class="hero__text">
+      <p class="kicker">Лаборатория Рода</p>
+      <h1 class="display">Вы открыли секретный Код Рода</h1>
+      <p class="lead">Сегодня вы начнёте создавать семейную книгу, которую однажды откроют ваши дети.</p>
+      <p class="hero__sub">Ниже находится первый бесплатный урок. Посмотрев его, вы поймёте, как создаётся Книга Рода.</p>
+      <div class="hero__cta">
+        <a class="btn" href="#lesson">Смотри урок</a>
+        <a class="btn btn--ghost js-buy" href="#buy">Купить за 2 026 ₽</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. Бесплатный урок -->
+<section class="sec sec--paper" id="lesson">
+  <div class="wrap lesson">
+    <div class="lesson__video">
+      <div class="player" id="player">
+        <video id="lessonVideo" controls preload="none" playsinline poster="/media/lesson-poster.jpg" aria-label="Первый бесплатный урок «Книги Рода»">
+          <source src="/app/course/site/free-lesson.mp4" type="video/mp4">
+        </video>
+        <button class="player__play" id="playBtn" type="button" aria-label="Смотреть первый урок"><span aria-hidden="true">▶</span></button>
+      </div>
+      <p class="player__alt"><a id="lessonFallback" href="https://www.youtube.com/watch?v=TOz2-eyQGPA" target="_blank" rel="noopener">Не открывается видео? Смотреть на YouTube</a></p>
+    </div>
+    <div class="lesson__text">
+      <h2 class="h2">Книга Рода – это до слёз и смеха! Это способ узнать себя! Это новое хобби!</h2>
+      <p>Это то, что поможет обрести опору вам и вашим детям! Даже если у вас нет ни одного старого документа и спросить уже не у кого, книга вашего рода будет создана! Потому что её главная часть прямо сейчас зашита внутри вас: в ваших реакциях, ваших страхах, ваших деньгах и талантах.</p>
+      <p>AI вместе с уроками поможет распаковать этот код в десятки раз быстрее.</p>
+      <p><strong>И вы точно напишите свою Книгу Рода!</strong></p>
+    </div>
+  </div>
+</section>
+
+<!-- 3. Следующие уроки -->
+<section class="sec" id="lessons">
+  <div class="wrap">
+    <h2 class="h2 h2--center">Следующие уроки:</h2>
+    <div class="shelf" role="region" tabindex="0" aria-label="Уроки курса, листайте вправо">
+      <figure><img loading="lazy" src="/media/lesson1.webp" width="900" height="900" alt="Урок 1. Глубокое интервью"></figure>
+      <figure><img loading="lazy" src="/media/lesson2.webp" width="900" height="900" alt="Урок 2. Окно с резными ставнями, а в нём светящийся силуэт человека в поле"></figure>
+      <figure><img loading="lazy" src="/media/lesson3.webp" width="900" height="900" alt="Урок 3. Память и первое древо"></figure>
+      <figure><img loading="lazy" src="/media/lesson4.webp" width="900" height="900" alt="Урок 4. Сценарии рода"></figure>
+      <figure><img loading="lazy" src="/media/lesson5.webp" width="900" height="900" alt="Урок 5. Расследование архивов"></figure>
+    </div>
+    <div class="ctaband">
+      <p class="ctaband__title">Начни сохранять историю твоей семьи прямо сейчас</p>
+      <p class="ctaband__price"><s>3 026 ₽</s></p>
+      <a class="btn btn--big js-buy" href="#buy">Купить за 2 026 ₽</a>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Личный исследователь -->
+<section class="sec sec--moss" id="researcher">
+  <div class="wrap split">
+    <div class="split__img"><img loading="lazy" src="/media/lesson2.webp" width="900" height="900" alt="Резное окно с зелёными ставнями, внутри светится силуэт человека в поле"></div>
+    <div class="split__text">
+      <h2 class="h2">У тебя будет личный семейный исследователь</h2>
+      <p>Когда ты откроешь пустой документ и не будешь понимать, с чего начать, ИИ-исследователь задаст тебе первый вопрос. Потом второй. Потом третий. И буквально за один вечер поможет написать первые страницы книги.</p>
+      <ul class="ticks">
+        <li>Работает как чуткий интервьюер</li>
+        <li>Помогает с поиском предков</li>
+        <li>Превращает ваши голосовые сообщения и обрывки мыслей в структурированный, красивый литературный текст</li>
+        <li>Создаёт Древо Семьи</li>
+        <li>Анализирует повторяющиеся семейные паттерны и помогает нащупать гипотезы родовых сценариев</li>
+        <li>Помогает оформлять страницы книги</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Что люди получают в приложении (карусель) -->
+<section class="sec sec--app" id="app" aria-labelledby="appTitle">
+  <div class="wrap">
+    <p class="kicker kicker--center">Приложение «Книга Рода»</p>
+    <h2 class="h2 h2--center" id="appTitle">Что люди получают в приложении</h2>
+    <p class="sub sub--center">Всё, что нужно для семейной книги, лежит в одном месте на вашем телефоне. Листайте и смотрите, как это выглядит.</p>
+
+    <div class="demo" id="demo" role="region" aria-roledescription="карусель" aria-label="Возможности приложения">
+      <div class="demo__viewport" id="demoViewport">
+        <div class="demo__track" id="demoTrack" aria-live="off">
+
+          <!-- 1. Древо -->
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="1 из 10">
+            <div class="slide__scene scene scene--tree" aria-hidden="true">
+              <svg viewBox="0 0 320 240" class="tree-svg">
+                <path class="br b1" d="M160 215 L160 150"/><path class="br b2" d="M160 150 C160 125 110 118 85 92"/><path class="br b3" d="M160 150 C160 122 210 116 238 90"/>
+                <path class="br b4" d="M85 92 C80 72 62 62 52 46"/><path class="br b5" d="M85 92 C92 70 112 62 122 44"/><path class="br b6" d="M238 90 C232 70 214 60 204 44"/><path class="br b7" d="M238 90 C246 70 266 62 276 46"/>
+                <g class="node n0"><circle cx="160" cy="215" r="17"/><text x="160" y="219" >Я</text></g>
+                <g class="node n1"><circle cx="85" cy="92" r="17"/><text x="85" y="96">Мама</text></g>
+                <g class="node n2"><circle cx="238" cy="90" r="17"/><text x="238" y="94">Папа</text></g>
+                <g class="node n3"><circle cx="52" cy="46" r="15"/><text x="52" y="50">Баба</text></g>
+                <g class="node n4"><circle cx="122" cy="44" r="15"/><text x="122" y="48">Дед</text></g>
+                <g class="node n5"><circle cx="204" cy="44" r="15"/><text x="204" y="48">Баба</text></g>
+                <g class="node n6"><circle cx="276" cy="46" r="15"/><text x="276" y="50">Дед</text></g>
+              </svg>
+              <span class="chip chip--float">пять оформлений древа</span>
+            </div>
+            <div class="slide__body">
+              <p class="kicker">Древо</p>
+              <h3 class="h3">Древо рода растёт у вас на глазах</h3>
+              <p>Добавляйте родных по одному, и ветки сами раскладываются красиво. Загрузите древо из другой программы, выберите одно из пяти оформлений, выгрузите картинку или PDF для печати.</p>
+              <p class="pain">Не нужно чертить схему вручную.</p>
+            </div>
+          </article>
+
+          <!-- 2. Ленты -->
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="2 из 10">
+            <div class="slide__scene scene scene--feed" aria-hidden="true">
+              <div class="feed">
+                <div class="post p1"><i class="ph ph--a"></i><b>Дом в Вятке, 1962</b><span>фото из бабушкиного альбома</span></div>
+                <div class="post p2"><i class="ph ph--b"></i><b>Рецепт пирога</b><span>записано с её слов</span></div>
+                <div class="post p3"><i class="ph ph--c"></i><b>Свадьба дедушки</b><span>голос и три фотографии</span></div>
+              </div>
+              <span class="chip chip--float">лента или сетка</span>
+            </div>
+            <div class="slide__body">
+              <p class="kicker">Ленты</p>
+              <h3 class="h3">Ленты семейных историй</h3>
+              <p>Фото, рассказы и голоса складываются в тёплую ленту, как в любимой соцсети, только это ваш личный архив. Листайте лентой или смотрите сеткой, находите нужное за секунду.</p>
+              <p class="pain">Все находки в одном месте, а не в десяти папках.</p>
+            </div>
+          </article>
+
+          <!-- 3. Книга и макеты -->
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="3 из 10">
+            <div class="slide__scene scene scene--book" aria-hidden="true">
+              <div class="book">
+                <div class="page pg-l"><i class="ln l1"></i><i class="ln l2"></i><i class="ln l3"></i><i class="ph ph--a ph--sm"></i></div>
+                <div class="page pg-r"><i class="ln l1"></i><i class="ln l2"></i><i class="ln l3"></i><i class="ln l4"></i></div>
+                <div class="page pg-flip"><i class="ln l1"></i><i class="ln l2"></i><i class="ph ph--c ph--sm"></i></div>
+              </div>
+              <span class="chip chip--float">шаблон на 100 страниц</span>
+            </div>
+            <div class="slide__body">
+              <p class="kicker">Книга и макеты</p>
+              <h3 class="h3">Книга уже имеет каркас</h3>
+              <p>Готовый макет на 100 страниц: главы по ветвям рода, а на каждой странице подсказка, что сюда внести. Редактор страниц, листалка как у настоящей книги и подготовка к печати работают прямо в приложении.</p>
+              <p class="pain">Пустого листа перед вами не будет.</p>
+            </div>
+          </article>
+
+          <!-- 4. Мемуары любви -->
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="4 из 10">
+            <div class="slide__scene scene scene--love" aria-hidden="true">
+              <div class="chapters">
+                <p class="ch c1"><span>1</span>Начало</p><p class="ch c2"><span>2</span>Знакомство</p><p class="ch c3"><span>3</span>Жизнь вместе</p>
+                <p class="ch c4"><span>4</span>Свадьба</p><p class="ch c5"><span>5</span>Дом</p><p class="ch c6"><span>6</span>Семья</p>
+              </div>
+              <span class="heart" aria-hidden="true">♥</span>
+              <span class="chip chip--float">для любой пары</span>
+            </div>
+            <div class="slide__body">
+              <p class="kicker">Шаблон «Мемуары любви»</p>
+              <h3 class="h3">История любви для любой пары</h3>
+              <p>Дарина собрала свою книгу о десяти годах вместе, а теперь шаблон подходит каждой паре. Главы идут по словам, а не по годам: начало, знакомство, жизнь вместе, свадьба, дом, семья. На каждой странице подсказка и место под фото.</p>
+              <p class="pain">Подарок, который трогает до слёз.</p>
+            </div>
+          </article>
+
+          <!-- 5. Свадебная книга -->
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="5 из 10">
+            <div class="slide__scene scene scene--wedding" aria-hidden="true">
+              <div class="grid">
+                <i class="ph ph--a g1"></i><i class="ph ph--b g2"></i><i class="ph ph--c g3"></i><i class="ph ph--b g4"></i><i class="ph ph--a g5"></i><i class="ph ph--c g6"></i>
+              </div>
+              <p class="cap">Утро · Церемония · Первый танец</p>
+              <span class="chip chip--float">48 или 42 страницы</span>
+            </div>
+            <div class="slide__body">
+              <p class="kicker">Шаблон «Свадебная книга»</p>
+              <h3 class="h3">История одного дня, от утра до последнего танца</h3>
+              <p>Фотокнига, где около 80% страницы занимают ваши снимки, а подписи короткие. Два сценария на выбор: традиционная свадьба на 48 страниц или современная на 42. Ещё 10 страниц по желанию: предложение, приглашения, письма, пожелания гостей.</p>
+              <p class="pain">Свадебные фото наконец складываются в книгу.</p>
+            </div>
+          </article>
+
+          <!-- 6. Колоды вопросов с голосом -->
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="6 из 10">
+            <div class="slide__scene scene scene--voice" aria-hidden="true">
+              <div class="qcard"><small>Вопрос для бабушки</small><b>Что пахло в вашем детстве по воскресеньям?</b></div>
+              <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <span class="rec"><em></em> запись голоса</span>
+              <span class="chip chip--float">300 вопросов</span>
+            </div>
+            <div class="slide__body">
+              <p class="kicker">Колоды вопросов</p>
+              <h3 class="h3">Вопросы для разговора с родными</h3>
+              <p>Колоды вопросов подсказывают, о чём спросить маму, бабушку или дедушку. Нажали кнопку, и голос записался. Позже ответ превращается в текст страницы.</p>
+              <p class="pain">Голоса близких остаются в книге навсегда.</p>
+            </div>
+          </article>
+
+          <!-- 7. ИИ-помощник -->
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="7 из 10">
+            <div class="slide__scene scene scene--ai" aria-hidden="true">
+              <div class="chat">
+                <p class="msg me m1">Бабушка жила в Вятке, любила печь пироги…</p>
+                <p class="msg ai m2">Расскажите, какой пирог был главным и кто сидел за столом?</p>
+                <p class="msg me m3">Капустный. Дед, мама и соседка баба Нюра.</p>
+                <p class="msg page m4">Страница готова: «Воскресенья в Вятке»</p>
+              </div>
+              <span class="chip chip--float">ИИ-помощник</span>
+            </div>
+            <div class="slide__body">
+              <p class="kicker">ИИ-помощник</p>
+              <h3 class="h3">Спросит, выслушает и напишет страницу</h3>
+              <p>Личный семейный исследователь задаёт вопрос за вопросом и превращает ваши ответы и голосовые в красивый литературный текст. Начать можно, даже если о роде известно совсем немного.</p>
+              <p class="pain">Не нужно уметь писать, достаточно рассказать.</p>
+            </div>
+          </article>
+
+          <!-- 8. Архивы -->
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="8 из 10">
+            <div class="slide__scene scene scene--search" aria-hidden="true">
+              <div class="sbox"><span class="q">Балануца, Вятская губерния</span><i class="lens">⌕</i></div>
+              <ul class="results"><li class="r1"><b>Метрическая книга, 1894</b><span>запись о рождении</span></li><li class="r2"><b>Ревизская сказка</b><span>семья в селе</span></li><li class="r3"><b>Книга памяти</b><span>участник войны</span></li></ul>
+              <span class="chip chip--float">поиск по архивам</span>
+            </div>
+            <div class="slide__body">
+              <p class="kicker">Поиск предков</p>
+              <h3 class="h3">Поиск предков по архивам</h3>
+              <p>Подсказки, где искать документы и истории о ваших родных, и готовые базы данных. Находки сразу попадают в архив и на страницы книги.</p>
+              <p class="pain">Расследование, которое увлекает как детектив.</p>
+            </div>
+          </article>
+
+          <!-- 9. Напоминания -->
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="9 из 10">
+            <div class="slide__scene scene scene--remind" aria-hidden="true">
+              <div class="phone"><i class="notch"></i>
+                <div class="push pu1"><b>Книга рода</b><span>Завтра день рождения у бабушки Нины. Позвоните ей</span></div>
+                <div class="push pu2"><b>Книга рода</b><span>Вечер для книги: один вопрос, пять минут</span></div>
+              </div>
+              <span class="chip chip--float">мягкие напоминания</span>
+            </div>
+            <div class="slide__body">
+              <p class="kicker">Напоминания</p>
+              <h3 class="h3">Не забудете ни дату, ни книгу</h3>
+              <p>Приложение напомнит о днях рождения близких и мягко подскажет вечер для книги: один вопрос, пять минут. Книга двигается маленькими шагами и не превращается в отложенный проект.</p>
+              <p class="pain">Без ругани и чувства вины, как забота.</p>
+            </div>
+          </article>
+
+          <!-- 10. Синхронизация -->
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="10 из 10">
+            <div class="slide__scene scene scene--sync" aria-hidden="true">
+              <div class="dev dev--a"><i class="mini"></i><i class="mini"></i></div>
+              <div class="link"><i></i><i></i><i></i></div>
+              <div class="dev dev--b"><i class="mini"></i><i class="mini"></i><i class="mini mini--new"></i></div>
+              <span class="chip chip--float">до 3 устройств</span>
+            </div>
+            <div class="slide__body">
+              <p class="kicker">Синхронизация</p>
+              <h3 class="h3">Книга всегда с вами</h3>
+              <p>Начали на телефоне, продолжили на планшете: книга, фото и древо подтягиваются сами. На платном тарифе книгу можно открыть на трёх устройствах. Добавьте иконку на экран «Домой», и приложение открывается как обычное.</p>
+              <p class="pain">Ничего не потеряется при смене телефона.</p>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <div class="demo__bar">
+        <button class="ctl" id="demoPrev" type="button" aria-label="Предыдущий слайд">‹</button>
+        <div class="dots" id="demoDots" role="group" aria-label="Выбор слайда"></div>
+        <button class="ctl" id="demoNext" type="button" aria-label="Следующий слайд">›</button>
+        <button class="ctl ctl--text" id="demoPause" type="button" aria-label="Остановить автопрокрутку">Пауза</button>
+      </div>
+      <div class="demo__progress" aria-hidden="true"><i id="demoProgress"></i></div>
+    </div>
+
+    <p class="app__note">Первая книга бесплатна. Платный тариф открывает все возможности, подписки и ежемесячных списаний нет.</p>
+    <div class="center"><a class="btn btn--big js-buy" href="#buy">Купить за 2 026 ₽</a></div>
+  </div>
+</section>
+
+<!-- 6. Спец-предложение -->
+<section class="sec" id="offer">
+  <div class="wrap">
+    <p class="kicker kicker--center">Спец-предложение</p>
+    <h2 class="h2 h2--center">Передай память предков</h2>
+    <div class="offer">
+      <article class="offer__card">
+        <img loading="lazy" src="/media/offer-memory.webp" width="900" height="900" alt="Девушка в готической арке пишет в книге при свече">
+        <p><strong>Представьте…</strong> Через двадцать лет. Ваш ребёнок открывает эту книгу. Видит фотографии своих прапрадедов. Читает истории вашей семьи. Слышит ваш голос. И чувствует огромную поддержку Рода, понимая, кем были его предки.</p>
+      </article>
+      <article class="offer__card">
+        <img loading="lazy" src="/media/offer-materials.webp" width="900" height="900" alt="Набор старинных иконок: книга, свиток, письмо, свеча, лупа, шкафчик архива">
+        <p>Заберите все 6 уроков с видео, индивидуальный GPT-ассистент, 150 готовых промптов, архивные базы данных, шаблоны для дизайна книги, вопросы для интервью, чат с Дариной и учениками, подробные объяснения.</p>
+      </article>
+      <article class="offer__card">
+        <img loading="lazy" src="/media/offer-24h.webp" width="900" height="900" alt="Часы, книга и бирка со скидкой">
+        <p><strong>Неисчерпаемый поток вдохновения.</strong> Чатик со всеми участниками и Дариной с бессрочным доступом. Это сообщество единомышленников, которые делятся своими идеями, находками и процессом создания своей Книги Рода.</p>
+      </article>
+    </div>
+
+    <div class="price" id="buy">
+      <p class="price__what">Полный мини-курс, доступ в сообщество, инструменты AI и материалы для печати</p>
+      <p class="price__term">доступ к урокам – 1 год, доступ к чату – навсегда</p>
+      <p class="price__nums"><b>2 026 ₽</b><s>3 026 ₽</s></p>
+      <p class="price__small">Меньше стоимости одного семейного ужина.</p>
+      <a class="btn btn--big js-buy" href="#buy">Купить сейчас</a>
+      <p class="price__note">Доступ ко всем материалам и AI-боту открывается мгновенно после оплаты.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7. Отзывы -->
+<section class="sec sec--moss" id="reviews">
+  <div class="wrap">
+    <h2 class="h2">Вот, что говорят в нашем сообществе</h2>
+    <div class="shelf shelf--reviews" role="region" tabindex="0" aria-label="Отзывы, листайте вправо">
+      <figure><img loading="lazy" src="/media/review1.webp" width="900" height="900" alt="Отзыв, Юлия: я столько всего нашла! У меня очень много историй моих предков: герои ВОВ, прадедушка священник, среди родственников Митрополит. Сейчас нахожу очень много материалов: выписки из ВК, архивные дела, книги памяти, описания церкви, где служил прадед. Это целое журналистское расследование."></figure>
+      <figure><img loading="lazy" src="/media/review2.webp" width="900" height="900" alt="Отзыв, Анастасия: Дарина, спасибо тебе огромное! Я сейчас в процессе глубокого интервью и он уже заставил меня приятно всплакнуть. Настолько точно он меня увидел и услышал."></figure>
+      <figure><img loading="lazy" src="/media/review3.webp" width="900" height="900" alt="Отзыв, Анжелика: какая работа была огромная проделана! Я в шоке. Сегодня начну смотреть!"></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 8. Вопросы -->
+<section class="sec sec--dark" id="faq">
+  <div class="wrap wrap--narrow">
+    <h2 class="h2 h2--center">Часто задаваемые вопросы</h2>
+    <details class="qa"><summary>А можно проходить курс только с телефона? У меня нет компьютера или ноутбука</summary>
+      <div><p><strong>Да, абсолютно!</strong></p><p>Программа курса полностью адаптирована под смартфоны. Все лекции можно смотреть по дороге на работу или за чашкой чая, а домашние задания выполнять прямо в телефоне. Вам не нужно покупать сложную технику: вашего обычного смартфона будет более чем достаточно, чтобы получить полноценный результат.</p></div></details>
+    <details class="qa"><summary>Я совсем «чайник» в технологиях и программах. У меня точно получится?</summary>
+      <div><p>Этот курс создавался специально для тех, кто с технологиями на «вы». Мы не будем загружать вас сложными терминами. Все уроки построены по принципу: <strong>«Посмотри на экран → нажми вот эту кнопку → посмотри, что получилось»</strong>. Мы начнём с самых азов, шаг за шагом, без спешки. Если вы умеете пользоваться Телеграммом и заходить в интернет, вы точно справитесь! Тем более, вы всегда сможете задать вопрос Дарине.</p></div></details>
+    <details class="qa"><summary>У меня очень мало времени (работа, дети, быт). Сколько часов в день нужно тратить?</summary>
+      <div><p>Всего <strong>15–20 минут в день</strong>. Уроки специально сделаны короткими и ёмкими: никакой «воды» и длинных двухчасовых лекций. Вы можете учиться в своём собственном темпе тогда, когда удобно именно вам: утром за кофе, в обеденный перерыв или вечером. А делать книгу вы сможете в формате хобби.</p></div></details>
+    <details class="qa"><summary>А если у меня что-то не получится или я застряну? Мне кто-нибудь поможет?</summary>
+      <div><p>Вы не останетесь один на один с уроками. На протяжении всего курса у вас будет поддержка в общем чатике участников, в котором Дарина тоже будет отвечать. Если что-то не нажимается, не открывается или вы просто запутались, вы пишете в наш закрытый чат сообщества Книги Рода, и мы вместе разбираем вашу проблему до тех пор, пока всё не заработает.</p></div></details>
+    <details class="qa"><summary>Что делать, если я пропущу время урока? Мне нужно быть онлайн в определённый час?</summary>
+      <div><p><strong>Привязки ко времени нет!</strong> Все материалы курса будут доступны вам в записи <strong>в любое время дня и ночи в течение года</strong>. Вы можете посмотреть урок сегодня, завтра или на выходных. Доступ к курсу останется у вас на год, так что вы сможете пересмотреть сложные моменты когда захотите.</p></div></details>
+    <details class="qa"><summary>Я живу не в России (в СНГ, Европе, Азии). Смогу ли я оплатить курс?</summary>
+      <div><p><strong>Да, без проблем!</strong></p><p>Мы с мужем полностью адаптировали систему для наших студентов со всего мира. Вам не придётся изобретать сложные схемы или просить кого-то о помощи. Наша платёжная система напрямую поддерживает оплату любыми зарубежными картами (включая Visa и Mastercard).</p><p>Всё, что вам нужно – просто нажать на кнопку <strong>«Купить»</strong>, выбрать удобный вариант оплаты и ввести данные своей карты. Система автоматически пересчитает стоимость в вашу местную валюту, платёж пройдёт за пару секунд, а доступ к личному кабинету откроется мгновенно!</p></div></details>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot__grid">
+    <div>
+      <p><strong>ИП Балануца Дарина Михайловна</strong></p>
+      <p>ИНН: 760405113426</p>
+      <p>E-mail: <a href="mailto:darinazizina@gmail.com">darinazizina@gmail.com</a></p>
+    </div>
+    <p class="foot__copy">© ИП Балануца Дарина Михайловна, 2026. Все права защищены. Любое использование либо копирование материалов или подборки материалов сайта, элементов дизайна и оформления допускается лишь с письменного разрешения правообладателя и только со ссылкой на источник.</p>
+    <nav class="foot__links" aria-label="Документы">
+      <a href="/legal/offer/">Публичная оферта</a>
+      <a href="/legal/privacy/">Политика конфиденциальности</a>
+      <a href="/app/">Открыть приложение</a>
+    </nav>
+  </div>
+</footer>
+
+<dialog class="soon" id="soon" aria-labelledby="soonTitle">
+  <form method="dialog">
+    <p class="soon__title" id="soonTitle">Оплата подключается</p>
+    <p>Ссылка на оплату через Tribute ещё не добавлена. Загляните чуть позже или напишите на <a id="soonMail" href="mailto:darinazizina@gmail.com">darinazizina@gmail.com</a>, и я помогу.</p>
+    <button class="btn" value="ok" autofocus>Понятно</button>
+  </form>
+</dialog>
+
+<script src="/config.js"></script>
+<script src="/landing.js"></script>
+</body>
+</html>
