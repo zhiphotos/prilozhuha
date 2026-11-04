@@ -42,7 +42,7 @@ export function PersonAvatar({ person, size = 48 }: { person: Pick<Person, "name
 }
 
 /** Все поля человека. Общие для формы добавления и для карточки (меняем сразу, как печатаем). */
-export function PersonFields({ value, onChange, others, extraSiblings, onExtraSiblings }: { value: PersonDraft; onChange: (patch: Partial<PersonDraft>) => void; others: Person[]; extraSiblings?: string[]; onExtraSiblings?: (ids: string[]) => void }) {
+export function PersonFields({ value, onChange, others, extraSiblings, onExtraSiblings, parentOf, onParentOf }: { value: PersonDraft; onChange: (patch: Partial<PersonDraft>) => void; others: Person[]; extraSiblings?: string[]; onExtraSiblings?: (ids: string[]) => void; parentOf?: string; onParentOf?: (id: string) => void }) {
   const parts = partsOf(value);
   const file = useRef<HTMLInputElement>(null);
   const setParts = (patch: Partial<typeof parts>) => {
@@ -150,6 +150,9 @@ export function PersonFields({ value, onChange, others, extraSiblings, onExtraSi
           <DateInput className="field" value={value.deathYear ?? ""} onChange={(next) => onChange({ deathYear: next })} />
         </Field>
       </div>
+      <Field label="Место рождения" hint="Город, село или страна. Если знаете.">
+        <input className="field" value={value.birthPlace ?? ""} onChange={(event) => onChange({ birthPlace: event.target.value })} placeholder="Например, Тбилиси" />
+      </Field>
       {maidenAllowed(value) ? (
         <Field label="Девичья фамилия">
           <input className="field" value={value.maidenName} onChange={(event) => onChange({ maidenName: event.target.value })} placeholder="Если знаете" />
@@ -219,6 +222,11 @@ export function PersonFields({ value, onChange, others, extraSiblings, onExtraSi
               />
             ))}
           </div>
+        </Field>
+      ) : null}
+      {others.length && onParentOf && !(value as Person).id ? (
+        <Field label="Чей родитель" hint="Если вы добавляете маму, папу, дедушку или бабушку: выберите того, чей он родитель. Родитель встанет над ним в древе.">
+          <SearchSelect label="Чей родитель" value={parentOf ?? ""} onChange={(next) => onParentOf(next)} empty="Не выбрано" options={others.map((item) => ({ value: item.id, label: `${item.name} (${item.relation})` }))} />
         </Field>
       ) : null}
       {others.length ? (

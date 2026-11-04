@@ -109,6 +109,7 @@ function PeoplePane() {
   const updatePerson = useRod((state) => state.updatePerson);
   const [draft, setDraft] = useState<PersonDraft>(EMPTY_PERSON);
   const [moreSibs, setMoreSibs] = useState<string[]>([]);
+  const [parentOfId, setParentOfId] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const shown = filterPeople(people, query);
@@ -130,12 +131,19 @@ function PeoplePane() {
             }
             const newId = addPerson({ ...draft, name: draft.name.trim(), maidenName: maidenAllowed(draft) ? draft.maidenName.trim() : "", birthYear: draft.birthYear.trim(), parents: (draft.parents ?? []).filter(Boolean) });
             for (const other of moreSibs) if (other !== draft.siblingOf) updatePerson(other, { siblingOf: newId });
+            // «Чей родитель»: новый человек становится родителем выбранного (если у того ещё нет двух родителей)
+            const child = people.find((p) => p.id === parentOfId);
+            if (child) {
+              const have = (child.parents ?? []).filter(Boolean);
+              if (have.length < 2 && !have.includes(newId)) updatePerson(child.id, { parents: [...have, newId] });
+            }
+            setParentOfId("");
             setMoreSibs([]);
             setDraft(EMPTY_PERSON);
             toast("Человек добавлен: он на ленте и в древе");
           }}
         >
-          <PersonFields value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} others={people} extraSiblings={moreSibs} onExtraSiblings={setMoreSibs} />
+          <PersonFields value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} others={people} parentOf={parentOfId} onParentOf={setParentOfId} extraSiblings={moreSibs} onExtraSiblings={setMoreSibs} />
           <Button type="submit" disabled={!draft.name.trim()}>
             Добавить в семью
           </Button>
@@ -171,6 +179,7 @@ function PeoplePane() {
                   {person.relation}
                   {person.birthYear ? ` · ${person.birthYear}` : ""}
                   {person.deathYear ? ` – ${person.deathYear}` : ""}
+                  {person.birthPlace?.trim() ? ` · ${person.birthPlace.trim()}` : ""}
                   {person.maidenName && maidenAllowed(person) ? ` · девичья ${person.maidenName}` : ""}
                 </span>
               </span>
