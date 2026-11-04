@@ -59,7 +59,11 @@ sleep 2
 curl -fsS http://127.0.0.1:3100/health >/dev/null && echo "API отвечает на /health" || { echo "API НЕ ответил: journalctl -u kniga-api -n 30"; exit 1; }
 
 say "6. nginx (отдельный файл, файлы Кики не трогаем)"
-install -m 644 "$UP/deploy/ru/nginx-kniga-http.conf" /etc/nginx/conf.d/kniga.conf
-if nginx -t; then systemctl reload nginx; echo "nginx перезагружен"; else rm -f /etc/nginx/conf.d/kniga.conf; echo "конфиг nginx не прошёл проверку, наш файл убран, Кики не затронут"; exit 1; fi
+if grep -q ssl_certificate /etc/nginx/conf.d/kniga.conf 2>/dev/null; then
+  echo "kniga.conf уже с сертификатом https (certbot): не перезаписываем"
+else
+  install -m 644 "$UP/deploy/ru/nginx-kniga-http.conf" /etc/nginx/conf.d/kniga.conf
+  if nginx -t; then systemctl reload nginx; echo "nginx перезагружен"; else rm -f /etc/nginx/conf.d/kniga.conf; echo "конфиг nginx не прошёл проверку, наш файл убран, Кики не затронут"; exit 1; fi
+fi
 
 say "Готово. Дальше: сертификат https командой certbot (отдельный шаг)."
