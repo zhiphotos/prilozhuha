@@ -7,6 +7,7 @@
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:72px;-webkit-text-size-adjust:100%}
+html{overflow-x:hidden}
 body{margin:0;background:var(--bg);color:#ece7da;font:400 17px/1.6 var(--body);overflow-x:hidden}
 img{max-width:100%;height:auto;display:block}
 a{color:var(--gold2)}
@@ -35,7 +36,7 @@ p{margin:0 0 1em}
 .btn--big{min-height:58px;padding:0 44px;font-size:17px}
 
 /* шапка */
-.top{position:fixed;inset:0 0 auto 0;z-index:30;display:flex;align-items:center;gap:20px;padding:10px max(16px,calc((100vw - 1120px)/2));background:rgba(14,21,17,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top{box-sizing:border-box;max-width:100%;overflow:hidden;position:fixed;inset:0 0 auto 0;z-index:30;display:flex;align-items:center;gap:20px;padding:10px max(16px,calc((100vw - 1120px)/2));background:rgba(14,21,17,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .top__brand{font:400 20px var(--display);color:var(--gold2);text-decoration:none;margin-right:auto;white-space:nowrap}
 .top__mark{color:var(--gold)}
 .top__nav{display:flex;gap:22px}
