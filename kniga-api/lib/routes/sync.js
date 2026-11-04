@@ -13,6 +13,7 @@ import { readToken } from "../token.js";
 //   media-get { ref, i }        → { data, n }
 const PART = 700_000;
 const MAX_PARTS = 24;
+const PART_TTL = 400 * 86400; // срок хранения частей книги в облаке, секунды
 const MAX_MEDIA_CHUNKS = 24;
 const REF = /^media:[0-9a-f-]{8,64}$/i;
 
@@ -33,8 +34,14 @@ export default async function handler(req, res) {
   try {
     switch (body.op) {
       case "head": {
-        const [rev, savedAt, parts] = (await redis("HMGET", bookKey(id), "rev", "savedAt", "parts")) ?? [];
-        return json(res, 200, { rev: Number(rev ?? 0), savedAt: savedAt ?? "", parts: Number(parts ?? 0) });
+        const [rev, savedAt, parts, hash, prevRev, prevParts, ttlAt] = (await redis("HMGET", bookKey(id), "rev", "savedAt", "parts", "hash", "prevRev", "prevParts", "ttlAt")) ?? [];
+        // Части книги живут 400 дней с последнего обращения: раз в неделю продлеваем срок текущей и запасной версии, чтобы книга, которой пользуются, не исчезла.
+        if (Number(rev ?? 0) > 0 && Date.now() - Number(ttlAt ?? 0) > 7 * 86400000) {
+          for (let k = 0; k < Number(parts ?? 0); k += 1) await redis("EXPIRE", partKey(id, Number(rev), k), PART_TTL);
+          for (let k = 0; k < Number(prevParts ?? 0); k += 1) if (Number(prevRev ?? 0) > 0) await redis("EXPIRE", partKey(id, Number(prevRev), k), PART_TTL);
+          await redis("HSET", bookKey(id), "ttlAt", String(Date.now()));
+        }
+        return json(res, 200, { rev: Number(rev ?? 0), savedAt: savedAt ?? "", parts: Number(parts ?? 0), hash: hash ?? "", prevRev: Number(prevRev ?? 0), prevParts: Number(prevParts ?? 0) });
       }
       case "part": {
         const data = await redis("GET", partKey(id, Number(body.rev), Number(body.i)));
@@ -46,15 +53,21 @@ export default async function handler(req, res) {
         const i = Number(body.i);
         const data = String(body.data ?? "");
         if (!(parts >= 1 && parts <= MAX_PARTS) || !(i >= 0 && i < parts) || data.length > PART + 1000) return json(res, 400, { error: "Некорректная версия." });
-        const current = Number((await redis("HGET", bookKey(id), "rev")) ?? 0);
+        const hash = String(body.hash ?? "").slice(0, 64);
+        const [curRaw, curHash] = (await redis("HMGET", bookKey(id), "rev", "hash")) ?? [];
+        const current = Number(curRaw ?? 0);
+        // Повтор уже принятой версии (ответ потерялся по дороге): не считаем конфликтом и не записываем второй раз.
+        if (current === baseRev + 1 && hash && curHash === hash) return json(res, 200, { ok: true, committed: true, rev: current, duplicate: true });
         if (current !== baseRev) return json(res, 409, { error: "В облаке есть более новая версия.", rev: current });
         const next = baseRev + 1;
-        await redis("SET", partKey(id, next, i), data, "EX", 400 * 86400); // раньше 7 дней: через неделю без правок книга пропадала из облака
+        await redis("SET", partKey(id, next, i), data, "EX", PART_TTL); // раньше было 7 дней: через неделю без правок книга пропадала из облака
         if (i < parts - 1) return json(res, 200, { ok: true, committed: false });
         // Последний кусок: проверяем, что все на месте, потом переключаем версию.
         for (let k = 0; k < parts; k += 1) if ((await redis("EXISTS", partKey(id, next, k))) !== 1) return json(res, 400, { error: "Не все части дошли." });
-        await redis("HSET", bookKey(id), "rev", String(next), "savedAt", new Date().toISOString(), "parts", String(parts));
-        for (let k = 0; k < MAX_PARTS; k += 1) await redis("DEL", partKey(id, baseRev, k)); // старую версию стираем
+        const oldParts = Number((await redis("HGET", bookKey(id), "parts")) ?? 0);
+        await redis("HSET", bookKey(id), "rev", String(next), "savedAt", new Date().toISOString(), "parts", String(parts), "hash", hash, "prevRev", String(baseRev), "prevParts", String(oldParts));
+        // Предыдущую версию оставляем как запасную (её можно забрать операцией part), стираем ту, что до неё.
+        if (baseRev >= 2) for (let k = 0; k < MAX_PARTS; k += 1) await redis("DEL", partKey(id, baseRev - 1, k));
         return json(res, 200, { ok: true, committed: true, rev: next });
       }
       case "media-has": {
