@@ -9,6 +9,7 @@ import { handlePaymentReturn, verifyAccess } from "@/lib/rod/pay";
 import { pingPush } from "@/lib/rod/push";
 import { startUpdateWatch } from "@/lib/rod/update";
 import { JoinScreen } from "@/components/rod/join";
+import { TreeViewScreen } from "@/components/rod/tree-view";
 import { LegalScreen } from "@/components/rod/legal";
 import { FlipBookScreen } from "@/components/rod/flipbook";
 import { startAutoSync } from "@/lib/rod/sync";
@@ -44,7 +45,13 @@ function initialStack(): Screen[] {
   return match ? [{ id: "home" }, { id: "legal", doc: match[1] }] : [{ id: "home" }];
 }
 
+/** Ссылка #/view/<номер> открывает древо родственника только для просмотра, без книги и входа. */
 export function RodApp() {
+  const view = typeof window !== "undefined" ? window.location.hash.match(/^#\/view\/([0-9a-f]{16})$/) : null;
+  return view ? <TreeViewScreen id={view[1]!} /> : <RodAppMain />;
+}
+
+function RodAppMain() {
   const onboarded = useRod((state) => state.onboarded);
   const print = useRod((state) => state.print);
   const formatKey = `${print.size}x${print.height ?? print.size}`;

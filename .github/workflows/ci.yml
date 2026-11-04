@@ -60,7 +60,7 @@ jobs:
         run: |
           set -u
           failed=0
-          for t in test-ai test-family test-flow test-redis-native test-migrate test-server test-birthdays; do
+          for t in test-ai test-family test-flow test-redis-native test-migrate test-server test-birthdays test-share; do
             node "$t.mjs" > "/tmp/$t.log" 2>&1 || failed=1
             if grep -q "^FAIL" "/tmp/$t.log"; then failed=1; fi
             tail -3 "/tmp/$t.log"

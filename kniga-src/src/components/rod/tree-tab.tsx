@@ -15,6 +15,7 @@ import { TreeSearch } from "@/components/tree/TreeSearch";
 import { searchPeople } from "@/lib/tree/search";
 import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { setCardFields, useCardFields } from "@/lib/tree/card-fields";
+import { publishShare, readShare, revokeShare } from "@/lib/rod/share-tree";
 import { layoutTree, sliceByRadius } from "@/lib/tree/layout";
 import { SCOPES, scopeFilter } from "@/lib/tree/scope";
 import { layoutCameo } from "@/lib/tree/cameo";
@@ -185,6 +186,32 @@ function TreeScreen() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const shareLink = async () => {
+    setNote("Готовим ссылку…");
+    try {
+      const url = await publishShare({ people, unions, focusId });
+      try {
+        await navigator.clipboard.writeText(url);
+        setNote("Ссылка скопирована. Отправьте её родным: они смогут только смотреть.");
+      } catch {
+        window.prompt("Скопируйте ссылку и отправьте родным", url);
+        setNote("Ссылка готова");
+      }
+      setToolsOpen(false);
+    } catch (error) {
+      setNote(error instanceof Error ? error.message : "Не получилось создать ссылку");
+    }
+  };
+  const unshareLink = async () => {
+    try {
+      await revokeShare();
+      setNote("Ссылка отозвана: по ней древо больше не откроется");
+    } catch (error) {
+      setNote(error instanceof Error ? error.message : "Не получилось отозвать");
+    }
+    setToolsOpen(false);
   };
 
   const openAdd = () => {
@@ -358,6 +385,20 @@ function TreeScreen() {
                           {label}
                         </button>
                       ))}
+                    </div>
+                  </div>
+                  <div className="mt-1 border-t border-chip-line px-3 pt-2 pb-1">
+                    <p className="text-sm font-semibold text-chip-fg">Ссылка для родных</p>
+                    <p className="mt-0.5 text-xs text-chip-fg/80">Родственник откроет древо и сможет только смотреть. Заметки и фото не передаются.</p>
+                    <div className="mt-1 flex gap-1">
+                      <button type="button" className="min-h-9 flex-1 rounded-xl bg-gold px-2 text-xs font-semibold text-ink" onClick={() => void shareLink()}>
+                        {readShare() ? "Обновить и скопировать" : "Создать и скопировать"}
+                      </button>
+                      {readShare() ? (
+                        <button type="button" className="min-h-9 flex-1 rounded-xl px-2 text-xs font-semibold text-chip-fg" onClick={() => void unshareLink()}>
+                          Отозвать ссылку
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 </div>

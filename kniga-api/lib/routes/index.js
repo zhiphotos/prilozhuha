@@ -22,6 +22,7 @@ import roomInfo from "./room-info.js";
 import roomSubmit from "./room-submit.js";
 import status from "./status.js";
 import sync from "./sync.js";
+import treeShare from "./tree-share.js";
 import verify from "./verify.js";
 
 export const ROUTES = {
@@ -48,5 +49,6 @@ export const ROUTES = {
   "room-submit": roomSubmit,
   status,
   sync,
+  "tree-share": treeShare,
   verify,
 };
