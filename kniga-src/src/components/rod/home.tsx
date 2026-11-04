@@ -207,7 +207,7 @@ export function HomeScreen() {
         {/* Карточки листаются вбок, как в Кики. */}
         <ul className="no-scrollbar -mx-5 mt-1 flex snap-x snap-mandatory scroll-pl-5 gap-9 overflow-x-auto px-11 py-9">
           {SITUATIONS.map((item, i) => (
-            <li key={item.id} className={cn("relative w-[68%] max-w-64 shrink-0 snap-start", i === 0 && "mr-6", i === SITUATIONS.length - 1 && "ml-3 mr-6")}>
+            <li key={item.id} className={cn("relative w-[min(16rem,72vw)] shrink-0 snap-start", i === 0 && "mr-6", i === SITUATIONS.length - 1 && "ml-3 mr-6")}>
               {/* Мшистая рамка вокруг первой и последней колоды: поверх карточки не лезет на текст, края плашки подчёркивает. */}
               {i === 0 || i === SITUATIONS.length - 1 ? (
                 <img
@@ -216,7 +216,7 @@ export function HomeScreen() {
                   aria-hidden
                   draggable={false}
                   className="pointer-events-none absolute z-20 select-none"
-                  style={{ left: "-13%", right: "-19%", top: "-13%", bottom: "-15%", width: "132%", height: "128%", maxWidth: "none" }}
+                  style={{ left: "-6.8%", top: "-9.7%", width: "116.8%", height: "123.1%", maxWidth: "none" }}
                 />
               ) : null}
               <DeckLink item={item} saved={data.notes.filter((note) => note.situationId === item.id).length} onOpen={() => nav.go({ id: "deck", situationId: item.id })} liftCut={i === 0 || i === SITUATIONS.length - 1} />

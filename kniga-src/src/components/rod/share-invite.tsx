@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Copy, Send, Share2 } from "lucide-react";
+import { Check, Copy, Share2 } from "lucide-react";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { INVITE_TEXT, copyText } from "@/lib/rod/invite";
 
@@ -15,7 +15,7 @@ export function ShareInvite() {
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className="grid size-11 place-items-center rounded-full bg-moss text-paper shadow-[0_10px_24px_-14px_rgba(20,22,15,0.7)]" aria-label="Пригласить друзей" title="Пригласить друзей">
-        <Send className="size-5" />
+        <img src={`${import.meta.env.BASE_URL}stickers/pack/leaf_plane.webp`} alt="" draggable={false} className="pointer-events-none w-8 -rotate-6 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]" />
       </button>
       {open ? (
         <Sheet title="Пригласи друзей в Книгу рода" onClose={close}>
