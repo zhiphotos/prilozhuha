@@ -22,7 +22,7 @@ const CAT: Record<string, { tag: string; cut: string; tilt: number; tone: "night
   dinner: { tag: "за ужином", cut: "daffodil", tilt: -10, tone: "paper" },
   road: { tag: "в дороге", cut: "stick_rosehip", tilt: 14, tone: "moss" },
 };
-const catOf = (id: string) => CAT[id] ?? { tag: "", cut: "moth", tilt: 0, tone: "paper" as const };
+export const catOf = (id: string) => CAT[id] ?? { tag: "", cut: "moth", tilt: 0, tone: "paper" as const };
 const numberOf = (id: string) => String(Math.max(0, SITUATIONS.findIndex((item) => item.id === id)) + 1).padStart(2, "0");
 
 export function CardsScreen() {
@@ -120,7 +120,7 @@ export function CardsScreen() {
   );
 }
 
-export function DeckLink({ item, saved, onOpen, featured = false }: { item: Situation; saved: number; onOpen: () => void; featured?: boolean }) {
+export function DeckLink({ item, saved, onOpen, featured = false, liftCut = false }: { item: Situation; saved: number; onOpen: () => void; featured?: boolean; liftCut?: boolean }) {
   const cat = catOf(item.id);
   const total = item.questions.length;
   const share = Math.min(100, Math.round((saved / Math.max(1, total)) * 100));
@@ -149,11 +149,11 @@ export function DeckLink({ item, saved, onOpen, featured = false }: { item: Situ
           <span className="block h-full bg-gold" style={{ width: `${Math.max(share, 3)}%` }} />
         </span>
       ) : null}
-      <Cut
+      {liftCut ? null : <Cut
         id={cat.cut}
         className={cn("pointer-events-none absolute", featured ? "-right-8 -top-6 w-40" : "-bottom-2 -right-4 w-[5.8rem]")}
         style={{ transform: `rotate(${cat.tilt}deg)`, opacity: featured ? 0.95 : 1 }}
-      />
+      />}
     </button>
   );
 }

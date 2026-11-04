@@ -6,6 +6,7 @@ import { familyOf, inflectSurname } from "@/lib/tree/fill";
 import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { relationCard, relationNote, relationOf } from "@/lib/tree/recenter";
 import { fileToPhoto } from "@/lib/tree/photo";
+import { CircleCrop } from "@/components/rod/circle-crop";
 import { draftFrom, emptyDraft, useTree, type Draft, type RelKind } from "@/lib/tree/ui-store";
 import type { Person, Union, UnionStatus } from "@/lib/tree/types";
 
@@ -534,6 +535,7 @@ function PersonForm({
   error?: string | null;
 }) {
   const [draft, setDraft] = useState(initial);
+  const [cropping, setCropping] = useState<File | null>(null);
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
   return (
     <form
@@ -591,11 +593,21 @@ function PersonForm({
           accept="image/*"
           onChange={async (e) => {
             const file = e.target.files?.[0];
-            if (!file) return;
-            set({ photo: await fileToPhoto(file) });
+            e.target.value = "";
+            if (file) setCropping(file);
           }}
         />
       </label>
+      {cropping ? (
+        <CircleCrop
+          file={cropping}
+          onCancel={() => setCropping(null)}
+          onDone={(out) => {
+            setCropping(null);
+            void fileToPhoto(new File([out], "photo.jpg", { type: out.type || "image/jpeg" })).then((photo) => set({ photo }));
+          }}
+        />
+      ) : null}
       {error && <p className="text-sm text-role">{error}</p>}
       <div className="grid grid-cols-2 gap-2">
         <button type="button" className="min-h-11 rounded-2xl border border-line" onClick={onCancel}>

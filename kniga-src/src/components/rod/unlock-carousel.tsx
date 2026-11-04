@@ -7,7 +7,7 @@ import { ReelModal } from "@/components/rod/reel-modal";
 
 const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
 
-type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; video?: { src: string; poster: string }; price?: boolean; buy?: boolean; pos?: string; reviews?: boolean; reel?: boolean };
+type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; video?: { src: string; poster: string }; price?: boolean; buy?: boolean; pos?: string; reviews?: boolean; square?: boolean; reel?: boolean };
 
 const SLIDES: Slide[] = [
   {
@@ -60,6 +60,7 @@ const SLIDES: Slide[] = [
     title: "У вас год и спокойный план",
     text: "Во втором уроке вы расписываете работу над книгой на год, а смотреть уроки можно в любой вечер. Доступ к урокам открыт на год.",
     image: "course/site/lesson2.jpg",
+    square: true,
   },
   {
     kicker: "Сообщество",
@@ -230,10 +231,10 @@ export function UnlockCarousel() {
             key={`${slide.kicker}-${i}`}
             aria-roledescription="слайд"
             aria-label={`${i + 1} из ${SLIDES.length}`}
-            className={`flex w-[84%] max-w-sm shrink-0 snap-center flex-col overflow-hidden rounded-[1.75rem] text-paper shadow-md ring-1 ring-[#c9ae74]/35 transition-opacity duration-300 motion-reduce:transition-none ${openSlides.includes(i) ? "" : "aspect-[4/5]"} ${i === index ? "opacity-100" : "opacity-80"}`}
+            className={`flex w-[84%] max-w-sm shrink-0 snap-center flex-col overflow-hidden rounded-[1.75rem] text-paper shadow-md ring-1 ring-[#c9ae74]/35 transition-opacity duration-300 motion-reduce:transition-none ${openSlides.includes(i) || slide.square ? "" : "aspect-[4/5]"} ${i === index ? "opacity-100" : "opacity-80"}`}
             style={{ background: "linear-gradient(180deg,#0d0c0a 0%,#1a1d0e 55%,#3f4a22 160%)" }}
           >
-            <div className={`relative w-full bg-black ${openSlides.includes(i) ? "aspect-[4/3]" : "min-h-0 flex-1 basis-0"}`}>
+            <div className={`relative w-full bg-black ${slide.square ? "aspect-square" : openSlides.includes(i) ? "aspect-[4/3]" : "min-h-0 flex-1 basis-0"}`}>
               <span className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-full bg-black/60 px-2.5 py-1 font-mono text-[11px] tracking-[0.14em] text-[#e6cf9c] ring-1 ring-[#c9ae74]/40">
                 {String(i + 1).padStart(2, "0")} / {String(SLIDES.length).padStart(2, "0")}
               </span>

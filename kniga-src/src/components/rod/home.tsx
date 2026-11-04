@@ -5,7 +5,7 @@ import { requestTour } from "@/components/rod/tour";
 import { Botanica, Cut, PAL_DARK, PAL_LIGHT, packBg } from "@/components/rod/botanica";
 import { filledCount } from "@/components/rod/contents-sheet";
 import { AUDIENCES, LESSONS, SITUATIONS, audienceTitle, reminder } from "@/lib/rod/content";
-import { DeckLink } from "@/components/rod/cards";
+import { DeckLink, catOf } from "@/components/rod/cards";
 import { LegalLinks } from "@/components/rod/legal";
 import { RemindersCard } from "@/components/rod/reminders-card";
 import { countsOf, isBookReady, nextStep, overallOf, partsOf, plural } from "@/lib/rod/progress";
@@ -20,6 +20,56 @@ import { InstallBanner, InstallCard, InstallSheet } from "@/components/rod/insta
 import { TransferCard } from "@/components/rod/transfer-card";
 import { ProjectsSheet } from "@/components/rod/projects-sheet";
 import { activeProjectId, listProjects } from "@/lib/rod/projects";
+
+/** Мини-иконки разделов «Из чего складывается книга»: тонкая линия, цвет золотой. */
+const PART_ICONS: Record<string, React.ReactNode> = {
+  // Семья: двое взрослых и ребёнок.
+  family: (
+    <>
+      <circle cx="8" cy="7" r="2.4" />
+      <circle cx="16.5" cy="7.6" r="2.1" />
+      <path d="M3.6 18.5c0-3.3 1.9-5.4 4.4-5.4s4.4 2.1 4.4 5.4" />
+      <path d="M13.4 18.5c0-2.7 1.3-4.4 3.1-4.4s3.1 1.7 3.1 4.4" />
+    </>
+  ),
+  // Места: метка на карте.
+  places: (
+    <>
+      <path d="M12 21s6.5-5.6 6.5-11a6.5 6.5 0 0 0-13 0c0 5.4 6.5 11 6.5 11Z" />
+      <circle cx="12" cy="10" r="2.3" />
+    </>
+  ),
+  // Фотографии: рамка с горой и солнцем.
+  photos: (
+    <>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <circle cx="9" cy="10" r="1.5" />
+      <path d="m4 17 5-4.5 3.5 3 3-2.5 4.5 4" />
+    </>
+  ),
+  // Истории: раскрытая книга.
+  stories: (
+    <>
+      <path d="M12 6.5C10 5 7 4.6 3.8 5.2v12.6c3.2-.6 6.2-.2 8.2 1.4 2-1.6 5-2 8.2-1.4V5.2C17 4.6 14 5 12 6.5Z" />
+      <path d="M12 6.5v12.7" />
+    </>
+  ),
+  // Документы: лист с загнутым углом и строками.
+  docs: (
+    <>
+      <path d="M6 3.5h8l4 4V20a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 20V3.5Z" />
+      <path d="M14 3.5v4h4M9 12h6M9 15.5h6" />
+    </>
+  ),
+};
+
+function PartIcon({ part }: { part: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className="size-6 shrink-0 text-gold-ink" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {PART_ICONS[part]}
+    </svg>
+  );
+}
 
 export function HomeScreen() {
   const nav = useNav();
@@ -108,10 +158,10 @@ export function HomeScreen() {
             <span className="text-xs tabular-nums text-muted">{overall}%</span>
           </div>
           <ul>
-            {parts.map((part, index) => (
+            {parts.map((part) => (
               <li key={part.key} className="border-b border-ink/10">
                 <button type="button" onClick={() => nav.go(partScreen(part.key))} className="flex min-h-14 w-full items-center gap-3 text-left active:bg-ink/5">
-                  <span className="w-6 shrink-0 text-xs tabular-nums text-gold-ink">{String(index + 1).padStart(2, "0")}</span>
+                  <PartIcon part={part.key} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-[15px] font-semibold text-ink">{part.label.replace(/^[^\p{L}]+/u, "")}</span>
                     <span className="mt-1.5 block h-[2px] w-full bg-ink/10">
@@ -127,14 +177,22 @@ export function HomeScreen() {
       ) : null}
 
       {free && mode !== "going" ? (
-        <button type="button" onClick={() => nav.go({ id: "lesson", lessonId: free.id })} className="aurora mt-9 flex w-full items-center gap-4 rounded-2xl p-5 text-left">
-          <span className="min-w-0 flex-1">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-ink">{freeDone ? "Урок пройден" : "Бесплатный урок"}</span>
-            <span className="mt-1 block text-[1.35rem] font-semibold leading-[1.15] text-ink">{free.title}</span>
-            <span className="mt-1 block text-sm text-ink/75">{free.minutes} минут</span>
-          </span>
-          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-moss text-paper">
-            <Play className="size-4 translate-x-px" />
+        <button type="button" onClick={() => nav.go({ id: "lesson", lessonId: free.id })} className="relative mt-9 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">
+          <img src={`${import.meta.env.BASE_URL}course/site/free.jpg`} alt="" className="absolute inset-0 size-full scale-110 object-cover blur-md" draggable={false} />
+          <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
+          <span className="relative flex min-h-44 flex-col justify-end p-5">
+            <span className="mb-3 w-fit rounded-full border border-paper/30 bg-paper/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-paper backdrop-blur-md">
+              {freeDone ? "Урок пройден" : "Бесплатный урок"} · {free.minutes} мин
+            </span>
+            <span className="flex items-end gap-4 rounded-2xl border border-paper/25 bg-paper/15 p-4 backdrop-blur-xl">
+              <span className="min-w-0 flex-1">
+                <span className="block text-[1.3rem] font-semibold leading-tight text-paper">{free.title}</span>
+                <span className="mt-1 block text-sm leading-snug text-paper/80">Смотрите первым: как создаётся Книга Рода с ИИ</span>
+              </span>
+              <span className="grid size-12 shrink-0 place-items-center rounded-full bg-paper/90 text-[#14160f]">
+                <Play className="size-5 translate-x-0.5" />
+              </span>
+            </span>
           </span>
         </button>
       ) : null}
@@ -147,10 +205,23 @@ export function HomeScreen() {
           </button>
         </div>
         {/* Карточки листаются вбок, как в Кики. */}
-        <ul className="no-scrollbar -mx-5 mt-3 flex snap-x snap-mandatory scroll-pl-5 gap-3 overflow-x-auto px-5 pb-2">
-          {SITUATIONS.map((item) => (
-            <li key={item.id} className="w-[68%] max-w-64 shrink-0 snap-start">
-              <DeckLink item={item} saved={data.notes.filter((note) => note.situationId === item.id).length} onOpen={() => nav.go({ id: "deck", situationId: item.id })} />
+        <ul className="no-scrollbar -mx-5 mt-1 flex snap-x snap-mandatory scroll-pl-5 gap-9 overflow-x-auto px-11 py-9">
+          {SITUATIONS.map((item, i) => (
+            <li key={item.id} className={cn("relative w-[68%] max-w-64 shrink-0 snap-start", i === 0 && "mr-6", i === SITUATIONS.length - 1 && "ml-3 mr-6")}>
+              {/* Мшистая рамка вокруг первой и последней колоды: поверх карточки не лезет на текст, края плашки подчёркивает. */}
+              {i === 0 || i === SITUATIONS.length - 1 ? (
+                <img
+                  src={`${import.meta.env.BASE_URL}stickers/pack/moss_frame.webp`}
+                  alt=""
+                  aria-hidden
+                  draggable={false}
+                  className="pointer-events-none absolute z-20 select-none"
+                  style={{ left: "-13%", right: "-19%", top: "-13%", bottom: "-15%", width: "132%", height: "128%", maxWidth: "none" }}
+                />
+              ) : null}
+              <DeckLink item={item} saved={data.notes.filter((note) => note.situationId === item.id).length} onOpen={() => nav.go({ id: "deck", situationId: item.id })} liftCut={i === 0 || i === SITUATIONS.length - 1} />
+              {/* Картинка колоды поверх мха и с тенью. */}
+              {i === 0 || i === SITUATIONS.length - 1 ? <Cut id={catOf(item.id).cut} className="pointer-events-none absolute -bottom-2 -right-4 z-30 w-[5.8rem]" style={{ transform: `rotate(${catOf(item.id).tilt}deg)`, filter: "drop-shadow(0 6px 8px rgba(0,0,0,0.45))" }} /> : null}
             </li>
           ))}
         </ul>
