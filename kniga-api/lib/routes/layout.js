@@ -1,4 +1,7 @@
-import { bodyOf, cors, json } from "../config.js";
+import { requireAccess } from "../ai/access.js";
+import { aiEnabled } from "../ai/limits.js";
+import { reserve } from "../ai/quota.js";
+import { json } from "../config.js";
 
 /**
  * POST /api/layout { text } -> { items: [{ kind: "heading"|"body"|"quote", text }] }
@@ -20,13 +23,20 @@ const PROMPT = `Ты помощник по вёрстке семейной кн�
 const words = (text) => String(text).toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean);
 
 export default async function handler(req, res) {
-  if (cors(req, res)) return;
-  if (req.method !== "POST") return json(res, 405, { error: "method" });
-  const text = String(bodyOf(req).text ?? "").trim();
+  // Порядок важен: сначала доступ (до платного провайдера без него дело не доходит), потом проверка текста,
+  // выключатель ИИ и личный/общий лимит. Раньше адрес был открыт всем и тратил платный ключ.
+  const ctx = await requireAccess(req, res);
+  if (!ctx) return;
+  const text = String(ctx.body.text ?? "").trim();
   if (text.length < 40) return json(res, 400, { error: "Текст слишком короткий." });
   if (text.length > MAX_CHARS) return json(res, 413, { error: "Текст слишком длинный. Вставляйте по частям, до 24 000 знаков." });
+  if (!aiEnabled()) return json(res, 503, { error: "ИИ пока выключен.", code: "ai_disabled" });
   const key = process.env.AI_API_KEY;
   if (!key) return json(res, 503, { error: "ИИ ещё не подключён." });
+  // Разметка тратит один запрос из общего дневного лимита текста.
+  const slot = await reserve(ctx.owner, "text", 1).catch(() => null);
+  if (!slot) return json(res, 502, { error: "Хранилище не ответило. Попробуйте позже." });
+  if (!slot.ok) return json(res, 429, { error: slot.scope === "global" ? "Общий дневной запас ИИ закончился." : "Ваш лимит ИИ на сегодня закончился.", code: `${slot.scope}_quota`, resetAt: slot.resetAt });
   try {
     const base = (process.env.AI_BASE_URL || "https://api.polza.ai/api/v1").replace(/\/$/, "");
     const answer = await fetch(`${base}/chat/completions`, {
@@ -50,9 +60,10 @@ export default async function handler(req, res) {
     const a = words(text).join(" ");
     const b = words(items.map((item) => item.text).join(" ")).join(" ");
     const same = a.length > 0 && Math.abs(a.length - b.length) / a.length < 0.02 && a.slice(0, 200) === b.slice(0, 200);
-    if (!items.length || !same) return json(res, 422, { error: "ИИ изменил текст, поэтому я не стала ему доверять. Оставила разметку по правилам." });
+    if (!items.length || !same) { await slot.release().catch(() => {}); return json(res, 422, { error: "ИИ изменил текст, поэтому я не стала ему доверять. Оставила разметку по правилам." }); }
     return json(res, 200, { items });
   } catch (error) {
+    await slot.release().catch(() => {});
     console.error("[layout]", error instanceof Error ? error.message : error);
     return json(res, 502, { error: "ИИ сейчас не отвечает. Разметка по правилам работает." });
   }

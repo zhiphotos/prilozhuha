@@ -1,3 +1,4 @@
+import { throttled } from "../throttle.js";
 import { bodyOf, cors, isAllowedApp, json } from "../config.js";
 import { subId, validSubscription } from "../push.js";
 import { redis, redisConfigured } from "../redis.js";
@@ -19,6 +20,7 @@ export const cleanStats = (stats) => ({
 export default async function handler(req, res) {
   if (cors(req, res)) return;
   if (req.method !== "POST") return json(res, 405, { error: "method" });
+  if (await throttled(req, res, "push-subscribe", 40)) return;
   if (!redisConfigured()) return json(res, 503, { error: "Напоминания ещё не подключены." });
   const body = bodyOf(req);
   if (!validSubscription(body.subscription)) return json(res, 400, { error: "Подписка не подошла." });

@@ -1,3 +1,4 @@
+import { throttled } from "../throttle.js";
 import { bodyOf, cors, json } from "../config.js";
 import { redis, redisConfigured } from "../redis.js";
 
@@ -5,6 +6,7 @@ import { redis, redisConfigured } from "../redis.js";
 export default async function handler(req, res) {
   if (cors(req, res)) return;
   if (req.method !== "POST") return json(res, 405, { error: "method" });
+  if (await throttled(req, res, "lead", 30)) return;
   if (!redisConfigured()) return json(res, 503, { error: "Сервер пока не подключён." });
   const { email, consent } = bodyOf(req);
   const mail = String(email ?? "").trim().toLowerCase().slice(0, 120);
