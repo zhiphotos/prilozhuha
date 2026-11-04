@@ -34,7 +34,7 @@ export const useSync = create<SyncState>((set) => ({
 function readMeta(): Meta {
   try {
     const raw = JSON.parse(localStorage.getItem(META) ?? "null") as Partial<Meta> | null;
-    return { rev: Number(raw?.rev ?? 0), hash: String(raw?.hash ?? ""), at: String(raw?.at ?? "") };
+    return { rev: Number(raw?.rev ?? 0), hash: String(raw?.hash ?? ""), at: String(raw?.at ?? ""), size: typeof raw?.size === "number" ? raw.size : undefined };
   } catch {
     return { rev: 0, hash: "", at: "" };
   }
@@ -134,11 +134,12 @@ const MESSAGES = {
 function report(outcome: SyncOutcome, mode: SyncMode) {
   const ui = useSync.getState();
   if (outcome.kind === "conflict") {
-    const message = outcome.reason === "cloud-moved" ? "Пока я загружала, в облаке появилась новая версия. Выберите, какую оставить." : "Книга менялась и здесь, и на другом устройстве. Выберите, какую оставить.";
+    const message = outcome.reason === "shrunk" ? "Книга на этом устройстве стала намного меньше облачной (возможно, часть данных пропала). Облако не тронуто. Лучше взять облачную книгу или объединить, а «оставить мою» выбирайте, только если удаляли это сами." : outcome.reason === "cloud-moved" ? "Пока я загружала, в облаке появилась новая версия. Выберите, какую оставить." : "Книга менялась и здесь, и на другом устройстве. Выберите, какую оставить.";
     // Окно показываем один раз, когда конфликт возник, а не при каждой проверке (раз в две минуты и при каждом возврате в приложение).
     const alreadyTold = ui.conflict;
     ui.setState({ busy: false, conflict: true, message });
-    if (mode === "auto" && !alreadyTold) toast("Книга менялась и здесь, и на другом устройстве. Откройте «Главная» → «Книга на ваших устройствах» и выберите, какую оставить. Если книга открыта на двух устройствах, выбрать нужно на каждом.", { id: "sync-conflict", duration: 20000 });
+    if (mode === "auto" && !alreadyTold && outcome.reason === "shrunk") toast("Книга на этом устройстве стала намного меньше облачной. Облако не тронуто: откройте «Главная» → «Книга на ваших устройствах» и выберите, какую оставить.");
+    else if (mode === "auto" && !alreadyTold) toast("Книга менялась и здесь, и на другом устройстве. Откройте «Главная» → «Книга на ваших устройствах» и выберите, какую оставить. Если книга открыта на двух устройствах, выбрать нужно на каждом.", { id: "sync-conflict", duration: 20000 });
   } else if (outcome.kind === "error") {
     ui.setState({ busy: false, message: outcome.message });
   } else if (outcome.kind === "merged") {

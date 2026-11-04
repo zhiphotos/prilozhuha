@@ -6,7 +6,7 @@ import { mergeBooks, type MergeReport } from "./sync-merge.ts";
 
 export const PART = 700_000;
 
-export type Meta = { rev: number; hash: string; at: string };
+export type Meta = { rev: number; hash: string; at: string; /** «Вес» книги при последней успешной синхронизации: по нему замечаем, что книга внезапно стала намного меньше. */ size?: number };
 export type Reply = { status: number; data: Record<string, unknown> & { error?: string } };
 export type Snapshot = { text: string; hash: string; refs: string[] };
 
@@ -33,7 +33,7 @@ export type SyncOutcome =
   | { kind: "downloaded"; rev: number }
   | { kind: "merged"; rev: number; report: MergeReport }
   | { kind: "same" }
-  | { kind: "conflict"; reason: "both-changed" | "cloud-moved" }
+  | { kind: "conflict"; reason: "both-changed" | "cloud-moved" | "shrunk" }
   | { kind: "error"; message: string };
 
 export async function pack(text: string): Promise<string> {
@@ -51,6 +51,46 @@ export async function unpack(packed: string): Promise<string> {
   const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
   const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
   return new Response(stream).text();
+}
+
+
+/** Сколько в книге записей: люди, страницы, фото, истории, места, события, документы. Нужен только для защиты от «потерянной» книги. */
+export const SIZE_KEYS = ["people", "pages", "photos", "stories", "places", "events", "documents"];
+export function weightOf(data: Record<string, unknown>): number {
+  return SIZE_KEYS.reduce((sum, key) => sum + (Array.isArray(data[key]) ? (data[key] as unknown[]).length : 0), 0);
+}
+function weightOfText(text: string): number {
+  try {
+    return weightOf(JSON.parse(text) as Record<string, unknown>);
+  } catch {
+    return 0;
+  }
+}
+/** Книга меньше этого размера не считается «большой»: защита её не касается, чтобы не мешать тем, кто только начинает. */
+export const SHRINK_MIN = 6;
+/** Метка синхронизации: версия, отпечаток, время и размер книги на этот момент. */
+function stamp(deps: Deps, rev: number, hash: string) {
+  deps.writeMeta({ rev, hash, at: deps.now(), size: weightOfText(deps.snapshot().text) });
+}
+
+/**
+ * Защита облака: не даём книге, которая стала пустой или намного меньше (потеряли данные браузера, очистили сайт, открыли чужую пустую копию),
+ * молча заменить полную облачную книгу. Возвращает true, если загрузку надо остановить и спросить человека.
+ * Сравниваем с размером при прошлой синхронизации; если его нет (старая отметка), смотрим на размер самой облачной книги.
+ */
+async function looksLostBook(deps: Deps, meta: Meta, snapText: string, cloudRev: number, parts: number): Promise<boolean> {
+  if (cloudRev <= 0) return false;
+  const local = weightOfText(snapText);
+  if (local >= SHRINK_MIN && meta.size === undefined) return false;
+  if (meta.size !== undefined) return meta.size >= SHRINK_MIN && local < meta.size * 0.5;
+  // нет отметки размера: сверяем с облаком, только если здесь книга совсем маленькая
+  try {
+    const cloud = JSON.parse(await cloudText(deps, cloudRev, parts)) as Record<string, unknown>;
+    const cloudSize = weightOf(cloud);
+    return cloudSize >= SHRINK_MIN && local < cloudSize * 0.5;
+  } catch {
+    return false; // облако нечитаемо: сравнивать не с чем, остальные защиты работают
+  }
 }
 
 const num = (value: unknown) => (typeof value === "number" ? value : Number(value ?? 0));
@@ -88,7 +128,7 @@ async function upload(deps: Deps, cloudRev: number): Promise<{ ok: true; rev: nu
       const head = await deps.call({ op: "head" });
       if (head.status === 200 && head.data.hash && head.data.hash === snap.hash) {
         const rev = num(head.data.rev) || cloudRev + 1;
-        deps.writeMeta({ rev, hash: snap.hash, at: deps.now() });
+        stamp(deps, rev, snap.hash);
         return { ok: true, rev };
       }
       return { ok: false };
@@ -100,7 +140,7 @@ async function upload(deps: Deps, cloudRev: number): Promise<{ ok: true; rev: nu
   const check = await deps.call({ op: "head" });
   const hashBad = typeof check.data.hash === "string" && check.data.hash !== snap.hash;
   if (check.status !== 200 || num(check.data.rev) !== committedRev || hashBad) throw new Error("Не удалось убедиться, что книга сохранилась в облаке. Изменения остались на этом устройстве.");
-  deps.writeMeta({ rev: committedRev, hash: snap.hash, at: deps.now() });
+  stamp(deps, committedRev, snap.hash);
   return { ok: true, rev: committedRev };
 }
 
@@ -111,7 +151,7 @@ async function download(deps: Deps, rev: number, parts: number, backupLocal: boo
   await deps.downloadMedia(deps.collectRefs(data));
   if (backupLocal) await deps.saveBackup("Книга на этом устройстве до замены облачной", deps.snapshot().text);
   deps.applyBook(data);
-  deps.writeMeta({ rev, hash: deps.snapshot().hash, at: deps.now() });
+  stamp(deps, rev, deps.snapshot().hash);
 }
 
 /** Обе версии как данные: облачная скачивается целиком и проверяется, версия этого устройства берётся из снимка. */
@@ -162,7 +202,7 @@ export async function syncCore(deps: Deps, mode: SyncMode = "auto"): Promise<Syn
     const snap = deps.snapshot();
     // В облаке уже лежит ровно эта книга (запись прошла, а ответ потерялся): принимаем облачную версию как свою, конфликта нет.
     if (cloudRev > 0 && head.data.hash && head.data.hash === snap.hash) {
-      deps.writeMeta({ rev: cloudRev, hash: snap.hash, at: deps.now() });
+      stamp(deps, cloudRev, snap.hash);
       return { kind: "same" };
     }
     const dirty = meta.rev === 0 && deps.isEmpty() ? false : snap.hash !== meta.hash;
@@ -172,8 +212,16 @@ export async function syncCore(deps: Deps, mode: SyncMode = "auto"): Promise<Syn
     if (todo === "conflict" && mode === "merge") return await mergeFlow(deps, cloudRev, parts);
     if (todo === "conflict") return { kind: "conflict", reason: "both-changed" };
     if (todo === "upload") {
+      const lost = dirty && cloudRev > 0 && (await looksLostBook(deps, meta, snap.text, cloudRev, parts));
+      // Автоматическая синхронизация и «обычная» загрузка не заменяют полное облако пустой или резко уменьшившейся книгой.
+      if (lost && mode === "cloud") {
+        await download(deps, cloudRev, parts, true);
+        return { kind: "downloaded", rev: cloudRev };
+      }
+      if (lost && mode === "merge") return await mergeFlow(deps, cloudRev, parts);
+      if (lost && mode !== "mine") return { kind: "conflict", reason: "shrunk" };
       // «Оставить мою»: облачная версия будет заменена, поэтому сначала сохраняем её копию на этом устройстве.
-      if (cloudRev > 0 && dirty && meta.rev !== cloudRev) {
+      if (cloudRev > 0 && dirty && (meta.rev !== cloudRev || lost)) {
         try {
           await deps.saveBackup("Облачная книга до замены", await cloudText(deps, cloudRev, parts));
         } catch (error) {
