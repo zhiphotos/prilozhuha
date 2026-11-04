@@ -17,7 +17,7 @@ import { CircleCrop } from "@/components/rod/circle-crop";
 
 export type PersonDraft = Omit<Person, "id">;
 
-export const EMPTY_PERSON: PersonDraft = { name: "", relation: "бабушка", birthYear: "", maidenName: "", notes: "", parents: [] };
+export const EMPTY_PERSON: PersonDraft = { name: "", relation: "не указано", birthYear: "", maidenName: "", notes: "", parents: [] };
 
 /** Цвета карточек: мужчины серые, женщины белые, оба пастельные. */
 export const GENDER_LOOK = {

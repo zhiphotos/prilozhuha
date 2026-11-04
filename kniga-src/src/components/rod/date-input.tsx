@@ -48,6 +48,13 @@ export function DateInput({ value: stored, onChange: save, placeholder, inputMod
         value={value}
         placeholder={placeholder}
         aria-invalid={bad || undefined}
+        // Кнопка «Готово/Ввод» на телефоне не должна отправлять форму: раньше она создавала человека с недописанной датой («1», «14»)
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            ref.current?.blur();
+          }
+        }}
         onFocus={() => {
           manual.current = value.includes(".");
         }}

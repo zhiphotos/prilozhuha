@@ -343,9 +343,12 @@ export const RELATIONS = [
 ];
 
 /** Мужчинам девичью фамилию не спрашиваем. «Я», «ребёнок», «супруг или супруга» могут быть любыми, поле остаётся. */
-const MALE_RELATIONS = /^(папа|дедушка|прадедушка|брат|дядя|отец|сын|муж|дед)/i;
+const MODIFIERS = /^(?:(?:(?:дво|тро|четверо|пяти|шести)юродн\S*|единоутробн\S*|единокровн\S*|сводн\S*|младш\S*|старш\S*|бывш\S*|родн\S*|названн\S*|приёмн\S*|приемн\S*)\s+)+/i;
+/** «Двоюродный дедушка» -> «дедушка»: приставки родства не мешают понять пол. */
+export const relationCore = (relation: string) => relation.trim().replace(MODIFIERS, "");
+const MALE_RELATIONS = /^(папа|дедушк|прадедушк|прапрадедушк|брат|дяд|отец|сын|муж|дед|прадед|прапрадед|свёкор|свекор|тесть|деверь|зять|шурин|отчим|племянник|внук|правнук)/i;
 export function canHaveMaiden(relation: string): boolean {
-  return !MALE_RELATIONS.test(relation.trim());
+  return !MALE_RELATIONS.test(relationCore(relation));
 }
 
 export const DOC_KINDS = ["свидетельство", "письмо", "награда", "выписка", "конверт или открытка", "другое"];

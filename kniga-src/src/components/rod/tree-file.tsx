@@ -108,6 +108,7 @@ export function TreeFileButton() {
                 <button type="button" className="min-h-11 rounded-xl border border-ink/20 px-3 text-rose-deep" onClick={replaceAll}>Заменить всё деревом из файла…</button>
               </div>
             ) : null}
+            <p className="text-muted">Файл «.tree» это копия дерева для переноса в другую книгу или на другое устройство и для резервного хранения. Двойным нажатием он не откроется (внутри обычный текст). Для печати и пересылки используйте кнопку печати: она делает PDF или картинку.</p>
             <Button onClick={saveTree}>Скачать файл древа (.tree)</Button>
             <button type="button" className="min-h-11 rounded-xl border border-ink/20 px-3" onClick={() => input.current?.click()}>Загрузить файл древа…</button>
             <p className="pt-1 font-semibold">Для диагностики</p>
