@@ -1,3 +1,4 @@
+import { throttled } from "../throttle.js";
 import { bodyOf, cors, json } from "../config.js";
 import { DEVICE_ERROR, claimDevice } from "../devices.js";
 import { redis, redisConfigured } from "../redis.js";
@@ -20,6 +21,7 @@ export async function platformUntil(accessToken) {
 export default async function handler(req, res) {
   if (cors(req, res)) return;
   if (req.method !== "POST") return json(res, 405, { error: "method" });
+  if (await throttled(req, res, "platform-login", 40)) return;
   const url = process.env.PLATFORM_SUPABASE_URL;
   const anon = process.env.PLATFORM_SUPABASE_ANON_KEY;
   if (!url || !anon) return json(res, 503, { error: "Вход через платформу пока не подключён." });

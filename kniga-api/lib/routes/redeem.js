@@ -1,3 +1,4 @@
+import { throttled } from "../throttle.js";
 import { DEVICE_ERROR, claimDevice } from "../devices.js";
 import { bodyOf, cors, json } from "../config.js";
 import { redis, redisConfigured } from "../redis.js";
@@ -10,6 +11,7 @@ export const normCode = (value) => String(value ?? "").toUpperCase().replace(/[^
 export default async function handler(req, res) {
   if (cors(req, res)) return;
   if (req.method !== "POST") return json(res, 405, { error: "method" });
+  if (await throttled(req, res, "redeem", 60)) return;
   if (!redisConfigured()) return json(res, 503, { error: "Сервер доступа не подключён." });
   const code = normCode(bodyOf(req).code);
   if (code.length < 6) return json(res, 404, { error: "Код не подошёл." });
