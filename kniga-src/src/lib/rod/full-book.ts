@@ -2,7 +2,9 @@
 // Открывается только тем, у кого открыта программа (оплата или код доступа).
 import type { BookPage, PageBlock, PaperKind, PhotoFrame } from "@/lib/rod/types";
 
-export type Kind = "text" | "photo" | "person" | "tree" | "timeline" | "map" | "list" | "doc" | "compare" | "recipe" | "letter";
+export type Kind = "text" | "photo" | "person" | "tree" | "timeline" | "map" | "list" | "doc" | "compare" | "recipe" | "letter"
+  // Фотокнига (свадебный шаблон): фото занимает почти всю страницу, текст короткий.
+  | "full" | "two" | "collage" | "caption" | "story" | "details";
 
 export type Entry = { title: string; desc: string; kinds: Kind[] };
 export type Chapter = { n: number; title: string; paper: PaperKind; pages: Entry[] };
@@ -246,6 +248,32 @@ function blocksFor(kind: Kind, chapter: Chapter, entry: Entry, part: number): Pa
         text({ x: 10, y: 20, w: 80, text: entry.title, font: "script", size: "lg", align: "center" }),
         text({ x: 12, y: 34, w: 76, font: "script", size: "md", align: "center", placeholder: entry.desc }),
         { id: id(), type: "sticker", kind: "branch", x: 40, y: 82, w: 20 },
+      ];
+    // Фотокнига: около 80% страницы под фото, подпись и короткая подсказка.
+    case "full":
+      return [slot(6, 5, 88, 76, "Большая фотография", "none"), text({ x: 8, y: 83, w: 84, font: "script", size: "md", align: "center", text: entry.title }), text({ x: 8, y: 90, w: 84, size: "sm", align: "center", placeholder: entry.desc })];
+    case "two":
+      return [slot(6, 5, 43, 68, "Фото 1", "none"), slot(51, 5, 43, 68, "Фото 2", "none"), text({ x: 8, y: 77, w: 84, font: "script", size: "md", align: "center", text: entry.title }), text({ x: 8, y: 84, w: 84, size: "sm", align: "center", placeholder: entry.desc })];
+    case "collage":
+      return [
+        ...[0, 1].flatMap((row) => [0, 1, 2].map((col) => slot(6 + col * 30.5, 5 + row * 37, 27.5, 34, `Фото ${row * 3 + col + 1}`, "none"))),
+        text({ x: 8, y: 80, w: 84, font: "script", size: "md", align: "center", text: entry.title }),
+        text({ x: 8, y: 87, w: 84, size: "sm", align: "center", placeholder: entry.desc }),
+      ];
+    case "caption":
+      return [slot(6, 5, 88, 62, "Фотография", "none"), text({ x: 8, y: 70, w: 84, font: "script", size: "lg", align: "center", text: entry.title }), text({ x: 12, y: 80, w: 76, size: "sm", align: "center", placeholder: entry.desc })];
+    case "story":
+      return [
+        slot(6, 6, 42, 46, "Фото", "polaroid", -2),
+        slot(54, 10, 40, 40, "Фото", "tape", 2),
+        text({ x: 8, y: 57, w: 84, font: "script", size: "lg", align: "center", text: entry.title }),
+        text({ x: 10, y: 67, w: 80, size: "md", align: "center", placeholder: entry.desc }),
+      ];
+    case "details":
+      return [
+        ...[0, 1, 2].flatMap((row) => [0, 1].map((col) => slot(8 + col * 43, 5 + row * 26, 41, 24, "Деталь", "sticker"))),
+        text({ x: 8, y: 84, w: 84, font: "script", size: "md", align: "center", text: entry.title }),
+        text({ x: 8, y: 91, w: 84, size: "sm", align: "center", placeholder: entry.desc }),
       ];
     default:
       return [...head, body(20, 54), slot(66, 21, 26, 30, "Фото", "polaroid", 3), text({ x: 8, y: 60, w: 84, size: "sm", placeholder: "Продолжайте здесь…" })];
