@@ -131,6 +131,7 @@ export function DeckLink({ item, saved, onOpen, featured = false, liftCut = fals
       onClick={onOpen}
       className={cn(
         "relative block h-full w-full overflow-hidden rounded-2xl p-4 text-left",
+        liftCut && "pl-8 pt-7",
         featured ? "forest min-h-52 p-6 pr-32" : cat.tone === "moss" ? "wash-sage min-h-48" : cat.tone === "plum" ? "wash-blush min-h-48" : "glass min-h-48",
       )}
       style={featured ? { ["--forest-img" as string]: packBg("bg_8146") } : undefined}
