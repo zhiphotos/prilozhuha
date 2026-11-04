@@ -14,6 +14,9 @@ const store = () => {
     if (op === "GETRANGE") return Buffer.from(kv.get(key) ?? "").subarray(Number(rest[0]), Number(rest[1]) + 1).toString();
     if (op === "APPEND") { if (Buffer.isBuffer(rest[0])) kv.set(key, Buffer.concat([Buffer.from(kv.get(key) ?? ""), rest[0]])); else kv.set(key, (kv.get(key) ?? "") + rest[0]); return 1; }
     if (op === "SET") { kv.set(key, rest[0]); return "OK"; }
+    if (op === "HGETALL" && key.startsWith("kr:syncm:")) throw new Error("ERR max request size exceeded. Limit: 10485760 bytes, Actual: 48709166 bytes");
+    if (op === "HKEYS") return [...(hash.get(key) ?? new Map()).keys()];
+    if (op === "HGET") return (hash.get(key) ?? new Map()).get(rest[0]) ?? null;
     if (op === "HGETALL") return [...(hash.get(key) ?? new Map()).entries()].flat();
     if (op === "HSET") { const h = hash.get(key) ?? hash.set(key, new Map()).get(key); for (let i = 0; i < rest.length; i += 2) h.set(rest[i], rest[i + 1]); return 1; }
     if (op === "SMEMBERS") return [...(set.get(key) ?? [])];
@@ -45,6 +48,11 @@ const big = "я".repeat(9 * 1024 * 1024 + 123);
 await a.call("SET", "kr:media:big", big);
 await migrate(a.call, b.call, { log: () => {} });
 ok("большое значение (9 млн русских букв, 18 МБ) перенесено кусками побайтно без порчи букв на границах", Buffer.from(big).equals(Buffer.from(b.kv.get("kr:media:big"))));
+// огромный хэш, который Upstash не отдаёт целиком, копируется по полям
+await a.call("HSET", "kr:syncm:plat-1", "m1", "первое", "m2", "второе");
+const d = store();
+await migrate(a.call, d.call, { log: () => {} });
+ok("огромный хэш перенесён по полям", d.hash.get("kr:syncm:plat-1")?.get("m1") === "первое" && d.hash.get("kr:syncm:plat-1")?.size === 2);
 // один сбойный ключ не останавливает остальные
 const c = store();
 await a.call("SET", "kr:плохой", "x");

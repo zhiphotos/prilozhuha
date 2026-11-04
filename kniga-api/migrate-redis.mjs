@@ -25,10 +25,26 @@ export async function copyKey(src, dst, key) {
       await dst("SET", key, value);
     }
   } else if (type === "hash") {
-    const flat = await src("HGETALL", key);
-    if (!flat?.length) return null;
-    await dst("DEL", key);
-    for (let i = 0; i < flat.length; i += 200) await dst("HSET", key, ...flat.slice(i, i + 200));
+    // Огромный хэш (десятки МБ, например фото синхронизации) Upstash одним запросом не отдаёт: тогда по полям
+    let flat = null;
+    try {
+      flat = await src("HGETALL", key);
+    } catch (error) {
+      if (!/max request size|too large|size exceeded/i.test(String(error?.message))) throw error;
+    }
+    if (flat === null) {
+      const fields = await src("HKEYS", key);
+      if (!fields?.length) return null;
+      await dst("DEL", key);
+      for (const field of fields) {
+        const value = await src("HGET", key, field);
+        if (value !== null) await dst("HSET", key, field, value);
+      }
+    } else {
+      if (!flat.length) return null;
+      await dst("DEL", key);
+      for (let i = 0; i < flat.length; i += 200) await dst("HSET", key, ...flat.slice(i, i + 200));
+    }
   } else if (type === "set") {
     const members = await src("SMEMBERS", key);
     if (!members?.length) return null;
