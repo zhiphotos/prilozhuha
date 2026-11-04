@@ -566,13 +566,13 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
   if (treeOf.size !== blocks.length) return null;
 
   // Связи между деревьями: пара пришла из другой семьи.
-  type Link = { from: number; to: number; side: -1 | 1 };
+  type Link = { from: number; to: number; side: -1 | 1; mine?: boolean };
   const links: Link[] = [];
-  const addLink = (a: number, b: number, side: -1 | 1) => {
+  const addLink = (a: number, b: number, side: -1 | 1, mine = false) => {
     const ta = treeOf.get(a)!;
     const tb = treeOf.get(b)!;
     if (ta === tb) return;
-    links.push({ from: ta, to: tb, side });
+    links.push({ from: ta, to: tb, side, mine });
     links.push({ from: tb, to: ta, side: side === -1 ? 1 : -1 });
   };
   for (const block of blocks) {
@@ -582,7 +582,7 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
       if (id === block.primary) continue;
       const other = parentBlockOf(id, block.level);
       if (other === null) continue;
-      addLink(block.index, other, block.ids.indexOf(id) < block.ids.indexOf(block.primary) ? -1 : 1);
+      addLink(block.index, other, block.ids.indexOf(id) < block.ids.indexOf(block.primary) ? -1 : 1, block.ids.includes(focusId));
     }
   }
 
@@ -637,7 +637,16 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     // Родня, пришедшая через брак, стоит после всех веток самого выбранного, в том числе после боковых веток мамы (они идут со слотом 2,1 и дальше).
     return (treeSlot.get(a) ?? 1000) - (treeSlot.get(b) ?? 1000) || a - b;
   });
-  for (const t of order) put(t, 1);
+  // Родня супруга, который стоит слева от пары, встаёт слева: родители мужа рядом с мужем, а не за концом ряда.
+  const leftward = new Set<number>();
+  const rightward = new Set<number>();
+  for (const l of links) {
+    if (!l.mine || treeSlot.has(l.to) || !treeSlot.has(l.from)) continue;
+    (l.side === -1 ? leftward : rightward).add(l.to);
+  }
+  const toLeft = order.filter((t) => leftward.has(t) && !rightward.has(t));
+  for (const t of order) if (!toLeft.includes(t)) put(t, 1);
+  for (const t of toLeft) put(t, -1);
 
   // Центры блоков.
   const cx = new Map<number, number>();

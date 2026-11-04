@@ -44,7 +44,7 @@ async function loadImage(src: string): Promise<HTMLImageElement | null> {
 
 function fitScale(width: number, height: number) {
   let scale = 2;
-  while (scale > 0.4 && (width * scale > 4096 || height * scale > 4096 || width * height * scale * scale > 16_000_000)) scale *= 0.84;
+  while (scale > 0.4 && (width * scale > 8192 || height * scale > 8192 ||width * height * scale * scale > 16_000_000)) scale *= 0.84;
   return scale;
 }
 
@@ -296,14 +296,14 @@ function drawWork(ctx: CanvasRenderingContext2D, prep: WorkPrep, sheetW: number,
     ctx.fill();
     ctx.fillStyle = tone.ink;
     ctx.textAlign = "center";
-    ctx.font = '600 16px "Cormorant Garamond", serif';
-    ctx.fillText(fullName(person), node.x, top + 24, PLATE_W - 14);
+    ctx.font = '700 18px "Cormorant Garamond", serif';
+    ctx.fillText(fullName(person), node.x, top + 24, PLATE_W - 12);
     ctx.fillStyle = tone.role;
-    ctx.font = "700 11px Manrope, sans-serif";
-    ctx.fillText(kinship(data.people, data.unions, data.focusId, person.id).card, node.x, top + 42);
+    ctx.font = "700 12px Manrope, sans-serif";
+    ctx.fillText(kinship(data.people, data.unions, data.focusId, person.id).card, node.x, top + 42, PLATE_W - 12);
     ctx.fillStyle = tone.muted;
-    ctx.font = "11px Manrope, sans-serif";
-    ctx.fillText(yearsOf(person), node.x, top + 60);
+    ctx.font = "600 12px Manrope, sans-serif";
+    ctx.fillText(yearsOf(person), node.x, top + 60, PLATE_W - 12);
   }
 }
 
