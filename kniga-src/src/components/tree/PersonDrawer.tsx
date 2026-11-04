@@ -1,3 +1,4 @@
+import { ageText } from "@/lib/rod/age";
 import { DateInput } from "@/components/rod/date-input";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -109,6 +110,7 @@ function PersonBody({ person, people, unions, focusId, onNewBook }: { person: Pe
           <h2 className="font-serif text-3xl leading-none">{displayName(person, "full")}</h2>
           <p className="mt-1 text-sm text-muted">
             {yearsOf(person)}
+            {ageText(person.birthYear, person.deathYear) ? ` (${ageText(person.birthYear, person.deathYear)})` : ""}
             {kin.degree != null && kin.kind !== "self" ? ` · ${kin.degree} колено` : ""}
           </p>
           {(rel.also.length > 0 || rel.paths > 1 || rel.undetermined) && <p className="mt-1 text-xs text-muted">{relationNote(rel)}</p>}

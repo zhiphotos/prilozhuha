@@ -1,13 +1,13 @@
-import { canHaveMaiden } from "@/lib/rod/content";
+import { canHaveMaiden, relationCore } from "@/lib/rod/content";
 import type { Person } from "@/lib/rod/types";
 
-const FEMALE = /^(мам|бабуш|прабабуш|сестр|тёт|тет|дочь|жена|супруга|внучк)/i;
-const MALE = /^(пап|дед|прадед|брат|дяд|сын|муж|отец|внук)/i;
+const FEMALE = /^(мам|бабуш|прабабуш|прапрабабуш|сестр|тёт|тет|дочь|жена|супруга|внучк|правнучк|племянниц|свекров|тёщ|тещ|золовк|невестк|мачех|падчериц|вдов)/i;
+const MALE = /^(пап|дед|прадед|прапрадед|брат|дяд|сын|муж|отец|внук|правнук|племянник|свёкор|свекор|тесть|деверь|зять|шурин|отчим)/i;
 
 /** Пол: выбран руками, иначе по тому, кем приходится. */
 export function genderOf(person: Pick<Person, "gender" | "relation">): "m" | "f" | undefined {
   if (person.gender) return person.gender;
-  const relation = person.relation.trim();
+  const relation = relationCore(person.relation);
   if (FEMALE.test(relation)) return "f";
   if (MALE.test(relation)) return "m";
   return undefined;
