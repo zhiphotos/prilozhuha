@@ -488,3 +488,11 @@ main:focus{outline:none}
 .price .price__nums{flex-wrap:nowrap;white-space:nowrap;gap:12px}
 .price .price__nums b{font-size:clamp(44px,13vw,72px)}
 .price .price__nums s{font-size:clamp(18px,5vw,24px)}
+
+/* ярлык вайба: под видео, ничего не перекрывает */
+.vibe__video{margin-bottom:0}
+.vibe__tag{position:relative;left:auto;bottom:auto;max-width:none;margin:22px 0 0;transform:none;text-align:center;justify-items:center;background:transparent;box-shadow:none;padding:0}
+.vibe__tag::before{display:none}
+.vibe__kick{color:#7b5c24}
+.vibe__tag b{color:#3a2d1b}
+.vibe__tag em{color:#4a4538}
