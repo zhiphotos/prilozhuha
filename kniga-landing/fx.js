@@ -12,7 +12,7 @@
     var groups = new Map();
     items.forEach(function (el) {
       el.classList.add("rv");
-      if (el.matches(".split__img,.vibe__video,.lesson__video")) el.classList.add("rv--paper");
+      if (el.matches(".split__img,.lesson__video")) el.classList.add("rv--paper");
       else if (el.matches(".offer__card,.shelf figure")) el.classList.add("rv--zoom");
       var p = el.parentElement; var n = groups.get(p) || 0; groups.set(p, n + 1);
       el.style.setProperty("--d", Math.min(n, 7) * 0.09 + "s");
@@ -65,7 +65,7 @@
   addEventListener("scroll", function () { lastScroll = performance.now(); if (!shown) { shown = true; fly.classList.add("on"); } }, { passive: true });
   setTimeout(function () { shown = true; fly.classList.add("on"); }, 1800);
   /* места, где бабочка садится и ждёт: туда нужно обратить внимание */
-  var PERCH = [[".price .btn", 5], [".hero__cta .btn:first-child", 5], [".ctaband .btn", 5], [".price__nums", 4], [".demo", 3], [".vibe__tag", 3], [".player", 3], [".offer__card", 2], [".split__text .h2", 2], [".h2--center", 1]];
+  var PERCH = [[".price .btn", 5], [".hero__cta .btn:first-child", 5], [".ctaband .btn", 5], [".demo", 3], [".vibe__tag", 3], [".player", 3], [".offer__card", 2]];
   function frame(now) {
     t = now / 1000;
     var max = Math.max(1, doc.scrollHeight - vh), p = scrollY / max;
@@ -82,7 +82,7 @@
           if (r.width > 0 && r.top > vh * .12 && r.top < vh * .7 && PERCH[i][1] > bp) { best = r; bp = PERCH[i][1]; break; }
         }
       }
-      if (best) { tx = Math.max(margin, Math.min(vw - margin, best.right - 14)); ty = Math.max(80, best.top - 24); rest = true; }
+      if (best) { tx = Math.max(margin, Math.min(vw - margin, best.right - 34)); ty = Math.max(80, best.top + 16); rest = true; }
     }
     tx += Math.sin(t * 2.1) * (rest ? 1.5 : (small ? 6 : 16)); ty += Math.cos(t * 2.7) * (rest ? 1.5 : 10);
     x += (tx - x) * (rest ? .05 : .035); y += (ty - y) * (rest ? .05 : .035);
