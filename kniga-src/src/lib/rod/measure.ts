@@ -13,8 +13,16 @@ const canvas = () => (ctx ??= document.createElement("canvas").getContext("2d"))
 
 /** Разбивает текст на строки так, как их разобьёт страница (по словам, с переносами строк пользователя). */
 export function wrapLines(text: string, style: TextStyle): string[] {
+  return wrapLinesDetailed(text, style).lines;
+}
+
+/** То же, что wrapLines, плюс пометка: hard[i] = строка i кончается переводом строки автора (иначе это мягкий перенос по ширине). */
+export function wrapLinesDetailed(text: string, style: TextStyle): { lines: string[]; hard: boolean[] } {
   const context = canvas();
-  if (!context) return text.split("\n");
+  if (!context) {
+    const raw = text.split("\n");
+    return { lines: raw, hard: raw.map(() => true) };
+  }
   const metrics = textMetrics(style.font, style.size, style.px);
   const pad = lookPad(style.look);
   context.font = `${fontWeight(style.font)} ${metrics.size * 10}px ${fontFamily(style.font)}`;
@@ -23,9 +31,11 @@ export function wrapLines(text: string, style: TextStyle): string[] {
   const measureCtx = context;
   const widthOf = (text: string) => measureCtx.measureText(stripBold(text)).width + (text.split(" ").length - 1) * gapPx;
   const lines: string[] = [];
+  const hard: boolean[] = [];
   for (const paragraph of explodeBold(text).split("\n")) {
     if (!paragraph.trim()) {
       lines.push("");
+      hard.push(true);
       continue;
     }
     let line = "";
@@ -35,12 +45,14 @@ export function wrapLines(text: string, style: TextStyle): string[] {
       const test = line ? `${line} ${word}` : lead + word;
       if (line && widthOf(test) > widthPx) {
         lines.push(line);
+        hard.push(false);
         line = word;
       } else line = test;
     }
     lines.push(line);
+    hard.push(true);
   }
-  return lines;
+  return { lines, hard };
 }
 
 /** Расчёт строк для текста, который обтекает фото и стикеры (экран; печать считает тем же flowAround). */

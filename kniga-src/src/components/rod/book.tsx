@@ -107,13 +107,13 @@ export function BookScreen() {
       {data.programOpen ? (
         // У платных готовые шаблоны листаются вбок и занимают одну строку, а не две длинные карточки друг под другом.
         <div className="no-scrollbar -mx-1 mb-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2" role="group" aria-label="Готовые шаблоны книги">
-          <FullTemplate pages={pages} meta={meta} tpl={FULL_SPEC} carousel />
           <FullTemplate pages={pages} meta={meta} tpl={LOVE_SPEC} carousel />
+          <FullTemplate pages={pages} meta={meta} tpl={FULL_SPEC} carousel />
         </div>
       ) : (
         <>
-          <FullTemplate pages={pages} meta={meta} tpl={FULL_SPEC} />
           <FullTemplate pages={pages} meta={meta} tpl={LOVE_SPEC} />
+          <FullTemplate pages={pages} meta={meta} tpl={FULL_SPEC} />
         </>
       )}
 
@@ -724,7 +724,7 @@ function FullTemplate({ pages, meta, tpl, carousel = false }: { pages: BookPage[
   };
 
   // Рекламная карусель одна на книгу: рисуем её только в первом шаблоне, во втором ничего.
-  if (!open) return tpl === FULL_SPEC ? <UnlockCarousel /> : null;
+  if (!open) return tpl === LOVE_SPEC ? <UnlockCarousel /> : null;
 
   let start = 2;
   const chapters = tpl.chapters.map((chapter) => {

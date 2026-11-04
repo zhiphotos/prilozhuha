@@ -1,6 +1,6 @@
 // Автоперенос длинного текста на следующие страницы, как в Word: меряем строки тем же шрифтом, что на странице.
 import { PAGE_H } from "@/lib/rod/ink";
-import { lineBox, wrapLines } from "@/lib/rod/measure";
+import { lineBox, wrapLinesDetailed } from "@/lib/rod/measure";
 import { useRod } from "@/lib/rod/store";
 import type { PageBlock } from "@/lib/rod/types";
 
@@ -13,7 +13,7 @@ const TOP = 8; // верх страницы-продолжения, % высот
 export function flowChunks(block: TextBlock, bottom = BOTTOM): string[] {
   const style = { font: block.font, size: block.size, px: block.px, look: block.look, wordGap: block.wordGap, w: block.w };
   const { line, padY } = lineBox(style);
-  const lines = wrapLines(block.text, style);
+  const { lines, hard } = wrapLinesDetailed(block.text, style);
   // y блока в процентах высоты страницы; все расчёты в единицах ширины, как и высота строки.
   const room = (topPercent: number) => Math.max(1, Math.floor((PAGE_H - bottom - (topPercent / 100) * PAGE_H - padY * 2) / line));
   const chunks: string[] = [];
@@ -24,7 +24,10 @@ export function flowChunks(block: TextBlock, bottom = BOTTOM): string[] {
     at += capacity;
     // Страница не должна начинаться с пустой строки.
     while (part.length && part[0] === "" && chunks.length) part.shift();
-    chunks.push(part.join("\n").trimEnd());
+    // Мягкие переносы по ширине склеиваем пробелом: в текст попадают только настоящие абзацы автора.
+    const from = at - capacity;
+    const lead = part.length ? lines.slice(from, at).length - part.length : 0;
+    chunks.push(part.map((text, k) => text + (k < part.length - 1 ? (hard[from + lead + k] ? "\n" : " ") : "")).join("").trimEnd());
     capacity = room(TOP);
   }
   return chunks.filter((chunk, i) => chunk || i === 0);
