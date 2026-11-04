@@ -10,12 +10,13 @@
     var m = document.getElementById("soonMail");
     if (m) { m.href = "mailto:" + cfg.CONTACT_EMAIL; m.textContent = cfg.CONTACT_EMAIL; }
   }
+  var goBtn = document.getElementById("soonGo");
   document.querySelectorAll(".js-buy").forEach(function (a) {
-    if (buy) { a.href = buy; a.target = "_blank"; a.rel = "noopener"; a.setAttribute("aria-label", a.textContent + " (откроется в новой вкладке)"); return; }
     a.setAttribute("role", "button"); a.setAttribute("aria-haspopup", "dialog");
     a.addEventListener("click", function (e) {
       e.preventDefault();
-      if (soon && soon.showModal) soon.showModal(); else alert("Оплата через Tribute подключается. Загляните чуть позже.");
+      if (goBtn) { if (buy) { goBtn.href = buy; goBtn.style.display = ""; } else { goBtn.style.display = "none"; } }
+      if (soon && soon.showModal) soon.showModal(); else if (buy) window.open(buy, "_blank", "noopener");
     });
   });
 
