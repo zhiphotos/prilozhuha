@@ -85,4 +85,54 @@ ok("месяц сбрасывается 1-го по МСК", period("month", Dat
 ok("кривой AI_LIMITS не ломает значения", (process.env.AI_LIMITS = "{не json", limits().text.user === 20));
 const big = await reserve("o", "audio_min", 301, Date.now(), { AI_LIMITS: "" });
 ok("минуты аудио считаются по факту, а не как один запрос", big.ok === false && big.scope === "user");
+// /api/layout: доступ, выключатель, лимиты; до платного провайдера без доступа дело не доходит
+{
+  const layoutText = "Дом на Еловой\n\nДом стоял на краю деревни. Зимой его заносило по окна, и дед откапывал крыльцо лопатой.";
+  const L = (extra, method = "POST") => run(ROUTES["layout"], { text: layoutText, ...extra }, method);
+  const savedFetch = globalThis.fetch; let calls = 0;
+  const reply = { items: [{ kind: "heading", text: "Дом на Еловой" }, { kind: "body", text: "Дом стоял на краю деревни. Зимой его заносило по окна, и дед откапывал крыльцо лопатой." }] };
+  globalThis.fetch = async () => { calls += 1; return { json: async () => ({ choices: [{ message: { content: JSON.stringify(reply) } }] }) }; };
+  process.env.AI_API_KEY = "k"; process.env.AI_ENABLED = "1";
+  const before = () => calls;
+  let n = before();
+  ok("layout: без токена 401, провайдер не вызван", (await L({})).status === 401 && calls === n);
+  ok("layout: подделанный токен 401, провайдер не вызван", (await L({ token: A.slice(0, -3) + "xxx", deviceId: "d1" })).status === 401 && calls === n);
+  ok("layout: просроченный токен 401, провайдер не вызван", (await L({ token: tok("kr-9", Date.now() - 1), deviceId: "d1" })).status === 401 && calls === n);
+  ok("layout: отозванный личный код 401, провайдер не вызван", (await L({ token: tok("grant-GONE"), deviceId: "d1" })).status === 401 && calls === n);
+  ok("layout: GET запрещён, провайдер не вызван", (await L({ token: A, deviceId: "d1" }, "GET")).status === 405 && calls === n);
+  ok("layout: короткий текст 400, провайдер не вызван", (await run(ROUTES["layout"], { text: "мало", token: A, deviceId: "d1" })).status === 400 && calls === n);
+  process.env.AI_ENABLED = "0";
+  ok("layout: выключатель ИИ 503, провайдер не вызван", (await L({ token: A, deviceId: "d1" })).status === 503 && calls === n);
+  process.env.AI_ENABLED = "1";
+  const good = await L({ token: A, deviceId: "d1" });
+  ok("layout: действующий токен работает и тратит один запрос", good.status === 200 && good.json.items.length === 2 && calls === n + 1);
+  // исчерпать личный дневной лимит и убедиться, что провайдер больше не вызывается
+  const lim = limits().text.user;
+  const other = tok("kr-7007");
+  let last = null;
+  for (let i = 0; i < lim + 2; i += 1) last = await L({ token: other, deviceId: "d7" });
+  ok("layout: после личного лимита 429", last.status === 429 && last.json.code === "user_quota");
+  const stop = calls;
+  await L({ token: other, deviceId: "d7" });
+  ok("layout: после лимита провайдер не вызывается", calls === stop);
+  // ответ ИИ изменил текст: запрос возвращается в лимит
+  globalThis.fetch = async () => ({ json: async () => ({ choices: [{ message: { content: JSON.stringify({ items: [{ kind: "body", text: "совсем другой текст про другое" }] }) } }] }) });
+  const third = tok("kr-8008"); const owner = ownerOf("kr-8008");
+  const bad = await L({ token: third, deviceId: "d8" });
+  const left = await redis("GET", `kr:ai:u:${owner}:text:${period("day").id}`);
+  ok("layout: изменённый текст 422 и лимит возвращён", bad.status === 422 && Number(left ?? 0) === 0);
+  globalThis.fetch = savedFetch;
+}
+
+// публичные маршруты: суточный потолок с одного адреса
+{
+  const hit = (name, extra = {}) => new Promise((resolve) => {
+    const res = { statusCode: 200, setHeader() {}, end(t) { resolve({ status: this.statusCode, json: t ? JSON.parse(t) : null }); } };
+    ROUTES[name]({ method: "POST", body: { email: "a@b.ru", consent: true, ...extra }, headers: { origin: "https://app.example", "x-forwarded-for": "203.0.113.9" }, socket: {} }, res);
+  });
+  let status = 0;
+  for (let i = 0; i < 31; i += 1) status = (await hit("lead")).status;
+  ok("lead: после 30 обращений с адреса 429", status === 429);
+  ok("lead: другой адрес не задет", (await new Promise((resolve) => { const res = { statusCode: 200, setHeader() {}, end(t) { resolve(this.statusCode); } }; ROUTES["lead"]({ method: "POST", body: { email: "c@d.ru", consent: true }, headers: { origin: "https://app.example", "x-forwarded-for": "198.51.100.4" }, socket: {} }, res); })) === 200);
+}
 console.log(process.exitCode ? "ЕСТЬ ОШИБКИ" : "ВСЁ ПРОШЛО");

@@ -4,6 +4,7 @@ import { Button, Sheet } from "@/components/rod/chrome";
 import { layoutPages, parseStructure, type Item } from "@/lib/rod/auto-layout";
 import { API_BASE } from "@/lib/rod/config";
 import { serverStatus } from "@/lib/rod/server";
+import { deviceId } from "@/lib/rod/pay";
 import { useRod } from "@/lib/rod/store";
 
 const EXAMPLE = `Как мы с бабушкой пекли пироги
@@ -53,7 +54,9 @@ export function TextToPagesSheet({ onClose }: { onClose: () => void }) {
   const withAi = async () => {
     setBusy(true);
     try {
-      const response = await fetch(`${API_BASE}/api/layout`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+      const token = useRod.getState().access?.token ?? "";
+      if (!token) throw new Error("ИИ-разметка открывается вместе с программой. Оставила разметку по правилам.");
+      const response = await fetch(`${API_BASE}/api/layout`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, token, deviceId: deviceId() }) });
       const answer = (await response.json()) as { items?: Item[]; error?: string };
       if (!answer.items?.length) throw new Error(answer.error || "ИИ не ответил");
       setAiItems(answer.items);

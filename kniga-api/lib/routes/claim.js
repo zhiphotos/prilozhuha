@@ -1,3 +1,4 @@
+import { throttled } from "../throttle.js";
 import { accessUntil, orderState } from "../alfa.js";
 import { bodyOf, cors, json } from "../config.js";
 import { makeToken } from "../token.js";
@@ -6,6 +7,7 @@ import { makeToken } from "../token.js";
 export default async function handler(req, res) {
   if (cors(req, res)) return;
   if (req.method !== "POST") return json(res, 405, { error: "method" });
+  if (await throttled(req, res, "claim", 60)) return;
   const { order, email } = bodyOf(req);
   const number = String(order ?? "").trim();
   const mail = String(email ?? "").trim().toLowerCase();

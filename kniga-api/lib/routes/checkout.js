@@ -1,3 +1,4 @@
+import { throttled } from "../throttle.js";
 import { alfaConfigured, createCheckout } from "../alfa.js";
 import { bodyOf, cors, isAllowedApp, json } from "../config.js";
 
@@ -5,6 +6,7 @@ import { bodyOf, cors, isAllowedApp, json } from "../config.js";
 export default async function handler(req, res) {
   if (cors(req, res)) return;
   if (req.method !== "POST") return json(res, 405, { error: "method" });
+  if (await throttled(req, res, "checkout", 40)) return;
   if (!alfaConfigured()) return json(res, 503, { error: "Оплата ещё не подключена." });
   const { email, app, ads, legal } = bodyOf(req);
   const mail = String(email ?? "").trim().toLowerCase();
