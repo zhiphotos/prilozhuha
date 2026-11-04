@@ -39,7 +39,7 @@ id kniga >/dev/null 2>&1 || useradd --system --home /opt/kniga --shell /usr/sbin
 mkdir -p /opt/kniga /var/www/kniga/site
 rm -rf /opt/kniga/kniga-api.new && mkdir /opt/kniga/kniga-api.new
 tar xzf "$UP/kniga-api.tgz" -C /opt/kniga/kniga-api.new
-( cd /opt/kniga/kniga-api.new && npm ci --omit=dev --no-audit --no-fund --silent )
+[ -d /opt/kniga/kniga-api.new/node_modules/web-push ] || { echo "в загрузке нет node_modules/web-push"; exit 1; }
 if [ -d /opt/kniga/kniga-api ]; then rm -rf /opt/kniga/kniga-api.old && mv /opt/kniga/kniga-api /opt/kniga/kniga-api.old; fi
 mv /opt/kniga/kniga-api.new /opt/kniga/kniga-api
 chown -R kniga:kniga /opt/kniga

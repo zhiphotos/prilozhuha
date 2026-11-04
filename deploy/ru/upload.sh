@@ -12,11 +12,15 @@ SSHO="-i $KEY -o ConnectTimeout=60 -o ServerAliveInterval=10 -o ControlMaster=au
 retry() { n=0; until "$@"; do n=$((n+1)); [ "$n" -ge 12 ] && { echo "не удалось после $n попыток"; return 1; }; echo "повтор $n через 15 секунд..."; sleep 15; done; }
 TMP=$(mktemp -d)
 sh scripts/build-site.sh "$TMP/site"
-tar czf "$TMP/site.tgz" -C "$TMP/site/kr-k3nu7rmszt" .
-tar czf "$TMP/kniga-api.tgz" --exclude node_modules --exclude 'test-*' --exclude '*.docx' -C kniga-api .
+tar czf "$TMP/site.tgz" --no-xattrs -C "$TMP/site/kr-k3nu7rmszt" .
+# На сервере нет npm: зависимости (пакет web-push, чистый JS) ставим здесь и кладём готовыми
+mkdir "$TMP/api" && tar -C kniga-api --exclude node_modules --exclude 'test-*' --exclude '*.docx' -cf - . | tar -C "$TMP/api" -xf -
+( cd "$TMP/api" && npm ci --omit=dev --no-audit --no-fund --silent )
+export COPYFILE_DISABLE=1
+tar czf "$TMP/kniga-api.tgz" --no-xattrs -C "$TMP/api" .
 mkdir "$TMP/deploy" && cp -R deploy/ru "$TMP/deploy/ru"
 cp "$ENV_FILE" "$TMP/kniga-api.env"
-tar czf "$TMP/upload.tgz" -C "$TMP" site.tgz kniga-api.tgz kniga-api.env deploy
+tar czf "$TMP/upload.tgz" --no-xattrs -C "$TMP" site.tgz kniga-api.tgz kniga-api.env deploy
 retry ssh $SSHO "$HOST" true
 retry scp $SSHO "$TMP/upload.tgz" "$HOST:/root/kniga-upload.tgz"
 ssh $SSHO "$HOST" 'rm -rf /root/kniga-upload && mkdir /root/kniga-upload && tar xzf /root/kniga-upload.tgz -C /root/kniga-upload && chmod 700 /root/kniga-upload && sh /root/kniga-upload/deploy/ru/server-setup.sh'
