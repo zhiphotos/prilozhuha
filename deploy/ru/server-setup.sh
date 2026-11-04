@@ -10,7 +10,9 @@ say() { printf '\n== %s\n' "$*"; }
 say "1. Проверка перед установкой (ничего не меняет)"
 command -v nginx >/dev/null || { echo "nginx не найден"; exit 1; }
 node -v | grep -E '^v(2[0-9]|[3-9][0-9])' >/dev/null || { echo "нужен Node 20 или новее"; exit 1; }
-ss -ltn | awk '{print $4}' | grep -E ':3100$' >/dev/null && { echo "порт 3100 уже занят: остановитесь и сообщите"; exit 1; } || true
+if ss -ltn | awk '{print $4}' | grep -E ':3100$' >/dev/null; then
+  systemctl is-active --quiet kniga-api && echo "порт 3100 занят нашей службой kniga-api: обновление" || { echo "порт 3100 занят чужой программой: остановитесь и сообщите"; exit 1; }
+fi
 ss -ltn | awk '{print $4}' | grep -E ':6379$' >/dev/null && echo "порт 6379 уже занят (Redis уже стоит, продолжаем осторожно)" || true
 [ -f "$UP/kniga-api.env" ] || { echo "нет $UP/kniga-api.env"; exit 1; }
 
