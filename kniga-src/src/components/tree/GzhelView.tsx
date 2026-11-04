@@ -1,4 +1,5 @@
 import { FramedFace } from "@/components/tree/FramedFace";
+import { cardLine } from "@/lib/tree/card-fields";
 import { SheetTitle } from "@/components/tree/SheetTitle";
 import { fitName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { GZHEL_FRAME, GZHEL_FRAMES, type GzhelSheet } from "@/lib/tree/gzhel";
@@ -34,7 +35,7 @@ export function GzhelView({ sheet, people, unions, focusId, selectedId }: { shee
           if (!person) return null;
           const top = node.y + GZHEL_FRAME + 6;
           const role = kinship(people, unions, focusId, person.id).card;
-          const years = yearsOf(person);
+          const years = cardLine(person, yearsOf(person));
           return (
             <g key={node.id}>
               {(() => {

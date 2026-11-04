@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { cardLine, useCardFields } from "@/lib/tree/card-fields";
 import { LocateFixed, Minus, Plus, Users } from "lucide-react";
 import { CameoView } from "@/components/tree/CameoView";
 import { GzhelView } from "@/components/tree/GzhelView";
@@ -163,6 +164,7 @@ export function TreeStage(props: Props) {
   }, [selectedId]);
   const lit = useMemo(() => (litId && people.some((person) => person.id === litId) ? lineageUnionIds(unions, litId) : null), [unions, litId, people]);
   const wrap = useRef<HTMLDivElement>(null);
+  const cardFields = useCardFields();
   const [cam, setCam] = useState<Cam>({ x: 40, y: 40, k: 0.45 });
   const [gesturing, setGesturing] = useState(false);
   const [hint, setHint] = useState(true);
@@ -500,7 +502,7 @@ export function TreeStage(props: Props) {
                       {role}
                     </text>
                     <text x={node.x} y={top + 64} textAnchor="middle" fill="var(--color-muted)" fontFamily="var(--font-sans)" fontSize={10}>
-                      {yearsOf(person)}
+                      {cardLine(person, yearsOf(person), cardFields)}
                     </text>
                   </g>
                 );

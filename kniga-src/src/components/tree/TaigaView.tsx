@@ -1,4 +1,5 @@
 import { FramedFace } from "@/components/tree/FramedFace";
+import { cardLine } from "@/lib/tree/card-fields";
 import { SheetTitle } from "@/components/tree/SheetTitle";
 import { fitName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { TAIGA_FRAME, TAIGA_FRAMES, type TaigaSheet } from "@/lib/tree/taiga";
@@ -33,7 +34,7 @@ export function TaigaView({ sheet, people, unions, focusId, selectedId }: { shee
           const person = byId.get(node.id);
           if (!person) return null;
           const role = kinship(people, unions, focusId, person.id).card;
-          const years = yearsOf(person);
+          const years = cardLine(person, yearsOf(person));
           const top = node.y + TAIGA_FRAME + 4;
           return (
             <g key={node.id}>

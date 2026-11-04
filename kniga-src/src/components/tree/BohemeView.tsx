@@ -1,4 +1,5 @@
 import { FramedFace } from "@/components/tree/FramedFace";
+import { cardLine } from "@/lib/tree/card-fields";
 import { SheetTitle } from "@/components/tree/SheetTitle";
 import { fitName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { BOHEME_FRAME, BOHEME_FRAMES, type BohemeSheet } from "@/lib/tree/boheme";
@@ -42,7 +43,7 @@ export function BohemeView({ sheet, people, unions, focusId, selectedId }: { she
           if (!person) return null;
           const top = node.y + BOHEME_FRAME + 8;
           const role = kinship(people, unions, focusId, person.id).card;
-          const years = yearsOf(person);
+          const years = cardLine(person, yearsOf(person));
           return (
             <g key={node.id}>
               {(() => {

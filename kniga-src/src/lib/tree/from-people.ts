@@ -79,6 +79,7 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
       deathYear: p.deathYear ?? "",
       photo: p.photo ?? "",
       note: p.notes ?? "",
+      birthPlace: p.birthPlace?.trim() || undefined,
       maidenName: names.lastName ? names.maidenName : undefined,
       side: p.treeSide,
       rank: p.treeRank,

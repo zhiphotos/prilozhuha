@@ -104,8 +104,15 @@ export function RemindersCard() {
               ))}
             </select>
           </div>
+          <label className="mt-3 flex items-start gap-3 text-sm text-ink">
+            <input type="checkbox" className="mt-1 size-5" checked={prefs.bday} onChange={(event) => setPrefs({ ...prefs, bday: event.target.checked })} />
+            <span>
+              Напоминать о днях рождения родных
+              <span className="block text-xs text-muted">На сервер уйдут только имена и день с месяцем у живых родных, с полной датой рождения. Выключите пункт и нажмите «Сохранить», и список удалится.</span>
+            </span>
+          </label>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button disabled={busy} onClick={() => void run(() => enablePush(prefs.hour, prefs.days), prefs.on ? "Сохранено" : "Уведомления включены, они работают")}>
+            <Button disabled={busy} onClick={() => void run(() => enablePush(prefs.hour, prefs.days, prefs.bday),prefs.on ? "Сохранено" : "Уведомления включены, они работают")}>
               {prefs.on ? "Сохранить" : "Включить напоминания"}
             </Button>
             {prefs.on ? (

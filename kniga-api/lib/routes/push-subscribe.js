@@ -16,6 +16,13 @@ export const cleanStats = (stats) => ({
   paid: Boolean(stats?.paid),
 });
 
+/** Дни рождения для напоминаний: только «мм-дд» и имя, не больше 200 записей. Всё остальное отбрасывается. */
+export const cleanBirthdays = (list) =>
+  (Array.isArray(list) ? list : [])
+    .map((item) => ({ d: String(item?.d ?? ""), n: String(item?.n ?? "").replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 40) }))
+    .filter((item) => /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(item.d) && item.n)
+    .slice(0, 200);
+
 // POST /api/push-subscribe { subscription, hour, offsetMin, days, app, stats }
 export default async function handler(req, res) {
   if (cors(req, res)) return;
@@ -35,6 +42,8 @@ export default async function handler(req, res) {
     days: days.length ? days : [2, 4, 0],
     app: String(body.app).split("#")[0],
     stats: cleanStats(body.stats),
+    birthdays: cleanBirthdays(body.birthdays),
+    lastBday: old?.lastBday ?? "",
     lastSeen: Date.now(),
     lastSent: old?.lastSent ?? 0,
     seq: old?.seq ?? 0,

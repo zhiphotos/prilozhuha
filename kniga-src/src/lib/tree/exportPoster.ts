@@ -1,5 +1,6 @@
 import { buildJpegPdf } from "../rod/pdf.ts";
 import { fullName, kinship, yearsOf } from "./kinship.ts";
+import { cardLine } from "./card-fields.ts";
 import { layoutTree } from "./layout.ts";
 import { PLATE_GAP, PLATE_H, PLATE_W, PORTRAIT_R, ROW_H } from "./metrics.ts";
 import { layoutTaiga, TAIGA_FRAME, TAIGA_FRAMES } from "./taiga.ts";
@@ -303,7 +304,7 @@ function drawWork(ctx: CanvasRenderingContext2D, prep: WorkPrep, sheetW: number,
     ctx.fillText(kinship(data.people, data.unions, data.focusId, person.id).card, node.x, top + 42, PLATE_W - 12);
     ctx.fillStyle = tone.muted;
     ctx.font = "600 12px Manrope, sans-serif";
-    ctx.fillText(yearsOf(person), node.x, top + 60, PLATE_W - 12);
+    ctx.fillText(cardLine(person, yearsOf(person)), node.x, top + 60, PLATE_W - 12);
   }
 }
 
@@ -583,7 +584,7 @@ async function renderLiving(data: TreeData, titleOf: (fallback: string) => strin
     ctx.fillText(fullName(person), node.x - w / 2 + 52, node.y - 6, w - 60);
     ctx.fillStyle = "#737373";
     ctx.font = "11px Manrope, sans-serif";
-    ctx.fillText(yearsOf(person), node.x - w / 2 + 52, node.y + 10);
+    ctx.fillText(cardLine(person, yearsOf(person)), node.x - w / 2 + 52, node.y + 10);
   }
   paintFooter(ctx, canvas, poster.height, scale, INK);
   return canvas;
@@ -685,7 +686,7 @@ async function renderFramed(
     const frame = loaded[n];
     if (frame) ctx.drawImage(frame, node.x - size, node.y - size, size * 2, size * 2);
     const role = kinship(data.people, data.unions, data.focusId, person.id).card;
-    const years = yearsOf(person);
+    const years = cardLine(person, yearsOf(person));
     const top = node.y + size + 4;
     ctx.fillStyle = ink;
     ctx.font = '15px "Cormorant Garamond", serif';

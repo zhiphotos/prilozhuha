@@ -31,6 +31,8 @@ export type Draft = {
   photo: string;
   /** Девичья фамилия, если отличается от нынешней. */
   maidenName?: string;
+  /** Место рождения. */
+  birthPlace?: string;
 };
 
 export function emptyDraft(gender: Gender = "u"): Draft {
@@ -38,7 +40,7 @@ export function emptyDraft(gender: Gender = "u"): Draft {
 }
 
 export function draftFrom(person: Person): Draft {
-  return { firstName: person.firstName, patronymic: person.patronymic, lastName: person.lastName, gender: person.gender, birthYear: person.birthYear, deathYear: person.deathYear, note: person.note, photo: person.photo, maidenName: person.maidenName ?? "" };
+  return { firstName: person.firstName, patronymic: person.patronymic, lastName: person.lastName, gender: person.gender, birthYear: person.birthYear, deathYear: person.deathYear, note: person.note, photo: person.photo, maidenName: person.maidenName ?? "", birthPlace: person.birthPlace ?? "" };
 }
 
 type State = {
@@ -193,6 +195,7 @@ function createPerson(draft: Draft, relation: string, extra: Partial<RodPerson>,
     birthYear: draft.birthYear,
     deathYear: draft.deathYear || undefined,
     maidenName: draft.maidenName?.trim() ?? "",
+    birthPlace: draft.birthPlace?.trim() || undefined,
     notes: draft.note,
     gender: genderOf(draft.gender),
     photo,
@@ -291,6 +294,7 @@ export const useTree = create<State>((set, get) => {
           deathYear: draft.deathYear || undefined,
           notes: draft.note,
           maidenName: draft.maidenName?.trim() ?? "",
+          birthPlace: draft.birthPlace?.trim() || undefined,
           photo,
         });
       })();
