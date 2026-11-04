@@ -6,16 +6,20 @@
   /* ---- Кнопки «Купить»: ссылка Tribute берётся из config.js ---- */
   var soon = document.getElementById("soon");
   var buy = (cfg.BUY_URL || "").trim();
+  var tg = (cfg.TELEGRAM_URL || "").trim();
+  document.querySelectorAll(".js-tg").forEach(function (a) { if (tg) a.href = tg; else a.style.display = "none"; });
+  document.querySelectorAll(".js-tg-or").forEach(function (s) { if (!tg) s.style.display = "none"; });
   if (cfg.CONTACT_EMAIL) {
     var m = document.getElementById("soonMail");
     if (m) { m.href = "mailto:" + cfg.CONTACT_EMAIL; m.textContent = cfg.CONTACT_EMAIL; }
   }
+  var goBtn = document.getElementById("soonGo");
   document.querySelectorAll(".js-buy").forEach(function (a) {
-    if (buy) { a.href = buy; a.target = "_blank"; a.rel = "noopener"; a.setAttribute("aria-label", a.textContent + " (откроется в новой вкладке)"); return; }
     a.setAttribute("role", "button"); a.setAttribute("aria-haspopup", "dialog");
     a.addEventListener("click", function (e) {
       e.preventDefault();
-      if (soon && soon.showModal) soon.showModal(); else alert("Оплата через Tribute подключается. Загляните чуть позже.");
+      if (goBtn) { if (buy) { goBtn.href = buy; goBtn.style.display = ""; } else { goBtn.style.display = "none"; } }
+      if (soon && soon.showModal) soon.showModal(); else if (buy) window.open(buy, "_blank", "noopener");
     });
   });
 

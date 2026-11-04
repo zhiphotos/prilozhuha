@@ -30,6 +30,7 @@
   } catch (e) {}
 })();
 </script>
+<script>document.documentElement.classList.add("js")</script>
 <link rel="stylesheet" href="/landing.css">
 </head>
 <body>
@@ -53,6 +54,9 @@
   <div class="wrap hero__grid">
     <figure class="hero__frame">
       <img src="/media/hero.webp" width="1200" height="766" alt="Старинная рама, а в ней уютная комната со столом и книгой: лаборатория рода" fetchpriority="high">
+      <span class="live" aria-hidden="true"></span>
+      <span class="motes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <span class="flame" aria-hidden="true"></span>
     </figure>
     <div class="hero__text">
       <p class="kicker">Лаборатория Рода</p>
@@ -81,9 +85,10 @@
     </div>
     <div class="lesson__text">
       <h2 class="h2">Книга Рода – это до слёз и смеха! Это способ узнать себя! Это новое хобби!</h2>
-      <p>Это то, что поможет обрести опору вам и вашим детям! Даже если у вас нет ни одного старого документа и спросить уже не у кого, книга вашего рода будет создана! Потому что её главная часть прямо сейчас зашита внутри вас: в ваших реакциях, ваших страхах, ваших деньгах и талантах.</p>
+      <p class="punch">Это то, что поможет обрести опору вам и вашим детям!</p>
+      <details class="more"><summary>Читать дальше</summary><p>Даже если у вас нет ни одного старого документа и спросить уже не у кого, книга вашего рода будет создана! Потому что её главная часть прямо сейчас зашита внутри вас: в ваших реакциях, ваших страхах, ваших деньгах и талантах.</p></details>
       <p>AI вместе с уроками поможет распаковать этот код в десятки раз быстрее.</p>
-      <p><strong>И вы точно напишите свою Книгу Рода!</strong></p>
+      <p class="punch"><strong>И вы точно напишите свою Книгу Рода!</strong></p>
     </div>
   </div>
 </section>
@@ -93,11 +98,12 @@
   <div class="wrap">
     <h2 class="h2 h2--center">Следующие уроки:</h2>
     <div class="shelf" role="region" tabindex="0" aria-label="Уроки курса, листайте вправо">
-      <figure><img loading="lazy" src="/media/lesson1.webp" width="900" height="900" alt="Урок 1. Глубокое интервью"></figure>
-      <figure><img loading="lazy" src="/media/lesson2.webp" width="900" height="900" alt="Урок 2. Окно с резными ставнями, а в нём светящийся силуэт человека в поле"></figure>
-      <figure><img loading="lazy" src="/media/lesson3.webp" width="900" height="900" alt="Урок 3. Память и первое древо"></figure>
-      <figure><img loading="lazy" src="/media/lesson4.webp" width="900" height="900" alt="Урок 4. Сценарии рода"></figure>
-      <figure><img loading="lazy" src="/media/lesson5.webp" width="900" height="900" alt="Урок 5. Расследование архивов"></figure>
+      <figure><img loading="lazy" src="/media/plate1.webp" width="900" height="900" alt="Урок 1. Глубокое интервью"></figure>
+      <figure><img loading="lazy" src="/media/plate2.webp" width="900" height="900" alt="Урок 2. Работа с фото, сканирование и план книги"></figure>
+      <figure><img loading="lazy" src="/media/plate3.webp" width="900" height="900" alt="Урок 3. Память и первое древо"></figure>
+      <figure><img loading="lazy" src="/media/plate4.webp" width="900" height="900" alt="Урок 4. Сценарии рода"></figure>
+      <figure><img loading="lazy" src="/media/plate5.webp" width="900" height="900" alt="Урок 5. Расследование архивов"></figure>
+      <figure><img loading="lazy" src="/media/plate6.webp" width="900" height="900" alt="Урок 6. Верстка книги, мемуары и печать"></figure>
     </div>
     <div class="ctaband">
       <p class="ctaband__title">Начни сохранять историю твоей семьи прямо сейчас</p>
@@ -119,9 +125,11 @@
         <li>Помогает с поиском предков</li>
         <li>Превращает ваши голосовые сообщения и обрывки мыслей в структурированный, красивый литературный текст</li>
         <li>Создаёт Древо Семьи</li>
+      </ul>
+      <details class="more"><summary>Ещё возможности</summary><ul class="ticks">
         <li>Анализирует повторяющиеся семейные паттерны и помогает нащупать гипотезы родовых сценариев</li>
         <li>Помогает оформлять страницы книги</li>
-      </ul>
+      </ul></details>
     </div>
   </div>
 </section>
@@ -139,24 +147,14 @@
 
           <!-- 1. Древо -->
           <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="1 из 10">
-            <div class="slide__scene scene scene--tree" aria-hidden="true">
-              <svg viewBox="0 0 320 240" class="tree-svg">
-                <path class="br b1" d="M160 215 L160 150"/><path class="br b2" d="M160 150 C160 125 110 118 85 92"/><path class="br b3" d="M160 150 C160 122 210 116 238 90"/>
-                <path class="br b4" d="M85 92 C80 72 62 62 52 46"/><path class="br b5" d="M85 92 C92 70 112 62 122 44"/><path class="br b6" d="M238 90 C232 70 214 60 204 44"/><path class="br b7" d="M238 90 C246 70 266 62 276 46"/>
-                <g class="node n0"><circle cx="160" cy="215" r="17"/><text x="160" y="219" >Я</text></g>
-                <g class="node n1"><circle cx="85" cy="92" r="17"/><text x="85" y="96">Мама</text></g>
-                <g class="node n2"><circle cx="238" cy="90" r="17"/><text x="238" y="94">Папа</text></g>
-                <g class="node n3"><circle cx="52" cy="46" r="15"/><text x="52" y="50">Баба</text></g>
-                <g class="node n4"><circle cx="122" cy="44" r="15"/><text x="122" y="48">Дед</text></g>
-                <g class="node n5"><circle cx="204" cy="44" r="15"/><text x="204" y="48">Баба</text></g>
-                <g class="node n6"><circle cx="276" cy="46" r="15"/><text x="276" y="50">Дед</text></g>
-              </svg>
+            <div class="slide__scene scene scene--shots scene--treeshots" aria-hidden="true">
+              <img class="shot s1" src="/media/tree-cameo.webp" alt="" loading="lazy"><img class="shot s2" src="/media/tree-taiga.webp" alt="" loading="lazy">
               <span class="chip chip--float">пять оформлений древа</span>
             </div>
             <div class="slide__body">
               <p class="kicker">Древо</p>
               <h3 class="h3">Древо рода растёт у вас на глазах</h3>
-              <p>Добавляйте родных по одному, и ветки сами раскладываются красиво. Загрузите древо из другой программы, выберите одно из пяти оформлений, выгрузите картинку или PDF для печати.</p>
+              <p>Добавляйте родных, и ветки раскладываются красиво. Пять оформлений, выгрузка картинкой или PDF для печати.</p>
               <p class="pain">Не нужно чертить схему вручную.</p>
             </div>
           </article>
@@ -174,60 +172,51 @@
             <div class="slide__body">
               <p class="kicker">Ленты</p>
               <h3 class="h3">Ленты семейных историй</h3>
-              <p>Фото, рассказы и голоса складываются в тёплую ленту, как в любимой соцсети, только это ваш личный архив. Листайте лентой или смотрите сеткой, находите нужное за секунду.</p>
+              <p>Фото, рассказы и голоса складываются в тёплую ленту. Листайте лентой или сеткой.</p>
               <p class="pain">Все находки в одном месте, а не в десяти папках.</p>
             </div>
           </article>
 
           <!-- 3. Книга и макеты -->
           <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="3 из 10">
-            <div class="slide__scene scene scene--book" aria-hidden="true">
-              <div class="book">
-                <div class="page pg-l"><i class="ln l1"></i><i class="ln l2"></i><i class="ln l3"></i><i class="ph ph--a ph--sm"></i></div>
-                <div class="page pg-r"><i class="ln l1"></i><i class="ln l2"></i><i class="ln l3"></i><i class="ln l4"></i></div>
-                <div class="page pg-flip"><i class="ln l1"></i><i class="ln l2"></i><i class="ph ph--c ph--sm"></i></div>
-              </div>
+            <div class="slide__scene scene scene--shots scene--bookshots" aria-hidden="true">
+              <img class="shot s1 wide" src="/media/app-templates.webp" alt="" loading="lazy">
               <span class="chip chip--float">шаблон на 100 страниц</span>
             </div>
             <div class="slide__body">
               <p class="kicker">Книга и макеты</p>
               <h3 class="h3">Книга уже имеет каркас</h3>
-              <p>Готовый макет на 100 страниц: главы по ветвям рода, а на каждой странице подсказка, что сюда внести. Редактор страниц, листалка как у настоящей книги и подготовка к печати работают прямо в приложении.</p>
+              <p>Готовый макет на 100 страниц: на каждой странице подсказка, что сюда внести. Редактор, листалка и печать прямо в приложении.</p>
               <p class="pain">Пустого листа перед вами не будет.</p>
             </div>
           </article>
 
           <!-- 4. Мемуары любви -->
           <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="4 из 10">
-            <div class="slide__scene scene scene--love" aria-hidden="true">
-              <div class="chapters">
-                <p class="ch c1"><span>1</span>Начало</p><p class="ch c2"><span>2</span>Знакомство</p><p class="ch c3"><span>3</span>Жизнь вместе</p>
-                <p class="ch c4"><span>4</span>Свадьба</p><p class="ch c5"><span>5</span>Дом</p><p class="ch c6"><span>6</span>Семья</p>
-              </div>
-              <span class="heart" aria-hidden="true">♥</span>
+            <div class="slide__scene scene scene--shots scene--loveshots" aria-hidden="true">
+              <img class="shot s1" src="/media/love-daria.webp" alt="" loading="lazy">
+              <div class="chapters"><p class="ch c1"><span>1</span>Начало</p><p class="ch c2"><span>2</span>Знакомство</p><p class="ch c3"><span>3</span>Жизнь вместе</p><p class="ch c4"><span>4</span>Свадьба</p><p class="ch c5"><span>5</span>Дом</p><p class="ch c6"><span>6</span>Семья</p></div>
               <span class="chip chip--float">для любой пары</span>
             </div>
             <div class="slide__body">
               <p class="kicker">Шаблон «Мемуары любви»</p>
               <h3 class="h3">История любви для любой пары</h3>
-              <p>Дарина собрала свою книгу о десяти годах вместе, а теперь шаблон подходит каждой паре. Главы идут по словам, а не по годам: начало, знакомство, жизнь вместе, свадьба, дом, семья. На каждой странице подсказка и место под фото.</p>
+              <p>Шаблон для любой пары: главы по словам, а не по годам. На каждой странице подсказка и место под фото.</p>
               <p class="pain">Подарок, который трогает до слёз.</p>
             </div>
           </article>
 
           <!-- 5. Свадебная книга -->
           <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="5 из 10">
-            <div class="slide__scene scene scene--wedding" aria-hidden="true">
-              <div class="grid">
-                <i class="ph ph--a g1"></i><i class="ph ph--b g2"></i><i class="ph ph--c g3"></i><i class="ph ph--b g4"></i><i class="ph ph--a g5"></i><i class="ph ph--c g6"></i>
-              </div>
+            <div class="slide__scene scene scene--shots scene--wedshots" aria-hidden="true">
+              <img class="shot s1 tall" src="/media/wedding.webp" alt="" loading="lazy">
               <p class="cap">Утро · Церемония · Первый танец</p>
               <span class="chip chip--float">48 или 42 страницы</span>
             </div>
             <div class="slide__body">
               <p class="kicker">Шаблон «Свадебная книга»</p>
               <h3 class="h3">История одного дня, от утра до последнего танца</h3>
-              <p>Фотокнига, где около 80% страницы занимают ваши снимки, а подписи короткие. Два сценария на выбор: традиционная свадьба на 48 страниц или современная на 42. Ещё 10 страниц по желанию: предложение, приглашения, письма, пожелания гостей.</p>
+              <p>Около 80% страницы занимают ваши фото. Традиционная свадьба на 48 страниц или современная на 42, плюс 10 страниц по желанию.</p>
               <p class="pain">Свадебные фото наконец складываются в книгу.</p>
             </div>
           </article>
@@ -235,7 +224,7 @@
           <!-- 6. Колоды вопросов с голосом -->
           <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="6 из 10">
             <div class="slide__scene scene scene--voice" aria-hidden="true">
-              <div class="qcard"><small>Вопрос для бабушки</small><b>Что пахло в вашем детстве по воскресеньям?</b></div>
+              <div class="qcard"><small>Вопрос для бабушки</small><b>Чем пахло в вашем детстве по воскресеньям?</b></div>
               <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
               <span class="rec"><em></em> запись голоса</span>
               <span class="chip chip--float">300 вопросов</span>
@@ -243,7 +232,7 @@
             <div class="slide__body">
               <p class="kicker">Колоды вопросов</p>
               <h3 class="h3">Вопросы для разговора с родными</h3>
-              <p>Колоды вопросов подсказывают, о чём спросить маму, бабушку или дедушку. Нажали кнопку, и голос записался. Позже ответ превращается в текст страницы.</p>
+              <p>Колоды вопросов подсказывают, о чём спросить родных. Нажали кнопку, и голос записался.</p>
               <p class="pain">Голоса близких остаются в книге навсегда.</p>
             </div>
           </article>
@@ -262,7 +251,7 @@
             <div class="slide__body">
               <p class="kicker">ИИ-помощник</p>
               <h3 class="h3">Спросит, выслушает и напишет страницу</h3>
-              <p>Личный семейный исследователь задаёт вопрос за вопросом и превращает ваши ответы и голосовые в красивый литературный текст. Начать можно, даже если о роде известно совсем немного.</p>
+              <p>Спросит, выслушает и превратит ответы и голосовые в красивый текст. Начать можно, даже если о роде известно немного.</p>
               <p class="pain">Не нужно уметь писать, достаточно рассказать.</p>
             </div>
           </article>
@@ -277,7 +266,7 @@
             <div class="slide__body">
               <p class="kicker">Поиск предков</p>
               <h3 class="h3">Поиск предков по архивам</h3>
-              <p>Подсказки, где искать документы и истории о ваших родных, и готовые базы данных. Находки сразу попадают в архив и на страницы книги.</p>
+              <p>Подсказки, где искать документы, и готовые базы. Находки сразу попадают в архив и на страницы книги.</p>
               <p class="pain">Расследование, которое увлекает как детектив.</p>
             </div>
           </article>
@@ -294,7 +283,7 @@
             <div class="slide__body">
               <p class="kicker">Напоминания</p>
               <h3 class="h3">Не забудете ни дату, ни книгу</h3>
-              <p>Приложение напомнит о днях рождения близких и мягко подскажет вечер для книги: один вопрос, пять минут. Книга двигается маленькими шагами и не превращается в отложенный проект.</p>
+              <p>Напомнит о днях рождения близких и подскажет вечер для книги: один вопрос, пять минут.</p>
               <p class="pain">Без ругани и чувства вины, как забота.</p>
             </div>
           </article>
@@ -310,7 +299,7 @@
             <div class="slide__body">
               <p class="kicker">Синхронизация</p>
               <h3 class="h3">Книга всегда с вами</h3>
-              <p>Начали на телефоне, продолжили на планшете: книга, фото и древо подтягиваются сами. На платном тарифе книгу можно открыть на трёх устройствах. Добавьте иконку на экран «Домой», и приложение открывается как обычное.</p>
+              <p>Начали на телефоне, продолжили на планшете: всё подтягивается само, до трёх устройств.</p>
               <p class="pain">Ничего не потеряется при смене телефона.</p>
             </div>
           </article>
@@ -332,6 +321,16 @@
   </div>
 </section>
 
+<!-- Вайб уроков -->
+<section class="sec sec--paper" id="vibe">
+  <div class="wrap vibe">
+    <figure class="vibe__video">
+      <video id="vibeVideo" muted loop playsinline preload="none" poster="/media/vibe-poster.webp" aria-label="Превью уроков: так звучит и выглядит программа"><source src="/app/course/site/lesson-preview.mp4" type="video/mp4"></video>
+      <figcaption class="vibe__tag"><span class="vibe__kick">Превью уроков</span><b>Вот такой вайб у уроков</b><em>Спокойно, тепло и без спешки, как разговор за чаем</em></figcaption>
+    </figure>
+  </div>
+</section>
+
 <!-- 6. Спец-предложение -->
 <section class="sec" id="offer">
   <div class="wrap">
@@ -340,25 +339,40 @@
     <div class="offer">
       <article class="offer__card">
         <img loading="lazy" src="/media/offer-memory.webp" width="900" height="900" alt="Девушка в готической арке пишет в книге при свече">
-        <p><strong>Представьте…</strong> Через двадцать лет. Ваш ребёнок открывает эту книгу. Видит фотографии своих прапрадедов. Читает истории вашей семьи. Слышит ваш голос. И чувствует огромную поддержку Рода, понимая, кем были его предки.</p>
+        <p><strong>Представьте…</strong> Через двадцать лет. Ваш ребёнок открывает эту книгу.</p>
+        <details class="more"><summary>Читать дальше</summary><p>Видит фотографии своих прапрадедов. Читает истории вашей семьи. Слышит ваш голос. И чувствует огромную поддержку Рода, понимая, кем были его предки.</p></details>
       </article>
       <article class="offer__card">
         <img loading="lazy" src="/media/offer-materials.webp" width="900" height="900" alt="Набор старинных иконок: книга, свиток, письмо, свеча, лупа, шкафчик архива">
-        <p>Заберите все 6 уроков с видео, индивидуальный GPT-ассистент, 150 готовых промптов, архивные базы данных, шаблоны для дизайна книги, вопросы для интервью, чат с Дариной и учениками, подробные объяснения.</p>
+        <p>Заберите все 6 уроков с видео и индивидуальный GPT-ассистент.</p>
+        <details class="more"><summary>Читать дальше</summary><p>150 готовых промптов, архивные базы данных, шаблоны для дизайна книги, вопросы для интервью, чат с Дариной и учениками, подробные объяснения.</p></details>
       </article>
       <article class="offer__card">
         <img loading="lazy" src="/media/offer-24h.webp" width="900" height="900" alt="Часы, книга и бирка со скидкой">
-        <p><strong>Неисчерпаемый поток вдохновения.</strong> Чатик со всеми участниками и Дариной с бессрочным доступом. Это сообщество единомышленников, которые делятся своими идеями, находками и процессом создания своей Книги Рода.</p>
+        <p><strong>Неисчерпаемый поток вдохновения.</strong> Чатик с участниками и Дариной с бессрочным доступом.</p>
+        <details class="more"><summary>Читать дальше</summary><p>Это сообщество единомышленников, которые делятся своими идеями, находками и процессом создания своей Книги Рода.</p></details>
       </article>
     </div>
 
     <div class="price" id="buy">
-      <p class="price__what">Полный мини-курс, доступ в сообщество, инструменты AI и материалы для печати</p>
-      <p class="price__term">доступ к урокам – 1 год, доступ к чату – навсегда</p>
+      <span class="pc__c pc__c--tl" aria-hidden="true"></span><span class="pc__c pc__c--tr" aria-hidden="true"></span><span class="pc__c pc__c--bl" aria-hidden="true"></span><span class="pc__c pc__c--br" aria-hidden="true"></span>
+      <p class="pc__seal">Доступ навсегда</p>
+      <p class="pc__kicker">Приглашение в Книгу Рода</p>
+      <ul class="pc__list" aria-label="Что входит">
+        <li><svg class="pc__sp" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 18V8M10 11C6 11 4 8 4 4c4 0 6 3 6 7zM10 9c0-3 2-6 6-6 0 4-2 6-6 6z" fill="currentColor"/></svg>Полный мини-курс</li>
+        <li><svg class="pc__sp" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 18V8M10 11C6 11 4 8 4 4c4 0 6 3 6 7zM10 9c0-3 2-6 6-6 0 4-2 6-6 6z" fill="currentColor"/></svg>Доступ в сообщество</li>
+        <li><svg class="pc__sp" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 18V8M10 11C6 11 4 8 4 4c4 0 6 3 6 7zM10 9c0-3 2-6 6-6 0 4-2 6-6 6z" fill="currentColor"/></svg>Инструменты AI</li>
+        <li><svg class="pc__sp" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 18V8M10 11C6 11 4 8 4 4c4 0 6 3 6 7zM10 9c0-3 2-6 6-6 0 4-2 6-6 6z" fill="currentColor"/></svg>Материалы для печати</li>
+      </ul>
+      <p class="price__term">доступ к урокам – 1 год, доступ к чату и к приложению – навсегда</p>
       <p class="price__nums"><b>2 026 ₽</b><s>3 026 ₽</s></p>
-      <p class="price__small">Меньше стоимости одного семейного ужина.</p>
+      <p class="price__small">Меньше стоимости одного семейного ужина</p>
       <a class="btn btn--big js-buy" href="#buy">Купить сейчас</a>
       <p class="price__note">Доступ ко всем материалам и AI-боту открывается мгновенно после оплаты.</p>
+      <div class="pc__tags">
+        <details class="pc__tag"><summary>Не получается оплатить?</summary><p class="price__help">Напишите Дарине: <a class="js-tg" href="#" target="_blank" rel="noopener">в Телеграм</a><span class="js-tg-or"> или </span>на почту <a class="js-mail" href="mailto:darinazizina@gmail.com">darinazizina@gmail.com</a>. Она свяжется и подберёт другой вариант.</p></details>
+        <details class="pc__tag"><summary>Ничего не пришло на почту?</summary><p class="price__note">Если после оплаты на почту ничего не пришло, напишите Дарине на почту <a class="js-mail" href="mailto:darinazizina@gmail.com">darinazizina@gmail.com</a><span class="js-tg-or"> или </span><a class="js-tg" href="#" target="_blank" rel="noopener">в Телеграм</a> и пришлите свою почту, на которую открыть доступ. Она сделает это вручную.</p></details>
+      </div>
     </div>
   </div>
 </section>
@@ -414,13 +428,15 @@
 
 <dialog class="soon" id="soon" aria-labelledby="soonTitle">
   <form method="dialog">
-    <p class="soon__title" id="soonTitle">Оплата подключается</p>
-    <p>Ссылка на оплату через Tribute ещё не добавлена. Загляните чуть позже или напишите на <a id="soonMail" href="mailto:darinazizina@gmail.com">darinazizina@gmail.com</a>, и я помогу.</p>
-    <button class="btn" value="ok" autofocus>Понятно</button>
+    <p class="soon__title" id="soonTitle">Оплата через Tribute</p>
+    <p>Откроется страница оплаты в Tribute. Доступ придёт сразу после оплаты.</p>
+    <p class="soon__help"><strong>Не получается оплатить?</strong> Напишите Дарине: <a class="js-tg" href="#" target="_blank" rel="noopener">в Телеграм</a><span class="js-tg-or"> или </span>на почту <a class="js-mail" id="soonMail" href="mailto:darinazizina@gmail.com">darinazizina@gmail.com</a>. Она свяжется и подберёт другой вариант.</p>
+    <div class="soon__btns"><a class="btn" id="soonGo" href="#" target="_blank" rel="noopener">Перейти к оплате</a><button class="btn btn--ghost" value="ok" autofocus>Закрыть</button></div>
   </form>
 </dialog>
 
 <script src="/config.js"></script>
 <script src="/landing.js"></script>
+<script src="/fx.js"></script>
 </body>
 </html>
