@@ -1,0 +1,81 @@
+name: Проверки (CI)
+
+# Запускается на каждый pull request и на пуш в main. Публикацию не делает: только проверяет.
+# Чтобы красный результат реально блокировал слияние, включите защиту ветки main и отметьте
+# проверки «Приложение», «Сервер» и «Публичная папка сайта» обязательными (Settings → Branches).
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  client:
+    name: Приложение
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kniga-src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kniga-src/package-lock.json
+      - name: Установка зависимостей
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Проверка типов
+        run: npm run typecheck
+      - name: Тесты
+        run: npm test
+      - name: Сборка (проверка, что приложение собирается)
+        run: OUT_DIR=/tmp/kr-build npm run build:pages
+      - name: Аудит зависимостей (высокие и критические)
+        run: npm audit --omit=dev --audit-level=high
+
+  server:
+    name: Сервер
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kniga-api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kniga-api/package-lock.json
+      - name: Установка зависимостей
+        run: npm ci --no-audit --no-fund
+      - name: Проверки сервера
+        # Часть сценариев печатает FAIL, но не меняет код выхода: ловим и то и другое.
+        run: |
+          set -u
+          failed=0
+          for t in test-ai test-family test-flow; do
+            node "$t.mjs" > "/tmp/$t.log" 2>&1 || failed=1
+            if grep -q "^FAIL" "/tmp/$t.log"; then failed=1; fi
+            tail -3 "/tmp/$t.log"
+          done
+          exit $failed
+      - name: Аудит зависимостей сервера
+        run: npm audit --omit=dev --audit-level=high
+
+  site:
+    name: Публичная папка сайта
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Сборка и проверка папки сайта
+        run: sh scripts/build-site.sh /tmp/site
