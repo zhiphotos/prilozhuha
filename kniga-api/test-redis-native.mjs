@@ -65,7 +65,7 @@ const port = server.address().port;
   const bytes = Buffer.from("+OK\r\n:42\r\n$12\r\nпривет\r\n*3\r\n$1\r\na\r\n$-1\r\n:7\r\n-ERR плохо\r\n");
   for (let i = 0; i < bytes.length; i += 3) feed(bytes.subarray(i, i + 3));
   ok("разбор: простая строка, число, строка по-русски, массив с пустым, ошибка, всё кусками", got[0] === "OK" && got[1] === 42 && got[2] === "привет" && JSON.stringify(got[3]) === '["a",null,7]' && got[4] instanceof Error && got[4].message === "ERR плохо");
-  ok("кодирование команды считает байты, а не символы", encode(["SET", "к", "я"]) === "*3\r\n$3\r\nSET\r\n$2\r\nк\r\n$2\r\nя\r\n");
+  ok("кодирование команды считает байты, а не символы", encode(["SET", "к", "я"]).toString() === "*3\r\n$3\r\nSET\r\n$2\r\nк\r\n$2\r\nя\r\n" && encode(["APPEND", "k", Buffer.from([0xd1, 0x8f, 0xff])]).subarray(-7).equals(Buffer.from([0x24, 0x33, 0x0d, 0x0a, 0xd1, 0x8f, 0xff]).length ? Buffer.concat([Buffer.from("$3\r\n"), Buffer.from([0xd1, 0x8f, 0xff]), Buffer.from("\r\n")]).subarray(-7) : Buffer.alloc(0)));
 }
 
 // 2. пароль

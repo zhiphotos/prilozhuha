@@ -3,14 +3,27 @@
 // Переносит только ключи с префиксом kr: (книги, коды доступа, письма, push-подписки, комнаты, счётчики), строки, хэши и множества, со сроком жизни.
 import { createNativeRedis } from "./lib/redis-native.js";
 
+const CHUNK = 4 * 1024 * 1024;
+
 /** Скопировать один ключ. src/dst: (...команда) => результат. Возвращает тип или null, если ключ исчез по дороге. */
 export async function copyKey(src, dst, key) {
   const type = await src("TYPE", key);
   const ttl = Number(await src("PTTL", key));
   if (type === "string") {
-    const value = await src("GET", key);
-    if (value === null) return null;
-    await dst("SET", key, value);
+    // Большие значения (десятки МБ, например фото) Upstash не отдаёт одним запросом: читаем кусками по 4 МБ
+    const size = Number(await src("STRLEN", key));
+    if (size > CHUNK) {
+      await dst("DEL", key);
+      for (let from = 0; from < size; from += CHUNK) {
+        // Границы кусков считаются в байтах и могут разрезать русскую букву: поэтому куски идут как байты (base64), а не как текст
+        const part = src.bytes ? await src.bytes("GETRANGE", key, from, from + CHUNK - 1) : Buffer.from((await src("GETRANGE", key, from, from + CHUNK - 1)) ?? "");
+        await dst("APPEND", key, part);
+      }
+    } else {
+      const value = await src("GET", key);
+      if (value === null) return null;
+      await dst("SET", key, value);
+    }
   } else if (type === "hash") {
     const flat = await src("HGETALL", key);
     if (!flat?.length) return null;
@@ -30,6 +43,7 @@ export async function copyKey(src, dst, key) {
 
 export async function migrate(src, dst, { match = "kr:*", dry = false, log = console.log } = {}) {
   const counts = { string: 0, hash: 0, set: 0, skipped: 0 };
+  const failed = [];
   let cursor = "0";
   do {
     const [next, keys] = await src("SCAN", cursor, "MATCH", match, "COUNT", 200);
@@ -40,12 +54,22 @@ export async function migrate(src, dst, { match = "kr:*", dry = false, log = con
         counts[t] = (counts[t] ?? 0) + 1;
         continue;
       }
-      const t = await copyKey(src, dst, key);
-      if (t) counts[t] += 1;
-      else counts.skipped += 1;
+      try {
+        const t = await copyKey(src, dst, key);
+        if (t) counts[t] += 1;
+        else counts.skipped += 1;
+      } catch (error) {
+        // Один сбойный ключ не должен останавливать остальные: запоминаем имя (без значения) и идём дальше
+        failed.push(`${key}: ${error instanceof Error ? error.message.slice(0, 120) : error}`);
+      }
     }
   } while (cursor !== "0");
   log(`${dry ? "Найдено" : "Перенесено"}: строк ${counts.string}, хэшей ${counts.hash}, множеств ${counts.set}, пропущено ${counts.skipped}`);
+  if (failed.length) {
+    log(`НЕ перенесено ключей: ${failed.length}`);
+    for (const f of failed) log(`  ${f}`);
+  }
+  counts.failed = failed.length;
   return counts;
 }
 
@@ -62,7 +86,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     if (data.error) throw new Error(data.error);
     return data.result;
   };
+  // Двоичное чтение: Upstash отдаёт результат в base64, если указан заголовок Upstash-Encoding
+  rest.bytes = async (...args) => {
+    const r = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "Upstash-Encoding": "base64" }, body: JSON.stringify(args.map(String)) });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    return Buffer.from(data.result ?? "", "base64");
+  };
   const target = createNativeRedis(process.env.REDIS_URL);
-  await migrate(rest, (...a) => target.command(...a), { dry: process.argv.includes("--dry") });
+  const result = await migrate(rest, (...a) => target.command(...a), { dry: process.argv.includes("--dry") });
   target.close();
+  if (result.failed) process.exitCode = 1;
 }

@@ -51,13 +51,14 @@ export function createParser(onReply) {
   };
 }
 
+/** Команда в виде байтов RESP. Аргументы: строки, числа или Buffer (двоичные данные без перекодировки). */
 export const encode = (args) => {
-  const parts = [`*${args.length}\r\n`];
+  const parts = [Buffer.from(`*${args.length}\r\n`)];
   for (const a of args) {
-    const s = String(a);
-    parts.push(`$${Buffer.byteLength(s)}\r\n${s}\r\n`);
+    const bytes = Buffer.isBuffer(a) ? a : Buffer.from(String(a));
+    parts.push(Buffer.from(`$${bytes.length}\r\n`), bytes, Buffer.from("\r\n"));
   }
-  return parts.join("");
+  return Buffer.concat(parts);
 };
 
 export function createNativeRedis(url, { timeoutMs = 8000 } = {}) {
