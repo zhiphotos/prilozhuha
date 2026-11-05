@@ -432,5 +432,82 @@
 "cat": "Фоны",
 "file": "stickers/pack/bg_8155.webp",
 "kind": "background"
+},
+{
+"id": "frame_lace",
+"label": "Кружевная рамка",
+"cat": "Рамки и плашки для текста",
+"file": "stickers/pack/frame_lace.webp",
+"kind": "sticker"
+},
+{
+"id": "frame_line_thin",
+"label": "Линия тонкая",
+"cat": "Рамки и плашки для текста",
+"file": "stickers/pack/frame_line_thin.webp",
+"kind": "sticker"
+},
+{
+"id": "frame_line_double",
+"label": "Линия двойная",
+"cat": "Рамки и плашки для текста",
+"file": "stickers/pack/frame_line_double.webp",
+"kind": "sticker"
+},
+{
+"id": "frame_line_round",
+"label": "Линия скруглённая",
+"cat": "Рамки и плашки для текста",
+"file": "stickers/pack/frame_line_round.webp",
+"kind": "sticker"
+},
+{
+"id": "frame_line_note",
+"label": "Сноска от руки",
+"cat": "Рамки и плашки для текста",
+"file": "stickers/pack/frame_line_note.webp",
+"kind": "sticker"
+},
+{
+"id": "frame_line_corners",
+"label": "Уголки",
+"cat": "Рамки и плашки для текста",
+"file": "stickers/pack/frame_line_corners.webp",
+"kind": "sticker"
+},
+{
+"id": "frame_line_round_double",
+"label": "Скруглённая двойная",
+"cat": "Рамки и плашки для текста",
+"file": "stickers/pack/frame_line_round_double.webp",
+"kind": "sticker"
+},
+{
+"id": "frame_line_cut",
+"label": "Срезанные углы",
+"cat": "Рамки и плашки для текста",
+"file": "stickers/pack/frame_line_cut.webp",
+"kind": "sticker"
+},
+{
+"id": "frame_line_stitch",
+"label": "Пунктирный шов",
+"cat": "Рамки и плашки для текста",
+"file": "stickers/pack/frame_line_stitch.webp",
+"kind": "sticker"
+},
+{
+"id": "frame_line_diamond",
+"label": "Ромбики в углах",
+"cat": "Рамки и плашки для текста",
+"file": "stickers/pack/frame_line_diamond.webp",
+"kind": "sticker"
+},
+{
+"id": "frame_line_tab",
+"label": "С ярлычком",
+"cat": "Рамки и плашки для текста",
+"file": "stickers/pack/frame_line_tab.webp",
+"kind": "sticker"
 }
 ]
