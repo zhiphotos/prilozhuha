@@ -163,6 +163,7 @@ export function resolveBranch(personId: string, rootId: string, g: RelationshipG
 /** Проверка исходных записей «Люди» (до сборки древа): ловит то, что сборка тихо отбрасывает. Данные не меняет. */
 export function validatePeopleLinks(people: { id: string; name: string; parents?: string[]; spouse?: string; siblingOf?: string; moreSpouses?: { id: string }[] }[]): string[] {
   const byId = new Map(people.map((p) => [p.id, p]));
+  if (!byId.has("__self")) byId.set("__self", { id: "__self", name: "Я" } as (typeof people)[number]);
   const name = (id: string) => byId.get(id)?.name ?? id;
   const out: string[] = [];
   for (const p of people) {
