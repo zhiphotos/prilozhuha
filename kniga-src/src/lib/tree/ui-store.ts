@@ -276,6 +276,23 @@ export const useTree = create<State>((set, get) => {
       void (async () => {
         const photo = draft.photo ? (await storedPhoto(draft.photo)) ?? rod(id)?.photo : undefined;
         const parts = { firstName: draft.firstName.trim(), patronymic: draft.patronymic.trim(), lastName: draft.lastName.trim() };
+        if (id === SELF_ID) {
+          // «Я» в древе была заглушкой: теперь это настоящая запись, а связи, что вели на заглушку, переезжают на неё.
+          if (!parts.firstName) return;
+          const created = createPerson(draft, "Я", {}, photo);
+          const fix = (v: string) => (v === SELF_ID ? created : v);
+          useRod.setState((st) => ({
+            people: st.people.map((q) => q.id === created ? q : {
+              ...q,
+              ...(q.spouse === SELF_ID ? { spouse: created } : {}),
+              ...(q.siblingOf === SELF_ID ? { siblingOf: created } : {}),
+              ...(q.parents?.includes(SELF_ID) ? { parents: q.parents.map(fix) } : {}),
+              ...(q.moreSpouses?.some((m) => m.id === SELF_ID) ? { moreSpouses: q.moreSpouses.map((m) => (m.id === SELF_ID ? { ...m, id: created } : m)) } : {}),
+            }),
+          }));
+          set({ selectedId: created });
+          return;
+        }
         if (!realId(id)) {
           // Пустое место в древе: имя заполнили, значит появился настоящий человек.
           if (!parts.firstName) return;
@@ -285,7 +302,6 @@ export const useTree = create<State>((set, get) => {
           set({ selectedId: created });
           return;
         }
-        if (id === SELF_ID) return;
         useRod.getState().updatePerson(id, {
           name: composeName(parts),
           ...parts,
