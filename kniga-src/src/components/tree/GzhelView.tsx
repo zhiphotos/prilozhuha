@@ -59,10 +59,10 @@ export function GzhelView({ sheet, people, unions, focusId, selectedId }: { shee
         })}
       </svg>
       <SheetTitle top={14} color={INK} fallback={sheet.title} />
-      <img src="/tree/gzhel/frame-2.png" alt="" className="pointer-events-none absolute" style={{ left: 16, top: 16, width: 92, height: 92 }} />
-      <img src="/tree/gzhel/frame-4.png" alt="" className="pointer-events-none absolute" style={{ right: 16, top: 16, width: 92, height: 92 }} />
-      <img src="/tree/gzhel/frame-5.png" alt="" className="pointer-events-none absolute" style={{ left: 16, bottom: 16, width: 92, height: 92 }} />
-      <img src="/tree/gzhel/frame-1.png" alt="" className="pointer-events-none absolute" style={{ right: 16, bottom: 16, width: 92, height: 92 }} />
+      <img src="./tree/gzhel/frame-2.png" alt="" className="pointer-events-none absolute" style={{ left: 16, top: 16, width: 92, height: 92 }} />
+      <img src="./tree/gzhel/frame-4.png" alt="" className="pointer-events-none absolute" style={{ right: 16, top: 16, width: 92, height: 92 }} />
+      <img src="./tree/gzhel/frame-5.png" alt="" className="pointer-events-none absolute" style={{ left: 16, bottom: 16, width: 92, height: 92 }} />
+      <img src="./tree/gzhel/frame-1.png" alt="" className="pointer-events-none absolute" style={{ right: 16, bottom: 16, width: 92, height: 92 }} />
       {sheet.nodes.map((node) => {
         const person = byId.get(node.id);
         if (!person) return null;

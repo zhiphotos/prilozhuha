@@ -17,7 +17,7 @@ export function TaigaView({ sheet, people, unions, focusId, selectedId }: { shee
   const byId = new Map(people.map((p) => [p.id, p]));
   return (
     <div className="relative overflow-hidden" style={{ width: sheet.width, height: sheet.height, background: "#142018" }}>
-      <img src="/tree/taiga/bg.jpg" alt="" className="pointer-events-none absolute inset-0 h-full w-full scale-105 object-cover blur-[2px]" />
+      <img src="./tree/taiga/bg.jpg" alt="" className="pointer-events-none absolute inset-0 h-full w-full scale-105 object-cover blur-[2px]" />
       <div className="pointer-events-none absolute inset-0 bg-[#0e1612]/35" />
       <svg className="absolute inset-0" width={sheet.width} height={sheet.height} role="img" aria-label="Тайга">
         <g fill="none" stroke="rgba(244,247,242,0.8)" strokeWidth={1.15} strokeLinecap="round">

@@ -13,7 +13,7 @@ export function PosterView({ poster, people, unions, focusId, selectedId }: { po
         width: poster.width,
         height: poster.height,
         backgroundColor: "#f7f6f3",
-        backgroundImage: "url(/tree/oak-white.jpg?v=5)",
+        backgroundImage: "url(./tree/oak-white.jpg?v=5)",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}

@@ -540,7 +540,7 @@ async function renderLiving(data: TreeData, titleOf: (fallback: string) => strin
   if (!ctx) throw new Error("canvas");
   const people = new Map(data.people.map((p) => [p.id, p]));
   const photos = new Map<string, HTMLImageElement | null>();
-  const bg = await loadImage("/tree/oak-white.jpg");
+  const bg = await loadImage("./tree/oak-white.jpg");
   await Promise.all([...people.values()].map(async (p) => photos.set(p.id, await loadImage(p.photo))));
   ctx.scale(scale, scale);
   ctx.fillStyle = "#f7f6f3";
@@ -614,7 +614,7 @@ async function renderFramed(
   const loaded = await Promise.all(frames.map((frame) => loadImage(frame.src)));
   const photos = new Map<string, HTMLImageElement | null>();
   const bg = opts.bg ? await loadImage(opts.bg) : null;
-  const sprig = opts.sprigs ? await loadImage("/tree/boheme/sprig.png") : null;
+  const sprig = opts.sprigs ? await loadImage("./tree/boheme/sprig.png") : null;
   await Promise.all([...people.values()].map(async (p) => photos.set(p.id, await loadImage(p.photo))));
   ctx.fillStyle = paper;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -716,7 +716,7 @@ async function renderGzhel(data: TreeData, titleOf: (fallback: string) => string
   if (!ctx) return canvas;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const scale = canvas.width / sheet.width;
-  const frames = await Promise.all([1, 2, 4, 5].map((n) => loadImage(`/tree/gzhel/frame-${n}.png`)));
+  const frames = await Promise.all([1, 2, 4, 5].map((n) => loadImage(`./tree/gzhel/frame-${n}.png`)));
   const tile = 92;
   const inset = 16;
   const spots = [
@@ -734,7 +734,7 @@ async function renderGzhel(data: TreeData, titleOf: (fallback: string) => string
 
 async function renderBoheme(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up") {
   return renderFramed(data, titleOf, layoutBoheme(data.people, data.unions, data.focusId, flow), BOHEME_FRAMES, BOHEME_FRAME, "#f6f1e6", "#1a2418", {
-    bg: "/tree/boheme/bg.jpg",
+    bg: "./tree/boheme/bg.jpg",
     blur: 10,
     veil: "rgba(16,22,14,0.42)",
     sprigs: true,
@@ -743,7 +743,7 @@ async function renderBoheme(data: TreeData, titleOf: (fallback: string) => strin
 
 async function renderTaiga(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up") {
   return renderFramed(data, titleOf, layoutTaiga(data.people, data.unions, data.focusId, flow), TAIGA_FRAMES, TAIGA_FRAME, "#f4f7f2", "#142018", {
-    bg: "/tree/taiga/bg.jpg",
+    bg: "./tree/taiga/bg.jpg",
     blur: 3,
     veil: "rgba(14,22,18,0.35)",
   });
