@@ -19,12 +19,12 @@ export function BohemeView({ sheet, people, unions, focusId, selectedId }: { she
   const h = sheet.height;
   return (
     <div className="relative overflow-hidden" style={{ width: w, height: h, background: "#1a2418" }}>
-      <img src="/tree/boheme/bg.jpg" alt="" className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-lg" />
+      <img src="./tree/boheme/bg.jpg" alt="" className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover blur-lg" />
       <div className="pointer-events-none absolute inset-0 bg-[#10160e]/50" />
-      <img src="/tree/boheme/sprig.png" alt="" className="pointer-events-none absolute left-0 top-0 h-[190px] w-[190px]" />
-      <img src="/tree/boheme/sprig.png" alt="" className="pointer-events-none absolute right-0 top-0 h-[190px] w-[190px] -scale-x-100" />
-      <img src="/tree/boheme/sprig.png" alt="" className="pointer-events-none absolute bottom-0 left-0 h-[190px] w-[190px] -scale-y-100" />
-      <img src="/tree/boheme/sprig.png" alt="" className="pointer-events-none absolute bottom-0 right-0 h-[190px] w-[190px] -scale-x-100 -scale-y-100" />
+      <img src="./tree/boheme/sprig.png" alt="" className="pointer-events-none absolute left-0 top-0 h-[190px] w-[190px]" />
+      <img src="./tree/boheme/sprig.png" alt="" className="pointer-events-none absolute right-0 top-0 h-[190px] w-[190px] -scale-x-100" />
+      <img src="./tree/boheme/sprig.png" alt="" className="pointer-events-none absolute bottom-0 left-0 h-[190px] w-[190px] -scale-y-100" />
+      <img src="./tree/boheme/sprig.png" alt="" className="pointer-events-none absolute bottom-0 right-0 h-[190px] w-[190px] -scale-x-100 -scale-y-100" />
       <svg className="absolute inset-0" width={w} height={h} role="img" aria-label="Богема">
         <line x1={34} y1={210} x2={34} y2={h - 210} stroke="rgba(246,241,230,0.45)" strokeWidth={1} />
         <line x1={w - 34} y1={210} x2={w - 34} y2={h - 210} stroke="rgba(246,241,230,0.45)" strokeWidth={1} />

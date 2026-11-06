@@ -4,11 +4,11 @@ import type { Person, Union } from "./types.ts";
 
 export const GZHEL_FRAME = 88;
 export const GZHEL_FRAMES = [
-  { src: "/tree/gzhel/frame-1.png", hole: 0.46 },
-  { src: "/tree/gzhel/frame-2.png", hole: 0.44 },
-  { src: "/tree/gzhel/frame-3.png", hole: 0.34 },
-  { src: "/tree/gzhel/frame-4.png", hole: 0.52 },
-  { src: "/tree/gzhel/frame-5.png", hole: 0.48 },
+  { src: "./tree/gzhel/frame-1.png", hole: 0.46 },
+  { src: "./tree/gzhel/frame-2.png", hole: 0.44 },
+  { src: "./tree/gzhel/frame-3.png", hole: 0.34 },
+  { src: "./tree/gzhel/frame-4.png", hole: 0.52 },
+  { src: "./tree/gzhel/frame-5.png", hole: 0.48 },
 ] as const;
 
 const BOX = GZHEL_FRAME * 2;
