@@ -72,9 +72,13 @@ export function moveBranch(people: Person[], unions: Union[], focusId: string, p
 
 /** null: у человека нет братьев и сестёр, двигать не с кем. Пустой список: он крайний или перестановка не получилась. */
 function moveAmongSiblings(people: Person[], unions: Union[], focusId: string, personId: string, dir: -1 | 1): Patch[] | null {
-  const siblings = [...new Set(unions.filter((u) => u.childIds.includes(personId)).flatMap((u) => u.childIds))];
+  const layout = layoutTree(people, unions, focusId);
+  const before = new Map(layout.nodes.map((n) => [n.id, n.x]));
+  // Люди, чьи родители стоят далеко (связь не нарисована), не стоят среди своих братьев и сестёр: двигать их с ними бессмысленно.
+  const far = new Set(layout.detached ?? []);
+  if (far.has(personId)) return null;
+  const siblings = [...new Set(unions.filter((u) => u.childIds.includes(personId)).flatMap((u) => u.childIds))].filter((id) => !far.has(id));
   if (siblings.length < 2) return null;
-  const before = new Map(layoutTree(people, unions, focusId).nodes.map((n) => [n.id, n.x]));
   const order = siblings.filter((id) => before.has(id)).sort((a, b) => before.get(a)! - before.get(b)! || a.localeCompare(b));
   const at = order.indexOf(personId);
   const to = at + dir;

@@ -485,7 +485,7 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     const side = block.kids.filter((k) => !isLine(k));
     // Если пользователь расставил братьев и сестёр сам (у всех есть rank), прямой род стоит среди них там, где он выбрал.
     const primRank = (k: number) => rankOf(g, [blocks[k]!.primary ?? blocks[k]!.ids[0]!]);
-    const ranked = block.kids.length > 1 && block.kids.every((k) => Number.isFinite(primRank(k)));
+    const ranked = line.some((k) => Number.isFinite(primRank(k))) && side.some((k) => Number.isFinite(primRank(k)));
     if (line.length && side.length && !ranked) {
       // Сторона определяется положением в паре: отец пары слева (его братья и сёстры слева), мать справа (её справа). Так боковые ветки уходят от центра, а не оказываются между супругами.
       const person = line.flatMap((k) => blocks[k]!.ids).find((id) => bit.has(id));
@@ -494,7 +494,7 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
   }
 
   // Боковые ветки отдельно от прямого рода: братья и сёстры предков (и их потомство) не входят в дерево прямого рода, а стоят отдельной веткой рядом с ним, снаружи. Тогда прямой род узкий и родители выбранного стоят рядом над ним, а родня расходится в стороны. Свои братья и сёстры остаются под общими родителями.
-  type CutRef = { person: string | null; right: boolean; dir: -1 | 1; index: number; count: number; above: number };
+  type CutRef = { person: string | null; ranked: boolean; right: boolean; dir: -1 | 1; index: number; count: number; above: number };
   const cutRef = new Map<number, CutRef>();
   const cutSlot = new Map<number, number>();
   for (const block of blocks) {
@@ -516,13 +516,13 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     const both = pair !== undefined && pair.full.filter((id) => ancestors.has(id) && hasParents(id, pair.level)).length >= 2;
     const nearOwn = pair !== undefined && (both || toRight === dir > 0) && !pair.kids.some((k) => blocks[k]!.ids.includes(focusId));
     const primRank = (k: number) => rankOf(g, [blocks[k]!.primary ?? blocks[k]!.ids[0]!]);
-    const ranked = block.kids.length > 1 && block.kids.every((k) => Number.isFinite(primRank(k)));
-    const rightOf = (k: number) => (ranked ? primRank(k) > Math.min(...lineKids.map(primRank)) : toRight);
+    const ranked = lineKids.some((k) => Number.isFinite(primRank(k))) && sideKids.some((k) => Number.isFinite(primRank(k)));
+    const rightOf = (k: number) => (ranked && Number.isFinite(primRank(k)) ? primRank(k) > Math.min(...lineKids.map(primRank)) : toRight);
     const groups = [sideKids.filter((k) => !rightOf(k)), sideKids.filter((k) => rightOf(k))];
     for (const group of groups) {
       group.forEach((k, i) => {
         blocks[k]!.parent = null;
-        cutRef.set(k, { person: nearOwn || ranked ? (person ?? null) : null, right: rightOf(k), dir, index: i, count: group.length, above: Math.max(1, (gen.get(focusId) ?? 0) - block.level) });
+        cutRef.set(k, { person: nearOwn || ranked ? (person ?? null) : null, ranked, right: rightOf(k), dir, index: i, count: group.length, above: Math.max(1, (gen.get(focusId) ?? 0) - block.level) });
       });
     }
     block.kids = lineKids;
@@ -676,7 +676,9 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     let top = ref.person === null ? undefined : blockOf.get(ref.person);
     for (let guard = 0; top !== undefined && guard < 500 && blocks[top]!.parent !== null; guard++) top = blocks[top]!.parent!;
     const base = top === undefined ? undefined : treeSlot.get(treeOf.get(top)!);
-    if (base === undefined) cutSlot.set(root, ref.dir < 0 ? -1 - 0.1 * ref.above - 0.0002 * ref.index : 2 + 0.1 * ref.above + 0.0002 * ref.index);
+    // Нет места дерева человека: уходим к краю на нужную сторону (при ручной расстановке сторона своя у каждого брата и сестры).
+    const edgeDir = ref.ranked ? (ref.right ? 1 : -1) : ref.dir;
+    if (base === undefined) cutSlot.set(root, edgeDir < 0 ? -1 - 0.1 * ref.above - 0.0002 * ref.index : 2 + 0.1 * ref.above + 0.0002 * ref.index);
     else cutSlot.set(root, ref.right ? base + 0.0002 * (ref.index + 1) : base - 0.0002 * (ref.count - ref.index));
     treeSlot.set(t, cutSlot.get(root)!);
   });
