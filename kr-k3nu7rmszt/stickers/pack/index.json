@@ -509,5 +509,131 @@
 "cat": "Рамки и плашки для текста",
 "file": "stickers/pack/frame_line_tab.webp",
 "kind": "sticker"
+},
+{
+"id": "tex_dust",
+"label": "Пыль и царапины",
+"cat": "Текстуры",
+"file": "stickers/pack/tex/dust.webp",
+"kind": "texture",
+"textures": true,
+"mode": "Экран",
+"blend": "screen",
+"opacity": 0.85
+},
+{
+"id": "tex_paper_dark",
+"label": "Мятая бумага",
+"cat": "Текстуры",
+"file": "stickers/pack/tex/paper-dark.webp",
+"kind": "texture",
+"textures": true,
+"mode": "Экран",
+"blend": "screen",
+"opacity": 0.7
+},
+{
+"id": "tex_film_folds",
+"label": "Складки плёнки",
+"cat": "Текстуры",
+"file": "stickers/pack/tex/film-folds.webp",
+"kind": "texture",
+"textures": true,
+"mode": "Экран",
+"blend": "screen",
+"opacity": 0.85
+},
+{
+"id": "tex_cellophane",
+"label": "Целлофан",
+"cat": "Текстуры",
+"file": "stickers/pack/tex/cellophane.webp",
+"kind": "texture",
+"textures": true,
+"mode": "Экран",
+"blend": "screen",
+"opacity": 0.9
+},
+{
+"id": "tex_holo_foil",
+"label": "Голографическая фольга",
+"cat": "Текстуры",
+"file": "stickers/pack/tex/holo-foil.webp",
+"kind": "texture",
+"textures": true,
+"mode": "Наложение",
+"blend": "overlay",
+"opacity": 0.6
+},
+{
+"id": "tex_grain_a",
+"label": "Зерно, пятна света А",
+"cat": "Текстуры",
+"file": "stickers/pack/tex/grain-blob-a.webp",
+"kind": "texture",
+"textures": true,
+"mode": "Мягкий свет",
+"blend": "soft-light",
+"opacity": 0.85
+},
+{
+"id": "tex_grain_b",
+"label": "Зерно, пятна света Б",
+"cat": "Текстуры",
+"file": "stickers/pack/tex/grain-blob-b.webp",
+"kind": "texture",
+"textures": true,
+"mode": "Мягкий свет",
+"blend": "soft-light",
+"opacity": 0.85
+},
+{
+"id": "tex_grain_c",
+"label": "Зерно, пятна света В",
+"cat": "Текстуры",
+"file": "stickers/pack/tex/grain-blob-c.webp",
+"kind": "texture",
+"textures": true,
+"mode": "Наложение",
+"blend": "overlay",
+"opacity": 0.8
+},
+{
+"id": "tex_grain_gradient",
+"label": "Зернистый градиент",
+"cat": "Текстуры",
+"file": "stickers/pack/tex/grain-gradient.webp",
+"kind": "texture",
+"textures": true,
+"mode": "Умножение",
+"blend": "multiply",
+"opacity": 0.7
+},
+{
+"id": "tex_vinyl_black",
+"label": "Чёрный конверт винила",
+"cat": "Текстуры",
+"file": "stickers/pack/tex/vinyl-black.webp",
+"kind": "sticker",
+"textures": true,
+"mode": "Стикер"
+},
+{
+"id": "tex_vinyl_wrap",
+"label": "Пластинка в плёнке",
+"cat": "Текстуры",
+"file": "stickers/pack/tex/vinyl-wrap.webp",
+"kind": "sticker",
+"textures": true,
+"mode": "Стикер"
+},
+{
+"id": "tex_vinyl_white",
+"label": "Белый конверт винила",
+"cat": "Текстуры",
+"file": "stickers/pack/tex/vinyl-white.webp",
+"kind": "sticker",
+"textures": true,
+"mode": "Стикер"
 }
 ]
