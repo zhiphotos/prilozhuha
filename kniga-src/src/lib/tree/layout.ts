@@ -137,6 +137,35 @@ function cmpRank(g: Graph, a: string[], b: string[]): number {
 }
 
 function orderGroup(g: Graph, ids: string[]): string[] {
+  const order = orderGroupBase(g, ids);
+  return order.length > 2 ? applyFlips(g, order) : order;
+}
+
+/**
+ * В блоке из трёх и более человек явный выбор «поменять местами» (side) меняет местами супругов, у которых он записан у обоих:
+ * «справа» у одного и «слева» у другого значит, что первый стоит правее второго. Супруги могут стоять не рядом (у человека несколько браков).
+ */
+function applyFlips(g: Graph, order: string[]): string[] {
+  const out = order.slice();
+  for (const u of g.unions) {
+    for (const a of u.partnerIds) {
+      for (const b of u.partnerIds) {
+        if (a >= b) continue;
+        const pa = g.people.get(a);
+        const pb = g.people.get(b);
+        const ia = out.indexOf(a);
+        const ib = out.indexOf(b);
+        if (!pa || !pb || ia < 0 || ib < 0) continue;
+        const aRight = pa.side === "right" && pb.side === "left";
+        const aLeft = pa.side === "left" && pb.side === "right";
+        if ((aRight && ia < ib) || (aLeft && ia > ib)) [out[ia], out[ib]] = [b, a];
+      }
+    }
+  }
+  return out;
+}
+
+function orderGroupBase(g: Graph, ids: string[]): string[] {
   if (ids.length <= 1) return ids;
   if (ids.length === 2) {
     const [a, b] = ids as [string, string];
@@ -310,7 +339,8 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     depthMemo.set(id, best);
     return best;
   };
-  const betterPrimary = (a: string, b: string, order: string[]) => Number(spine.has(b)) - Number(spine.has(a)) || depthUp(b) - depthUp(a) || order.indexOf(a) - order.indexOf(b);
+  // Предок выбранного главнее супруга со стороны (бывшего мужа или жены): блок висит под родителями предка, а не чужой семьи.
+  const betterPrimary = (a: string, b: string, order: string[]) => Number(ancestors.has(b)) - Number(ancestors.has(a)) || Number(spine.has(b)) - Number(spine.has(a)) || depthUp(b) - depthUp(a) || order.indexOf(a) - order.indexOf(b);
   for (const level of levels) {
     const ids = people.filter((p) => gen.get(p.id) === level).map((p) => p.id);
     for (const members of spouseGroups(g, ids)) {
@@ -428,7 +458,9 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     const child = upQ[i]!;
     const [lo, hi] = span.get(child)!;
     const parents = [...new Set(g.parentOf.get(child) ?? [])].filter((q) => (gen.get(q) ?? -99) === (gen.get(child) ?? 0) - 1);
-    parents.sort((a, b) => Number(g.people.get(a)?.gender !== "m") - Number(g.people.get(b)?.gender !== "m"));
+    // Явный выбор «поменять местами» (side) главнее пола: у родителей одного ребёнка порядок слева направо задаёт он.
+    const wish = (id: string) => (g.people.get(id)?.side === "left" ? -1 : g.people.get(id)?.side === "right" ? 1 : 0);
+    parents.sort((a, b) => wish(a) - wish(b) || Number(g.people.get(a)?.gender !== "m") - Number(g.people.get(b)?.gender !== "m"));
     parents.forEach((parent, k) => {
       if (span.has(parent)) return;
       const half = parents.length > 1 ? (hi - lo) / 2 : hi - lo;
@@ -446,12 +478,15 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     block.kids.sort((a, b) => {
       const ka = blocks[a]!;
       const kb = blocks[b]!;
-      return orderKey(block, a) - orderKey(block, b) || cmpRank(g, ka.ids, kb.ids) || byBirth(g, ka.primary ?? ka.ids[0]!, kb.primary ?? kb.ids[0]!);
+      return orderKey(block, a) - orderKey(block, b) || cmpRank(g, [ka.primary ?? ka.ids[0]!], [kb.primary ?? kb.ids[0]!]) || byBirth(g, ka.primary ?? ka.ids[0]!, kb.primary ?? kb.ids[0]!);
     });
     // Прямой род по центру, боковые ветки в сторону: братья и сёстры предка стоят с внешней стороны от него (сторона отца слева, сторона матери справа), а сам он ближе к середине схемы.
     const line = block.kids.filter(isLine);
     const side = block.kids.filter((k) => !isLine(k));
-    if (line.length && side.length) {
+    // Если пользователь расставил братьев и сестёр сам (у всех есть rank), прямой род стоит среди них там, где он выбрал.
+    const primRank = (k: number) => rankOf(g, [blocks[k]!.primary ?? blocks[k]!.ids[0]!]);
+    const ranked = line.some((k) => Number.isFinite(primRank(k))) && side.some((k) => Number.isFinite(primRank(k)));
+    if (line.length && side.length && !ranked) {
       // Сторона определяется положением в паре: отец пары слева (его братья и сёстры слева), мать справа (её справа). Так боковые ветки уходят от центра, а не оказываются между супругами.
       const person = line.flatMap((k) => blocks[k]!.ids).find((id) => bit.has(id));
       if (person !== undefined) block.kids = bit.get(person) === 0 ? [...side, ...line] : [...line, ...side];
@@ -459,6 +494,8 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
   }
 
   // Боковые ветки отдельно от прямого рода: братья и сёстры предков (и их потомство) не входят в дерево прямого рода, а стоят отдельной веткой рядом с ним, снаружи. Тогда прямой род узкий и родители выбранного стоят рядом над ним, а родня расходится в стороны. Свои братья и сёстры остаются под общими родителями.
+  type CutRef = { from: number; person: string | null; ranked: boolean; right: boolean; dir: -1 | 1; index: number; count: number; above: number };
+  const cutRef = new Map<number, CutRef>();
   const cutSlot = new Map<number, number>();
   for (const block of blocks) {
     if (!isLine(block.index)) continue;
@@ -470,12 +507,24 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     // Сторона берётся у кровного предка блока, а не у того, кто стоит первым в паре (иначе братья бабушки по маме уезжали на папину сторону, потому что первым в паре стоит дедушка).
     const person = ids.find((id) => sideOf.has(id) && (g.parentOf.get(id) ?? []).some((q) => block.ids.includes(q))) ?? ids.find((id) => sideOf.has(id));
     const dir = person !== undefined ? (sideOf.get(person)! > 0 ? 1 : -1) : -1;
-    // Боковые ветки уходят к краям: родня стороны отца левее всего прямого рода, стороны матери правее; чем старше предок, тем дальше от центра.
-    const above = Math.max(1, (gen.get(focusId) ?? 0) - block.level);
-    sideKids.forEach((k, i) => {
-      blocks[k]!.parent = null;
-      cutSlot.set(k, dir < 0 ? -1 - 0.1 * above - 0.0002 * i : 2 + 0.1 * above + 0.0002 * i);
-    });
+    // Братья и сёстры стоят вплотную к ветке своего человека и по свою сторону от него: у левого в паре (отец) слева, у правого (мать) справа.
+    // Тогда дети одной пары идут подряд, а ветки двух супругов не вклиниваются друг в друга: «сестра Юрия | Юрий | Нина | брат Нины | сестра Нины».
+    const toRight = person !== undefined && bit.has(person) ? bit.get(person) === 1 : dir > 0;
+    // Только для пары двух предков, у каждого из которых есть свои родители (у родителей самого выбранного остаётся прежняя раскладка: родня отца на левом краю, родня матери на правом).
+    const own = person === undefined ? undefined : blockOf.get(person);
+    const pair = own === undefined ? undefined : blocks[blocks[own]!.ghostOf ?? own]!;
+    const both = pair !== undefined && pair.full.filter((id) => ancestors.has(id) && hasParents(id, pair.level)).length >= 2;
+    const nearOwn = pair !== undefined && (both || toRight === dir > 0) && !pair.kids.some((k) => blocks[k]!.ids.includes(focusId));
+    const primRank = (k: number) => rankOf(g, [blocks[k]!.primary ?? blocks[k]!.ids[0]!]);
+    const ranked = lineKids.some((k) => Number.isFinite(primRank(k))) && sideKids.some((k) => Number.isFinite(primRank(k)));
+    const rightOf = (k: number) => (ranked && Number.isFinite(primRank(k)) ? primRank(k) > Math.min(...lineKids.map(primRank)) : toRight);
+    const groups = [sideKids.filter((k) => !rightOf(k)), sideKids.filter((k) => rightOf(k))];
+    for (const group of groups) {
+      group.forEach((k, i) => {
+        blocks[k]!.parent = null;
+        cutRef.set(k, { from: block.index, person: nearOwn || ranked ? (person ?? null) : null, ranked, right: rightOf(k), dir, index: i, count: group.length, above: Math.max(1, (gen.get(focusId) ?? 0) - block.level) });
+      });
+    }
     block.kids = lineKids;
   }
 
@@ -618,7 +667,21 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
   roots.forEach((root, t) => {
     const keys = blocks[root]!.ids.map((id) => slot.get(id)).filter((v): v is number => v !== undefined);
     if (keys.length) treeSlot.set(t, Math.min(...keys));
-    else if (cutSlot.has(root)) treeSlot.set(t, cutSlot.get(root)!);
+  });
+  // Боковые ветки встают рядом с деревом своего человека (слот корня этого дерева), а не на краю всего листа.
+  roots.forEach((root, t) => {
+    const ref = cutRef.get(root);
+    if (!ref || treeSlot.has(t)) return;
+    // Идём вверх от самого блока человека (у ушедшего под свои родители супруга это его собственный блок), а не от общей пары.
+    let top = ref.person === null ? undefined : blockOf.get(ref.person);
+    for (let guard = 0; top !== undefined && guard < 500 && blocks[top]!.parent !== null; guard++) top = blocks[top]!.parent!;
+    const base = top === undefined ? undefined : treeSlot.get(treeOf.get(top)!);
+    // Нет места дерева человека: уходим к краю на нужную сторону (при ручной расстановке сторона своя у каждого брата и сестры).
+    const edgeDir = ref.ranked ? (ref.right ? 1 : -1) : ref.dir;
+    if (base === undefined) cutSlot.set(root, edgeDir < 0 ? -1 - 0.1 * ref.above - 0.0002 * ref.index : 2 + 0.1 * ref.above + 0.0002 * ref.index);
+    // Чем старше предок, тем дальше от дерева его братья и сёстры (и их потомство): двоюродные стоят снаружи от родных.
+    else cutSlot.set(root, ref.right ? base + 0.01 * ref.above + 0.0002 * (ref.index + 1) : base - 0.01 * ref.above - 0.0002 * (ref.count - ref.index));
+    treeSlot.set(t, cutSlot.get(root)!);
   });
   // Ветки без предков выбранного (родня, пришедшая через брак) уходят в конец: между отцом и матерью выбранного должны стоять только их предки, иначе линия брака растягивается на весь лист.
   // Ветки, которые пользователь расставил сам (rank), главнее порядка по родословной.
@@ -633,7 +696,8 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     if (sa && sb && sa !== sb) return sa - sb;
     const ra = rankOf(g, blocks[roots[a]!]!.ids);
     const rb = rankOf(g, blocks[roots[b]!]!.ids);
-    if (Number.isFinite(ra) && Number.isFinite(rb) && ra !== rb) return ra - rb;
+    // Порядок боковых веток (братьев и сестёр предков) уже заложен в их месте рядом с человеком; общий rank разных семей их не перемешивает.
+    if (!cutRef.has(roots[a]!) && !cutRef.has(roots[b]!) && Number.isFinite(ra) && Number.isFinite(rb) && ra !== rb) return ra - rb;
     // Родня, пришедшая через брак, стоит после всех веток самого выбранного, в том числе после боковых веток мамы (они идут со слотом 2,1 и дальше).
     return (treeSlot.get(a) ?? 1000) - (treeSlot.get(b) ?? 1000) || a - b;
   });
@@ -673,6 +737,13 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
       const ghostId = blocks[sp.ghost]!.primary ?? blocks[sp.ghost]!.ids[0]!;
       // Двигаем только детей этого брака (их родители включают ушедшего супруга), остальные дети блока остаются.
       for (const kid of block.kids) {
+        const k = blocks[kid]!;
+        if (!(g.parentOf.get(k.primary ?? k.ids[0]!) ?? []).includes(ghostId)) continue;
+        for (const index of [kid, ...below(kid)]) cx.set(index, (cx.get(index) ?? 0) + shift);
+      }
+      // Вынесенные в сторону братья и сёстры этой пары тоже её дети: они едут к середине вместе с остальными, иначе порядок среди братьев и сестёр ломается.
+      for (const [kid, ref] of cutRef) {
+        if (ref.from !== block.index) continue;
         const k = blocks[kid]!;
         if (!(g.parentOf.get(k.primary ?? k.ids[0]!) ?? []).includes(ghostId)) continue;
         for (const index of [kid, ...below(kid)]) cx.set(index, (cx.get(index) ?? 0) + shift);
