@@ -754,3 +754,13 @@ body {
 .cam { transform-origin: 0 0; transition: transform 180ms ease; }
 .cam.is-gesturing { transition: none; }
 @media (prefers-reduced-motion: reduce) { .cam { transition: none; } }
+
+/* Дерево на странице «Книга»: новая стадия проявляется и чуть вырастает. */
+@keyframes book-tree-in {
+  from { opacity: 0; transform: scale(0.92); transform-origin: 50% 100%; }
+  to { opacity: 1; transform: none; transform-origin: 50% 100%; }
+}
+.book-tree-img { animation: book-tree-in 0.8s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .book-tree-img { animation: none; }
+}

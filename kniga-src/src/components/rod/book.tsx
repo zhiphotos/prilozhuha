@@ -13,6 +13,8 @@ import { CoverSetup } from "@/components/rod/cover-setup";
 import { PlanSheet } from "@/components/rod/plan-sheet";
 import { TextToPagesSheet } from "@/components/rod/text-to-pages";
 import { WEDDING_EXTRA, WEDDING_EXTRA_PAGES, WEDDING_MODERN, WEDDING_MODERN_PAGES, WEDDING_TRADITIONAL, WEDDING_TRADITIONAL_PAGES, weddingExtraPages, weddingModernPages, weddingTraditionalPages } from "@/lib/rod/wedding-book";
+import { GrowingTree } from "@/components/rod/growing-tree";
+import { treeGrowth } from "@/lib/rod/book-tree";
 import { UnlockCarousel } from "@/components/rod/unlock-carousel";
 import { ReelButton } from "@/components/rod/reel-modal";
 import { Hint } from "@/components/rod/hint";
@@ -40,6 +42,7 @@ export function BookScreen() {
   const snapshot = { ...data, pages };
   const overall = overallOf(partsOf(snapshot));
   const ready = isBookReady(snapshot, overall) || pages.length >= 6;
+  const growth = treeGrowth(overall, pages.length);
   const name = data.dedicatee.trim() || data.collector.trim();
 
   const open = (page: Omit<BookPage, "id"> | null, at?: number) => {
@@ -62,34 +65,37 @@ export function BookScreen() {
     <ScreenFrame>
       <TopBar kicker="Моя книга" title={name ? `Книга рода · ${name}` : "Книга рода"} />
 
-      <div data-tour="book-actions" className="mb-5 grid grid-cols-2 gap-2 sm:flex">
-        <Button className="col-span-2 min-h-12 sm:col-span-1" onClick={() => (pages.length ? nav.go({ id: "flip" }) : toast("Сначала добавьте хотя бы одну страницу"))}>
+      <div className="mb-5 flex items-stretch gap-3">
+        <GrowingTree growth={growth} />
+      <div data-tour="book-actions" className="grid min-w-0 flex-1 grid-cols-1 content-start gap-2">
+        <Button className="min-h-12" onClick={() => (pages.length ? nav.go({ id: "flip" }) : toast("Сначала добавьте хотя бы одну страницу"))}>
           <BookOpen className="size-4" /> Листать книгу
         </Button>
         <Hint id="book-print">
-          <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => (pages.length ? setPrinting(true) : toast("Сначала добавьте хотя бы одну страницу"))}>
+          <Button variant="soft" className="min-h-12" onClick={() => (pages.length ? setPrinting(true) : toast("Сначала добавьте хотя бы одну страницу"))}>
             <Printer className="size-4" /> Формат и печать
           </Button>
         </Hint>
-        <Button className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setContents(true)}>
+        <Button className="min-h-12" onClick={() => setContents(true)}>
           <BookOpen className="size-4" /> Содержание{plan.length ? ` · ${plan.filter((c) => c.done).length} из ${plan.length}` : ""}
         </Button>
         <Hint id="book-plan">
-          <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setPlanning(true)}>
+          <Button variant="soft" className="min-h-12" onClick={() => setPlanning(true)}>
             <Sparkles className="size-4" /> Спланировать страницы списком
           </Button>
         </Hint>
         <Hint id="book-text-pages">
-          <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setTextToPages(true)}>
+          <Button variant="soft" className="min-h-12" onClick={() => setTextToPages(true)}>
             <Sparkles className="size-4" /> Текст → страницы
           </Button>
           <p className="mt-1 text-xs text-muted">Длинную историю вставьте сюда, она сама разойдётся по страницам.</p>
         </Hint>
         <Hint id="book-cover">
-          <Button variant="soft" className="col-span-2 min-h-12 sm:col-span-1" onClick={() => setCoverSetup(true)}>
+          <Button variant="soft" className="min-h-12" onClick={() => setCoverSetup(true)}>
             <Palette className="size-4" /> Обложка: корешок и задняя сторона
           </Button>
         </Hint>
+      </div>
       </div>
 
       {!hasCover ? (
