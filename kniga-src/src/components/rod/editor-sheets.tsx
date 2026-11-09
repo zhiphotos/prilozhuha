@@ -106,9 +106,22 @@ export function PhotoSheet({
 
 // ——— Стикеры, фигуры, свои ———
 
-type Tab = "stickers" | "pack" | "shapes" | "mine" | "text";
+type Tab = "stickers" | "pack" | "textures" | "shapes" | "mine" | "text";
 
-export type PackItem = { id: string; label: string; cat: string; file: string; kind: "sticker" | "background" };
+export type PackItem = {
+  id: string;
+  label: string;
+  cat: string;
+  file: string;
+  kind: "sticker" | "background" | "texture";
+  /** Текстуры: входят во вкладку «Текстуры», а не в «Футажи». */
+  textures?: boolean;
+  /** Режим наложения, который текстура берёт сама, и сила (прозрачность). */
+  blend?: "multiply" | "screen" | "overlay" | "soft-light" | "darken" | "lighten";
+  opacity?: number;
+  /** Подпись режима для человека. */
+  mode?: string;
+};
 
 /** Готовый набор футажей приложения (конверты, цветы, ветки, бумага, фоны). */
 function usePack(): PackItem[] | null {
@@ -155,6 +168,7 @@ export function StickersSheet({
             ["mine", `Мои${mine.length ? ` · ${mine.length}` : ""}`],
             ["stickers", "Стикеры"],
             ["pack", "Футажи"],
+            ["textures", "Текстуры"],
             ["shapes", "Фигуры и стрелки"],
             ["text", "Надписи"],
           ] as [Tab, string][]
@@ -182,12 +196,12 @@ export function StickersSheet({
           <p className="text-sm text-muted">Набор не загрузился. Проверьте интернет и откройте снова.</p>
         ) : (
           <div className="grid gap-4">
-            {[...new Set(pack.map((item) => item.cat))].map((cat) => (
+            {[...new Set(pack.filter((item) => !item.textures).map((item) => item.cat))].map((cat) => (
               <section key={cat}>
                 <p className="mb-1.5 text-sm font-medium text-ink">{cat}</p>
                 <ul className="grid grid-cols-4 gap-2">
                   {pack
-                    .filter((item) => item.cat === cat)
+                    .filter((item) => item.cat === cat && !item.textures)
                     .map((item) => (
                       <li key={item.id}>
                         <button type="button" title={item.label} onClick={() => onPack(item)} className="checker grid aspect-square w-full place-items-center overflow-hidden rounded-2xl p-1">
@@ -201,6 +215,42 @@ export function StickersSheet({
             <p className="text-xs text-muted">Фоны ложатся на весь лист (дальше «Кадр» выберет часть). Остальное это вырезки: двигаются, тянутся, любой слой. Режим «Умножение» в «Ещё» убирает белое у бумаги.</p>
           </div>
         )
+      ) : null}
+      {tab === "textures" ? (
+        <div className="grid gap-3">
+          <div className="rounded-2xl bg-white/70 p-3 text-sm text-ink">
+            <p className="font-semibold">Как пользоваться текстурами</p>
+            <ul className="mt-1.5 grid gap-1.5 text-[13px] leading-snug text-muted">
+              <li>Нажмите на текстуру: она ляжет на всю страницу поверх всего и сама выберет режим наложения.</li>
+              <li>
+                <b className="text-ink">На чёрном фоне</b> (пыль, царапины, плёнка, целлофан): режим «Экран». Чёрное исчезает, остаётся только свет, и фото выглядит старым и живым.
+              </li>
+              <li>
+                <b className="text-ink">Светлые с зерном</b>: «Умножение» затемняет и добавляет плёночное зерно, «Наложение» и «Мягкий свет» красят в цвет и добавляют глубины. Цветная фольга лучше всего в «Наложении».
+              </li>
+              <li>Режим и силу меняйте в «Свойства» → «Вид»: переключатель режимов и ползунок «Прозрачность».</li>
+              <li>Хотите текстуру под фото или под текст: откройте «Слои» и опустите её вниз, она станет фоном. Хотите поверх фото: оставьте как есть.</li>
+              <li>Текстуры с прозрачностью (винил, конверты) работают как стикеры: кладите над фото или под ним, двигайте и поворачивайте.</li>
+            </ul>
+          </div>
+          {pack === null ? (
+            <p className="text-sm text-muted">Загружаю…</p>
+          ) : (
+            <ul className="grid grid-cols-3 gap-2">
+              {pack
+                .filter((item) => item.textures)
+                .map((item) => (
+                  <li key={item.id}>
+                    <button type="button" title={item.label} onClick={() => onPack(item)} className="checker grid aspect-[3/4] w-full place-items-center overflow-hidden rounded-xl">
+                      <img src={item.file} alt={item.label} loading="lazy" className="h-full w-full object-cover" />
+                    </button>
+                    <span className="mt-1 block text-center text-[11px] leading-tight text-ink">{item.label}</span>
+                    <span className="block text-center text-[10px] text-muted">{item.mode}</span>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
       ) : null}
       {tab === "shapes" ? (
         <>

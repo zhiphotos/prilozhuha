@@ -2379,6 +2379,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
               void placePhoto(item.file, undefined, "full", false);
               return;
             }
+            if (item.kind === "texture") {
+              // Текстура ложится на весь лист с режимом наложения, который ей подходит; поменять можно в «Свойства» → «Вид», опустить под фото в «Слои».
+              stickSound();
+              addBlock({ id: id(), type: "photo", x: 0, y: 0, w: 100, h: 100, src: item.file, caption: "", frame: "none", shadow: false, blend: item.blend, opacity: item.opacity });
+              return;
+            }
             void (async () => {
               const info = await imageInfo(item.file);
               const w = 36;
