@@ -2380,9 +2380,15 @@ export function EditorScreen({ pageId }: { pageId: string }) {
               return;
             }
             if (item.kind === "texture") {
-              // Текстура ложится на весь лист с режимом наложения, который ей подходит; поменять можно в «Свойства» → «Вид», опустить под фото в «Слои».
-              stickSound();
-              addBlock({ id: id(), type: "photo", x: 0, y: 0, w: 100, h: 100, src: item.file, caption: "", frame: "none", shadow: false, blend: item.blend, opacity: item.opacity });
+              // Текстура ложится крупно по центру листа с подходящим режимом наложения; на весь лист или на часть листа её растягивают за углы,
+              // режим и силу меняют в «Свойства» → «Вид», под фото опускают в «Слои».
+              void (async () => {
+                const info = await imageInfo(item.file);
+                const w = 76;
+                const h = clamp((w * info.ratio) / (PAGE_H / 100), 6, 100);
+                stickSound();
+                addBlock({ id: id(), type: "photo", x: 50 - w / 2, y: clamp(50 - h / 2, 0, 100 - h), w, h, src: item.file, cut: item.file, caption: "", frame: "sticker", shadow: false, blend: item.blend, opacity: item.opacity });
+              })();
               return;
             }
             void (async () => {

@@ -8,7 +8,7 @@ import { AddPerson } from "@/components/tree/AddPerson";
 import { PersonDrawer } from "@/components/tree/PersonDrawer";
 import { TreeStage } from "@/components/tree/TreeStage";
 import { StylePreview } from "@/components/tree/StylePreview";
-import { GedImportButton } from "@/components/rod/ged-import";
+import { GedImportButton, hasPendingGedFile } from "@/components/rod/ged-import";
 import { TreeFileButton } from "@/components/rod/tree-file";
 import { Hint } from "@/components/rod/hint";
 import { TreeSearch } from "@/components/tree/TreeSearch";
@@ -133,7 +133,8 @@ function TreeScreen() {
   }, []);
   const scope = useTree((s) => s.scope);
   const setScope = useTree((s) => s.setScope);
-  const [toolsOpen, setToolsOpen] = useState(false);
+  // Если файл выбрали на экскурсии, панель настроек открыта сразу: кнопка загрузки в ней подхватит файл.
+  const [toolsOpen, setToolsOpen] = useState(() => hasPendingGedFile());
   const [scopeOpen, setScopeOpen] = useState(false);
   const [scopeShift, setScopeShift] = useState(0);
   const scopeBox = useRef<HTMLDivElement>(null);
