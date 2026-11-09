@@ -509,12 +509,12 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     const dir = person !== undefined ? (sideOf.get(person)! > 0 ? 1 : -1) : -1;
     // Братья и сёстры стоят вплотную к ветке своего человека и по свою сторону от него: у левого в паре (отец) слева, у правого (мать) справа.
     // Тогда дети одной пары идут подряд, а ветки двух супругов не вклиниваются друг в друга: «сестра Юрия | Юрий | Нина | брат Нины | сестра Нины».
+    const toRight = person !== undefined && bit.has(person) ? bit.get(person) === 1 : dir > 0;
+    // Только для пары двух предков, у каждого из которых есть свои родители (у родителей самого выбранного остаётся прежняя раскладка: родня отца на левом краю, родня матери на правом).
     const own = person === undefined ? undefined : blockOf.get(person);
     const pair = own === undefined ? undefined : blocks[blocks[own]!.ghostOf ?? own]!;
     const both = pair !== undefined && pair.full.filter((id) => ancestors.has(id) && hasParents(id, pair.level)).length >= 2;
-    const toRight = both && person !== undefined && bit.has(person) ? bit.get(person) === 1 : dir > 0;
-    // Только для пары двух предков, у каждого из которых есть свои родители (у родителей самого выбранного остаётся прежняя раскладка: родня отца на левом краю, родня матери на правом).
-    const nearOwn = pair !== undefined && (both || pair.kids.some((k) => blocks[k]!.ids.includes(focusId)));
+    const nearOwn = pair !== undefined && (both || toRight === dir > 0) && !pair.kids.some((k) => blocks[k]!.ids.includes(focusId));
     const primRank = (k: number) => rankOf(g, [blocks[k]!.primary ?? blocks[k]!.ids[0]!]);
     const ranked = lineKids.some((k) => Number.isFinite(primRank(k))) && sideKids.some((k) => Number.isFinite(primRank(k)));
     const rightOf = (k: number) => (ranked && Number.isFinite(primRank(k)) ? primRank(k) > Math.min(...lineKids.map(primRank)) : toRight);
@@ -772,20 +772,6 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
         const x = cx.get(b.index)!;
         const shift = x < mid ? lo - half - x : hi + half - x;
         for (const index of [b.index, ...below(b.index)]) if (!inside.has(index)) cx.set(index, (cx.get(index) ?? 0) + shift);
-      }
-      // Вынесенная в сторону ветка (дядя или тётя) стоит рядом со своим деревом, а её потомки того же ряда, что и выбранный, не должны вплотную подходить к нему: уводим всю ветку целиком.
-      for (const root of cutRef.keys()) {
-        if (inside.has(root) || !cx.has(root)) continue;
-        const members = [root, ...below(root)].filter((i) => blocks[i]!.level === level && cx.has(i) && !inside.has(i));
-        let need = 0;
-        for (const i of members) {
-          const half = (blocks[i]!.ids.length * gap) / 2;
-          const x = cx.get(i)!;
-          if (!(x + half > lo && x - half < hi)) continue;
-          const shift = x < mid ? lo - half - x : hi + half - x;
-          if (Math.abs(shift) > Math.abs(need)) need = shift;
-        }
-        if (need) for (const index of [root, ...below(root)]) if (!inside.has(index)) cx.set(index, (cx.get(index) ?? 0) + need);
       }
     }
   }
