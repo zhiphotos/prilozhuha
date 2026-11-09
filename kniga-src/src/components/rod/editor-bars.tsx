@@ -199,10 +199,34 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
       window.removeEventListener("orientationchange", on);
     };
   }, []);
-  const shownPos = {
-    dx: Math.max(-window.innerWidth / 2 + 60, Math.min(window.innerWidth / 2 - 60, pos.dx)),
-    dy: Math.max(-window.innerHeight * 0.15, Math.min(window.innerHeight * 0.55, pos.dy)),
+  // Окно всегда целиком в видимой области: и когда открыта клавиатура, и после поворота экрана, и если запомненное положение осталось от другого размера экрана.
+  const panelBox = useRef<HTMLDivElement>(null);
+  const [panelH, setPanelH] = useState(0);
+  useEffect(() => {
+    const el = panelBox.current;
+    if (!el) return;
+    const measure = () => setPanelH((prev) => (Math.abs(prev - el.offsetHeight) > 1 ? el.offsetHeight : prev));
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const rootPx = (typeof document !== "undefined" && parseFloat(getComputedStyle(document.documentElement).fontSize)) || 16;
+  const baseBottom = kb + 6.4 * rootPx;
+  const edge = 8;
+  const clampPos = (p: { dx: number; dy: number }) => {
+    const dyMax = baseBottom - edge;
+    const dyMin = Math.min(dyMax, baseBottom + panelH - (window.innerHeight - edge - 44));
+    return {
+      dx: Math.max(-window.innerWidth / 2 + 60, Math.min(window.innerWidth / 2 - 60, p.dx)),
+      dy: Math.max(dyMin, Math.min(dyMax, p.dy)),
+    };
   };
+  const shownPos = clampPos(pos);
+  const shownBottom = baseBottom - shownPos.dy;
+  // Высота окна не больше места над ним: иначе верх с ручкой уезжал за верхний край экрана.
+  const panelMaxH = Math.max(160, Math.min(window.innerHeight * 0.7, window.innerHeight - shownBottom - edge - 44));
   const px = block.px ?? Math.round(textMetrics(block.font, block.size).size * 10);
 
   const setBoth = (text: string) => {
@@ -245,24 +269,34 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
         />
       ) : null}
       <div
+        ref={panelBox}
         className="glass-strong sheet-in fixed inset-x-3 z-50 mx-auto max-w-xl rounded-2xl p-3"
-        style={{ bottom: `calc(${kb}px + 6.4rem - ${shownPos.dy}px)`, transform: `translateX(${shownPos.dx}px)`, maxHeight: "70svh", overflowY: "auto" }}
+        style={{ bottom: shownBottom, transform: `translateX(${shownPos.dx}px)`, maxHeight: panelMaxH, overflowY: "auto" }}
       >
         <div
           className="-mt-1 mb-1 flex h-9 cursor-grab touch-none items-center justify-center text-ink/60 active:cursor-grabbing"
           onPointerDown={(event) => {
             (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-            drag.current = { x: event.clientX, y: event.clientY, dx: pos.dx, dy: pos.dy, id: event.pointerId };
+            drag.current = { x: event.clientX, y: event.clientY, dx: shownPos.dx, dy: shownPos.dy, id: event.pointerId };
           }}
           onPointerMove={(event) => {
             const d = drag.current;
             if (!d || d.id !== event.pointerId) return;
-            setPos({ dx: d.dx + event.clientX - d.x, dy: d.dy - (event.clientY - d.y) });
+            setPos(clampPos({ dx: d.dx + event.clientX - d.x, dy: d.dy - (event.clientY - d.y) }));
           }}
           onPointerUp={() => {
             drag.current = null;
             try {
-              localStorage.setItem(PANEL_KEY, JSON.stringify(pos));
+              localStorage.setItem(PANEL_KEY, JSON.stringify(shownPos));
+            } catch {
+              /* без запоминания */
+            }
+          }}
+          // Двойное нажатие на ручку возвращает окно на место.
+          onDoubleClick={() => {
+            setPos({ dx: 0, dy: 0 });
+            try {
+              localStorage.removeItem(PANEL_KEY);
             } catch {
               /* без запоминания */
             }
