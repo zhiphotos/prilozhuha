@@ -92,3 +92,22 @@ test("«поменять супругов местами»: пара, у обо�
   };
   assert.ok(swapped(multi, "w2", "h"), "блок из трёх человек");
 });
+
+test("«правее» через прямого предка: сестра дедушки встаёт по другую сторону от него, остальное на месте", () => {
+  const data = grandPair();
+  const before = rowOf(data, ["sisG1", "G1"]);
+  assert.deepEqual(before, ["sisG1", "G1"]);
+  const patches = moveBranch(data.people, data.unions, data.focusId, "sisG1", 1);
+  assert.ok(patches.length > 0, "обмен с предком возможен");
+  const moved = withRanks(data, patches);
+  assert.deepEqual(rowOf(moved, ["sisG1", "G1"]), ["G1", "sisG1"]);
+  assert.deepEqual(rowOf(moved, ["G2", "broG2", "sisG2"]).slice(0, 1), rowOf(data, ["G2", "broG2", "sisG2"]).slice(0, 1), "другая семья не перемешалась");
+});
+
+test("бывший муж без родителей не уводит блок предка под чужую семью: родители предка над ним", () => {
+  const data = grandPair();
+  data.people.push(person("X", "m"), person("xk", "f"));
+  data.unions.push(union("ux", ["X", "M"], ["xk"]));
+  const x = xs(data);
+  assert.ok(Math.abs(x.get("M")! - (x.get("MF")! + x.get("MM")!) / 2) < 400, "мама стоит под своими родителями");
+});
