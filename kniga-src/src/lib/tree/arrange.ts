@@ -46,19 +46,46 @@ function withPatches(people: Person[], patches: Patch[]): Person[] {
 }
 
 /**
- * Сдвинуть ветку человека влево или вправо среди веток своего ряда.
- * Ветка = семья человека (он с супругом), а если она уже не двигается, семья его родителей и так далее вверх; дети и родные идут следом.
- * Раскладка учитывает ручной порядок (rank) только для самостоятельных веток, а сторона отца и матери главнее него.
- * Поэтому правка проверяется на самой раскладке: берётся первая перестановка (на одно место, на два и так далее),
- * после которой ветка действительно сдвинулась в нужную сторону. Если такой нет, правок нет, и приложение говорит об этом человеку.
+ * Сдвинуть ветку человека влево или вправо среди братьев и сестёр.
+ * Ветка = человек вместе с семьёй и потомками. «Правее» меняет его местами с соседним братом или сестрой (детьми тех же родителей), больше ничего не двигается.
+ * Порядок записывается только самим братьям и сёстрам (rank), поэтому другие ряды и стороны отца и матери не страдают.
+ * У самого левого (правого) среди братьев и сестёр правок нет: приложение честно говорит «крайняя».
+ * Если у человека нет братьев и сестёр, двигаем семью его родителей среди их братьев и сестёр, а если и там никого, ветку среди корней ряда.
  */
 export function moveBranch(people: Person[], unions: Union[], focusId: string, personId: string, dir: -1 | 1): Patch[] {
-  // Сначала пробуем сдвинуть саму семью человека среди братьев и сестёр, потом ветку его родителей, потом выше: берём первое, что действительно меняет раскладку.
-  for (const root of branchChain(unions, personId)) {
+  const candidates: string[] = [...branchChain(unions, personId)];
+  // Человек пришёл в семью со стороны: двигается семья его супруга среди братьев и сестёр супруга.
+  for (const u of unions) {
+    if (!u.partnerIds.includes(personId)) continue;
+    for (const other of u.partnerIds) if (other !== personId) candidates.push(...branchChain(unions, other));
+  }
+  for (const root of candidates) {
+    const result = moveAmongSiblings(people, unions, focusId, root, dir);
+    if (result !== null) return result;
+  }
+  for (const root of candidates) {
     const patches = moveBranchAt(people, unions, focusId, root, dir);
     if (patches.length) return patches;
   }
   return [];
+}
+
+/** null: у человека нет братьев и сестёр, двигать не с кем. Пустой список: он крайний или перестановка не получилась. */
+function moveAmongSiblings(people: Person[], unions: Union[], focusId: string, personId: string, dir: -1 | 1): Patch[] | null {
+  const siblings = [...new Set(unions.filter((u) => u.childIds.includes(personId)).flatMap((u) => u.childIds))];
+  if (siblings.length < 2) return null;
+  const before = new Map(layoutTree(people, unions, focusId).nodes.map((n) => [n.id, n.x]));
+  const order = siblings.filter((id) => before.has(id)).sort((a, b) => before.get(a)! - before.get(b)! || a.localeCompare(b));
+  const at = order.indexOf(personId);
+  const to = at + dir;
+  if (at < 0 || to < 0 || to >= order.length) return [];
+  const next = order.slice();
+  [next[at], next[to]] = [next[to]!, next[at]!];
+  const patches: Patch[] = next.map((id, i) => ({ id, rank: i * 10 }));
+  // Проверка на самой раскладке: после правки братья и сёстры стоят ровно в новом порядке.
+  const after = new Map(layoutTree(withPatches(people, patches), unions, focusId).nodes.map((n) => [n.id, n.x]));
+  const got = next.slice().sort((a, b) => (after.get(a) ?? Number.NaN) - (after.get(b) ?? Number.NaN));
+  return got.every((id, i) => id === next[i]) ? patches : [];
 }
 
 function moveBranchAt(people: Person[], unions: Union[], focusId: string, root: string, dir: -1 | 1): Patch[] {
