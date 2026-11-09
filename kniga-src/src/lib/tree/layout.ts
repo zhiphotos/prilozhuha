@@ -494,7 +494,7 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
   }
 
   // Боковые ветки отдельно от прямого рода: братья и сёстры предков (и их потомство) не входят в дерево прямого рода, а стоят отдельной веткой рядом с ним, снаружи. Тогда прямой род узкий и родители выбранного стоят рядом над ним, а родня расходится в стороны. Свои братья и сёстры остаются под общими родителями.
-  type CutRef = { from: number; person: string | null; ranked: boolean; right: boolean; dir: -1 | 1; index: number; count: number; above: number };
+  type CutRef = { from: number; near: boolean; side: -1 | 1; person: string | null; ranked: boolean; right: boolean; dir: -1 | 1; index: number; count: number; above: number };
   const cutRef = new Map<number, CutRef>();
   const cutSlot = new Map<number, number>();
   for (const block of blocks) {
@@ -522,10 +522,24 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     for (const group of groups) {
       group.forEach((k, i) => {
         blocks[k]!.parent = null;
-        cutRef.set(k, { from: block.index, person: nearOwn || ranked ? (person ?? null) : null, ranked, right: rightOf(k), dir, index: i, count: group.length, above: Math.max(1, (gen.get(focusId) ?? 0) - block.level) });
+        cutRef.set(k, { from: block.index, near: Boolean((nearOwn || ranked) && person !== undefined), side: rightOf(k) ? 1 : (nearOwn || ranked) && person !== undefined ? -1 : dir, person: nearOwn || ranked ? (person ?? null) : null, ranked, right: rightOf(k), dir, index: i, count: group.length, above: Math.max(1, (gen.get(focusId) ?? 0) - block.level) });
       });
     }
     block.kids = lineKids;
+  }
+  // Вложенность: на одной стороне боковые ветки младших предков стоят ближе к центру, старших дальше. Если у младшего ряда ветка ушла на край, ветки старших, которые стояли бы рядом со своим деревом (внутри), уходят на край тоже, иначе двоюродные оказываются между родными.
+  {
+    const edgeAbove = new Map<number, number>();
+    for (const ref of cutRef.values()) if (!ref.near) edgeAbove.set(ref.side, Math.min(edgeAbove.get(ref.side) ?? Infinity, ref.above));
+    for (const ref of cutRef.values()) {
+      if (!ref.near || ref.ranked) continue;
+      const edge = edgeAbove.get(ref.side);
+      if (edge !== undefined && ref.above > edge) {
+        ref.near = false;
+        ref.person = null;
+        ref.dir = ref.side;
+      }
+    }
   }
 
   // Супруг из другой семьи (его родители стоят отдельной веткой): если они далеко, связь с ними не рисуем, иначе линия тянется через всю схему и пересекается с другими.
