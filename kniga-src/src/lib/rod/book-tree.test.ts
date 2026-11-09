@@ -39,16 +39,19 @@ test("плохие числа не ломают расчёт", () => {
   assert.equal(treeGrowth(Number.NaN, -5).stage, 0);
 });
 
-test("размер дерева только растёт вместе с книгой и не больше полного", async () => {
-  const { levelScale, levelFile } = await import("./book-tree.ts");
+test("ширина дерева только растёт, не больше блока, маленькие деревья не заходят за кнопки", async () => {
+  const { levelWidth, levelFile, SMALL_TREE_MAX } = await import("./book-tree.ts");
   let last = 0;
   for (let score = 0; score <= 100; score += 1) {
     const g = treeGrowth(score, 0);
-    const s = levelScale(g.stage, g.progress);
-    assert.ok(s >= last - 1e-9, `размер на ${score}`);
-    assert.ok(s <= 1 + 1e-9);
-    last = s;
+    const w = levelWidth(g.stage, g.progress);
+    assert.ok(w >= last - 1e-9, `ширина на ${score}`);
+    assert.ok(w <= 1 + 1e-9);
+    if (g.stage <= 2) assert.ok(w <= SMALL_TREE_MAX + 1e-9, `на уровне ${g.stage + 1} дерево остаётся слева`);
+    last = w;
   }
+  assert.equal(levelWidth(5, 1), levelWidth(5, 0), "у последнего уровня размер не меняется");
+  assert.ok(levelWidth(5, 1) >= 0.75, "взрослое дерево заходит за кнопки");
   assert.equal(levelFile(0), "seed");
   assert.equal(levelFile(1), "sprout");
   assert.equal(levelFile(5), "full");

@@ -26,17 +26,20 @@ export const isSeedId = (v: unknown): v is SeedId => TREE_SEEDS.some((s) => s.id
 
 /** Какая из четырёх картинок на каждом из шести уровней. */
 const LEVEL_FILES = ["seed", "sprout", "sprout", "young", "young", "full"] as const;
-/** Размер дерева на каждом уровне (доля от полного): дерево растёт, а не просто меняет картинку. */
-const LEVEL_SCALE = [0.5, 0.58, 0.72, 0.8, 0.9, 1] as const;
+/** Ширина места под дерево на каждом уровне (доля ширины блока). Семя, росток и побег остаются слева и за кнопки не заходят, молодое и взрослое дерево выходят за них: чем выше уровень, тем больше эффект. */
+const LEVEL_WIDTH = [0.17, 0.28, 0.42, 0.52, 0.66, 0.8] as const;
+/** Левая зона, куда помещаются маленькие деревья (кнопки начинаются с 44%). */
+export const SMALL_TREE_MAX = 0.45;
 
 export const levelFile = (stage: number): (typeof LEVEL_FILES)[number] => LEVEL_FILES[Math.min(LEVEL_FILES.length - 1, Math.max(0, stage))]!;
 
-/** Плавный размер: между уровнями растёт вместе со шкалой. */
-export function levelScale(stage: number, progress: number): number {
-  const s = Math.min(LEVEL_SCALE.length - 1, Math.max(0, stage));
-  const next = LEVEL_SCALE[Math.min(LEVEL_SCALE.length - 1, s + 1)]!;
+/** Плавная ширина: между уровнями растёт вместе со шкалой, но маленькое дерево не заходит за левую зону. */
+export function levelWidth(stage: number, progress: number): number {
+  const s = Math.min(LEVEL_WIDTH.length - 1, Math.max(0, stage));
+  if (s >= LEVEL_WIDTH.length - 1) return LEVEL_WIDTH[s]!;
   const p = Math.min(1, Math.max(0, progress));
-  return LEVEL_SCALE[s]! + (next - LEVEL_SCALE[s]!) * p * (s < LEVEL_SCALE.length - 1 ? 1 : 0);
+  const target = s <= 2 ? Math.min(LEVEL_WIDTH[s + 1]!, SMALL_TREE_MAX) : LEVEL_WIDTH[s + 1]!;
+  return LEVEL_WIDTH[s]! + (target - LEVEL_WIDTH[s]!) * p;
 }
 
 /** Страниц, при которых вклад страниц в рост полный. */

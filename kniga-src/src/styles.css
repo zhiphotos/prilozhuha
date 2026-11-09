@@ -754,3 +754,9 @@ body {
 .cam { transform-origin: 0 0; transition: transform 180ms ease; }
 .cam.is-gesturing { transition: none; }
 @media (prefers-reduced-motion: reduce) { .cam { transition: none; } }
+
+/* Светлячки у дерева на странице «Книга» (как в DARA): мерцают и медленно плывут, когда дерево близко к новому уровню или только что выросло. */
+@keyframes book-fly-twinkle { 0%, 100% { opacity: 0.15; transform: scale(0.7); } 50% { opacity: 1; transform: scale(1.25); } }
+@keyframes book-fly-drift { 0%, 100% { translate: 0 0; } 50% { translate: var(--fx, 8px) var(--fy, -12px); } }
+.book-fly { position: absolute; width: 7px; height: 7px; border-radius: 9999px; background: radial-gradient(circle, #fff6c9 0%, #f0c866 45%, rgba(240, 200, 102, 0) 72%); box-shadow: 0 0 8px 2px rgba(240, 200, 102, 0.55); animation: book-fly-twinkle var(--td, 3s) ease-in-out infinite, book-fly-drift var(--dd, 9s) ease-in-out infinite; animation-delay: var(--dl, 0s); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .book-fly { animation: none; opacity: 0.8; } }

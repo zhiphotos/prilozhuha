@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sheet } from "@/components/rod/chrome";
-import { TREE_SEEDS, TREE_STAGES, isSeedId, levelFile, levelScale, type SeedId, type TreeGrowth } from "@/lib/rod/book-tree";
+import { TREE_SEEDS, TREE_STAGES, isSeedId, levelFile, levelWidth, type SeedId, type TreeGrowth } from "@/lib/rod/book-tree";
 
 const KEY = "kniga-book-seed";
 
@@ -13,6 +13,15 @@ function savedSeed(): SeedId | null {
   }
   return null;
 }
+
+const STAGE_KEY = "kniga-book-stage";
+/** Положения светлячков вокруг дерева (проценты места под дерево) и их ритм: у каждого свой, чтобы не мигали вместе. */
+const FLIES = [
+  { x: 8, y: 22, td: 2.6, dd: 8, dl: 0, fx: 10, fy: -14 }, { x: 30, y: 8, td: 3.4, dd: 11, dl: 0.6, fx: -8, fy: -10 }, { x: 55, y: 18, td: 2.9, dd: 9, dl: 1.1, fx: 12, fy: -12 },
+  { x: 78, y: 10, td: 3.8, dd: 12, dl: 0.3, fx: -10, fy: -16 }, { x: 92, y: 30, td: 2.7, dd: 10, dl: 1.7, fx: -12, fy: -8 }, { x: 15, y: 48, td: 3.1, dd: 13, dl: 0.9, fx: 9, fy: -10 },
+  { x: 45, y: 40, td: 3.6, dd: 9, dl: 2.0, fx: -9, fy: -14 }, { x: 70, y: 46, td: 2.8, dd: 12, dl: 0.4, fx: 11, fy: -9 }, { x: 25, y: 70, td: 3.3, dd: 10, dl: 1.4, fx: -10, fy: -12 },
+  { x: 60, y: 66, td: 3.0, dd: 14, dl: 2.3, fx: 8, fy: -15 }, { x: 86, y: 60, td: 2.5, dd: 8, dl: 0.7, fx: -9, fy: -11 }, { x: 40, y: 85, td: 3.7, dd: 11, dl: 1.9, fx: 10, fy: -13 },
+] as const;
 
 const src = (seed: SeedId, file: string) => `${import.meta.env.BASE_URL}book-tree/${seed}/${file}.webp`;
 
@@ -28,7 +37,26 @@ export function GrowingTree({ growth }: { growth: TreeGrowth }) {
   const pct = Math.round(growth.progress * 100);
   const last = growth.stage >= TREE_STAGES.length - 1;
   const shown: SeedId = seed ?? TREE_SEEDS[0].id;
-  const scale = levelScale(growth.stage, growth.progress);
+  const width = levelWidth(growth.stage, growth.progress);
+  // Светлячки: дерево близко к новому уровню или только что выросло (уровень выше, чем в прошлый раз).
+  const [grew, setGrew] = useState(false);
+  useEffect(() => {
+    let saved: number | null = null;
+    try {
+      const raw = localStorage.getItem(STAGE_KEY);
+      saved = raw === null ? null : Number(raw);
+      localStorage.setItem(STAGE_KEY, String(growth.stage));
+    } catch {
+      /* без запоминания */
+    }
+    if (saved !== null && Number.isFinite(saved) && growth.stage > saved) {
+      setGrew(true);
+      const id = window.setTimeout(() => setGrew(false), 12000);
+      return () => window.clearTimeout(id);
+    }
+  }, [growth.stage]);
+  const near = !last && growth.progress >= 0.7;
+  const flies = grew ? FLIES.length : near ? 7 : 0;
   const name = TREE_SEEDS.find((s) => s.id === shown)?.name ?? "";
   const pick = (next: SeedId) => {
     setSeed(next);
@@ -49,15 +77,18 @@ export function GrowingTree({ growth }: { growth: TreeGrowth }) {
           Выберите семечко, и оно начнёт расти вместе с вашей книгой.
         </div>
       ) : (
-      <div className="absolute inset-x-0 top-0 bottom-[6.2rem]">
+      <div className="absolute left-0 top-0 bottom-[6.2rem] transition-[width] duration-[900ms] ease-out" style={{ width: `${width * 100}%` }}>
         <img
           key={`${shown}-${levelFile(growth.stage)}`}
           src={src(shown, levelFile(growth.stage))}
           alt={`Дерево, уровень «${stage.name}»`}
           draggable={false}
-          className="size-full object-contain drop-shadow-md transition-transform duration-700"
-          style={{ objectPosition: "18% 100%", transform: `scale(${scale})`, transformOrigin: "18% 100%" }}
+          className="size-full object-contain drop-shadow-md"
+          style={{ objectPosition: "0% 100%" }}
         />
+        {FLIES.slice(0, flies).map((f, i) => (
+          <i key={i} className="book-fly" style={{ left: `${f.x}%`, top: `${f.y}%`, ["--td" as string]: `${f.td}s`, ["--dd" as string]: `${f.dd}s`, ["--dl" as string]: `${f.dl}s`, ["--fx" as string]: `${f.fx}px`, ["--fy" as string]: `${f.fy}px` }} />
+        ))}
       </div>
       )}
       <figcaption className="pointer-events-auto absolute bottom-0 left-0 w-[40%] text-xs text-muted">
