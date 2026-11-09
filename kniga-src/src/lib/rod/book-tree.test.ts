@@ -38,3 +38,23 @@ test("все шесть стадий достижимы", () => {
 test("плохие числа не ломают расчёт", () => {
   assert.equal(treeGrowth(Number.NaN, -5).stage, 0);
 });
+
+test("размер дерева только растёт вместе с книгой и не больше полного", async () => {
+  const { levelScale, levelFile } = await import("./book-tree.ts");
+  let last = 0;
+  for (let score = 0; score <= 100; score += 1) {
+    const g = treeGrowth(score, 0);
+    const s = levelScale(g.stage, g.progress);
+    assert.ok(s >= last - 1e-9, `размер на ${score}`);
+    assert.ok(s <= 1 + 1e-9);
+    last = s;
+  }
+  assert.equal(levelFile(0), "seed");
+  assert.equal(levelFile(1), "sprout");
+  assert.equal(levelFile(5), "full");
+});
+
+test("на первых двух уровнях видны только семя и росток", async () => {
+  const { levelFile } = await import("./book-tree.ts");
+  assert.ok(["seed", "sprout"].includes(levelFile(0)) && ["seed", "sprout"].includes(levelFile(1)));
+});

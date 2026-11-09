@@ -65,20 +65,15 @@ export function BookScreen() {
     <ScreenFrame>
       <TopBar kicker="Моя книга" title={name ? `Книга рода · ${name}` : "Книга рода"} />
 
-      <div className="mb-5 flex items-stretch gap-3">
+      {/* Дерево растёт на фоне блока, кнопки лежат поверх него справа. */}
+      <div className="relative mb-5 min-h-[27rem]">
         <GrowingTree growth={growth} />
-      <div data-tour="book-actions" className="grid min-w-0 flex-1 grid-cols-1 content-start gap-2">
-        <Button className="min-h-12" onClick={() => (pages.length ? nav.go({ id: "flip" }) : toast("Сначала добавьте хотя бы одну страницу"))}>
-          <BookOpen className="size-4" /> Листать книгу
-        </Button>
+      <div data-tour="book-actions" className="relative z-10 ml-[44%] grid min-w-0 grid-cols-1 content-start gap-2">
         <Hint id="book-print">
           <Button variant="soft" className="min-h-12" onClick={() => (pages.length ? setPrinting(true) : toast("Сначала добавьте хотя бы одну страницу"))}>
             <Printer className="size-4" /> Формат и печать
           </Button>
         </Hint>
-        <Button className="min-h-12" onClick={() => setContents(true)}>
-          <BookOpen className="size-4" /> Содержание{plan.length ? ` · ${plan.filter((c) => c.done).length} из ${plan.length}` : ""}
-        </Button>
         <Hint id="book-plan">
           <Button variant="soft" className="min-h-12" onClick={() => setPlanning(true)}>
             <Sparkles className="size-4" /> Спланировать страницы списком
@@ -88,25 +83,39 @@ export function BookScreen() {
           <Button variant="soft" className="min-h-12" onClick={() => setTextToPages(true)}>
             <Sparkles className="size-4" /> Текст → страницы
           </Button>
-          <p className="mt-1 text-xs text-muted">Длинную историю вставьте сюда, она сама разойдётся по страницам.</p>
+          <p className="mt-1 rounded-xl bg-paper/75 px-2 py-1 text-xs text-muted backdrop-blur-sm">Длинную историю вставьте сюда, она сама разойдётся по страницам.</p>
         </Hint>
         <Hint id="book-cover">
           <Button variant="soft" className="min-h-12" onClick={() => setCoverSetup(true)}>
             <Palette className="size-4" /> Обложка: корешок и задняя сторона
           </Button>
         </Hint>
+        {/* Тёмные кнопки тяжелее по виду, поэтому стоят внизу списка. */}
+        <Button className="min-h-12" onClick={() => (pages.length ? nav.go({ id: "flip" }) : toast("Сначала добавьте хотя бы одну страницу"))}>
+          <BookOpen className="size-4" /> Листать книгу
+        </Button>
+        <Button className="min-h-12" onClick={() => setContents(true)}>
+          <BookOpen className="size-4" /> Содержание{plan.length ? ` · ${plan.filter((c) => c.done).length} из ${plan.length}` : ""}
+        </Button>
       </div>
       </div>
 
       {!hasCover ? (
-        <button type="button" onClick={() => open(coverPage(meta), 0)} className="aurora mb-5 flex w-full items-center gap-4 rounded-2xl p-5 text-left">
-          <div className="w-20 shrink-0 overflow-hidden rounded-md shadow-lg">
-            <PageSheet page={{ id: "c", ...coverPage(meta) }} meta={meta} />
-          </div>
-          <span>
-            <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">Начните отсюда</span>
-            <span className="mt-1 block text-xl font-semibold text-ink">Открыть обложку</span>
-            <span className="mt-1 block text-sm text-ink/70">Напишите, для кого эта книга.</span>
+        <button type="button" onClick={() => open(coverPage(meta), 0)} className="relative mb-5 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">
+          {/* Размытый ботанический фон и стеклянная плашка поверх: так же, как у карточки бесплатного урока на «Главной». */}
+          <img src={`${import.meta.env.BASE_URL}course/site/memoirs-book.jpg`} alt="" className="absolute inset-0 size-full scale-110 object-cover blur-md" draggable={false} />
+          <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
+          <span className="relative block p-4">
+            <span className="flex items-center gap-4 rounded-2xl border border-paper/25 bg-paper/15 p-4 backdrop-blur-xl">
+              <span className="block w-20 shrink-0 overflow-hidden rounded-md shadow-lg">
+                <PageSheet page={{ id: "c", ...coverPage(meta) }} meta={meta} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-paper/80">Начните отсюда</span>
+                <span className="mt-1 block text-xl font-semibold text-paper">Открыть обложку</span>
+                <span className="mt-1 block text-sm text-paper/80">Напишите, для кого эта книга.</span>
+              </span>
+            </span>
           </span>
         </button>
       ) : null}
