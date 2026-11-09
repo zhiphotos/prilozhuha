@@ -30,7 +30,7 @@ const src = (seed: SeedId, file: string) => `${import.meta.env.BASE_URL}book-tre
  * Человек выбирает только семечко; какое дерево вырастет, видно по мере роста.
  * Блок занимает место родителя целиком (родитель `relative`), подпись и выбор семечка стоят внизу слева.
  */
-export function GrowingTree({ growth }: { growth: TreeGrowth }) {
+export function GrowingTree({ growth, onHide }: { growth: TreeGrowth; onHide: () => void }) {
   const [seed, setSeed] = useState<SeedId | null>(savedSeed);
   const [picking, setPicking] = useState(false);
   const stage = TREE_STAGES[growth.stage] ?? TREE_STAGES[0];
@@ -104,6 +104,9 @@ export function GrowingTree({ growth }: { growth: TreeGrowth }) {
             {seed ? "Другое семечко" : "Выбрать семечко"}
           </button>
         ) : null}
+        <button type="button" className="block min-h-9 text-xs text-muted underline underline-offset-2" onClick={onHide}>
+          Выключить дерево
+        </button>
       </figcaption>
       {picking ? (
         <div className="pointer-events-auto">
