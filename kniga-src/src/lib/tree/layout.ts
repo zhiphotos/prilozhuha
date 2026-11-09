@@ -679,7 +679,8 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     // Нет места дерева человека: уходим к краю на нужную сторону (при ручной расстановке сторона своя у каждого брата и сестры).
     const edgeDir = ref.ranked ? (ref.right ? 1 : -1) : ref.dir;
     if (base === undefined) cutSlot.set(root, edgeDir < 0 ? -1 - 0.1 * ref.above - 0.0002 * ref.index : 2 + 0.1 * ref.above + 0.0002 * ref.index);
-    else cutSlot.set(root, ref.right ? base + 0.0002 * (ref.index + 1) : base - 0.0002 * (ref.count - ref.index));
+    // Чем старше предок, тем дальше от дерева его братья и сёстры (и их потомство): двоюродные стоят снаружи от родных.
+    else cutSlot.set(root, ref.right ? base + 0.01 * ref.above + 0.0002 * (ref.index + 1) : base - 0.01 * ref.above - 0.0002 * (ref.count - ref.index));
     treeSlot.set(t, cutSlot.get(root)!);
   });
   // Ветки без предков выбранного (родня, пришедшая через брак) уходят в конец: между отцом и матерью выбранного должны стоять только их предки, иначе линия брака растягивается на весь лист.
