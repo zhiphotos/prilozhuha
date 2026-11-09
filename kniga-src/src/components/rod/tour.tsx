@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { useNav } from "@/components/rod/chrome";
+import { handOverGedFile } from "@/components/rod/ged-import";
 
 const SEEN_KEY = "kniga-tour-seen";
 
@@ -9,6 +10,8 @@ type Step = {
   target?: string;
   title: string;
   text: string;
+  /** "ged": в карточке кнопка выбора файла древа, файл сразу уходит на загрузку. */
+  action?: "ged";
 };
 
 const STEPS: Step[] = [
@@ -64,6 +67,12 @@ const STEPS: Step[] = [
     target: "transfer",
     title: "Книга на ваших устройствах",
     text: "Для участников программы книга хранится в облаке и сама подтягивается на втором и третьем устройстве: откройте приложение с той же оплатой. Кнопка «Синхронизировать сейчас» делает это сразу. Без интернета можно перенести файл.",
+  },
+  {
+    screen: "home",
+    title: "Уже есть древо в другой программе?",
+    text: "Загрузите файл прямо сейчас: GED, XML из «Древа Жизни» или таблицу CSV. Все люди добавятся за минуту, а перед загрузкой приложение само сохранит копию, и её можно будет отменить. Если файла пока нет, пропустите шаг.",
+    action: "ged",
   },
   {
     screen: "home",
@@ -212,6 +221,26 @@ export function AppTour() {
           </p>
           <h3 className="mt-1 text-[1.25rem] font-semibold leading-tight">{step.title}</h3>
           <p className="mt-2 text-[15px] leading-snug text-ink/85">{step.text}</p>
+          {step.action === "ged" ? (
+            <label className="mt-3 flex min-h-11 cursor-pointer items-center justify-center rounded-full bg-gold px-4 text-sm font-semibold text-ink">
+              Выбрать файл древа
+              <input
+                type="file"
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (!file) return;
+                  // Экскурсия закрывается, файл передаётся кнопке загрузки на экране древа.
+                  handOverGedFile(file);
+                  markSeen();
+                  setRunning(false);
+                  setI(0);
+                  nav.go({ id: "archive", tab: "tree" });
+                }}
+              />
+            </label>
+          ) : null}
           <div className="mt-4 flex items-center gap-2">
             {last ? null : (
               <button type="button" onClick={finish} className="min-h-11 px-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted">

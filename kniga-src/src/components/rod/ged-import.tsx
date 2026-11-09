@@ -1,5 +1,5 @@
 import { SearchSelect } from "./search-select";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { useRod } from "@/lib/rod/store";
@@ -17,6 +17,13 @@ import { guessSelf, linkDiffs, matchExisting, planGedImport, possibleSame } from
 
 
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+/** Файл, который человек выбрал на экскурсии: кнопка «Загрузить» подхватит его, как только появится на экране древа. */
+let pendingFile: File | null = null;
+export function handOverGedFile(file: File) {
+  pendingFile = file;
+}
+export const hasPendingGedFile = () => pendingFile !== null;
 
 /** Кнопка «Загрузить GED»: читает файл, спрашивает, кто из людей «Я», и добавляет всех в список «Люди» (древо строится из него). */
 export function GedImportButton() {
@@ -77,6 +84,14 @@ export function GedImportButton() {
       setSelfKey(guessSelf(r.tree, useRod.getState().people));
     });
   };
+
+  useEffect(() => {
+    if (!pendingFile) return;
+    const file = pendingFile;
+    pendingFile = null;
+    pick(file);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const add = async () => {
     if (!preview) return;
