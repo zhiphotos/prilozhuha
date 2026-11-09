@@ -494,7 +494,7 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
   }
 
   // Боковые ветки отдельно от прямого рода: братья и сёстры предков (и их потомство) не входят в дерево прямого рода, а стоят отдельной веткой рядом с ним, снаружи. Тогда прямой род узкий и родители выбранного стоят рядом над ним, а родня расходится в стороны. Свои братья и сёстры остаются под общими родителями.
-  type CutRef = { person: string | null; ranked: boolean; right: boolean; dir: -1 | 1; index: number; count: number; above: number };
+  type CutRef = { from: number; person: string | null; ranked: boolean; right: boolean; dir: -1 | 1; index: number; count: number; above: number };
   const cutRef = new Map<number, CutRef>();
   const cutSlot = new Map<number, number>();
   for (const block of blocks) {
@@ -522,7 +522,7 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     for (const group of groups) {
       group.forEach((k, i) => {
         blocks[k]!.parent = null;
-        cutRef.set(k, { person: nearOwn || ranked ? (person ?? null) : null, ranked, right: rightOf(k), dir, index: i, count: group.length, above: Math.max(1, (gen.get(focusId) ?? 0) - block.level) });
+        cutRef.set(k, { from: block.index, person: nearOwn || ranked ? (person ?? null) : null, ranked, right: rightOf(k), dir, index: i, count: group.length, above: Math.max(1, (gen.get(focusId) ?? 0) - block.level) });
       });
     }
     block.kids = lineKids;
@@ -737,6 +737,13 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
       const ghostId = blocks[sp.ghost]!.primary ?? blocks[sp.ghost]!.ids[0]!;
       // Двигаем только детей этого брака (их родители включают ушедшего супруга), остальные дети блока остаются.
       for (const kid of block.kids) {
+        const k = blocks[kid]!;
+        if (!(g.parentOf.get(k.primary ?? k.ids[0]!) ?? []).includes(ghostId)) continue;
+        for (const index of [kid, ...below(kid)]) cx.set(index, (cx.get(index) ?? 0) + shift);
+      }
+      // Вынесенные в сторону братья и сёстры этой пары тоже её дети: они едут к середине вместе с остальными, иначе порядок среди братьев и сестёр ломается.
+      for (const [kid, ref] of cutRef) {
+        if (ref.from !== block.index) continue;
         const k = blocks[kid]!;
         if (!(g.parentOf.get(k.primary ?? k.ids[0]!) ?? []).includes(ghostId)) continue;
         for (const index of [kid, ...below(kid)]) cx.set(index, (cx.get(index) ?? 0) + shift);
