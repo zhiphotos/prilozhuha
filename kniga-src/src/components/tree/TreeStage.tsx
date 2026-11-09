@@ -330,12 +330,15 @@ export function TreeStage(props: Props) {
     setGesturing(true);
     setHint(false);
     if (pointers.current.size === 1) drag.current = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, moved: false };
+    // Второй палец: это щипок, а не нажатие. Иначе после щипка последний поднятый палец открывал карточку случайного человека.
+    else if (drag.current) drag.current.moved = true;
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!pointers.current.has(e.pointerId)) return;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size >= 2) {
+      if (drag.current) drag.current.moved = true;
       const pts = [...pointers.current.values()];
       const dist = Math.hypot(pts[0]!.x - pts[1]!.x, pts[0]!.y - pts[1]!.y);
       if (!pinch.current || pinch.current.dist < 8) pinch.current = { dist, k: cam.k };
@@ -363,14 +366,21 @@ export function TreeStage(props: Props) {
     setCam((c) => ({ ...c, x: d.cx + (e.clientX - d.x), y: d.cy + (e.clientY - d.y) }));
   };
 
-  const onPointerUp = (e: React.PointerEvent) => {
+  const onPointerUp = (e: React.PointerEvent, cancelled = false) => {
     pointers.current.delete(e.pointerId);
     if (pointers.current.size < 2) pinch.current = null;
+    // Остался один палец после щипка: тянуть дальше от его нынешней точки, а не от начала первого касания, иначе вид прыгает на пол-экрана.
+    if (pointers.current.size === 1) {
+      const rest = [...pointers.current.values()][0]!;
+      const c = camNow.current;
+      drag.current = { x: rest.x, y: rest.y, cx: c.x, cy: c.y, moved: true };
+    }
     if (pointers.current.size === 0) {
       setGesturing(false);
       const d = drag.current;
       drag.current = null;
-      if (d && !d.moved) {
+      // Прерванное касание (система забрала жест) выбором человека не считается.
+      if (d && !d.moved && !cancelled) {
         const p = world(e.clientX, e.clientY);
         const found = hit(p.x, p.y);
         if (found?.kind === "person") onSelectPerson(found.id);
@@ -404,7 +414,7 @@ export function TreeStage(props: Props) {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        onPointerCancel={(e) => onPointerUp(e, true)}
       >
         <div className={`cam absolute left-0 top-0${gesturing ? " is-gesturing" : ""}`} style={{ transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.k})` }}>
           {style === "taiga" && taiga ? (

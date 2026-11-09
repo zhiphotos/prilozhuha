@@ -190,6 +190,8 @@ export function planGedImport(
       gender: found.gender ?? p.gender,
       birthYear: fuller(found.birthYear, p.birthYear) ?? "",
       deathYear: fuller(found.deathYear, p.deathYear),
+      // Девичья фамилия из файла дописывается тем, у кого её ещё нет (первая загрузка шла, когда приложение её не читало); своя запись человека главнее.
+      maidenName: found.maidenName?.trim() ? found.maidenName : p.maidenName?.trim() ? p.maidenName : found.maidenName,
     });
   }
   const fix = created.map((c) => {
