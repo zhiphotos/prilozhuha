@@ -30,6 +30,33 @@ const ROLE: Record<RelKind, string> = {
 
 type Intent = { kind: RelKind; unionId?: string };
 
+/** «Умер(ла)»: поле даты смерти появляется только после отметки; без отметки дата не нужна и не записывается. */
+function DeathField({ value, onChange }: { value: string | undefined; onChange: (next: string) => void }) {
+  const [passed, setPassed] = useState(Boolean(value?.trim()));
+  return (
+    <div className="field">
+      <label className="flex min-h-11 cursor-pointer items-center gap-2">
+        <input
+          type="checkbox"
+          className="size-5"
+          checked={passed}
+          onChange={(event) => {
+            setPassed(event.target.checked);
+            if (!event.target.checked) onChange("");
+          }}
+        />
+        Умер(ла)
+      </label>
+      {passed ? (
+        <label className="field">
+          Дата смерти
+          <DateInput inputMode="decimal" placeholder="год или 04.11.1968" value={value ?? ""} onChange={onChange} />
+        </label>
+      ) : null}
+    </div>
+  );
+}
+
 export function PersonDrawer({ onNewBook }: { onNewBook: () => void }) {
   const selectedId = useTree((s) => s.selectedId);
   const unionId = useTree((s) => s.unionId);
@@ -125,10 +152,7 @@ function PersonBody({ person, people, unions, focusId, onNewBook }: { person: Pe
           Дата рождения
           <DateInput inputMode="decimal" placeholder="год или 12.03.1891" value={person.birthYear} onChange={(next) => useTree.getState().updatePerson(person.id, { ...draftFrom(person), birthYear: next })} />
         </label>
-        <label className="field">
-          Дата смерти
-          <DateInput inputMode="decimal" placeholder="год или 04.11.1968" value={person.deathYear} onChange={(next) => useTree.getState().updatePerson(person.id, { ...draftFrom(person), deathYear: next })} />
-        </label>
+        <DeathField value={person.deathYear} onChange={(next) => useTree.getState().updatePerson(person.id, { ...draftFrom(person), deathYear: next })} />
         <button
           type="button"
           className="chip !bg-sheet !text-ink col-span-2 justify-center"
@@ -574,10 +598,7 @@ function PersonForm({
           Место рождения
           <input value={draft.birthPlace ?? ""} placeholder="Например, Тбилиси" onChange={(e) => set({ birthPlace: e.target.value })} />
         </label>
-        <label className="field">
-          Дата смерти
-          <DateInput inputMode="decimal" placeholder="год или 04.11.1968" value={draft.deathYear} onChange={(next) => set({ deathYear: next })} />
-        </label>
+        <DeathField value={draft.deathYear} onChange={(next) => set({ deathYear: next })} />
       </div>
       {!lockGender && (
         <div className="grid grid-cols-3 gap-2">

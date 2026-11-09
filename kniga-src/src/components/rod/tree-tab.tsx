@@ -139,6 +139,8 @@ function TreeScreen() {
   const scopeBox = useRef<HTMLDivElement>(null);
   const shown = useMemo(() => scopeFilter(people, unions, focusId, scope), [people, unions, focusId, scope]);
   const view = useMemo(() => sliceByRadius(shown.people, shown.unions, focusId, radius), [shown, focusId, radius]);
+  // Режим показа или радиус прячут часть родни: человек должен видеть, что остальные на месте.
+  const hiddenRelatives = Math.max(0, people.filter((p) => !p.id.startsWith("__")).length - view.people.filter((p) => !p.id.startsWith("__")).length);
   const spread = useTree((s) => s.spread);
   const setSpread = useTree((s) => s.setSpread);
   const cardFields = useCardFields();
@@ -296,6 +298,24 @@ function TreeScreen() {
             </button>
           )}
         </div>
+        {hiddenRelatives > 0 && (
+          <div role="status" className="pointer-events-auto flex w-full flex-wrap items-center gap-2 rounded-2xl bg-black/55 px-3 py-2 text-sm backdrop-blur-sm">
+            <span className="min-w-0 flex-1">
+              Показана часть родни: скрыто {hiddenRelatives} из {people.length}. Остальные не удалены.
+            </span>
+            <button
+              type="button"
+              className="chip !bg-gold !text-ink"
+              onClick={() => {
+                setScope("all");
+                setRadius(null);
+                setFitReq((n) => n + 1);
+              }}
+            >
+              Показать всех
+            </button>
+          </div>
+        )}
         <div className="pointer-events-auto flex w-full flex-wrap gap-2">
           <button type="button" className="chip !bg-gold !text-ink" onClick={openAdd}>
             <Plus className="size-5" />
