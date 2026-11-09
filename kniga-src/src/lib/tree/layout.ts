@@ -141,17 +141,25 @@ function orderGroup(g: Graph, ids: string[]): string[] {
   return order.length > 2 ? applyFlips(g, order) : order;
 }
 
-/** В блоке из трёх и более человек явный выбор «поменять местами» (side) меняет соседних супругов местами. */
+/**
+ * В блоке из трёх и более человек явный выбор «поменять местами» (side) меняет местами супругов, у которых он записан у обоих:
+ * «справа» у одного и «слева» у другого значит, что первый стоит правее второго. Супруги могут стоять не рядом (у человека несколько браков).
+ */
 function applyFlips(g: Graph, order: string[]): string[] {
   const out = order.slice();
-  const spouses = (a: string, b: string) => g.unions.some((u) => u.partnerIds.includes(a) && u.partnerIds.includes(b));
-  for (let i = 0; i + 1 < out.length; i++) {
-    const a = g.people.get(out[i]!);
-    const b = g.people.get(out[i + 1]!);
-    if (!a || !b || !spouses(a.id, b.id)) continue;
-    if ((a.side === "right" || b.side === "left") && !(a.side === "left" || b.side === "right")) {
-      [out[i], out[i + 1]] = [out[i + 1]!, out[i]!];
-      i += 1;
+  for (const u of g.unions) {
+    for (const a of u.partnerIds) {
+      for (const b of u.partnerIds) {
+        if (a >= b) continue;
+        const pa = g.people.get(a);
+        const pb = g.people.get(b);
+        const ia = out.indexOf(a);
+        const ib = out.indexOf(b);
+        if (!pa || !pb || ia < 0 || ib < 0) continue;
+        const aRight = pa.side === "right" && pb.side === "left";
+        const aLeft = pa.side === "left" && pb.side === "right";
+        if ((aRight && ia < ib) || (aLeft && ia > ib)) [out[ia], out[ib]] = [b, a];
+      }
     }
   }
   return out;
