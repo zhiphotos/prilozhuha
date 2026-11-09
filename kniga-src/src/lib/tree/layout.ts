@@ -339,7 +339,8 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     depthMemo.set(id, best);
     return best;
   };
-  const betterPrimary = (a: string, b: string, order: string[]) => Number(spine.has(b)) - Number(spine.has(a)) || depthUp(b) - depthUp(a) || order.indexOf(a) - order.indexOf(b);
+  // Предок выбранного главнее супруга со стороны (бывшего мужа или жены): блок висит под родителями предка, а не чужой семьи.
+  const betterPrimary = (a: string, b: string, order: string[]) => Number(ancestors.has(b)) - Number(ancestors.has(a)) || Number(spine.has(b)) - Number(spine.has(a)) || depthUp(b) - depthUp(a) || order.indexOf(a) - order.indexOf(b);
   for (const level of levels) {
     const ids = people.filter((p) => gen.get(p.id) === level).map((p) => p.id);
     for (const members of spouseGroups(g, ids)) {
