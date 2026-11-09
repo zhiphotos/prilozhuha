@@ -83,15 +83,7 @@ export function BookScreen() {
 
       {/* Дерево растёт на фоне блока, кнопки лежат поверх него справа. */}
       <div className={treeOn ? "relative mb-5 min-h-[27rem]" : "mb-5"}>
-        {treeOn ? (
-          <GrowingTree growth={growth} onHide={() => switchTree(false)} />
-        ) : (
-          <div className="mb-2 flex justify-end">
-            <button type="button" className="min-h-9 text-xs font-semibold text-moss underline underline-offset-2" onClick={() => switchTree(true)}>
-              Включить дерево
-            </button>
-          </div>
-        )}
+        {treeOn ? <GrowingTree growth={growth} onHide={() => switchTree(false)} /> : null}
       <div data-tour="book-actions" className={treeOn ? "relative z-10 ml-[44%] grid min-w-0 grid-cols-1 content-start gap-2" : "grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2"}>
         <Hint id="book-print">
           <Button variant="soft" className="min-h-12" onClick={() => (pages.length ? setPrinting(true) : toast("Сначала добавьте хотя бы одну страницу"))}>
@@ -122,6 +114,13 @@ export function BookScreen() {
           <BookOpen className="size-4" /> Содержание{plan.length ? ` · ${plan.filter((c) => c.done).length} из ${plan.length}` : ""}
         </Button>
       </div>
+        {treeOn ? null : (
+          <div className="mt-2 flex justify-center">
+            <button type="button" className="min-h-9 text-xs font-semibold text-moss underline underline-offset-2" onClick={() => switchTree(true)}>
+              Включить дерево
+            </button>
+          </div>
+        )}
       </div>
 
       {!hasCover ? (
