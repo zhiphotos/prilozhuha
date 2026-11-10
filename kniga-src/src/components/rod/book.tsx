@@ -44,7 +44,10 @@ export function BookScreen() {
   const ready = isBookReady(snapshot, overall) || pages.length >= 6;
   const growth = treeGrowth(overall, pages.length);
   // Дерево по умолчанию выключено, пока его не включили («Показать картинку-дерево»). Выбор помнится на этом устройстве.
+  // Картинка-дерево пока убрана совсем (заходило за кнопки и за край экрана). Вернуть: TREE_AVAILABLE = true.
+  const TREE_AVAILABLE = false;
   const [treeOn, setTreeOn] = useState(() => {
+    if (!TREE_AVAILABLE) return false;
     try {
       return localStorage.getItem("kniga-book-tree-on") === "1";
     } catch {
@@ -119,7 +122,7 @@ export function BookScreen() {
           <BookOpen className="size-4" /> Содержание{plan.length ? ` · ${plan.filter((c) => c.done).length} из ${plan.length}` : ""}
         </Button>
       </div>
-        {treeOn ? null : (
+        {treeOn || !TREE_AVAILABLE ? null : (
           <div className="mt-2 flex justify-center">
             <button type="button" className="min-h-9 text-xs font-semibold text-moss underline underline-offset-2" onClick={() => switchTree(true)}>
               Показать картинку-дерево
@@ -148,9 +151,7 @@ export function BookScreen() {
         </button>
       ) : null}
 
-      {/* У платных страницы сверху, у остальных они стоят после рекламного блока: мини-уроки, карусель и кнопки. */}
-      {data.programOpen ? pageGrid : null}
-
+      {/* Сначала карусель шаблонов (у платных) или рекламный блок (у остальных), потом страницы книги. */}
       {data.programOpen ? (
         // У платных готовые шаблоны листаются вбок и занимают одну строку, а не две длинные карточки друг под другом.
         <div className="no-scrollbar -mx-1 mb-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2" role="group" aria-label="Готовые шаблоны книги">
@@ -169,7 +170,7 @@ export function BookScreen() {
         </>
       )}
 
-      {data.programOpen ? null : pageGrid}
+      {pageGrid}
 
       <section className="glass mt-8 rounded-2xl p-5">
         <div className="flex items-center gap-2">
