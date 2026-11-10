@@ -732,10 +732,15 @@ type TemplateSpec = {
   chapters: Chapter[];
   total: number;
   build: () => Omit<BookPage, "id">[];
+  /** Картинка карточки шаблона и точка кадрирования. */
+  image?: string;
+  pos?: string;
 };
 
 const FULL_SPEC: TemplateSpec = {
   tag: "full",
+  image: "course/site/extra1.jpg",
+  pos: "50% 40%",
   label: "Для участников программы",
   title: "Полный шаблон Книги рода · 100 страниц",
   intro: "Книга об одной семейной ветви, например о роде бабушки и дедушки, в восьми частях: начало, родные места, предки, любовь, дом и быт, испытания, находки и наследие. Заполнять все страницы не нужно: где сведений мало, оставьте место для будущих поисков или уберите страницу. На каждой странице подсказка, что сюда внести.",
@@ -746,6 +751,8 @@ const FULL_SPEC: TemplateSpec = {
 
 const LOVE_SPEC: TemplateSpec = {
   tag: "love",
+  image: "course/site/memoirs-reel.jpg",
+  pos: "50% 30%",
   label: "Для участников программы",
   title: `Мемуары любви · ${LOVE_BOOK_PAGES} страниц`,
   intro: "История любви для любой пары, по словам, а не по годам: начало, знакомство, жизнь вместе, свадьба, дом, семья, письмо в будущее. На каждой странице подсказка, что написать и какую фотографию поставить.",
@@ -756,6 +763,8 @@ const LOVE_SPEC: TemplateSpec = {
 
 const WEDDING_TRADITIONAL_SPEC: TemplateSpec = {
   tag: "wedtrad",
+  image: "course/site/wedding-ussr.jpg",
+  pos: "50% 24%",
   label: "Свадебная фотокнига на выбор",
   title: `Свадьба, традиционная · ${WEDDING_TRADITIONAL_PAGES} страницы`,
   intro: "История одного дня от утра невесты до последнего танца, с обрядами: выкуп, благословение, каравай. Около 80% страницы под фото, подписи короткие. Лишние обряды можно удалить.",
@@ -766,6 +775,8 @@ const WEDDING_TRADITIONAL_SPEC: TemplateSpec = {
 
 const WEDDING_MODERN_SPEC: TemplateSpec = {
   tag: "wedmod",
+  image: "course/site/wedding.jpg",
+  pos: "50% 52%",
   label: "Свадебная фотокнига на выбор",
   title: `Свадьба, современная · ${WEDDING_MODERN_PAGES} страницы`,
   intro: "Сборы, First Look, церемония, фотосессия, гости, банкет, первый танец, финал. Для свадьбы без обрядов. Выберите одну из двух свадебных книг.",
@@ -776,6 +787,8 @@ const WEDDING_MODERN_SPEC: TemplateSpec = {
 
 const WEDDING_EXTRA_SPEC: TemplateSpec = {
   tag: "wedextra",
+  image: "course/site/extra2.jpg",
+  pos: "50% 40%",
   label: "К свадебной книге по желанию",
   title: `Свадьба: страницы по желанию · ${WEDDING_EXTRA_PAGES}`,
   intro: "История предложения, приглашения, меню, плейлист, письма, послание родителей, пожелания гостей, память о тех, кого не хватало, свадебный маршрут. Добавьте к любой из двух свадебных книг.",
@@ -813,6 +826,11 @@ function FullTemplate({ pages, meta, tpl, carousel = false }: { pages: BookPage[
 
   return (
     <section className={cn("rounded-2xl p-5", open ? "aurora" : "glass", carousel ? "w-[86%] max-w-sm shrink-0 snap-center" : "mb-6")}>
+      {tpl.image ? (
+        <div className="-mx-5 -mt-5 mb-4 aspect-[4/3] overflow-hidden rounded-t-2xl">
+          <img src={`${import.meta.env.BASE_URL}${tpl.image}`} alt="" className="size-full object-cover" style={{ objectPosition: tpl.pos }} draggable={false} loading="lazy" />
+        </div>
+      ) : null}
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">{tpl.label}</p>
