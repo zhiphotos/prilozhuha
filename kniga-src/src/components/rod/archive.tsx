@@ -112,7 +112,16 @@ function PeoplePane() {
   const [parentOfId, setParentOfId] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const shown = filterPeople(people, query);
+  const [abc, setAbc] = useState(() => {
+    try {
+      return localStorage.getItem("kniga-people-abc") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const found = filterPeople(people, query);
+  // По алфавиту (фамилия, имя) или в порядке добавления: при ручном вводе ветки удобнее второе.
+  const shown = abc ? [...found].sort((a, b) => a.name.localeCompare(b.name, "ru")) : found;
 
   return (
     <div className="grid gap-4">
@@ -167,6 +176,28 @@ function PeoplePane() {
             </button>
           ) : null}
         </label>
+      ) : null}
+      {people.length > 4 ? (
+        <div className="flex gap-2" role="group" aria-label="Порядок списка">
+          {([[true, "По алфавиту"], [false, "Как добавляли"]] as const).map(([value, text]) => (
+            <button
+              key={text}
+              type="button"
+              aria-pressed={abc === value}
+              className={`min-h-10 rounded-full border px-4 text-sm font-semibold ${abc === value ? "border-moss bg-moss text-paper" : "border-ink/15 bg-white/70 text-ink"}`}
+              onClick={() => {
+                setAbc(value);
+                try {
+                  localStorage.setItem("kniga-people-abc", value ? "1" : "0");
+                } catch {
+                  /* без памяти порядок вернётся к прежнему */
+                }
+              }}
+            >
+              {text}
+            </button>
+          ))}
+        </div>
       ) : null}
       {query.trim() && shown.length === 0 ? <p className="text-sm text-muted">Никого не нашлось. Проверьте написание или попробуйте только фамилию.</p> : null}
       <ul className="grid gap-2">

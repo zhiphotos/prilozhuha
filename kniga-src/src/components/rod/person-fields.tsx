@@ -1,3 +1,4 @@
+import { personCardText } from "@/lib/rod/person-card";
 import { DateInput } from "@/components/rod/date-input";
 import { SearchSelect } from "./search-select";
 import { useRef, useState } from "react";
@@ -294,6 +295,18 @@ export function PersonEditor({ person, onRemoved, onSaved }: { person: Person; o
         }}
       >
         Сохранить
+      </Button>
+      <Button
+        type="button"
+        variant="soft"
+        onClick={() => {
+          void navigator.clipboard
+            .writeText(personCardText(person, people))
+            .then(() => toast("Краткая карточка скопирована"))
+            .catch(() => toast("Не получилось скопировать"));
+        }}
+      >
+        Скопировать краткую карточку
       </Button>
       <p className="-mt-1 text-xs text-muted">Изменения записываются сразу, кнопка нужна для спокойствия: она закрывает карточку и показывает, что всё на месте.</p>
       <button

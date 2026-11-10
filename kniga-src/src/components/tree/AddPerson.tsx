@@ -40,6 +40,7 @@ export function AddPerson({
   const [birthYear, setBirthYear] = useState("");
   const [unionId, setUnionId] = useState("");
   const [picking, setPicking] = useState(false);
+  const [anchorQuery, setAnchorQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const anchor = people.find((p) => p.id === anchorId) ?? people[0];
@@ -126,8 +127,12 @@ export function AddPerson({
               <span className="text-sm">{picking ? "Скрыть" : "Другой"}</span>
             </button>
             {picking && (
-              <div className="mt-2 flex max-h-48 flex-col gap-1 overflow-y-auto">
-                {people.map((p) => (
+              <div className="mt-2 flex max-h-56 flex-col gap-1 overflow-y-auto">
+                <input type="search" className="min-h-11 shrink-0 rounded-2xl border border-line bg-white px-3" placeholder="Найти по имени" aria-label="Найти человека" value={anchorQuery} onChange={(e) => setAnchorQuery(e.target.value)} />
+                {[...people]
+                  .filter((p) => !anchorQuery.trim() || displayName(p).toLowerCase().includes(anchorQuery.trim().toLowerCase()))
+                  .sort((a, b) => displayName(a).localeCompare(displayName(b), "ru"))
+                  .map((p) => (
                   <button
                     key={p.id}
                     type="button"
@@ -137,6 +142,7 @@ export function AddPerson({
                       setError(null);
                       setUnionId("");
                       setPicking(false);
+                      setAnchorQuery("");
                     }}
                   >
                     {displayName(p)}

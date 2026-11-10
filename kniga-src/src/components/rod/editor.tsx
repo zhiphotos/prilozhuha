@@ -31,12 +31,14 @@ import {
   X,
   ZoomIn,
   ZoomOut,
+  UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { flowChunks, flowToNextPages } from "@/lib/rod/text-flow";
 import { Button, Sheet, useNav } from "@/components/rod/chrome";
 import { fillInside } from "@/lib/rod/fill";
 import { BlockBar, Inspector, PenBar, TextPanel, spillsOut, type BlockOps, type Tool } from "@/components/rod/editor-bars";
+import { PersonCardSheet } from "@/components/rod/person-card-sheet";
 import { FontsSheet, GENERIC_QUESTIONS, HelpSheet, LayersSheet, PasteSheet, PhotoSheet, PinterestPanel, StickersSheet, type PhotoStyle } from "@/components/rod/editor-sheets";
 import { BarBtn, IconBtn, MenuRow, ToolBtn } from "@/components/rod/editor-ui";
 import { ColorRow, ColorSheet } from "@/components/rod/color-sheet";
@@ -64,7 +66,7 @@ import { cn } from "@/lib/cn";
 import { applyEdge, edgesFor } from "@/lib/rod/edge-handles";
 import { snapBox, type Guides, type SnapTarget } from "@/lib/rod/snap";
 
-type Panel = "contents" | "photo" | "pinterest" | "paste" | "stickers" | "help" | "menu" | "covers" | "layers" | "fonts" | "inspector" | "scan" | null;
+type Panel = "card" | "contents" | "photo" | "pinterest" | "paste" | "stickers" | "help" | "menu" | "covers" | "layers" | "fonts" | "inspector" | "scan" | null;
 type Box = { x: number; y: number; w: number; h: number | null; rotate: number };
 type Gesture = {
   id: string;
@@ -2268,6 +2270,9 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           >
             <Smile className="size-5" />
           </ToolBtn>
+          <ToolBtn label="Человек" onClick={() => { setTool("hand"); setPanel("card"); }}>
+            <UserRound className="size-5" />
+          </ToolBtn>
           <ToolBtn label="Слои" onClick={() => { setTool("hand"); setPanel("layers"); }}>
             <Layers className="size-5" />
           </ToolBtn>
@@ -2356,6 +2361,18 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
       {panel === "pinterest" ? <PinterestPanel onClose={() => setPanel(null)} onPaste={() => void pasteFromClipboard()} onLink={(link) => { setPanel(null); fromLink(link); }} onPasteData={(data) => { setPanel(null); fromTransfer(data); }} /> : null}
       {panel === "paste" ? <PasteSheet onClose={() => setPanel(null)} onPaste={() => void pasteFromClipboard()} onLink={(link) => { setPanel(null); fromLink(link); }} onPasteData={(data) => { setPanel(null); fromTransfer(data); }} /> : null}
+
+      {panel === "card" ? (
+        <PersonCardSheet
+          onClose={() => setPanel(null)}
+          onPlace={(text) => {
+            const taken = (current()?.blocks ?? []).filter((b) => b.type === "text").map((b) => b.y);
+            const freeY = [40, 58, 24, 74, 10, 86].find((y) => taken.every((t) => Math.abs(t - y) > 14)) ?? 40;
+            addBlock({ id: id(), type: "text", x: 14, y: freeY, w: 72, text, font: "sans", size: "sm", look: "card" } as PageBlock);
+            toast("Карточка на странице: её можно двигать и менять");
+          }}
+        />
+      ) : null}
 
       {panel === "stickers" ? (
         <StickersSheet
