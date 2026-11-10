@@ -352,6 +352,21 @@ function TreeScreen() {
             <Plus className="size-5" />
             Добавить
           </button>
+          {people.length >= 2 && (
+            <button
+              type="button"
+              className="chip"
+              onClick={() => {
+                selectPerson(null);
+                selectUnion(null);
+                setPickMode(true);
+                setToolsOpen(false);
+                setRoster(false);
+              }}
+            >
+              Схема из выбранных
+            </button>
+          )}
           <CenterPicker />
           <TreeSearch
             onJump={(id) => {
@@ -363,6 +378,7 @@ function TreeScreen() {
           {people.length <= 2 && <Hint id="tree-ged"><GedImportButton /></Hint>}
           <button type="button" className="chip" aria-label="Настройки древа" aria-expanded={toolsOpen} onClick={() => setToolsOpen((v) => !v)}>
             <Settings className="size-5" />
+            Ещё
           </button>
           {toolsOpen && (
             <>
