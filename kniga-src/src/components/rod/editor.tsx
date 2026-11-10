@@ -2363,7 +2363,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         <Sheet title="Оформление" onClose={() => setPanel(null)}>
           <div className="grid grid-cols-3 gap-3">
             {([
-              ["stickers", "Стикеры", <Smile key="s" className="size-7" />],
+              ["stickers", "Визуальные элементы", <Smile key="s" className="size-7" />],
               ["layouts", "Макеты фото", <LayoutGrid key="l" className="size-7" />],
               ["card", "Человек", <UserRound key="c" className="size-7" />],
             ] as const).map(([key, label, icon]) => (
