@@ -43,12 +43,12 @@ export function BookScreen() {
   const overall = overallOf(partsOf(snapshot));
   const ready = isBookReady(snapshot, overall) || pages.length >= 6;
   const growth = treeGrowth(overall, pages.length);
-  // Дерево можно выключить: тогда кнопки встают на всю ширину, как раньше. Выбор помнится на этом устройстве.
+  // Дерево по умолчанию выключено, пока его не включили («Показать картинку-дерево»). Выбор помнится на этом устройстве.
   const [treeOn, setTreeOn] = useState(() => {
     try {
-      return localStorage.getItem("kniga-book-tree-on") !== "0";
+      return localStorage.getItem("kniga-book-tree-on") === "1";
     } catch {
-      return true;
+      return false;
     }
   });
   const switchTree = (on: boolean) => {
@@ -76,6 +76,8 @@ export function BookScreen() {
   const noMaiden = people.filter(needsMaidenName);
   const hasCover = pages.some((page) => page.kind === "cover");
 
+
+  const pageGrid = <PageGrid pages={pages} meta={meta} onOpen={(id) => nav.go({ id: "editor", pageId: id })} onAdd={() => setLibrary(true)} />;
 
   return (
     <ScreenFrame>
@@ -146,7 +148,8 @@ export function BookScreen() {
         </button>
       ) : null}
 
-      <PageGrid pages={pages} meta={meta} onOpen={(id) => nav.go({ id: "editor", pageId: id })} onAdd={() => setLibrary(true)} />
+      {/* У платных страницы сверху, у остальных они стоят после рекламного блока: мини-уроки, карусель и кнопки. */}
+      {data.programOpen ? pageGrid : null}
 
       {data.programOpen ? (
         // У платных готовые шаблоны листаются вбок и занимают одну строку, а не две длинные карточки друг под другом.
@@ -165,6 +168,8 @@ export function BookScreen() {
           <FullTemplate pages={pages} meta={meta} tpl={FULL_SPEC} />
         </>
       )}
+
+      {data.programOpen ? null : pageGrid}
 
       <section className="glass mt-8 rounded-2xl p-5">
         <div className="flex items-center gap-2">
