@@ -1,5 +1,5 @@
 // Голос бота «Дед Привратник»: сидит на завалинке у ворот Книги Рода и пускает тех, кто заплатил. Без длинных тире, говорит просто и тепло.
-const CONTACT = () => process.env.TG_HELP_CONTACT || "Дарине";
+const CONTACT = () => process.env.TG_HELP_CONTACT || "Дарине в инсте @darina_balanuca";
 const APP = () => process.env.APP_URL || "https://kniga-balanuca.ru/app/";
 
 export const NAME = "Дед Привратник";
