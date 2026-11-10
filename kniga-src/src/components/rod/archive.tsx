@@ -46,14 +46,14 @@ export function ArchiveScreen({ tab }: { tab: ArchiveTab }) {
   return (
     <ScreenFrame>
       <TopBar kicker="Архив семьи" title="Что уже собрано" onBack={nav.back} />
-      <div className="no-scrollbar -mx-1 flex gap-1 overflow-x-auto border-b border-ink/10">
+      <div className="flex gap-0 border-b border-ink/10" role="tablist">
         {TABS.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => nav.replace({ id: "archive", tab: item.id })}
             className={cn(
-              "min-h-11 shrink-0 border-b-2 px-3 text-sm font-semibold",
+              "min-h-11 min-w-0 flex-1 border-b-2 px-1 text-[13px] font-semibold sm:px-3 sm:text-sm",
               tab === item.id ? "border-moss text-ink" : "border-transparent text-muted",
             )}
           >

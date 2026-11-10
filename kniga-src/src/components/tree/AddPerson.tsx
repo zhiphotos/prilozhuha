@@ -5,7 +5,7 @@ import { displayName } from "@/lib/tree/kinship";
 import { emptyDraft, useTree, type RelKind } from "@/lib/tree/ui-store";
 import type { Gender } from "@/lib/tree/types";
 
-type Role = { kind: RelKind | "grandfather" | "grandmother"; label: string; gender: Gender };
+type Role = { kind: RelKind | "grandfather" | "grandmother" | "aunt" | "uncle"; label: string; gender: Gender };
 const ROLES: Role[] = [
   { kind: "father", label: "Отец", gender: "m" },
   { kind: "mother", label: "Мать", gender: "f" },
@@ -16,6 +16,8 @@ const ROLES: Role[] = [
   { kind: "sister", label: "Сестра", gender: "f" },
   { kind: "grandmother", label: "Бабушка", gender: "f" },
   { kind: "grandfather", label: "Дедушка", gender: "m" },
+  { kind: "aunt", label: "Тётя", gender: "f" },
+  { kind: "uncle", label: "Дядя", gender: "m" },
 ];
 
 export function AddPerson({
@@ -46,7 +48,7 @@ export function AddPerson({
   const anchor = people.find((p) => p.id === anchorId) ?? people[0];
   const role = ROLES.find((item) => item.kind === kind);
   const gender: Gender = kind === "spouse" ? spouseGender : (role?.gender ?? "u");
-  const suggested = anchor && kind && kind !== "spouse" && kind !== "grandfather" && kind !== "grandmother" ? inflectSurname(anchor.lastName, gender === "u" ? "m" : gender) : "";
+  const suggested = anchor && kind && kind !== "spouse" && kind !== "grandfather" && kind !== "grandmother" && kind !== "aunt" && kind !== "uncle" ? inflectSurname(anchor.lastName, gender === "u" ? "m" : gender) : "";
   const marriages = anchor ? unions.filter((u) => u.partnerIds.includes(anchor.id)) : [];
   const needsFamily = (kind === "son" || kind === "daughter") && marriages.length > 1;
 
@@ -73,16 +75,16 @@ export function AddPerson({
       birthYear,
       gender,
     };
-    if (kind === "grandfather" || kind === "grandmother") {
-      // Бабушка или дедушка встают над родителем: берём маму или папу выбранного человека.
+    if (kind === "grandfather" || kind === "grandmother" || kind === "aunt" || kind === "uncle") {
+      // Тётя и дядя встают рядом с мамой или папой; бабушка или дедушка встают над родителем: берём маму или папу выбранного человека.
       const parentGender = side === "mom" ? "f" : "m";
       const parentIds = unions.filter((u) => u.childIds.includes(anchor.id)).flatMap((u) => u.partnerIds);
       const parent = people.find((p) => parentIds.includes(p.id) && p.gender === parentGender);
       if (!parent) {
-        setError(`В древе пока нет ${side === "mom" ? "мамы" : "папы"} у человека «${displayName(anchor)}». Сначала добавьте ${side === "mom" ? "её" : "его"} ролью «${side === "mom" ? "Мать" : "Отец"}», потом ${kind === "grandmother" ? "бабушку" : "дедушку"}.`);
+        setError(`В древе пока нет ${side === "mom" ? "мамы" : "папы"} у человека «${displayName(anchor)}». Сначала добавьте ${side === "mom" ? "её" : "его"} ролью «${side === "mom" ? "Мать" : "Отец"}», потом ${kind === "grandmother" ? "бабушку" : kind === "grandfather" ? "дедушку" : kind === "aunt" ? "тётю" : "дядю"}.`);
         return;
       }
-      const msg = useTree.getState().addRelative(parent.id, kind === "grandmother" ? "mother" : "father", draft);
+      const msg = useTree.getState().addRelative(parent.id, kind === "grandmother" ? "mother" : kind === "grandfather" ? "father" : kind === "aunt" ? "sister" : "brother", draft);
       if (msg) {
         setError(msg);
         return;
@@ -180,7 +182,7 @@ export function AddPerson({
               ))}
             </div>
           )}
-          {(kind === "grandfather" || kind === "grandmother") && (
+          {(kind === "grandfather" || kind === "grandmother" || kind === "aunt" || kind === "uncle") && (
             <div className="grid grid-cols-2 gap-2">
               {(["mom", "dad"] as const).map((sd) => (
                 <button key={sd} type="button" className={`min-h-12 rounded-2xl border text-sm font-semibold ${side === sd ? "border-ink bg-ink text-sheet" : "border-line bg-white"}`} onClick={() => { setSide(sd); setError(null); }}>

@@ -1,8 +1,12 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { useMedia } from "@/lib/rod/media";
 import { cn } from "@/lib/cn";
 
 export function IconBtn({ label, children, onClick, disabled, active, className }: { label: string; children: React.ReactNode; onClick: () => void; disabled?: boolean; active?: boolean; className?: string }) {
+  // Подписи значков на телефоне не видны: зажмите значок на секунду, и название появится.
+  const timer = useRef<number | undefined>(undefined);
+  const stop = () => window.clearTimeout(timer.current);
   return (
     <button
       type="button"
@@ -10,6 +14,13 @@ export function IconBtn({ label, children, onClick, disabled, active, className 
       title={label}
       disabled={disabled}
       onClick={onClick}
+      onPointerDown={() => {
+        stop();
+        timer.current = window.setTimeout(() => toast(label.replace(/ \(.*\)$/, ""), { duration: 1600 }), 500);
+      }}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
       className={cn("grid size-11 place-items-center rounded-full text-ink transition disabled:opacity-30 enabled:active:bg-white/70", active && "bg-night text-paper", className)}
     >
       {children}
