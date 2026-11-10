@@ -46,6 +46,11 @@ export function json(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
+/** Тело запроса в том виде, как пришло (для проверки подписи вебхуков). */
+export async function rawBodyOf(req) {
+  return typeof req.rawBody === "string" ? req.rawBody : JSON.stringify(req.body ?? {});
+}
+
 export function bodyOf(req) {
   if (req.body && typeof req.body === "object") return req.body;
   try {
