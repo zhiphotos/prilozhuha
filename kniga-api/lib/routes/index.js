@@ -24,6 +24,8 @@ import roomInfo from "./room-info.js";
 import roomSubmit from "./room-submit.js";
 import status from "./status.js";
 import sync from "./sync.js";
+import tgBot from "./tg-bot.js";
+import tributeHook from "./tribute-hook.js";
 import treeShare from "./tree-share.js";
 import verify from "./verify.js";
 
@@ -44,6 +46,8 @@ export const ROUTES = {
   "push-tick": pushTick,
   "push-unsubscribe": pushUnsubscribe,
   redeem,
+  "tg-bot": tgBot,
+  "tribute-hook": tributeHook,
   "room-ack": roomAck,
   "room-base": roomBase,
   "room-create": roomCreate,

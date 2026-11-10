@@ -27,6 +27,7 @@ const server = http.createServer((req, res) => {
   req.on("end", async () => {
     if (tooBig) return void res.writeHead(413, { "Content-Type": "application/json" }).end(JSON.stringify({ error: "Слишком большой запрос." }));
     const raw = Buffer.concat(chunks).toString("utf8");
+    req.rawBody = raw; // нужен вебхукам с подписью по телу запроса
     try {
       req.body = raw ? JSON.parse(raw) : {};
     } catch {
