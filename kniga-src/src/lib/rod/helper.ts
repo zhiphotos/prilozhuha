@@ -1,4 +1,5 @@
 import { API_BASE } from "@/lib/rod/config";
+import { helperRoundWith, publishIfChangedWith, signature } from "@/lib/rod/helper-auto";
 import { HELPER_KEYS, applyReview, makeChangeSet, reviewChanges, type Book, type Change, type Decision, type ReviewItem } from "@/lib/rod/helper-changes";
 import { collectRefs } from "@/lib/rod/backup";
 import { hasMedia, mediaDataUrl, saveMediaAs } from "@/lib/rod/media";
@@ -68,13 +69,6 @@ const readPublished = (): Published | null => {
     return null;
   }
 };
-const signature = (value: unknown): string => {
-  const text = JSON.stringify(value);
-  let hash = 5381;
-  for (let i = 0; i < text.length; i += 1) hash = ((hash << 5) + hash + text.charCodeAt(i)) | 0;
-  return `${text.length}:${hash}`;
-};
-
 /** Владелец: выложить текущую версию книги (люди, места, истории, заметки, страницы, фото), чтобы помощники взяли её за основу.
  *  С onlyNew выкладываются только ещё не отправленные фото: так работает автоматическая выкладка. Кнопка выкладывает всё. */
 export async function publishBase(progress?: (done: number, total: number) => void, onlyNew = false): Promise<void> {
@@ -171,36 +165,30 @@ export async function sendChanges(session: HelperSession, who: string, progress?
 export const leaveHelper = () => saveSession(null);
 
 /** Владелец: если книга изменилась с последней выкладки, выложить её заново (только для тех, кто уже открывал книгу для правок). */
-async function publishIfChanged(): Promise<void> {
-  const room = useRod.getState().room;
-  const last = readPublished();
-  if (!room?.ownerKey || !last) return;
-  if (signature(lists()) === last.sig) return;
-  await publishBase(undefined, true);
-}
+const publishIfChanged = () =>
+  publishIfChangedWith({
+    hasRoom: () => Boolean(useRod.getState().room?.ownerKey),
+    lastSignature: () => readPublished()?.sig ?? null,
+    lists,
+    publish: () => publishBase(undefined, true),
+  });
 
 /** Помощник: отправить свои правки (если уже подписался) и забрать свежую версию владельца, когда у него нет ничего неотправленного. */
-async function helperRound(): Promise<void> {
-  let session = helperSession();
-  if (!session) return;
-  if (helperChanges(session).length) {
-    if (!session.who) return;
-    await sendChanges(session, session.who);
-    session = helperSession() ?? session;
-  }
-  if (helperChanges(session).length) return;
-  const answer = await post<{ ok?: boolean; same?: boolean; base?: Book; at?: number; waiting?: number }>("/api/room-base", { room: session.room, invite: session.invite, since: session.baseAt ?? 0, who: session.who ?? "" });
-  if (!answer.ok || answer.same || !answer.base) return;
-  if ((answer.waiting ?? 0) > 0) return; // владелец ещё не разобрал мои правки: поверх них новое не кладём
-  await downloadMedia({ room: session.room, invite: session.invite }, [...refsOf(answer.base)]);
-  const now = helperSession();
-  if (!now || now.room !== session.room || helperChanges(now).length) return; // пока шла загрузка, появились правки: заберём в следующий раз
-  const patch: Record<string, unknown> = {};
-  for (const key of HELPER_KEYS) patch[key] = answer.base[key] ?? [];
-  useRod.setState(patch);
-  flushBook();
-  saveSession({ ...now, base: answer.base, baseAt: answer.at });
-}
+const helperRound = () =>
+  helperRoundWith<HelperSession>({
+    session: helperSession,
+    saveSession,
+    lists,
+    setLists: (patch) => {
+      useRod.setState(patch);
+      flushBook();
+    },
+    send: async (session, who) => {
+      await sendChanges(session, who);
+    },
+    poll: (session) => post("/api/room-base", { room: session.room, invite: session.invite, since: session.baseAt ?? 0, who: session.who ?? "" }),
+    downloadMedia: (session, base) => downloadMedia({ room: session.room, invite: session.invite }, [...refsOf(base)]),
+  });
 
 let helperSyncStarted = false;
 let helperSyncBusy = false;
