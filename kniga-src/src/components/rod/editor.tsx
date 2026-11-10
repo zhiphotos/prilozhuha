@@ -2395,7 +2395,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           onPlace={(text) => {
             const taken = (current()?.blocks ?? []).filter((b) => b.type === "text").map((b) => b.y);
             const freeY = [40, 58, 24, 74, 10, 86].find((y) => taken.every((t) => Math.abs(t - y) > 14)) ?? 40;
-            addBlock({ id: id(), type: "text", x: 14, y: freeY, w: 72, text, font: "sans", size: "sm", look: "card" } as PageBlock);
+            addBlock({ id: id(), type: "text", x: 14, y: freeY, w: 72, text, font: "sans", size: "md", look: "card" } as PageBlock);
             toast("Карточка на странице: её можно двигать и менять");
           }}
         />
