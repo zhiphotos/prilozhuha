@@ -36,6 +36,9 @@ export function TransferCard({ hasData }: { hasData: boolean }) {
         <Button onClick={() => void syncNow("auto")} disabled={sync.busy}>
           {sync.busy ? "Синхронизирую…" : "Синхронизировать сейчас"}
         </Button>
+        <Button variant="soft" onClick={send} disabled={busy || !hasData}>
+          {busy ? "Собираю…" : "Отправить файлом (AirDrop)"}
+        </Button>
         {sync.at ? <span className="text-xs text-muted">Последний раз: {new Date(sync.at).toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}</span> : null}
       </div>
       {sync.message ? <p className="mt-2 text-sm text-ink">{sync.message}</p> : null}
