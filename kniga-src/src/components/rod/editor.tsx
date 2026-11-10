@@ -337,7 +337,10 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     if (!stage) return;
     const fit = () => {
       const rect = stage.getBoundingClientRect();
-      const w = Math.max(140, Math.min(twoUp ? (rect.width - 48) / 2 : rect.width - 48, (rect.height - 88) / (PAGE_H / 100), 720));
+      // Телефон лёжа: по высоте лист не помещается, поэтому держим ширину и даём прокручивать вверх и вниз, а не сжимаем до марки.
+      const landscape = window.matchMedia("(orientation: landscape) and (max-height: 500px)").matches;
+      const byHeight = landscape ? Infinity : (rect.height - 88) / (PAGE_H / 100);
+      const w = Math.max(140, Math.min(twoUp ? (rect.width - 48) / 2 : rect.width - 48, byHeight, landscape ? 520 : 720));
       setSize({ w, h: w * (PAGE_H / 100) });
     };
     fit();
@@ -2276,7 +2279,6 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         </div>
       </nav>
 
-      <RotateHint />
       <PinnedRefs
         refs={pinned}
         onUnpin={togglePin}
@@ -2687,27 +2689,3 @@ function PartnerPage({ page, meta, width, side, onOpen }: { page: BookPage; meta
   );
 }
 
-/** Телефон лёжа: на лист остаётся слишком мало места, просим повернуть. */
-function RotateHint() {
-  const query = "(orientation: landscape) and (max-height: 500px)";
-  const [wide, setWide] = useState(() => window.matchMedia(query).matches);
-  const [skip, setSkip] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    const on = () => setWide(mq.matches);
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, []);
-  if (!wide || skip) return null;
-  return (
-    <div role="alertdialog" aria-label="Поверните телефон" className="fixed inset-0 z-[70] grid place-items-center bg-night/95 p-6 text-center text-paper">
-      <div className="max-w-xs">
-        <p className="display-title text-2xl">Поверните телефон</p>
-        <p className="mt-2 text-sm text-paper/80">Страницу удобнее редактировать, когда телефон стоит вертикально: лист получается крупнее.</p>
-        <button type="button" className="mt-4 min-h-11 rounded-full bg-paper px-5 text-sm font-medium text-ink" onClick={() => setSkip(true)}>
-          Всё равно продолжить
-        </button>
-      </div>
-    </div>
-  );
-}

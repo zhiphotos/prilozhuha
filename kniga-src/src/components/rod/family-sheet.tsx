@@ -5,8 +5,10 @@ import { accept, createRoom, dismiss, fetchInbox, inviteLink, rotateInvite, type
 import { useRod } from "@/lib/rod/store";
 import { useMedia } from "@/lib/rod/media";
 import { Button, Sheet } from "@/components/rod/chrome";
+import { ChangesCard } from "@/components/rod/helper-ui";
+import { publishBase } from "@/lib/rod/helper";
 
-const KIND = { story: "Воспоминание", answer: "Ответ на вопрос", photo: "Фото" } as const;
+const KIND = { story: "Воспоминание", answer: "Ответ на вопрос", photo: "Фото", changes: "Правки" } as const;
 
 /** Владелец: ссылка для родственников и то, что они прислали. Принятое попадает в семейный архив. */
 export function FamilySheet({ onClose }: { onClose: () => void }) {
@@ -14,6 +16,7 @@ export function FamilySheet({ onClose }: { onClose: () => void }) {
   const dedicatee = useRod((state) => state.dedicatee);
   const [items, setItems] = useState<Incoming[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState("");
 
   const load = useCallback(() => {
     void fetchInbox().then(setItems).catch(() => setItems([]));
@@ -34,6 +37,7 @@ export function FamilySheet({ onClose }: { onClose: () => void }) {
       toast(error instanceof Error ? error.message : "Не получилось.", { duration: 6000 });
     } finally {
       setBusy(false);
+      setProgress("");
     }
   };
 
@@ -67,6 +71,12 @@ export function FamilySheet({ onClose }: { onClose: () => void }) {
             Ссылка попала не туда? Сделать новую
           </button>
 
+          <h3 className="mt-6 text-base font-semibold text-ink">Помощники правят книгу</h3>
+          <p className="mt-1 text-sm text-muted">Выложите текущую версию книги с фото: помощник получит копию по той же ссылке, внесёт правки и пришлёт их вам. Решаете вы. Выкладывать заново можно в любой момент, чтобы они увидели ваши новые правки.</p>
+          <Button className="mt-2" variant="soft" disabled={busy} onClick={() => void run(() => publishBase((d, t) => setProgress(`Фото ${d} из ${t}…`)), "Версия для помощников обновлена")}>
+            {progress || "Открыть книгу для правок"}
+          </Button>
+
           <h3 className="mt-6 text-base font-semibold text-ink">Прислали родственники</h3>
           {items === null ? <p className="mt-2 text-sm text-muted">Смотрю…</p> : null}
           {items?.length === 0 ? <p className="mt-2 text-sm text-muted">Пока ничего. Когда кто-то ответит, это появится здесь.</p> : null}
@@ -79,8 +89,23 @@ export function FamilySheet({ onClose }: { onClose: () => void }) {
                 </p>
                 {item.title || item.question ? <p className="mt-1 text-sm font-semibold text-ink">{item.title || item.question}</p> : null}
                 {item.photo ? <Photo src={item.photo} /> : null}
-                <p className="mt-1 whitespace-pre-wrap text-sm text-ink/85">{item.text}</p>
-                <div className="mt-3 flex gap-2">
+                {item.kind === "changes" && item.changes ? (
+                  <div className="mt-2">
+                    <ChangesCard
+                      changes={item.changes}
+                      who={item.from.name}
+                      onDone={() =>
+                        void run(async () => {
+                          await dismiss([item.id]);
+                          setItems((list) => list?.filter((x) => x.id !== item.id) ?? null);
+                        })
+                      }
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-ink/85">{item.text}</p>
+                )}
+                {item.kind === "changes" ? null : <div className="mt-3 flex gap-2">
                   <Button
                     disabled={busy}
                     onClick={() =>
@@ -105,7 +130,7 @@ export function FamilySheet({ onClose }: { onClose: () => void }) {
                   >
                     Убрать
                   </Button>
-                </div>
+                </div>}
               </li>
             ))}
           </ul>

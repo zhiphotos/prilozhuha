@@ -52,8 +52,8 @@ function writeMeta(meta: Meta) {
 async function call<T>(body: Record<string, unknown>): Promise<{ status: number; data: T & { error?: string } }> {
   const token = useRod.getState().access?.token ?? "";
   // Фото уходят и приходят кусками, поэтому одиночный сбой связи на телефоне не должен обрывать всю синхронизацию: такие запросы безопасно повторить.
-  const repeatable = typeof body.op === "string" && body.op.startsWith("media-");
-  const attempts = repeatable ? 4 : 1;
+  const repeatable = typeof body.op === "string" && (body.op.startsWith("media-") || body.op === "head" || body.op === "part"); // чтение и фото повторять безопасно; отправку версии (push) нет: повтор после потерянного ответа дал бы ложный конфликт
+  const attempts = repeatable ? 5 : 1;
   let last: { status: number; data: T & { error?: string } } = { status: 0, data: { error: "Облако не ответило." } as T & { error?: string } };
   for (let n = 0; n < attempts; n += 1) {
     if (n > 0) await new Promise((resolve) => setTimeout(resolve, 600 * n));

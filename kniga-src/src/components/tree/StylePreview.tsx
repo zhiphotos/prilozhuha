@@ -10,6 +10,7 @@ import { layoutPoster } from "@/lib/tree/poster";
 import { layoutTree } from "@/lib/tree/layout";
 import type { TreeStyle } from "@/lib/tree/styles";
 import type { TreeFlow } from "@/lib/tree/ui-store";
+import type { Person, Union } from "@/lib/tree/types";
 
 /** Готовые образцы стилей (картинки от Дарины): показываем их вместо рисунка тестового древа. */
 const SAMPLE: Partial<Record<TreeStyle, string>> = {
@@ -27,9 +28,15 @@ const TITLE: Record<TreeStyle, string> = {
 };
 
 /** Превью стиля на тестовом древе из Грока (demoTree). Только смотреть: настоящее древо не меняется. */
-export function StylePreview({ style, onPick, onOpen, onClose }: { style: TreeStyle; onPick: (style: TreeStyle) => void; onOpen: () => void; onClose: () => void }) {
+type Real = { people: Person[]; unions: Union[]; focusId: string };
+
+export function StylePreview({ style, real, onPick, onOpen, onClose }: { style: TreeStyle; real?: Real; onPick: (style: TreeStyle) => void; onOpen: () => void; onClose: () => void }) {
   const [flow] = useState<TreeFlow>("down");
-  const data = useMemo(() => demoTree(), []);
+  const canReal = Boolean(real && real.people.length >= 2);
+  const [mine, setMine] = useState(true);
+  const useReal = canReal && mine;
+  const demo = useMemo(() => demoTree(), []);
+  const data = useReal && real ? real : demo;
   const people = data.people;
   const unions = data.unions;
   const focusId = data.focusId;
@@ -42,13 +49,22 @@ export function StylePreview({ style, onPick, onOpen, onClose }: { style: TreeSt
   return (
     <Sheet title={`Так выглядит «${TITLE[style]}»`} onClose={onClose}>
       <div className="grid gap-3">
-        <p className="text-sm text-muted">Это пример оформления. Ваше древо не меняется. Выберите стиль, который нравится, и откройте его.</p>
-        {SAMPLE[style] ? (
+        <p className="text-sm text-muted">{useReal ? "Так стиль выглядит на вашем древе. Само древо не меняется." : "Это пример оформления. Ваше древо не меняется."} Выберите стиль, который нравится, и откройте его.</p>
+        {canReal ? (
+          <div className="flex gap-2" role="tablist">
+            {([[true, "Моё древо"], [false, "Образец"]] as const).map(([value, text]) => (
+              <button key={text} type="button" role="tab" aria-selected={mine === value} onClick={() => setMine(value)} className={`min-h-11 flex-1 rounded-full border px-3 text-sm font-semibold ${mine === value ? "border-moss bg-moss text-paper" : "border-ink/15 bg-white/70 text-ink"}`}>
+                {text}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {SAMPLE[style] && !useReal ? (
           <div className="max-h-[56dvh] overflow-auto rounded-2xl border border-line bg-black">
             <img src={`${import.meta.env.BASE_URL}${SAMPLE[style]}`} alt={`Образец стиля «${TITLE[style]}»`} className="block w-full" draggable={false} />
           </div>
         ) : null}
-        <div className={`tree-root relative h-[52dvh] min-h-[22rem] overflow-hidden rounded-2xl border border-line${SAMPLE[style] ? " hidden" : ""}`} data-theme="paper">
+        <div className={`tree-root relative h-[52dvh] min-h-[22rem] overflow-hidden rounded-2xl border border-line${SAMPLE[style] && !useReal ? " hidden" : ""}`} data-theme="paper">
           <TreeStage
             layout={layout}
             people={people}
@@ -75,6 +91,7 @@ export function StylePreview({ style, onPick, onOpen, onClose }: { style: TreeSt
             flow={flow}
             onFlow={() => undefined}
           />
+          <span className="pointer-events-none absolute left-3 top-3 z-30 rounded-full bg-black/55 px-3 py-1 text-xs font-semibold text-white">Предпросмотр</span>
         </div>
         <button type="button" className="min-h-12 rounded-full bg-moss px-5 text-sm font-semibold text-paper" onClick={onOpen}>
           Открыть стиль «{TITLE[style]}» в моём древе
