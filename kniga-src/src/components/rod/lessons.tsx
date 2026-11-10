@@ -395,7 +395,7 @@ export function PaySheet({ onClose }: { onClose: () => void }) {
           >
             Оплатить через Tribute
           </a>
-          <p className="text-xs text-muted">Это временное решение: после оплаты Дарина откроет доступ вручную.</p>
+          <p className="text-sm text-ink">После оплаты зайдите в Телеграм к боту <a className="font-semibold text-moss underline" href="https://t.me/ded_privratnik_kniga_bot" target="_blank" rel="noopener noreferrer">@ded_privratnik_kniga_bot</a>, нажмите «Старт» и напишите почту. Он сразу пришлёт ключ, его вводят ниже в поле «Есть код доступа?».</p>
         </div>
       ) : null}
 
@@ -452,6 +452,7 @@ export function PaySheet({ onClose }: { onClose: () => void }) {
         <label className="block text-sm font-medium text-ink" htmlFor="access-code">
           Есть код доступа?
         </label>
+        <p className="mt-1 text-xs text-muted">Ключ выдаёт бот <a className="text-moss underline" href="https://t.me/ded_privratnik_kniga_bot" target="_blank" rel="noopener noreferrer">@ded_privratnik_kniga_bot</a> в Телеграме, когда оплатите.</p>
         <div className="mt-1.5 flex gap-2">
           <input id="access-code" className="field uppercase" value={code} onChange={(event) => { setCode(event.target.value); setWrong(false); }} placeholder="Введите код" autoComplete="off" />
           <Button type="submit" disabled={!code.trim() || busy}>
