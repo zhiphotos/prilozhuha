@@ -14,6 +14,7 @@ import { TreeViewScreen } from "@/components/rod/tree-view";
 import { LegalScreen } from "@/components/rod/legal";
 import { FlipBookScreen } from "@/components/rod/flipbook";
 import { startAutoSync } from "@/lib/rod/sync";
+import { startHelperSync } from "@/lib/rod/helper";
 import { HomeScreen } from "@/components/rod/home";
 import { LessonScreen, LessonsScreen } from "@/components/rod/lessons";
 import { AppTour } from "@/components/rod/tour";
@@ -69,6 +70,7 @@ function RodAppMain() {
       if (!alive) return;
       afterHydrate();
       startAutoSync();
+      startHelperSync();
       handlePaymentReturn();
       void verifyAccess();
       void pingPush();

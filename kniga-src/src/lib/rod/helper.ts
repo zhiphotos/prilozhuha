@@ -58,20 +58,45 @@ async function downloadMedia(auth: Auth, refs: string[]): Promise<void> {
   }
 }
 
-/** Владелец: выложить текущую версию книги (люди, места, истории, заметки, страницы, фото), чтобы помощники взяли её за основу. */
-export async function publishBase(progress?: (done: number, total: number) => void): Promise<void> {
+const PUB_KEY = "kniga-published";
+type Published = { sig: string; media: string[] };
+const readPublished = (): Published | null => {
+  try {
+    const raw = localStorage.getItem(PUB_KEY);
+    return raw ? (JSON.parse(raw) as Published) : null;
+  } catch {
+    return null;
+  }
+};
+const signature = (value: unknown): string => {
+  const text = JSON.stringify(value);
+  let hash = 5381;
+  for (let i = 0; i < text.length; i += 1) hash = ((hash << 5) + hash + text.charCodeAt(i)) | 0;
+  return `${text.length}:${hash}`;
+};
+
+/** Владелец: выложить текущую версию книги (люди, места, истории, заметки, страницы, фото), чтобы помощники взяли её за основу.
+ *  С onlyNew выкладываются только ещё не отправленные фото: так работает автоматическая выкладка. Кнопка выкладывает всё. */
+export async function publishBase(progress?: (done: number, total: number) => void, onlyNew = false): Promise<void> {
   if (!useRod.getState().room) await createRoom("Наша семья");
   const room = useRod.getState().room;
   if (!room) throw new Error("Не получилось создать ссылку.");
   const base = lists();
   const auth: Auth = { room: room.id, ownerKey: room.ownerKey };
-  await uploadMedia(auth, [...refsOf(base)], progress);
+  const known = new Set(onlyNew ? readPublished()?.media ?? [] : []);
+  const refs = [...refsOf(base)];
+  await uploadMedia(auth, refs.filter((ref) => !known.has(ref)), progress);
   const answer = await post<{ ok?: boolean }>("/api/room-base", { room: room.id, ownerKey: room.ownerKey, base });
   if (!answer.ok) throw new Error(answer.error || "Не получилось открыть книгу для правок.");
+  try {
+    localStorage.setItem(PUB_KEY, JSON.stringify({ sig: signature(base), media: refs } satisfies Published));
+  } catch {
+    /* без записи книга просто выложится ещё раз */
+  }
 }
 
 const KEY = "kniga-helper";
-export type HelperSession = { room: string; invite: string; name: string; base: Book; project: string; who?: string };
+export type HelperSession = { room: string; invite: string; name: string; base: Book; project: string; who?: string; baseAt?: number };
 
 export function helperSession(): HelperSession | null {
   try {
@@ -109,7 +134,7 @@ export async function joinAsHelper(room: string, invite: string, progress?: (tex
     /* продолжаем как новый помощник */
   }
   progress?.("Получаю книгу…");
-  const answer = await post<{ ok?: boolean; base?: Book; name?: string }>("/api/room-base", { room, invite });
+  const answer = await post<{ ok?: boolean; base?: Book; name?: string; at?: number }>("/api/room-base", { room, invite });
   if (!answer.ok || !answer.base) throw new Error(answer.error || "Не получилось открыть книгу.");
   const auth: Auth = { room, invite };
   progress?.("Получаю фото…");
@@ -126,7 +151,7 @@ export async function joinAsHelper(room: string, invite: string, progress?: (tex
     useRod.setState(seed);
     flushBook();
   }
-  saveSession({ room, invite, name: answer.name ?? "Семья", base: answer.base, project });
+  saveSession({ room, invite, name: answer.name ?? "Семья", base: answer.base, project, baseAt: answer.at });
 }
 
 export const helperChanges = (session: HelperSession): Change[] => makeChangeSet(session.base, lists());
@@ -144,6 +169,71 @@ export async function sendChanges(session: HelperSession, who: string, progress?
 }
 
 export const leaveHelper = () => saveSession(null);
+
+/** Владелец: если книга изменилась с последней выкладки, выложить её заново (только для тех, кто уже открывал книгу для правок). */
+async function publishIfChanged(): Promise<void> {
+  const room = useRod.getState().room;
+  const last = readPublished();
+  if (!room?.ownerKey || !last) return;
+  if (signature(lists()) === last.sig) return;
+  await publishBase(undefined, true);
+}
+
+/** Помощник: отправить свои правки (если уже подписался) и забрать свежую версию владельца, когда у него нет ничего неотправленного. */
+async function helperRound(): Promise<void> {
+  let session = helperSession();
+  if (!session) return;
+  if (helperChanges(session).length) {
+    if (!session.who) return;
+    await sendChanges(session, session.who);
+    session = helperSession() ?? session;
+  }
+  if (helperChanges(session).length) return;
+  const answer = await post<{ ok?: boolean; same?: boolean; base?: Book; at?: number; waiting?: number }>("/api/room-base", { room: session.room, invite: session.invite, since: session.baseAt ?? 0, who: session.who ?? "" });
+  if (!answer.ok || answer.same || !answer.base) return;
+  if ((answer.waiting ?? 0) > 0) return; // владелец ещё не разобрал мои правки: поверх них новое не кладём
+  await downloadMedia({ room: session.room, invite: session.invite }, [...refsOf(answer.base)]);
+  const now = helperSession();
+  if (!now || now.room !== session.room || helperChanges(now).length) return; // пока шла загрузка, появились правки: заберём в следующий раз
+  const patch: Record<string, unknown> = {};
+  for (const key of HELPER_KEYS) patch[key] = answer.base[key] ?? [];
+  useRod.setState(patch);
+  flushBook();
+  saveSession({ ...now, base: answer.base, baseAt: answer.at });
+}
+
+let helperSyncStarted = false;
+let helperSyncBusy = false;
+
+/** Автоматический обмен с родственниками: при запуске, при возврате в приложение, при появлении сети, раз в две минуты и через 30 секунд после правок. */
+export function startHelperSync(): void {
+  if (helperSyncStarted || typeof document === "undefined") return;
+  helperSyncStarted = true;
+  const run = () => {
+    if (helperSyncBusy || navigator.onLine === false) return;
+    helperSyncBusy = true;
+    void publishIfChanged()
+      .catch(() => undefined)
+      .then(() => helperRound())
+      .catch(() => undefined)
+      .finally(() => {
+        helperSyncBusy = false;
+      });
+  };
+  window.setTimeout(run, 8000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") run();
+  });
+  window.addEventListener("online", run);
+  window.setInterval(() => {
+    if (document.visibilityState === "visible") run();
+  }, 120_000);
+  let timer: number | undefined;
+  useRod.subscribe(() => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(run, 30_000);
+  });
+}
 
 /** Владелец: забрать фото из присланных правок и сверить правки с книгой, какая она сейчас. */
 export async function reviewIncoming(changes: Change[]): Promise<ReviewItem[]> {

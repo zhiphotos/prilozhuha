@@ -70,6 +70,17 @@ ok("правки принимаются", (await run(submit, { body: { room, inv
 ok("пустые правки отклонены", (await run(submit, { body: { room, invite: rot.json.inviteKey, kind: "changes", from: { name: "Мама" }, changes: [] } })).status === 400);
 const withCh = (await run(inbox, { body: { room, ownerKey } })).json.items.find((i) => i.kind === "changes");
 ok("владелец видит правки списком", withCh?.changes?.[0]?.id === "n1" && withCh.from.name === "Мама");
+// ——— автоматический обмен: помощник спрашивает, есть ли новая версия, и сколько его правок ещё не разобрано
+const invK = rot.json.inviteKey;
+const poll0 = await run(baseRoute, { body: { room, invite: invK, since: 0, who: "Мама" } });
+ok("опрос с давним since отдаёт версию", poll0.json.ok && poll0.json.base?.people?.[0]?.name === "Анна" && poll0.json.waiting === 1);
+const same = await run(baseRoute, { body: { room, invite: invK, since: poll0.json.at, who: "Мама" } });
+ok("если версия не новее, base не присылается", same.json.same === true && !same.json.base && same.json.waiting === 1);
+ok("правки другого помощника не считаются", (await run(baseRoute, { body: { room, invite: invK, since: poll0.json.at, who: "Тётя" } })).json.waiting === 0);
+await new Promise((r) => setTimeout(r, 5));
+await run(baseRoute, { body: { room, ownerKey, base: { ...snap, people: [{ id: "a", name: "Анна" }, { id: "b", name: "Борис" }] } } });
+const fresh = await run(baseRoute, { body: { room, invite: invK, since: poll0.json.at, who: "Мама" } });
+ok("после новой выкладки опрос видит новую версию", fresh.json.same !== true && fresh.json.base?.people?.length === 2 && fresh.json.at > poll0.json.at);
 const mediaRoute = await load("room-media");
 const ref = "media:123e4567-e89b-12d3-a456-426614174000";
 ok("помощник выкладывает фото", (await run(mediaRoute, { body: { room, invite: rot.json.inviteKey, put: { [ref]: tiny } } })).json.ok === true);
