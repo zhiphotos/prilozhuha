@@ -441,6 +441,14 @@ function PhotoImage({ block, src, alt }: { block: Extract<PageBlock, { type: "ph
   );
 }
 
+/** Скругление рамки по форме: круг/овал, арка (круглый верх), мягкие углы. */
+export function shapeRadius(shape: "round" | "arch" | "rounded" | undefined): string | undefined {
+  if (shape === "round") return "50%";
+  if (shape === "arch") return "50% 50% 1.2cqw 1.2cqw / 36% 36% 1.2cqw 1.2cqw";
+  if (shape === "rounded") return "5cqw";
+  return undefined;
+}
+
 function PhotoArt({ block }: { block: Extract<PageBlock, { type: "photo" }> }) {
   const lifted = block.frame === "sticker" && Boolean(block.cut);
   const src = useMedia(lifted && block.cut ? block.cut : block.src);
@@ -478,12 +486,16 @@ function PhotoArt({ block }: { block: Extract<PageBlock, { type: "photo" }> }) {
       </div>
     );
   }
+  if (block.shape) return <div className={cn("photo-shadow h-full w-full overflow-hidden", flat)} style={{ borderRadius: shapeRadius(block.shape) }}>{img}</div>;
   return <div className={cn("photo-shadow h-full w-full overflow-hidden", block.shadow === false ? "rounded-none no-shadow" : block.sharp ? "rounded-none" : "rounded-[1.4cqw]")}>{img}</div>;
 }
 
 function SlotArt({ block }: { block: Extract<PageBlock, { type: "slot" }> }) {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-[1.5cqw] rounded-[2cqw] border-[0.4cqw] border-dashed border-[#c45d72]/60 bg-white/40 text-center text-[#8e3d52]">
+    <div
+      className="flex h-full w-full flex-col items-center justify-center gap-[1.5cqw] rounded-[2cqw] border-[0.4cqw] border-dashed border-[#c45d72]/60 bg-white/40 text-center text-[#8e3d52]"
+      style={block.shape ? { borderRadius: shapeRadius(block.shape) } : undefined}
+    >
       <ImagePlus style={{ width: "7cqw", height: "7cqw" }} strokeWidth={1.5} />
       <span style={{ fontSize: "3cqw", fontFamily: FONT_FAMILY.sans }} className="px-[2cqw] leading-tight">
         {block.label || "Фото"}

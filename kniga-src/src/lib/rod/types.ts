@@ -135,6 +135,8 @@ export type StickerKind =
   | "branch";
 export type TextLook = "plain" | "card" | "pill";
 export type PhotoFrame = "none" | "polaroid" | "sticker" | "tape";
+/** Форма рамки фото: круг/овал, арка, скруглённый прямоугольник. Без поля – прямоугольник. */
+export type PhotoShape = "round" | "arch" | "rounded";
 
 type Placed = {
   rotate?: number;
@@ -221,7 +223,7 @@ export type PageBlock =
       wrap?: boolean;
       placeholder?: string;
     } & Placed)
-  | ({ id: string; type: "slot"; x: number; y: number; w: number; h: number; label: string; frame: PhotoFrame } & Placed)
+  | ({ id: string; type: "slot"; x: number; y: number; w: number; h: number; label: string; frame: PhotoFrame; shape?: PhotoShape } & Placed)
   | ({
       id: string;
       type: "photo";
@@ -233,6 +235,7 @@ export type PageBlock =
       cut?: string;
       caption: string;
       frame: PhotoFrame;
+      shape?: PhotoShape;
       /** Какой кусок фото виден в рамке: центр (0..1) и приближение (1 = вся рамка). */
       crop?: { cx: number; cy: number; z: number };
       /** Тень под фото. Старые фото без поля – с тенью. */
