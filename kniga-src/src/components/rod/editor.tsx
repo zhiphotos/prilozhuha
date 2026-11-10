@@ -31,12 +31,17 @@ import {
   X,
   ZoomIn,
   ZoomOut,
+  UserRound,
+  LayoutGrid,
 } from "lucide-react";
 import { toast } from "sonner";
 import { flowChunks, flowToNextPages } from "@/lib/rod/text-flow";
 import { Button, Sheet, useNav } from "@/components/rod/chrome";
 import { fillInside } from "@/lib/rod/fill";
 import { BlockBar, Inspector, PenBar, TextPanel, spillsOut, type BlockOps, type Tool } from "@/components/rod/editor-bars";
+import { PhotoLayoutsSheet } from "@/components/rod/photo-layouts-sheet";
+import { layoutSlots } from "@/lib/rod/photo-layouts";
+import { PersonCardSheet } from "@/components/rod/person-card-sheet";
 import { FontsSheet, GENERIC_QUESTIONS, HelpSheet, LayersSheet, PasteSheet, PhotoSheet, PinterestPanel, StickersSheet, type PhotoStyle } from "@/components/rod/editor-sheets";
 import { BarBtn, IconBtn, MenuRow, ToolBtn } from "@/components/rod/editor-ui";
 import { ColorRow, ColorSheet } from "@/components/rod/color-sheet";
@@ -64,7 +69,7 @@ import { cn } from "@/lib/cn";
 import { applyEdge, edgesFor } from "@/lib/rod/edge-handles";
 import { snapBox, type Guides, type SnapTarget } from "@/lib/rod/snap";
 
-type Panel = "contents" | "photo" | "pinterest" | "paste" | "stickers" | "help" | "menu" | "covers" | "layers" | "fonts" | "inspector" | "scan" | null;
+type Panel = "decor" | "layouts" | "card" | "contents" | "photo" | "pinterest" | "paste" | "stickers" | "help" | "menu" | "covers" | "layers" | "fonts" | "inspector" | "scan" | null;
 type Box = { x: number; y: number; w: number; h: number | null; rotate: number };
 type Gesture = {
   id: string;
@@ -793,7 +798,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const frame: PhotoFrame = target && target.type === "slot" ? target.frame : chosen === "cutout" ? "sticker" : chosen === "full" ? "none" : chosen;
     let block: Extract<PageBlock, { type: "photo" }>;
     if (target && target.type === "slot") {
-      block = { id: id(), type: "photo", x: target.x, y: target.y, w: target.w, h: target.h, rotate: target.rotate ?? 0, src: ref, caption: "", frame, shadow: shadowPref };
+      block = { id: id(), type: "photo", x: target.x, y: target.y, w: target.w, h: target.h, rotate: target.rotate ?? 0, src: ref, caption: "", frame, shadow: shadowPref, ...(target.shape ? { shape: target.shape } : {}) };
     } else {
       // Очень длинное или очень высокое фото: подбираем ширину так, чтобы оно легло целиком, а не обрезалось рамкой.
       const heightFor = (width: number) => {
@@ -871,17 +876,20 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const wait = toast.loading(list.length > 1 ? `Загружаю ${list.length} фото…` : "Загружаю фото…");
     void (async () => {
       let ok = 0;
-      for (const [i, file] of list.slice(0, 8).entries()) {
+      const refs: string[] = [];
+      for (const file of list.slice(0, 9)) {
         try {
-          const ref = await importImage(file);
-          await placePhoto(ref, list.length > 1 ? { x: 30 + (i % 2) * 40, y: 25 + Math.floor(i / 2) * 25 } : undefined, undefined, i === 0);
+          refs.push(await importImage(file));
           ok += 1;
         } catch (error) {
           toast(`«${file.name}» не открылся: ${error instanceof Error ? error.message : "неизвестная ошибка"}. Пришлите Claude этот текст.`, { duration: 9000 });
         }
       }
       toast.dismiss(wait);
-      if (ok && list.length > 1) toast(`Добавлено фото: ${ok}`);
+      for (const [i, ref] of refs.entries()) {
+        await placePhoto(ref, refs.length > 1 ? { x: 30 + (i % 2) * 40, y: 25 + Math.floor(i / 2) * 25 } : undefined, undefined, i === 0);
+      }
+      if (refs.length > 1) toast(`Добавлено фото: ${ok}`);
     })();
   };
 
@@ -2259,14 +2267,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           >
             <PenLine className="size-5" />
           </ToolBtn>
-          <ToolBtn
-            label="Стикеры"
-            onClick={() => {
-              setTool("hand");
-              setPanel("stickers");
-            }}
-          >
-            <Smile className="size-5" />
+          <ToolBtn label="Оформление" active={panel === "decor"} onClick={() => { setTool("hand"); setPanel("decor"); }}>
+            <Sparkles className="size-5" />
           </ToolBtn>
           <ToolBtn label="Слои" onClick={() => { setTool("hand"); setPanel("layers"); }}>
             <Layers className="size-5" />
@@ -2356,6 +2358,50 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
       {panel === "pinterest" ? <PinterestPanel onClose={() => setPanel(null)} onPaste={() => void pasteFromClipboard()} onLink={(link) => { setPanel(null); fromLink(link); }} onPasteData={(data) => { setPanel(null); fromTransfer(data); }} /> : null}
       {panel === "paste" ? <PasteSheet onClose={() => setPanel(null)} onPaste={() => void pasteFromClipboard()} onLink={(link) => { setPanel(null); fromLink(link); }} onPasteData={(data) => { setPanel(null); fromTransfer(data); }} /> : null}
+
+      {panel === "decor" ? (
+        <Sheet title="Оформление" onClose={() => setPanel(null)}>
+          <div className="grid grid-cols-3 gap-3">
+            {([
+              ["stickers", "Визуальные элементы", <Smile key="s" className="size-7" />],
+              ["layouts", "Макеты фото", <LayoutGrid key="l" className="size-7" />],
+              ["card", "Человек", <UserRound key="c" className="size-7" />],
+            ] as const).map(([key, label, icon]) => (
+              <button key={key} type="button" onClick={() => setPanel(key)} className="flex flex-col items-center gap-2 rounded-2xl bg-white/70 px-2 py-4 text-sm font-medium text-ink active:bg-white">
+                {icon}
+                {label}
+              </button>
+            ))}
+          </div>
+        </Sheet>
+      ) : null}
+
+      {panel === "layouts" ? (
+        <PhotoLayoutsSheet
+          onClose={() => setPanel(null)}
+          onPick={(layout) => {
+            const made = layoutSlots(layout, id);
+            stickSound();
+            commit((p) => ({ ...p, blocks: [...p.blocks, ...made] }));
+            setSelected(made[0]!.id);
+            setPanel(null);
+            flushBook();
+            toast(`Рамки на странице: ${made.length}. Нажмите на рамку, чтобы добавить фото`);
+          }}
+        />
+      ) : null}
+
+      {panel === "card" ? (
+        <PersonCardSheet
+          onClose={() => setPanel(null)}
+          onPlace={(text) => {
+            const taken = (current()?.blocks ?? []).filter((b) => b.type === "text").map((b) => b.y);
+            const freeY = [40, 58, 24, 74, 10, 86].find((y) => taken.every((t) => Math.abs(t - y) > 14)) ?? 40;
+            addBlock({ id: id(), type: "text", x: 14, y: freeY, w: 72, text, font: "sans", size: "md", look: "card" } as PageBlock);
+            toast("Карточка на странице: её можно двигать и менять");
+          }}
+        />
+      ) : null}
 
       {panel === "stickers" ? (
         <StickersSheet

@@ -1,8 +1,12 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { useMedia } from "@/lib/rod/media";
 import { cn } from "@/lib/cn";
 
 export function IconBtn({ label, children, onClick, disabled, active, className }: { label: string; children: React.ReactNode; onClick: () => void; disabled?: boolean; active?: boolean; className?: string }) {
+  // Подписи значков на телефоне не видны: зажмите значок на секунду, и название появится.
+  const timer = useRef<number | undefined>(undefined);
+  const stop = () => window.clearTimeout(timer.current);
   return (
     <button
       type="button"
@@ -10,6 +14,13 @@ export function IconBtn({ label, children, onClick, disabled, active, className 
       title={label}
       disabled={disabled}
       onClick={onClick}
+      onPointerDown={() => {
+        stop();
+        timer.current = window.setTimeout(() => toast(label.replace(/ \(.*\)$/, ""), { duration: 1600 }), 500);
+      }}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
       className={cn("grid size-11 place-items-center rounded-full text-ink transition disabled:opacity-30 enabled:active:bg-white/70", active && "bg-night text-paper", className)}
     >
       {children}
@@ -22,7 +33,7 @@ export function ToolBtn({ label, children, onClick, active }: { label: string; c
     <button
       type="button"
       onClick={onClick}
-      className={cn("flex min-h-[3.6rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[1.2rem] text-[12.5px] font-medium leading-none transition", active ? "bg-white text-ink" : "text-paper/90 active:bg-white/15")}
+      className={cn("flex min-h-[3.6rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[1.2rem] text-[11px] font-medium leading-none transition min-[420px]:text-[12.5px]", active ? "bg-white text-ink" : "text-paper/90 active:bg-white/15")}
     >
       {children}
       <span className="truncate">{label}</span>

@@ -161,7 +161,7 @@ export function StickersSheet({
   const mine = useRod((state) => state.userStickers);
   const remove = useRod((state) => state.removeUserSticker);
   return (
-    <Sheet title="Стикеры" onClose={onClose}>
+    <Sheet title="Визуальные элементы" onClose={onClose}>
       <div className="no-scrollbar -mx-1 mb-3 flex gap-2 overflow-x-auto px-1">
         {(
           [

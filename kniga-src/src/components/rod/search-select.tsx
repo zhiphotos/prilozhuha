@@ -11,7 +11,7 @@ export function SearchSelect({
   options,
   empty,
   className = "field",
-  sort = false,
+  sort = true,
   label,
 }: {
   value: string;
@@ -20,41 +20,62 @@ export function SearchSelect({
   /** Текст пустого варианта («Не выбрано»). Если не задан, пустого варианта нет. */
   empty?: string;
   className?: string;
-  /** Сортировать варианты по алфавиту. */
+  /** Варианты по алфавиту (по умолчанию да). */
   sort?: boolean;
   label?: string;
 }) {
+  // Одно поле: нажали, список раскрылся, печатаешь, список сужается. Поиск и список вместе, а не отдельно.
+  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
+  const current = options.find((item) => item.value === value);
   const shown = useMemo(() => {
     const base = sort ? [...options].sort((a, b) => a.label.localeCompare(b.label, "ru")) : options;
-    if (!q) return base;
-    return base.filter((item) => item.value === value || item.label.toLowerCase().includes(q));
-  }, [options, q, sort, value]);
-  const search = options.length >= 6;
-  const none = q && !shown.some((item) => item.value !== value) ? "Никого не нашли" : null;
+    return q ? base.filter((item) => item.label.toLowerCase().includes(q)) : base;
+  }, [options, q, sort]);
+  const choose = (next: string) => {
+    onChange(next);
+    setOpen(false);
+    setQuery("");
+  };
   return (
-    <div className="grid gap-1.5">
-      {search ? (
-        <input
-          type="search"
-          className="field"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Найти по имени"
-          aria-label={label ? `Поиск: ${label}` : "Поиск по списку"}
-          enterKeyHint="search"
-        />
+    <div className="relative grid gap-1.5">
+      <input
+        type="text"
+        role="combobox"
+        aria-expanded={open}
+        aria-label={label}
+        className={className}
+        value={open ? query : (current?.label ?? empty ?? "")}
+        placeholder={open ? "Начните вводить имя" : (empty ?? "Выбрать")}
+        onFocus={() => {
+          setOpen(true);
+          setQuery("");
+        }}
+        onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+        onChange={(event) => setQuery(event.target.value)}
+        enterKeyHint="search"
+        autoComplete="off"
+      />
+      {open ? (
+        <ul role="listbox" className="max-h-56 overflow-y-auto rounded-xl border border-ink/15 bg-white p-1 shadow-lg">
+          {empty !== undefined && !q ? (
+            <li>
+              <button type="button" className="min-h-11 w-full rounded-lg px-3 text-left text-sm text-muted" onMouseDown={(event) => event.preventDefault()} onClick={() => choose("")}>
+                {empty}
+              </button>
+            </li>
+          ) : null}
+          {shown.map((item) => (
+            <li key={item.value}>
+              <button type="button" role="option" aria-selected={item.value === value} className={`min-h-11 w-full rounded-lg px-3 text-left text-sm ${item.value === value ? "bg-sage-soft font-semibold" : ""}`} onMouseDown={(event) => event.preventDefault()} onClick={() => choose(item.value)}>
+                {item.label}
+              </button>
+            </li>
+          ))}
+          {shown.length === 0 ? <li className="px-3 py-2 text-sm text-muted">Никого не нашли</li> : null}
+        </ul>
       ) : null}
-      <select className={className} value={value} onChange={(event) => onChange(event.target.value)} aria-label={label}>
-        {empty !== undefined ? <option value="">{empty}</option> : null}
-        {shown.map((item) => (
-          <option key={item.value} value={item.value}>
-            {item.label}
-          </option>
-        ))}
-      </select>
-      {none ? <p className="text-xs text-muted">{none}</p> : null}
     </div>
   );
 }
