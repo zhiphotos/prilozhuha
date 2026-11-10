@@ -10,6 +10,7 @@ import { TreeStage } from "@/components/tree/TreeStage";
 import { StylePreview } from "@/components/tree/StylePreview";
 import { GedImportButton, hasPendingGedFile } from "@/components/rod/ged-import";
 import { TreeFileButton } from "@/components/rod/tree-file";
+import { SchemePick } from "@/components/rod/scheme-pick";
 import { Hint } from "@/components/rod/hint";
 import { TreeSearch } from "@/components/tree/TreeSearch";
 import { searchPeople } from "@/lib/tree/search";
@@ -97,6 +98,7 @@ function TreeScreen() {
   const [busy, setBusy] = useState(false);
   const [add, setAdd] = useState(false);
   const [sheetPick, setSheetPick] = useState(false);
+  const [schemeOpen, setSchemeOpen] = useState(false);
   const [print, setPrint] = useState<PrintOptions>(() => {
     try {
       const raw = JSON.parse(localStorage.getItem("kniga-print") ?? "null") as Partial<PrintOptions> | null;
@@ -440,6 +442,9 @@ function TreeScreen() {
             <button type="button" className="chip" aria-label="Тема" onClick={() => setTheme(theme === "night" ? "paper" : "night")}>
               {theme === "night" ? <Sun className="size-5" /> : <Moon className="size-5" />}
             </button>
+            <button type="button" className="chip" disabled={people.length === 0} onClick={() => setSchemeOpen(true)}>
+              Схема из выбранных
+            </button>
             <div className="relative">
               <button type="button" className="chip" disabled={busy || people.length === 0} aria-expanded={sheetPick} onClick={() => setSheetPick((open) => !open)}>
                 {busy ? "…" : "Сохранить как"}
@@ -510,6 +515,9 @@ function TreeScreen() {
         />
       )}
       <PersonDrawer onNewBook={() => undefined} />
+      {schemeOpen && (
+        <SchemePick people={people} unions={unions} focusId={focusId} style={style} banner={banner} flow={flow} onClose={() => setSchemeOpen(false)} />
+      )}
       {add && focusId && (
         <AddPerson
           initialId={selectedId || focusId}
