@@ -78,7 +78,7 @@ export function AddPerson({
       const parentIds = unions.filter((u) => u.childIds.includes(anchor.id)).flatMap((u) => u.partnerIds);
       const parent = people.find((p) => parentIds.includes(p.id) && p.gender === parentGender);
       if (!parent) {
-        setError(`Сначала добавьте ${side === "mom" ? "маму" : "папу"} для ${anchor.firstName}: ${kind === "grandmother" ? "бабушка" : "дедушка"} встанет над ${side === "mom" ? "ней" : "ним"}`);
+        setError(`В древе пока нет ${side === "mom" ? "мамы" : "папы"} у человека «${displayName(anchor)}». Сначала добавьте ${side === "mom" ? "её" : "его"} ролью «${side === "mom" ? "Мать" : "Отец"}», потом ${kind === "grandmother" ? "бабушку" : "дедушку"}.`);
         return;
       }
       const msg = useTree.getState().addRelative(parent.id, kind === "grandmother" ? "mother" : "father", draft);
@@ -134,6 +134,7 @@ export function AddPerson({
                     className={`min-h-12 rounded-2xl px-3 text-left font-serif text-xl ${p.id === anchor?.id ? "bg-ink text-sheet" : "border border-line bg-white"}`}
                     onClick={() => {
                       setAnchorId(p.id);
+                      setError(null);
                       setUnionId("");
                       setPicking(false);
                     }}
@@ -152,7 +153,7 @@ export function AddPerson({
                   key={item.kind}
                   type="button"
                   className={`min-h-12 rounded-2xl border px-3 text-sm font-semibold ${kind === item.kind ? "border-ink bg-ink text-sheet" : "border-line bg-white"}`}
-                  onClick={() => setKind(item.kind)}
+                  onClick={() => { setKind(item.kind); setError(null); }}
                 >
                   {item.label}
                 </button>
@@ -176,7 +177,7 @@ export function AddPerson({
           {(kind === "grandfather" || kind === "grandmother") && (
             <div className="grid grid-cols-2 gap-2">
               {(["mom", "dad"] as const).map((sd) => (
-                <button key={sd} type="button" className={`min-h-12 rounded-2xl border text-sm font-semibold ${side === sd ? "border-ink bg-ink text-sheet" : "border-line bg-white"}`} onClick={() => setSide(sd)}>
+                <button key={sd} type="button" className={`min-h-12 rounded-2xl border text-sm font-semibold ${side === sd ? "border-ink bg-ink text-sheet" : "border-line bg-white"}`} onClick={() => { setSide(sd); setError(null); }}>
                   {sd === "mom" ? "По маме" : "По папе"}
                 </button>
               ))}
