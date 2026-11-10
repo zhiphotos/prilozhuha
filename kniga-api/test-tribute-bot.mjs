@@ -28,8 +28,14 @@ ok("ключ записан как у ручной выдачи, почта в �
 ok("повторно тот же ключ", (await reply(me, "/start")).includes(code) && (await reply(me, "ещё раз nina@mail.ru")).includes(code));
 ok("повтор вебхука ничего не ломает", (await run(hook, evt("new_digital_product", { product_id: 5, telegram_user_id: 777, purchase_id: 91 }))).status === 200 && (await reply(me, "/start")).includes(code));
 ok("возврат отзывает ключ", (await run(hook, evt("digital_product_refunded", { purchase_id: 91, telegram_user_id: 777 }))).status === 200 && (await redis("HGET", "kr:grants", code)) === null);
-ok("после возврата бот не даёт", /не вижу/i.test(await reply(me, "/start")));
+ok("после возврата бот один раз сообщает и дальше не даёт", /вернули/i.test(await reply(me, "/start")) && /не вижу/i.test(await reply(me, "/start")));
 const bot = await load("tg-bot");
 ok("бот без секрета отклонён", (await run(bot, { body: { message: {} }, headers: { "x-telegram-bot-api-secret-token": "bad" } })).status === 401);
 ok("бот с секретом отвечает 200", (await run(bot, { body: {}, headers: { "x-telegram-bot-api-secret-token": process.env.TG_WEBHOOK_SECRET } })).status === 200);
+const answer = await run(bot, { body: { message: { chat: { id: 5, type: "private" }, from: { id: 5, first_name: "Гость" }, text: "/start" } }, headers: { "x-telegram-bot-api-secret-token": process.env.TG_WEBHOOK_SECRET } });
+ok("ответ идёт в теле ответа (sendMessage), сервер сам в Telegram не ходит", answer.json.method === "sendMessage" && answer.json.chat_id === 5 && /не вижу/i.test(answer.json.text));
+process.env.TG_ADMIN_CHAT_ID = "5";
+await run(hook, evt("new_digital_product", { product_id: 5, amount: 2026, currency: "rub", telegram_user_id: 888, purchase_id: 92 }));
+const adm = await run(bot, { body: { message: { chat: { id: 5, type: "private" }, from: { id: 5 }, text: "привет" } }, headers: { "x-telegram-bot-api-secret-token": process.env.TG_WEBHOOK_SECRET } });
+ok("Дарине в ответе приходят накопившиеся новости об оплатах", /Оплатили через Трибьют/.test(adm.json.text));
 process.exit(process.exitCode ?? 0);

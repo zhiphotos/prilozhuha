@@ -2,8 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { rawBodyOf, json } from "../config.js";
 import { redis, redisConfigured } from "../redis.js";
 import { revokeGrant } from "../grants.js";
-import { say, tellAdmin } from "../telegram.js";
-import { refunded } from "../ded.js";
+import { notifyAdmin } from "../outbox.js";
 
 // POST /api/tribute-hook  – вебхук Tribute: оплата цифрового продукта. Подпись trbt-signature: HMAC-SHA256 тела ключом API (TRIBUTE_API_KEY).
 // Запоминаем, какой Telegram-пользователь заплатил. Доступ выдаёт бот «Дед Привратник», когда этот человек пришлёт ему почту.
@@ -34,7 +33,7 @@ export default async function handler(req, res) {
 
   if (evt.name === "new_digital_product") {
     if (!tgId) {
-      await tellAdmin(`Пришла оплата Трибьют без Telegram-номера (${p.amount ?? "?"} ${p.currency ?? ""}). Выдай ключ вручную.`);
+      await notifyAdmin(`Пришла оплата Трибьют без Telegram-номера (${p.amount ?? "?"} ${p.currency ?? ""}). Выдай ключ вручную.`);
       return json(res, 200, { status: "no-telegram" });
     }
     const purchase = String(p.purchase_id ?? p.id ?? `${tgId}-${productId}-${evt.created_at ?? ""}`);
@@ -43,7 +42,7 @@ export default async function handler(req, res) {
     if (record.purchase !== purchase || record.refunded) {
       await redis("HSET", "kr:tg:paid", tgId, JSON.stringify({ ...record, purchase, productId, amount: p.amount, currency: p.currency, username: p.telegram_username ?? record.username, at: Date.now(), refunded: false }));
       await redis("HSET", "kr:tg:purchase", purchase, tgId);
-      await tellAdmin(`Оплатили через Трибьют${p.telegram_username ? ` (@${p.telegram_username})` : ""}: ${p.amount ?? "?"} ${p.currency ?? ""}. Дед Привратник ждёт от них почту и выдаст ключ сам.`);
+      await notifyAdmin(`Оплатили через Трибьют${p.telegram_username ? ` (@${p.telegram_username})` : ""}: ${p.amount ?? "?"} ${p.currency ?? ""}. Дед Привратник ждёт от них почту и выдаст ключ сам.`);
     }
     return json(res, 200, { status: "ok" });
   }
@@ -55,9 +54,8 @@ export default async function handler(req, res) {
     if (prev) {
       const record = JSON.parse(prev);
       if (record.code) await revokeGrant(record.code);
-      await redis("HSET", "kr:tg:paid", String(owner), JSON.stringify({ ...record, refunded: true }));
-      await say(owner, refunded());
-      await tellAdmin(`Вернули оплату Трибьют (${owner}). Ключ${record.code ? ` ${record.code}` : ""} отозван.`);
+      await redis("HSET", "kr:tg:paid", String(owner), JSON.stringify({ ...record, refunded: true, refundSeen: false }));
+      await notifyAdmin(`Вернули оплату Трибьют (${owner}). Ключ${record.code ? ` ${record.code}` : ""} отозван.`);
     }
     return json(res, 200, { status: "ok" });
   }
