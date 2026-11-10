@@ -10,6 +10,7 @@ import { TreeStage } from "@/components/tree/TreeStage";
 import { StylePreview } from "@/components/tree/StylePreview";
 import { GedImportButton, hasPendingGedFile } from "@/components/rod/ged-import";
 import { TreeFileButton } from "@/components/rod/tree-file";
+import { SchemePick } from "@/components/rod/scheme-pick";
 import { Hint } from "@/components/rod/hint";
 import { TreeSearch } from "@/components/tree/TreeSearch";
 import { searchPeople } from "@/lib/tree/search";
@@ -18,6 +19,7 @@ import { setCardFields, useCardFields } from "@/lib/tree/card-fields";
 import { publishShare, readShare, revokeShare } from "@/lib/rod/share-tree";
 import { layoutTree, sliceByRadius } from "@/lib/tree/layout";
 import { SCOPES, scopeFilter } from "@/lib/tree/scope";
+import { addRelatives } from "@/lib/tree/subset";
 import { layoutCameo } from "@/lib/tree/cameo";
 import { layoutGzhel } from "@/lib/tree/gzhel";
 import { layoutBoheme } from "@/lib/tree/boheme";
@@ -97,6 +99,17 @@ function TreeScreen() {
   const [busy, setBusy] = useState(false);
   const [add, setAdd] = useState(false);
   const [sheetPick, setSheetPick] = useState(false);
+  const [schemeOpen, setSchemeOpen] = useState(false);
+  // Выбор людей для схемы нажатием прямо по древу: отмеченные получают кольцо с галочкой.
+  const [pickMode, setPickMode] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  const togglePicked = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const [print, setPrint] = useState<PrintOptions>(() => {
     try {
       const raw = JSON.parse(localStorage.getItem("kniga-print") ?? "null") as Partial<PrintOptions> | null;
@@ -115,6 +128,20 @@ function TreeScreen() {
   };
   const [fitReq, setFitReq] = useState(0);
   // Смена центра: камера встаёт на нового центра, схема подгоняется под экран. Данные книги при этом не меняются.
+  // Полоса под часами на телефоне берёт цвет из theme-color: на время древа красим её в цвет самого древа, иначе сверху светлая «бровь» над тёмным экраном.
+  useEffect(() => {
+    const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!meta) return;
+    const before = meta.content;
+    const timer = window.setTimeout(() => {
+      const bg = getComputedStyle(document.querySelector(".tree-viewport") ?? document.querySelector(".tree-root") ?? document.body).backgroundColor;
+      if (bg && bg !== "rgba(0, 0, 0, 0)") meta.content = bg;
+    }, 60);
+    return () => {
+      window.clearTimeout(timer);
+      meta.content = before;
+    };
+  }, [style, theme]);
   const lastFocus = useRef(focusId);
   useEffect(() => {
     if (lastFocus.current === focusId) return;
@@ -137,6 +164,8 @@ function TreeScreen() {
   const [toolsOpen, setToolsOpen] = useState(() => hasPendingGedFile());
   const [scopeOpen, setScopeOpen] = useState(false);
   const [scopeShift, setScopeShift] = useState(0);
+  // Меню длиннее экрана телефона: высота до низа экрана, дальше листается пальцем.
+  const [scopeMax, setScopeMax] = useState(480);
   const scopeBox = useRef<HTMLDivElement>(null);
   const shown = useMemo(() => scopeFilter(people, unions, focusId, scope), [people, unions, focusId, scope]);
   const view = useMemo(() => sliceByRadius(shown.people, shown.unions, focusId, radius), [shown, focusId, radius]);
@@ -241,7 +270,8 @@ function TreeScreen() {
         people={people}
         unions={unions}
         focusId={focusId}
-        selectedId={selectedId}
+        selectedId={pickMode ? null : selectedId}
+        marked={pickMode ? picked : undefined}
         centerReq={centerReq}
         radius={radius}
         fitReq={fitReq}
@@ -249,7 +279,7 @@ function TreeScreen() {
           setRadius(next);
           setCenterReq({ id: focusId, n: Date.now() });
         }}
-        onSelectPerson={(id) => selectPerson(id)}
+        onSelectPerson={(id) => (pickMode ? togglePicked(id) : selectPerson(id))}
         onSelectUnion={(id) => selectUnion(id)}
         onLocate={() => {
           selectPerson(null);
@@ -348,15 +378,17 @@ function TreeScreen() {
                 aria-expanded={scopeOpen}
                 onClick={() => {
                   // Меню шире экрана телефона: сдвигаем его влево, чтобы оно целиком помещалось.
-                  const left = scopeBox.current?.getBoundingClientRect().left ?? 12;
+                  const box = scopeBox.current?.getBoundingClientRect();
+                  const left = box?.left ?? 12;
                   setScopeShift(Math.max(0, left - 12));
+                  setScopeMax(Math.max(200, window.innerHeight - (box?.bottom ?? 120) - 64));
                   setScopeOpen((v) => !v);
                 }}
               >
                 Расширенные{scope === "all" && spread === 0 ? "" : " •"} ▾
               </button>
               {scopeOpen && (
-                <div style={{ left: -scopeShift }} className="absolute top-12 z-30 grid w-[min(20rem,calc(100vw-1.5rem))] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg backdrop-blur-md">
+                <div style={{ left: -scopeShift, maxHeight: scopeMax }} className="absolute top-12 z-30 grid w-[min(20rem,calc(100vw-1.5rem))] touch-pan-y gap-1 overflow-y-auto overscroll-contain rounded-2xl border border-chip-line bg-chip p-1 shadow-lg backdrop-blur-md">
                   {SCOPES.map((item) => (
                     <button
                       key={item.id}
@@ -440,12 +472,26 @@ function TreeScreen() {
             <button type="button" className="chip" aria-label="Тема" onClick={() => setTheme(theme === "night" ? "paper" : "night")}>
               {theme === "night" ? <Sun className="size-5" /> : <Moon className="size-5" />}
             </button>
+            <button
+              type="button"
+              className="chip"
+              disabled={people.length === 0}
+              onClick={() => {
+                selectPerson(null);
+                selectUnion(null);
+                setPickMode(true);
+                setToolsOpen(false);
+                setRoster(false);
+              }}
+            >
+              Схема из выбранных
+            </button>
             <div className="relative">
               <button type="button" className="chip" disabled={busy || people.length === 0} aria-expanded={sheetPick} onClick={() => setSheetPick((open) => !open)}>
                 {busy ? "…" : "Сохранить как"}
               </button>
               {sheetPick && (
-                <div className="absolute top-12 left-0 z-30 grid w-56 max-w-[calc(100vw-1.5rem)] gap-1 rounded-2xl border border-chip-line bg-chip p-1 shadow-lg">
+                <div className="absolute top-12 left-0 z-30 grid max-h-[55dvh] w-56 max-w-[calc(100vw-1.5rem)] touch-pan-y gap-1 overflow-y-auto overscroll-contain rounded-2xl border border-chip-line bg-chip p-1 shadow-lg">
                   {style === "work" ? (
                     <>
                       <div className="grid gap-1 px-1 pb-1 text-xs text-muted">
@@ -510,6 +556,41 @@ function TreeScreen() {
         />
       )}
       <PersonDrawer onNewBook={() => undefined} />
+      {pickMode && !schemeOpen && (
+        <div className="pointer-events-auto absolute inset-x-0 bottom-[5.25rem] z-30 mx-auto flex w-[min(34rem,calc(100vw-1.5rem))] flex-wrap items-center gap-1.5 rounded-2xl bg-black/75 px-2.5 py-2 text-xs backdrop-blur-md">
+          <p className="basis-full text-sm">{picked.size ? `Отмечено: ${picked.size}. Ещё нажмите на людей или жмите «Далее».` : "Нажмите на человека на древе: у него появится галочка."}</p>
+          {(["ancestors", "descendants", "spouses"] as const).map((r) => (
+            <button key={r} type="button" disabled={picked.size === 0} className="min-h-9 rounded-full bg-white/15 px-2.5 font-semibold disabled:opacity-40" onClick={() => setPicked((prev) => addRelatives(unions, prev, r))}>
+              {r === "ancestors" ? "+ предки" : r === "descendants" ? "+ потомки" : "+ супруги"}
+            </button>
+          ))}
+          <span className="flex-1" />
+          <button type="button" className="min-h-9 rounded-full px-2.5 font-semibold" onClick={() => { setPickMode(false); setPicked(new Set()); }}>
+            Отмена
+          </button>
+          <button type="button" disabled={picked.size === 0} className="min-h-9 rounded-full bg-gold px-3.5 font-semibold text-ink disabled:opacity-40" onClick={() => setSchemeOpen(true)}>
+            {picked.size ? `Далее (${picked.size})` : "Далее"}
+          </button>
+        </div>
+      )}
+      {schemeOpen && (
+        <SchemePick
+          people={people}
+          unions={unions}
+          focusId={focusId}
+          style={style}
+          banner={banner}
+          flow={flow}
+          ids={picked}
+          setIds={setPicked}
+          onClose={() => setSchemeOpen(false)}
+          onDone={() => {
+            setSchemeOpen(false);
+            setPickMode(false);
+            setPicked(new Set());
+          }}
+        />
+      )}
       {add && focusId && (
         <AddPerson
           initialId={selectedId || focusId}

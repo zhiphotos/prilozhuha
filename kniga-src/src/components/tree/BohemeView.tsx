@@ -13,7 +13,7 @@ function frameOf(id: string) {
   return BOHEME_FRAMES[n]!;
 }
 
-export function BohemeView({ sheet, people, unions, focusId, selectedId }: { sheet: BohemeSheet; people: Person[]; unions: Union[]; focusId: string; selectedId: string | null }) {
+export function BohemeView({ sheet, people, unions, focusId, selectedId, marked }: { sheet: BohemeSheet; people: Person[]; unions: Union[]; focusId: string; selectedId: string | null; marked?: ReadonlySet<string> }) {
   const byId = new Map(people.map((p) => [p.id, p]));
   const w = sheet.width;
   const h = sheet.height;
@@ -71,7 +71,7 @@ export function BohemeView({ sheet, people, unions, focusId, selectedId }: { she
         const person = byId.get(node.id);
         if (!person) return null;
         const frame = frameOf(person.id);
-        return <FramedFace key={node.id} x={node.x} y={node.y} size={BOHEME_FRAME} hole={frame.hole} frame={frame.src} photo={person.photo} ring={node.id === selectedId || node.id === focusId ? INK : undefined} />;
+        return <FramedFace key={node.id} x={node.x} y={node.y} size={BOHEME_FRAME} hole={frame.hole} frame={frame.src} photo={person.photo} ring={node.id === selectedId || node.id === focusId || marked?.has(node.id) ? INK : undefined} />;
       })}
     </div>
   );

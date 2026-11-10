@@ -13,7 +13,7 @@ function frameOf(id: string) {
   return FRAMES[n]!;
 }
 
-export function CameoView({ sheet, people, unions, focusId, selectedId }: { sheet: CameoSheet; people: Person[]; unions: Union[]; focusId: string; selectedId: string | null }) {
+export function CameoView({ sheet, people, unions, focusId, selectedId, marked }: { sheet: CameoSheet; people: Person[]; unions: Union[]; focusId: string; selectedId: string | null; marked?: ReadonlySet<string> }) {
   const byId = new Map(people.map((p) => [p.id, p]));
   return (
     <div className="relative" style={{ width: sheet.width, height: sheet.height, background: "#000" }}>
@@ -61,7 +61,7 @@ export function CameoView({ sheet, people, unions, focusId, selectedId }: { shee
         const person = byId.get(node.id);
         if (!person) return null;
         const frame = frameOf(person.id);
-        return <FramedFace key={node.id} x={node.x} y={node.y} size={FRAME} hole={frame.hole} frame={frame.src} photo={person.photo} ring={node.id === selectedId || node.id === focusId ? "#e0b56a" : undefined} />;
+        return <FramedFace key={node.id} x={node.x} y={node.y} size={FRAME} hole={frame.hole} frame={frame.src} photo={person.photo} ring={node.id === selectedId || node.id === focusId || marked?.has(node.id) ? "#e0b56a" : undefined} />;
       })}
     </div>
   );

@@ -371,7 +371,7 @@ export function TextArt({ block, editing }: { block: Extract<PageBlock, { type: 
           fontFamily: fontFamily(block.font),
           fontWeight: fontWeight(block.font),
           fontSize: `${metrics.size}cqw`,
-          lineHeight: metrics.leading,
+          lineHeight: metrics.leading * (block.leadMul ?? 1),
           wordSpacing: block.wordGap ? `${block.wordGap}em` : undefined,
           color: colors.fg,
         }}
@@ -390,7 +390,7 @@ export function TextArt({ block, editing }: { block: Extract<PageBlock, { type: 
         fontFamily: fontFamily(block.font),
         fontWeight: fontWeight(block.font),
         fontSize: `${metrics.size}cqw`,
-        lineHeight: metrics.leading,
+        lineHeight: metrics.leading * (block.leadMul ?? 1),
         wordSpacing: block.wordGap ? `${block.wordGap}em` : undefined,
         padding: `${pad.y}cqw ${pad.x}cqw`,
         background: colors.bg,

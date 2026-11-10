@@ -245,6 +245,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   /** Режим «выбрать несколько»: нажатия на блоки добавляют их к выделению (для пальца, где нет Shift). */
   const [pickMode, setPickMode] = useState(false);
   const [groupColors, setGroupColors] = useState(false);
+  const [groupFont, setGroupFont] = useState(false);
   const [, setClipTick] = useState(0);
   const [guides, setGuides] = useState<Guides | null>(null);
   const [ghostGroup, setGhostGroup] = useState<Record<string, Box> | null>(null);
@@ -344,7 +345,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     try {
       if (!localStorage.getItem("kniga-hint-2f")) {
         localStorage.setItem("kniga-hint-2f", "1");
-        toast("Подсказка: коснитесь экрана двумя пальцами, чтобы сделать шаг назад. Ещё раз: ещё шаг назад.", { duration: 7000 });
+        toast("Подсказка: коснитесь экрана двумя пальцами, чтобы сделать шаг назад. Ещё раз: ещё шаг назад.", { duration: 3500 });
       }
     } catch {
       /* без подсказки */
@@ -1568,7 +1569,10 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   };
 
   const addText = (partial?: Partial<Extract<PageBlock, { type: "text" }>>) => {
-    const block: PageBlock = { id: id(), type: "text", x: 12, y: 40, w: 76, text: "", font: "script", size: "md", ...partial };
+    // Новый текст ставим туда, где ещё нет другого текста, чтобы не лечь поверх названия.
+    const taken = (current()?.blocks ?? []).filter((b) => b.type === "text").map((b) => b.y);
+    const freeY = [40, 58, 24, 74, 10, 86].find((y) => taken.every((t) => Math.abs(t - y) > 12)) ?? 40;
+    const block: PageBlock = { id: id(), type: "text", x: 12, y: freeY, w: 76, text: "", font: "script", size: "md", ...partial };
     stickSound();
     flushSync(() => addBlock(block));
     startEditing(block.id);
@@ -2083,6 +2087,11 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                           Цвет
                         </button>
                       ) : null}
+                      {(current()?.blocks ?? []).some((b) => group.includes(b.id) && b.type === "text") ? (
+                        <button type="button" className="grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={() => { setGroupFont(true); setPanel("fonts"); }}>
+                          Шрифт
+                        </button>
+                      ) : null}
                       <button type="button" className="grid min-h-9 place-items-center rounded-full px-3 text-ink" onClick={() => copyBlocks()}>
                         Копировать
                       </button>
@@ -2443,8 +2452,14 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
       {panel === "fonts" ? (
         <FontsSheet
-          onClose={() => setPanel(null)}
+          onClose={() => { setGroupFont(false); setPanel(null); }}
           onUse={(font) => {
+            if (groupFont && group.length > 1) {
+              commit((p) => ({ ...p, blocks: p.blocks.map((b) => (b.type === "text" && group.includes(b.id) ? ({ ...b, font } as PageBlock) : b)) }), "font:group");
+              setGroupFont(false);
+              setPanel(null);
+              return;
+            }
             const target = editingBlock ?? (selectedBlock?.type === "text" ? selectedBlock : null);
             if (target) patchBlock(target.id, { font } as Partial<PageBlock>);
             else addText({ font });

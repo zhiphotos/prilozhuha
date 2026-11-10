@@ -92,18 +92,21 @@ export function BookScreen() {
         </Hint>
         <Hint id="book-plan">
           <Button variant="soft" className="min-h-12" onClick={() => setPlanning(true)}>
-            <Sparkles className="size-4" /> Спланировать страницы списком
+            <Sparkles className="size-4" /> Список страниц
           </Button>
         </Hint>
         <Hint id="book-text-pages">
           <Button variant="soft" className="min-h-12" onClick={() => setTextToPages(true)}>
-            <Sparkles className="size-4" /> Текст → страницы
+            <Sparkles className="size-4" /> Вставить длинный рассказ
           </Button>
           <p className="mt-1 rounded-xl bg-paper/75 px-2 py-1 text-xs text-muted backdrop-blur-sm">Длинную историю вставьте сюда, она сама разойдётся по страницам.</p>
         </Hint>
+        <Button variant="soft" className="min-h-12" onClick={() => { toast("Откройте древо и выберите «Схема из выбранных»"); nav.go({ id: "archive", tab: "tree" }); }}>
+          <Sparkles className="size-4" /> Семейное дерево на страницу
+        </Button>
         <Hint id="book-cover">
           <Button variant="soft" className="min-h-12" onClick={() => setCoverSetup(true)}>
-            <Palette className="size-4" /> Обложка: корешок и задняя сторона
+            <Palette className="size-4" /> Обложка и корешок
           </Button>
         </Hint>
         {/* Тёмные кнопки тяжелее по виду, поэтому стоят внизу списка. */}
@@ -117,7 +120,7 @@ export function BookScreen() {
         {treeOn ? null : (
           <div className="mt-2 flex justify-center">
             <button type="button" className="min-h-9 text-xs font-semibold text-moss underline underline-offset-2" onClick={() => switchTree(true)}>
-              Включить дерево
+              Показать картинку-дерево
             </button>
           </div>
         )}
@@ -143,6 +146,8 @@ export function BookScreen() {
         </button>
       ) : null}
 
+      <PageGrid pages={pages} meta={meta} onOpen={(id) => nav.go({ id: "editor", pageId: id })} onAdd={() => setLibrary(true)} />
+
       {data.programOpen ? (
         // У платных готовые шаблоны листаются вбок и занимают одну строку, а не две длинные карточки друг под другом.
         <div className="no-scrollbar -mx-1 mb-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2" role="group" aria-label="Готовые шаблоны книги">
@@ -160,8 +165,6 @@ export function BookScreen() {
           <FullTemplate pages={pages} meta={meta} tpl={FULL_SPEC} />
         </>
       )}
-
-      <PageGrid pages={pages} meta={meta} onOpen={(id) => nav.go({ id: "editor", pageId: id })} onAdd={() => setLibrary(true)} />
 
       <section className="glass mt-8 rounded-2xl p-5">
         <div className="flex items-center gap-2">

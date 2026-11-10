@@ -114,10 +114,32 @@ async function savePdfSheets(input: { canvases: HTMLCanvasElement[]; raster: num
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
+/** Шрифты листа: если сеть недоступна, рисуем запасными, а не падаем. */
+async function loadPosterFonts(): Promise<void> {
+  try {
+    await Promise.all([document.fonts.load('600 64px "Cormorant Garamond"'), document.fonts.load("500 22px Manrope")]);
+  } catch {
+    /* без загрузки шрифтов: подойдут системные */
+  }
+}
+
+/** Картинка схемы в выбранном стиле без сохранения файла: для вставки на страницу книги. */
+export async function renderPosterCanvas(data: TreeData, style: TreeStyle = "work", banner = "", paper: "white" | "black" = "white", flow: "down" | "up" = "down"): Promise<HTMLCanvasElement> {
+  await loadPosterFonts();
+  const titleOf = (fallback: string) => banner.trim() || fallback;
+  if (style === "taiga") return renderTaiga(data, titleOf, flow);
+  if (style === "boheme") return renderBoheme(data, titleOf, flow);
+  if (style === "gzhel") return renderGzhel(data, titleOf, flow);
+  if (style === "cameo") return renderCameo(data, titleOf, flow);
+  if (style === "carved") return renderLiving(data, titleOf, flow);
+  const prep = await prepareWork(data, paper, flow);
+  if (prep.layout.width > 7000) return drawBandsPng(prep);
+  return renderWork(data, paper, flow);
+}
+
 export async function exportPoster(data: TreeData, style: TreeStyle = "work", banner = "", paper: "white" | "black" = "white", flow: "down" | "up" = "down", format: "png" | "pdf" = "png", print: PrintOptions = DEFAULT_PRINT): Promise<void> {
   const out = format === "pdf" ? savePdf : savePng;
-  await document.fonts.load('600 64px "Cormorant Garamond"');
-  await document.fonts.load('500 22px Manrope');
+  await loadPosterFonts();
   const titleOf = (fallback: string) => banner.trim() || fallback;
   if (style === "taiga") return out(await renderTaiga(data, titleOf, flow));
   if (style === "boheme") return out(await renderBoheme(data, titleOf, flow));

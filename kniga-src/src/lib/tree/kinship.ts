@@ -196,11 +196,19 @@ function collateralTitle(index: Index, dFocus: number, dOther: number, other: st
   }
   if (dFocus === 1 && dOther === 2) return g === "f" ? "Племянница" : "Племянник";
   if (dFocus === 1 && dOther === 3) return g === "f" ? "Внучатая племянница" : "Внучатый племянник";
-  if (dFocus === 1 && dOther > 3) return g === "f" ? `Племянница (${dOther})` : `Племянник (${dOther})`;
-  const near = Math.min(dFocus, dOther);
-  const word = cap(cousinWord(near, g === "f"));
-  if (dFocus === dOther) return g === "f" ? `${word} сестра` : `${word} брат`;
-  return g === "f" ? `${word} племянница` : `${word} племянник`;
+  if (dFocus === 1 && dOther === 4) return g === "f" ? "Правнучатая племянница" : "Правнучатый племянник";
+  if (dFocus === 1 && dOther > 4) return g === "f" ? `Племянница (${dOther})` : `Племянник (${dOther})`;
+  if (dFocus === dOther) {
+    const word = cap(cousinWord(dFocus, g === "f"));
+    return g === "f" ? `${word} сестра` : `${word} брат`;
+  }
+  // Младшие поколения двоюродных, троюродных и дальше: сын или дочь – «племянник», потом внук, правнук. Степень растёт с каждым поколением вниз:
+  // дочь троюродного брата – троюродная племянница, её сын – четвероюродный внук, его сын – пятиюродный правнук.
+  const gap = dOther - dFocus;
+  const word = cap(cousinWord(dFocus + gap - 1, g === "f"));
+  if (gap === 1) return g === "f" ? `${word} племянница` : `${word} племянник`;
+  const noun = praPrefix(gap - 2) + (g === "f" ? "внучка" : "внук");
+  return `${word} ${noun}`;
 }
 
 function genitiveAncestor(title: string): string {
@@ -216,7 +224,11 @@ export function genitivePhrase(title: string): string {
     .toLowerCase()
     .split(/\s+/)
     .map((word) => {
-      if (!word || /^[(\d]/.test(word)) return word;
+      if (!word || word.startsWith("(")) return word;
+      // Степень числом: «9-юродная» -> «9-юродной».
+      const digits = word.match(/^(\d+-)(.+)$/);
+      if (digits) return digits[1] + genitivePhrase(digits[2]!);
+      if (/^\d/.test(word)) return word;
       if (/(ая)$/.test(word)) return word.slice(0, -2) + "ой";
       if (/(яя)$/.test(word)) return word.slice(0, -2) + "ей";
       if (/(ый|ой|ий)$/.test(word)) return word.slice(0, -2) + "ого";

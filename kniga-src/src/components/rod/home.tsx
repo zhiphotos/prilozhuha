@@ -148,7 +148,7 @@ export function HomeScreen() {
         <span className="mt-2 block max-w-[20ch] text-[1.75rem] font-semibold leading-[1.12] text-paper">{heroTitle}</span>
         <span className="mt-2 block max-w-[30ch] text-sm text-paper/75">{heroDetail}</span>
         <span className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-paper px-5 text-sm font-semibold text-ink">
-          {mode === "going" ? "Открыть страницу" : "Приступить"} <ArrowRight className="size-4" />
+          {mode === "going" ? "Открыть страницу" : "Начать"} <ArrowRight className="size-4" />
         </span>
         <Cut id={mode === "going" ? "moss_book_open" : "moss_book_closed"} className="pointer-events-none absolute -bottom-3 -right-4 -z-10 w-40 rotate-[7deg] sm:w-52" />
       </button>

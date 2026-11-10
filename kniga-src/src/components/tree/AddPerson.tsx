@@ -5,7 +5,8 @@ import { displayName } from "@/lib/tree/kinship";
 import { emptyDraft, useTree, type RelKind } from "@/lib/tree/ui-store";
 import type { Gender } from "@/lib/tree/types";
 
-const ROLES: { kind: RelKind; label: string; gender: Gender }[] = [
+type Role = { kind: RelKind | "grandfather" | "grandmother"; label: string; gender: Gender };
+const ROLES: Role[] = [
   { kind: "father", label: "Отец", gender: "m" },
   { kind: "mother", label: "Мать", gender: "f" },
   { kind: "spouse", label: "Муж или жена", gender: "u" },
@@ -13,6 +14,8 @@ const ROLES: { kind: RelKind; label: string; gender: Gender }[] = [
   { kind: "daughter", label: "Дочь", gender: "f" },
   { kind: "brother", label: "Брат", gender: "m" },
   { kind: "sister", label: "Сестра", gender: "f" },
+  { kind: "grandmother", label: "Бабушка", gender: "f" },
+  { kind: "grandfather", label: "Дедушка", gender: "m" },
 ];
 
 export function AddPerson({
@@ -27,7 +30,8 @@ export function AddPerson({
   const people = useTree((s) => s.people);
   const unions = useTree((s) => s.unions);
   const [anchorId, setAnchorId] = useState(initialId);
-  const [kind, setKind] = useState<RelKind | null>(null);
+  const [kind, setKind] = useState<Role["kind"] | null>(null);
+  const [side, setSide] = useState<"mom" | "dad">("mom");
   const [spouseGender, setSpouseGender] = useState<Gender>("f");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -41,7 +45,7 @@ export function AddPerson({
   const anchor = people.find((p) => p.id === anchorId) ?? people[0];
   const role = ROLES.find((item) => item.kind === kind);
   const gender: Gender = kind === "spouse" ? spouseGender : (role?.gender ?? "u");
-  const suggested = anchor && kind && kind !== "spouse" ? inflectSurname(anchor.lastName, gender === "u" ? "m" : gender) : "";
+  const suggested = anchor && kind && kind !== "spouse" && kind !== "grandfather" && kind !== "grandmother" ? inflectSurname(anchor.lastName, gender === "u" ? "m" : gender) : "";
   const marriages = anchor ? unions.filter((u) => u.partnerIds.includes(anchor.id)) : [];
   const needsFamily = (kind === "son" || kind === "daughter") && marriages.length > 1;
 
@@ -68,8 +72,28 @@ export function AddPerson({
       birthYear,
       gender,
     };
+    if (kind === "grandfather" || kind === "grandmother") {
+      // Бабушка или дедушка встают над родителем: берём маму или папу выбранного человека.
+      const parentGender = side === "mom" ? "f" : "m";
+      const parentIds = unions.filter((u) => u.childIds.includes(anchor.id)).flatMap((u) => u.partnerIds);
+      const parent = people.find((p) => parentIds.includes(p.id) && p.gender === parentGender);
+      if (!parent) {
+        setError(`В древе пока нет ${side === "mom" ? "мамы" : "папы"} у человека «${displayName(anchor)}». Сначала добавьте ${side === "mom" ? "её" : "его"} ролью «${side === "mom" ? "Мать" : "Отец"}», потом ${kind === "grandmother" ? "бабушку" : "дедушку"}.`);
+        return;
+      }
+      const msg = useTree.getState().addRelative(parent.id, kind === "grandmother" ? "mother" : "father", draft);
+      if (msg) {
+        setError(msg);
+        return;
+      }
+      const made = useTree.getState().people.find((p) => !before.has(p.id));
+      useTree.getState().selectPerson(null);
+      if (made) onAdded(made.id, made.firstName);
+      else onClose();
+      return;
+    }
     const only = marriages.length === 1 ? marriages[0]?.id : undefined;
-    const message = useTree.getState().addRelative(anchor.id, kind, draft, unionId || only);
+    const message = useTree.getState().addRelative(anchor.id, kind as RelKind, draft, unionId || only);
     if (message) {
       setError(message);
       return;
@@ -110,6 +134,7 @@ export function AddPerson({
                     className={`min-h-12 rounded-2xl px-3 text-left font-serif text-xl ${p.id === anchor?.id ? "bg-ink text-sheet" : "border border-line bg-white"}`}
                     onClick={() => {
                       setAnchorId(p.id);
+                      setError(null);
                       setUnionId("");
                       setPicking(false);
                     }}
@@ -128,7 +153,7 @@ export function AddPerson({
                   key={item.kind}
                   type="button"
                   className={`min-h-12 rounded-2xl border px-3 text-sm font-semibold ${kind === item.kind ? "border-ink bg-ink text-sheet" : "border-line bg-white"}`}
-                  onClick={() => setKind(item.kind)}
+                  onClick={() => { setKind(item.kind); setError(null); }}
                 >
                   {item.label}
                 </button>
@@ -145,6 +170,15 @@ export function AddPerson({
                   onClick={() => setSpouseGender(g)}
                 >
                   {g === "m" ? "Это муж" : "Это жена"}
+                </button>
+              ))}
+            </div>
+          )}
+          {(kind === "grandfather" || kind === "grandmother") && (
+            <div className="grid grid-cols-2 gap-2">
+              {(["mom", "dad"] as const).map((sd) => (
+                <button key={sd} type="button" className={`min-h-12 rounded-2xl border text-sm font-semibold ${side === sd ? "border-ink bg-ink text-sheet" : "border-line bg-white"}`} onClick={() => { setSide(sd); setError(null); }}>
+                  {sd === "mom" ? "По маме" : "По папе"}
                 </button>
               ))}
             </div>

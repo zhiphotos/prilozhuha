@@ -142,22 +142,26 @@ export function PersonFields({ value, onChange, others, extraSiblings, onExtraSi
           </div>
         </Field>
       ) : null}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Дата рождения" hint="Можно только год, 1948, или полную дату, 12.03.1948. Появится на ленте. Можно примерно.">
-          <DateInput className="field" value={value.birthYear} onChange={(next) => onChange({ birthYear: next })} placeholder="1948" />
-        </Field>
-        <Field label="Дата смерти" hint="Можно только год или полную дату, 12.03.1999. Если нужно. Тоже на ленте.">
-          <DateInput className="field" value={value.deathYear ?? ""} onChange={(next) => onChange({ deathYear: next })} />
-        </Field>
-      </div>
-      <Field label="Место рождения" hint="Город, село или страна. Если знаете.">
-        <input className="field" value={value.birthPlace ?? ""} onChange={(event) => onChange({ birthPlace: event.target.value })} placeholder="Например, Тбилиси" />
+      <Field label="Дата рождения" hint="Можно только год, 1948, или полную дату, 12.03.1948. Можно примерно.">
+        <DateInput className="field" value={value.birthYear} onChange={(next) => onChange({ birthYear: next })} placeholder="1948" />
       </Field>
-      {maidenAllowed(value) ? (
-        <Field label="Девичья фамилия">
-          <input className="field" value={value.maidenName} onChange={(event) => onChange({ maidenName: event.target.value })} placeholder="Если знаете" />
-        </Field>
-      ) : null}
+      <details className="rounded-xl border border-ink/10 bg-white/40 px-3 py-1" open={Boolean(value.deathYear || value.birthPlace || value.maidenName)}>
+        <summary className="min-h-11 cursor-pointer py-2.5 text-sm font-semibold text-moss">Ещё: дата смерти, место, девичья фамилия</summary>
+        <div className="grid gap-3 pb-3">
+          <Field label="Дата смерти" hint="Если нужно. Год или полная дата.">
+            <DateInput className="field" value={value.deathYear ?? ""} onChange={(next) => onChange({ deathYear: next })} />
+          </Field>
+          <Field label="Место рождения" hint="Город, село или страна. Если знаете.">
+            <input className="field" value={value.birthPlace ?? ""} onChange={(event) => onChange({ birthPlace: event.target.value })} placeholder="Например, Тбилиси" />
+          </Field>
+          {maidenAllowed(value) ? (
+            <Field label="Девичья фамилия">
+              <input className="field" value={value.maidenName} onChange={(event) => onChange({ maidenName: event.target.value })} placeholder="Если знаете" />
+            </Field>
+          ) : null}
+        </div>
+      </details>
+      {others.length ? <p className="-mb-1 mt-1 text-sm font-semibold text-ink">Как он связан с семьёй: без этого его не будет на древе</p> : null}
       {others.length ? (
         <Field label="Супруг или супруга" hint="Пара встанет в древе в одном ряду.">
           <SearchSelect label="Супруг или супруга" value={value.spouse ?? ""} onChange={(next) => onChange({ spouse: next || undefined })} empty="Не выбрано" options={others.map((item) => ({ value: item.id, label: `${item.name} (${item.relation})` }))} />
@@ -205,7 +209,7 @@ export function PersonFields({ value, onChange, others, extraSiblings, onExtraSi
         </Field>
       ) : null}
       {others.length ? (
-        <Field label="Чей ребёнок" hint="Родители нужны для древа.">
+        <Field label="Чей он ребёнок" hint="Родители нужны для древа.">
           <div className="grid grid-cols-2 gap-2">
             {[0, 1].map((slot) => (
               <SearchSelect
@@ -251,7 +255,7 @@ export function PersonFields({ value, onChange, others, extraSiblings, onExtraSi
         </Field>
       ) : null}
       {others.length && (value as Person).id ? <SiblingsPicker self={value as Person} others={others} /> : null}
-      <Field label="Комментарий">
+      <Field label="Заметка">
         <textarea className="field min-h-20" value={value.notes} onChange={(event) => onChange({ notes: event.target.value })} placeholder="Фраза, привычка, чего не знаете" />
       </Field>
     </div>

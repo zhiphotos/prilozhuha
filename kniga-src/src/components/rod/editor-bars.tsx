@@ -330,6 +330,7 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
           />
           <div className="mt-1.5">
             <Stepper label="Пробелы" unit="%" value={Math.round((block.wordGap ?? 0) * 100)} min={-20} max={250} step={5} onChange={(v) => ops.patch({ wordGap: v === 0 ? undefined : v / 100 } as Partial<PageBlock>, `gap:${block.id}`)} />
+            <Stepper label="Интервал строк" unit="%" value={Math.round((block.leadMul ?? 1) * 100)} min={70} max={250} step={5} onChange={(v) => ops.patch({ leadMul: v === 100 ? undefined : v / 100 } as Partial<PageBlock>, `lead:${block.id}`)} />
           </div>
         </div>
         </>
@@ -598,7 +599,7 @@ export function BlockBar({ block, busy, ops, onInspector }: { block: PageBlock; 
             <BarBtn onClick={() => ops.patch({ frame: "polaroid" } as Partial<PageBlock>)}>Вернуть фон</BarBtn>
           )}
           <BarBtn onClick={ops.cropMode} active={ops.cropping} label="Выбрать, какая часть фото видна">
-            <Crop className="size-4" /> Кадр
+            <Crop className="size-4" /> Обрезать
           </BarBtn>
           <BarBtn onClick={ops.fitWhole} label="Показать фото целиком, без обрезки">
             <Maximize2 className="size-4" /> Целиком
@@ -829,6 +830,7 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
               <Stepper label="Размер" value={px} min={10} max={300} onChange={(v) => ops.patch({ px: v } as Partial<PageBlock>, `size:${block.id}`)} />
               <div className="mt-1.5">
                 <Stepper label="Пробелы" unit="%" value={Math.round((block.wordGap ?? 0) * 100)} min={-20} max={250} step={5} onChange={(v) => ops.patch({ wordGap: v === 0 ? undefined : v / 100 } as Partial<PageBlock>, `gap:${block.id}`)} />
+                <Stepper label="Интервал строк" unit="%" value={Math.round((block.leadMul ?? 1) * 100)} min={70} max={250} step={5} onChange={(v) => ops.patch({ leadMul: v === 100 ? undefined : v / 100 } as Partial<PageBlock>, `lead:${block.id}`)} />
               </div>
               <button
                 type="button"
@@ -869,7 +871,7 @@ export function Inspector({ block, ops, onClose }: { block: PageBlock; ops: Bloc
               </BarBtn>
               <BarBtn onClick={() => ops.cut("precise")}>Убрать фон точнее</BarBtn>
               <BarBtn onClick={ops.cropMode}>
-                <Crop className="size-4" /> Кадр
+                <Crop className="size-4" /> Обрезать
               </BarBtn>
               <BarBtn onClick={ops.fitWhole}>
                 <Maximize2 className="size-4" /> Целиком
