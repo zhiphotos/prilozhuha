@@ -51,9 +51,23 @@ function writeMeta(meta: Meta) {
 
 async function call<T>(body: Record<string, unknown>): Promise<{ status: number; data: T & { error?: string } }> {
   const token = useRod.getState().access?.token ?? "";
-  const response = await fetch(`${API_BASE}/api/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, deviceId: deviceId(), ...body }) });
-  const data = (await response.json().catch(() => ({ error: "Облако не ответило." }))) as T & { error?: string };
-  return { status: response.status, data };
+  // Фото уходят и приходят кусками, поэтому одиночный сбой связи на телефоне не должен обрывать всю синхронизацию: такие запросы безопасно повторить.
+  const repeatable = typeof body.op === "string" && body.op.startsWith("media-");
+  const attempts = repeatable ? 4 : 1;
+  let last: { status: number; data: T & { error?: string } } = { status: 0, data: { error: "Облако не ответило." } as T & { error?: string } };
+  for (let n = 0; n < attempts; n += 1) {
+    if (n > 0) await new Promise((resolve) => setTimeout(resolve, 600 * n));
+    try {
+      const response = await fetch(`${API_BASE}/api/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, deviceId: deviceId(), ...body }) });
+      const parsed = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
+      if (parsed) return { status: response.status, data: parsed };
+      last = { status: response.status, data: { error: `Облако не ответило (код ${response.status || "нет связи"}).` } as T & { error?: string } };
+    } catch {
+      last = { status: 0, data: { error: "Нет связи с облаком: проверьте интернет и попробуйте ещё раз." } as T & { error?: string } };
+      if (!repeatable) throw new Error(last.data.error);
+    }
+  }
+  return last;
 }
 
 function snapshot() {
