@@ -69,7 +69,7 @@ import { cn } from "@/lib/cn";
 import { applyEdge, edgesFor } from "@/lib/rod/edge-handles";
 import { snapBox, type Guides, type SnapTarget } from "@/lib/rod/snap";
 
-type Panel = "layouts" | "card" | "contents" | "photo" | "pinterest" | "paste" | "stickers" | "help" | "menu" | "covers" | "layers" | "fonts" | "inspector" | "scan" | null;
+type Panel = "decor" | "layouts" | "card" | "contents" | "photo" | "pinterest" | "paste" | "stickers" | "help" | "menu" | "covers" | "layers" | "fonts" | "inspector" | "scan" | null;
 type Box = { x: number; y: number; w: number; h: number | null; rotate: number };
 type Gesture = {
   id: string;
@@ -2267,20 +2267,8 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           >
             <PenLine className="size-5" />
           </ToolBtn>
-          <ToolBtn
-            label="Стикеры"
-            onClick={() => {
-              setTool("hand");
-              setPanel("stickers");
-            }}
-          >
-            <Smile className="size-5" />
-          </ToolBtn>
-          <ToolBtn label="Макеты" onClick={() => { setTool("hand"); setPanel("layouts"); }}>
-            <LayoutGrid className="size-5" />
-          </ToolBtn>
-          <ToolBtn label="Человек" onClick={() => { setTool("hand"); setPanel("card"); }}>
-            <UserRound className="size-5" />
+          <ToolBtn label="Оформление" active={panel === "decor"} onClick={() => { setTool("hand"); setPanel("decor"); }}>
+            <Sparkles className="size-5" />
           </ToolBtn>
           <ToolBtn label="Слои" onClick={() => { setTool("hand"); setPanel("layers"); }}>
             <Layers className="size-5" />
@@ -2370,6 +2358,23 @@ export function EditorScreen({ pageId }: { pageId: string }) {
 
       {panel === "pinterest" ? <PinterestPanel onClose={() => setPanel(null)} onPaste={() => void pasteFromClipboard()} onLink={(link) => { setPanel(null); fromLink(link); }} onPasteData={(data) => { setPanel(null); fromTransfer(data); }} /> : null}
       {panel === "paste" ? <PasteSheet onClose={() => setPanel(null)} onPaste={() => void pasteFromClipboard()} onLink={(link) => { setPanel(null); fromLink(link); }} onPasteData={(data) => { setPanel(null); fromTransfer(data); }} /> : null}
+
+      {panel === "decor" ? (
+        <Sheet title="Оформление" onClose={() => setPanel(null)}>
+          <div className="grid grid-cols-3 gap-3">
+            {([
+              ["stickers", "Стикеры", <Smile key="s" className="size-7" />],
+              ["layouts", "Макеты фото", <LayoutGrid key="l" className="size-7" />],
+              ["card", "Человек", <UserRound key="c" className="size-7" />],
+            ] as const).map(([key, label, icon]) => (
+              <button key={key} type="button" onClick={() => setPanel(key)} className="flex flex-col items-center gap-2 rounded-2xl bg-white/70 px-2 py-4 text-sm font-medium text-ink active:bg-white">
+                {icon}
+                {label}
+              </button>
+            ))}
+          </div>
+        </Sheet>
+      ) : null}
 
       {panel === "layouts" ? (
         <PhotoLayoutsSheet
