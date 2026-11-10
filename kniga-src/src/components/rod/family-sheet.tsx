@@ -16,6 +16,7 @@ export function FamilySheet({ onClose }: { onClose: () => void }) {
   const dedicatee = useRod((state) => state.dedicatee);
   const [items, setItems] = useState<Incoming[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState("");
 
   const load = useCallback(() => {
     void fetchInbox().then(setItems).catch(() => setItems([]));
@@ -36,6 +37,7 @@ export function FamilySheet({ onClose }: { onClose: () => void }) {
       toast(error instanceof Error ? error.message : "Не получилось.", { duration: 6000 });
     } finally {
       setBusy(false);
+      setProgress("");
     }
   };
 
@@ -69,10 +71,10 @@ export function FamilySheet({ onClose }: { onClose: () => void }) {
             Ссылка попала не туда? Сделать новую
           </button>
 
-          <h3 className="mt-6 text-base font-semibold text-ink">Помощники правят древо</h3>
-          <p className="mt-1 text-sm text-muted">Выложите текущую версию древа: помощник получит копию по той же ссылке, внесёт правки и пришлёт их вам. Решаете вы. Выкладывать заново можно в любой момент, чтобы они увидели ваши новые правки.</p>
-          <Button className="mt-2" variant="soft" disabled={busy} onClick={() => void run(publishBase, "Версия для помощников обновлена")}>
-            Открыть древо для правок
+          <h3 className="mt-6 text-base font-semibold text-ink">Помощники правят книгу</h3>
+          <p className="mt-1 text-sm text-muted">Выложите текущую версию книги с фото: помощник получит копию по той же ссылке, внесёт правки и пришлёт их вам. Решаете вы. Выкладывать заново можно в любой момент, чтобы они увидели ваши новые правки.</p>
+          <Button className="mt-2" variant="soft" disabled={busy} onClick={() => void run(() => publishBase((d, t) => setProgress(`Фото ${d} из ${t}…`)), "Версия для помощников обновлена")}>
+            {progress || "Открыть книгу для правок"}
           </Button>
 
           <h3 className="mt-6 text-base font-semibold text-ink">Прислали родственники</h3>

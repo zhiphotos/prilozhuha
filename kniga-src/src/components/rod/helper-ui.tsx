@@ -1,22 +1,32 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Users } from "lucide-react";
 import { toast } from "sonner";
 import { defaultDecision, summarize, type Change, type Decision, type ReviewItem } from "@/lib/rod/helper-changes";
-import { applyIncoming, helperChanges, helperSession, joinAsHelper, leaveHelper, reviewIncoming, sendChanges, type HelperSession } from "@/lib/rod/helper";
+import { helperChanges, helperSession, joinAsHelper, leaveHelper, rememberWho, reviewIncoming, applyIncoming, sendChanges, type HelperSession } from "@/lib/rod/helper";
 import { Button } from "@/components/rod/chrome";
+import { useMedia } from "@/lib/rod/media";
 import { cn } from "@/lib/cn";
 
+function Thumb({ rec }: { rec?: Record<string, unknown> }) {
+  const src = useMedia(typeof rec?.dataUrl === "string" ? rec.dataUrl : typeof rec?.photo === "string" ? rec.photo : undefined);
+  return src ? <img src={src} alt="" className="mt-1.5 max-h-28 rounded-lg" /> : null;
+}
+
 const FIELD: Record<string, string> = { name: "имя", firstName: "имя", lastName: "фамилия", patronymic: "отчество", relation: "кем приходится", birthYear: "год рождения", deathYear: "год смерти", birthPlace: "место рождения", maidenName: "девичья фамилия", notes: "заметки", parents: "родители", spouse: "супруг", siblingOf: "брат или сестра", title: "название", narrative: "текст", answer: "ответ", years: "годы", note: "заметка", line: "линия", gender: "пол", treeRank: "порядок на древе", treeSide: "сторона на древе" };
-const KEYS = { people: "Человек", places: "Место", stories: "История", notes: "Заметка", pages: "Страница" } as const;
-const label = (rec?: Record<string, unknown>) => String(rec?.name || rec?.title || [rec?.firstName, rec?.lastName].filter(Boolean).join(" ") || rec?.question || "без названия");
+const KEYS = { people: "Человек", places: "Место", stories: "История", notes: "Заметка", pages: "Страница", photos: "Фото" } as const;
+const label = (rec?: Record<string, unknown>) => String(rec?.name || rec?.title || rec?.what || rec?.who || [rec?.firstName, rec?.lastName].filter(Boolean).join(" ") || rec?.question || "без названия");
 const show = (value: unknown) => (value === undefined || value === "" || value === null ? "пусто" : typeof value === "string" ? value : JSON.stringify(value));
 
 /** Владелец: правки помощника по одной, с понятными пометками. Решать нужно только про спорное. */
 export function ChangesCard({ changes, who, onDone }: { changes: Change[]; who: string; onDone: () => void }) {
-  const items = useMemo(() => reviewIncoming(changes), [changes]);
+  const [items, setItems] = useState<ReviewItem[] | null>(null);
+  useEffect(() => {
+    void reviewIncoming(changes).then(setItems).catch(() => setItems([]));
+  }, [changes]);
   const [choice, setChoice] = useState<Record<string, Decision>>({});
   const id = (i: ReviewItem) => `${i.key}:${i.id}`;
   const get = (i: ReviewItem) => choice[id(i)] ?? defaultDecision(i);
+  if (!items) return <p className="text-sm text-muted">Получаю фото и сверяю с вашей книгой…</p>;
   const total = summarize(items);
   const open = items.filter((i) => i.state !== "already");
   const apply = () => {
@@ -38,6 +48,7 @@ export function ChangesCard({ changes, who, onDone }: { changes: Change[]; who: 
             <p className="font-semibold text-ink">
               {i.kind === "add" ? "Новое" : i.kind === "remove" ? "Убрать" : "Исправлено"}: {KEYS[i.key]} «{label((i.theirs ?? i.mine) as Record<string, unknown>)}»
             </p>
+            {i.kind === "add" ? <Thumb rec={i.theirs as Record<string, unknown>} /> : null}
             {i.kind === "edit" && i.state !== "conflict" && i.touched.length ? <p className="mt-0.5 text-xs text-muted">{i.touched.map((f) => FIELD[f] ?? f).join(", ")}</p> : null}
             {i.state === "gone" ? <p className="mt-0.5 text-xs text-muted">Вы эту запись уже убрали, помощник её правил. Можно вернуть с его правкой.</p> : null}
             {i.state === "conflict" ? (
@@ -73,28 +84,28 @@ export function ChangesCard({ changes, who, onDone }: { changes: Change[]; who: 
 
 /** Помощник: на странице приглашения. */
 export function HelperJoin({ room, invite }: { room: string; invite: string }) {
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState("");
   const [ready, setReady] = useState(Boolean(helperSession()?.room === room));
   const start = async () => {
-    setBusy(true);
+    setBusy("Открываю…");
     try {
-      await joinAsHelper(room, invite);
+      await joinAsHelper(room, invite, setBusy);
       setReady(true);
       toast("Книга открыта. Правьте древо, потом нажмите «Отправить правки».", { duration: 6000 });
     } catch (error) {
       toast(error instanceof Error ? error.message : "Не получилось.", { duration: 8000 });
     } finally {
-      setBusy(false);
+      setBusy("");
     }
   };
   return (
     <section className="mt-6 rounded-2xl bg-white/70 p-5">
       <p className="flex items-center gap-2 font-semibold text-ink"><Users className="size-5 text-moss" /> Хотите править семейное древо?</p>
-      <p className="mt-1 text-sm text-ink/80">Вы получите копию древа, добавите людей и исправите ошибки. Хозяйка книги увидит, что вы изменили, и сама решит, что принять. Её книга от этого не сломается.</p>
-      <Button className="mt-3 w-full" variant="soft" disabled={busy} onClick={() => void start()}>
-        {busy ? "Открываю…" : ready ? "Копия уже открыта" : "Открыть древо для правок"}
+      <p className="mt-1 text-sm text-ink/80">Вы получите копию книги: древо, страницы и фото. Добавите людей, поправите ошибки, сделаете новые страницы. Хозяйка книги увидит, что вы изменили, и сама решит, что принять. Её книга от этого не сломается.</p>
+      <Button className="mt-3 w-full" variant="soft" disabled={Boolean(busy)} onClick={() => void start()}>
+        {busy ? busy : ready ? "Копия уже открыта" : "Открыть древо для правок"}
       </Button>
-      {ready ? <p className="mt-2 text-xs text-muted">Откройте раздел «Люди»: правки вносятся там. Кнопка «Отправить правки» внизу экрана.</p> : null}
+      {ready ? <p className="mt-2 text-xs text-muted">Если у вас уже есть своя книга, копия откроется отдельной книгой и ваша останется как была. Плашка «Отправить» внизу экрана.</p> : null}
     </section>
   );
 }
@@ -102,30 +113,40 @@ export function HelperJoin({ room, invite }: { room: string; invite: string }) {
 /** Помощник: плашка с отправкой правок. Видна только тому, кто открыл книгу по ссылке помощника. */
 export function HelperBar() {
   const [session, setSession] = useState<HelperSession | null>(() => helperSession());
-  const [busy, setBusy] = useState(false);
-  const [, tick] = useState(0);
+  const [busy, setBusy] = useState("");
+  const [asking, setAsking] = useState(false);
+  const [who, setWho] = useState(() => helperSession()?.who ?? "");
   if (!session) return null;
   const count = helperChanges(session).length;
   const send = async () => {
-    const who = window.prompt("Как вас подписать? Например, Мама") ?? "";
     if (!who.trim()) return;
-    setBusy(true);
+    setBusy("Отправляю…");
     try {
-      const n = await sendChanges(session, who.trim());
+      rememberWho(who.trim());
+      const n = await sendChanges(helperSession() ?? session, who.trim(), (d, t) => setBusy(`Фото ${d} из ${t}…`));
       setSession(helperSession());
-      tick((v) => v + 1);
+      setAsking(false);
       toast(`Отправлено правок: ${n}. Хозяйка книги их посмотрит.`, { duration: 6000 });
     } catch (error) {
       toast(error instanceof Error ? error.message : "Не получилось отправить.", { duration: 6000 });
     } finally {
-      setBusy(false);
+      setBusy("");
     }
   };
   return (
-    <div className="fixed inset-x-3 bottom-20 z-40 mx-auto flex max-w-md items-center gap-2 rounded-2xl bg-[#14160f] p-2.5 pl-4 text-sm text-paper shadow-lg">
-      <span className="flex-1 leading-tight">Вы помощник: {session.name}. {count ? `Правок: ${count}` : "Пока без правок"}</span>
-      <Button disabled={busy || !count} onClick={() => void send()}>Отправить</Button>
-      <button type="button" aria-label="Закрыть режим помощника" className="px-2 text-paper/60" onClick={() => { leaveHelper(); setSession(null); }}>×</button>
+    <div className="fixed inset-x-3 bottom-20 z-40 mx-auto max-w-md rounded-2xl bg-[#14160f] p-3 pl-4 text-sm text-paper shadow-lg">
+      <div className="flex items-center gap-2">
+        <span className="flex-1 leading-tight">Вы помощник: {session.name}. {count ? `Правок: ${count}` : "Пока без правок"}</span>
+        {asking ? null : <Button disabled={!count} onClick={() => (who.trim() ? void send() : setAsking(true))}>Отправить</Button>}
+        <button type="button" aria-label="Закрыть режим помощника" className="px-2 text-paper/60" onClick={() => { leaveHelper(); setSession(null); }}>×</button>
+      </div>
+      {asking || (busy && !who.trim()) ? (
+        <div className="mt-2 flex gap-2">
+          <input autoFocus className="field min-h-11 flex-1 !bg-white/95 !text-ink" value={who} onChange={(event) => setWho(event.target.value)} placeholder="Как вас подписать? Например, Мама" />
+          <Button disabled={!who.trim() || Boolean(busy)} onClick={() => void send()}>{busy || "Готово"}</Button>
+        </div>
+      ) : busy ? <p className="mt-1 text-xs text-paper/70">{busy}</p> : null}
+      {who.trim() && !asking ? <button type="button" className="mt-1 text-xs text-paper/60 underline" onClick={() => setAsking(true)}>Подпись: {who}. Изменить</button> : null}
     </div>
   );
 }

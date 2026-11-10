@@ -3,7 +3,7 @@ import { redis, redisConfigured } from "../redis.js";
 import { getRoom, isInvited, limited, newKey } from "../room.js";
 
 const MAX_TEXT = 6000;
-const MAX_CHANGES = 900000; // знаков JSON
+const MAX_CHANGES = 2500000; // знаков JSON
 const MAX_PHOTO = 600000; // знаков data-URL, примерно 450 КБ
 const clean = (value, max) => String(value ?? "").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "").trim().slice(0, max);
 

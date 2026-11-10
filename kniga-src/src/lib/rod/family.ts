@@ -76,7 +76,7 @@ export async function sendToRoom(room: string, invite: string, payload: Record<s
 }
 
 /** Уменьшает фото до разумного размера, чтобы оно ушло быстро и влезло в лимит (около 450 КБ). */
-export async function compressPhoto(file: File): Promise<string> {
+export async function compressPhoto(file: Blob): Promise<string> {
   const bitmap = await createImageBitmap(file);
   for (const [side, quality] of [[1400, 0.8], [1100, 0.72], [900, 0.65], [700, 0.6]] as const) {
     const scale = Math.min(1, side / Math.max(bitmap.width, bitmap.height));

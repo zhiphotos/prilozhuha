@@ -9,7 +9,7 @@
  *  - правили оба одно и то же поле: конфликт, решает владелец;
  *  - удаление помощника только предлагается и не применяется само.
  */
-export const HELPER_KEYS = ["people", "places", "stories", "notes", "pages"] as const;
+export const HELPER_KEYS = ["people", "places", "stories", "notes", "pages", "photos"] as const;
 export type HelperKey = (typeof HELPER_KEYS)[number];
 
 export type Rec = { id: string } & Record<string, unknown>;

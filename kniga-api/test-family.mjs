@@ -70,6 +70,12 @@ ok("правки принимаются", (await run(submit, { body: { room, inv
 ok("пустые правки отклонены", (await run(submit, { body: { room, invite: rot.json.inviteKey, kind: "changes", from: { name: "Мама" }, changes: [] } })).status === 400);
 const withCh = (await run(inbox, { body: { room, ownerKey } })).json.items.find((i) => i.kind === "changes");
 ok("владелец видит правки списком", withCh?.changes?.[0]?.id === "n1" && withCh.from.name === "Мама");
+const mediaRoute = await load("room-media");
+const ref = "media:123e4567-e89b-12d3-a456-426614174000";
+ok("помощник выкладывает фото", (await run(mediaRoute, { body: { room, invite: rot.json.inviteKey, put: { [ref]: tiny } } })).json.ok === true);
+ok("владелец забирает фото", (await run(mediaRoute, { body: { room, ownerKey, get: [ref] } })).json.media?.[ref] === tiny);
+ok("чужой фото не берёт", (await run(mediaRoute, { body: { room, invite: "bad", get: [ref] } })).status === 404);
+ok("не картинка отклонена", (await run(mediaRoute, { body: { room, ownerKey, put: { [ref]: "data:text/html;base64,AAAA" } } })).status === 400);
 process.env.REQUIRE_PAID = "1";
 ok("платный режим без токена: отказ", (await run(create, { body: { name: "x" } })).status === 402);
 const { makeToken } = await import("./lib/token.js");

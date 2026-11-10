@@ -2,7 +2,7 @@ import { bodyOf, cors, json } from "../config.js";
 import { redis, redisConfigured } from "../redis.js";
 import { getRoom, isInvited, isOwner, limited } from "../room.js";
 
-const MAX_BASE = 900000; // знаков JSON
+const MAX_BASE = 2500000; // знаков JSON
 
 // POST /api/room-base { room, ownerKey, base }   – владелец выкладывает версию книги для помощников (люди, места, истории, заметки, страницы без фото).
 // POST /api/room-base { room, invite }           – помощник забирает эту версию и работает с ней у себя.
