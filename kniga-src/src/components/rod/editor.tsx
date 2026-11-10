@@ -873,17 +873,44 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const wait = toast.loading(list.length > 1 ? `Загружаю ${list.length} фото…` : "Загружаю фото…");
     void (async () => {
       let ok = 0;
-      for (const [i, file] of list.slice(0, 8).entries()) {
+      const refs: string[] = [];
+      for (const file of list.slice(0, 9)) {
         try {
-          const ref = await importImage(file);
-          await placePhoto(ref, list.length > 1 ? { x: 30 + (i % 2) * 40, y: 25 + Math.floor(i / 2) * 25 } : undefined, undefined, i === 0);
+          refs.push(await importImage(file));
           ok += 1;
         } catch (error) {
           toast(`«${file.name}» не открылся: ${error instanceof Error ? error.message : "неизвестная ошибка"}. Пришлите Claude этот текст.`, { duration: 9000 });
         }
       }
       toast.dismiss(wait);
-      if (ok && list.length > 1) toast(`Добавлено фото: ${ok}`);
+      if (refs.length === 1) {
+        await placePhoto(refs[0]!, undefined, undefined, true);
+        return;
+      }
+      if (refs.length > 1) {
+        // Несколько фото сразу: ровная сетка на всю страницу, каждое фото заполняет свою ячейку (его можно двигать и подрезать).
+        const n = refs.length;
+        const cols = n === 2 ? 1 : n <= 6 ? 2 : 3;
+        const rows = Math.ceil(n / cols);
+        const gap = 1.6;
+        const left = 6;
+        const top = 7;
+        const areaW = 88;
+        const areaH = 86;
+        const cellW = (areaW - gap * (cols - 1)) / cols;
+        const cellH = (areaH - gap * (rows - 1)) / rows;
+        const made: PageBlock[] = refs.map((src, i) => {
+          const r = Math.floor(i / cols);
+          const c = i % cols;
+          const lastOdd = cols === 2 && n % 2 === 1 && i === n - 1;
+          return { id: id(), type: "photo", x: lastOdd ? left : left + c * (cellW + gap), y: top + r * (cellH + gap), w: lastOdd ? areaW : cellW, h: cellH, rotate: 0, src, caption: "", frame: "none", shadow: false } as PageBlock;
+        });
+        stickSound();
+        commit((p) => ({ ...p, blocks: [...p.blocks, ...made] }));
+        setSelected(made[0]!.id);
+        flushBook();
+        toast(`Фото в сетке: ${ok}. Каждое можно двигать, менять размер и подрезать`);
+      }
     })();
   };
 
