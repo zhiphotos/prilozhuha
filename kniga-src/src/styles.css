@@ -43,6 +43,9 @@
 
 @layer base {
   html {
+    /* Под телом страницы и в системных полосах iPhone должен быть цвет книги, а не белый по умолчанию. */
+    background-color: var(--color-ivory);
+    min-height: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -98,6 +101,13 @@
       radial-gradient(50% 40% at 100% 18%, rgb(110 42 68 / 0.1), transparent 70%),
       radial-gradient(60% 45% at 80% 100%, rgb(169 134 80 / 0.12), transparent 70%);
     background-attachment: fixed;
+  }
+
+  /* На iPhone фиксированный фон оставляет светлую полосу при прокрутке и в приложении на экране «Домой». */
+  @media (hover: none) and (pointer: coarse) {
+    .atmosphere {
+      background-attachment: scroll;
+    }
   }
 
   .display-title {

@@ -621,6 +621,7 @@ function TreeScreen() {
       {preview ? (
         <StylePreview
           style={preview}
+          real={{ people: view.people, unions: view.unions, focusId }}
           onPick={(next) => setPreview(next === "work" ? null : next)}
           onOpen={() => {
             setPreview(null);
