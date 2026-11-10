@@ -16,6 +16,7 @@ import pushTick from "./push-tick.js";
 import pushUnsubscribe from "./push-unsubscribe.js";
 import redeem from "./redeem.js";
 import roomAck from "./room-ack.js";
+import roomBase from "./room-base.js";
 import roomCreate from "./room-create.js";
 import roomInbox from "./room-inbox.js";
 import roomInfo from "./room-info.js";
@@ -43,6 +44,7 @@ export const ROUTES = {
   "push-unsubscribe": pushUnsubscribe,
   redeem,
   "room-ack": roomAck,
+  "room-base": roomBase,
   "room-create": roomCreate,
   "room-inbox": roomInbox,
   "room-info": roomInfo,

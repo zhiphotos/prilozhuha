@@ -9,6 +9,7 @@ import { handlePaymentReturn, verifyAccess } from "@/lib/rod/pay";
 import { pingPush } from "@/lib/rod/push";
 import { startUpdateWatch } from "@/lib/rod/update";
 import { JoinScreen } from "@/components/rod/join";
+import { HelperBar } from "@/components/rod/helper-ui";
 import { TreeViewScreen } from "@/components/rod/tree-view";
 import { LegalScreen } from "@/components/rod/legal";
 import { FlipBookScreen } from "@/components/rod/flipbook";
@@ -145,6 +146,7 @@ function RodAppMain() {
         </>
       )}
       <AppTour />
+      <HelperBar />
       <Toaster position="top-center" offset={{ top: "4.75rem" }} mobileOffset={{ top: "4.75rem" }} toastOptions={{ className: "rod-toast" }} />
     </NavProvider>
   );

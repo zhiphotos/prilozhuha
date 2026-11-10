@@ -3,6 +3,7 @@ import { redis, redisConfigured } from "../redis.js";
 import { getRoom, isInvited, limited, newKey } from "../room.js";
 
 const MAX_TEXT = 6000;
+const MAX_CHANGES = 900000; // знаков JSON
 const MAX_PHOTO = 600000; // знаков data-URL, примерно 450 КБ
 const clean = (value, max) => String(value ?? "").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "").trim().slice(0, max);
 
@@ -16,7 +17,7 @@ export default async function handler(req, res) {
   const room = await getRoom(body.room);
   if (!isInvited(room, body.invite)) return json(res, 404, { error: "Приглашение не найдено или больше не действует." });
   if (await limited(req, "room-submit", 40)) return json(res, 429, { error: "На сегодня достаточно. Продолжите завтра." });
-  const kind = ["story", "answer", "photo"].includes(body.kind) ? body.kind : "story";
+  const kind = ["story", "answer", "photo", "changes"].includes(body.kind) ? body.kind : "story";
   const item = {
     id: newKey(9),
     kind,
@@ -30,6 +31,14 @@ export default async function handler(req, res) {
     const photo = String(body.photo);
     if (!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(photo) || photo.length > MAX_PHOTO) return json(res, 400, { error: "Фото не подошло: нужно JPEG, PNG или WebP до 450 КБ." });
     item.photo = photo;
+  }
+  if (kind === "changes") {
+    // Правки помощника: список изменений (добавлено, исправлено, удалить), владелец разбирает их у себя в книге.
+    const raw = JSON.stringify(Array.isArray(body.changes) ? body.changes.slice(0, 400) : []);
+    if (raw.length > MAX_CHANGES) return json(res, 400, { error: "Правок слишком много за один раз. Отправьте частями." });
+    item.changes = JSON.parse(raw);
+    if (!item.changes.length) return json(res, 400, { error: "Правок пока нет." });
+    item.text = item.text || `Правок: ${item.changes.length}`;
   }
   if (!item.text && !item.photo) return json(res, 400, { error: "Напишите хотя бы пару слов или добавьте фото." });
   const key = `kr:inbox:${body.room}`;

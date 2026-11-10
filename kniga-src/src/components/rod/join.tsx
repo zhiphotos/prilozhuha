@@ -5,6 +5,7 @@ import { RELATIONS, SITUATIONS } from "@/lib/rod/content";
 import { compressPhoto, roomInfo, sendToRoom } from "@/lib/rod/family";
 import { useRod } from "@/lib/rod/store";
 import { Button, Field, useNav } from "@/components/rod/chrome";
+import { HelperJoin } from "@/components/rod/helper-ui";
 import { cn } from "@/lib/cn";
 
 const QUESTIONS = SITUATIONS.find((item) => item.id === "kin")?.questions.slice(0, 10) ?? [];
@@ -149,6 +150,7 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
           .
         </p>
       </div>
+      <HelperJoin room={room} invite={invite} />
       <Promo />
     </div>
   );

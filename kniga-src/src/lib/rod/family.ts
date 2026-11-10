@@ -4,13 +4,15 @@ import { useRod } from "@/lib/rod/store";
 
 export type Incoming = {
   id: string;
-  kind: "story" | "answer" | "photo";
+  kind: "story" | "answer" | "photo" | "changes";
   at: number;
   from: { name: string; relation: string };
   title: string;
   question: string;
   text: string;
   photo?: string;
+  /** Правки помощника (kind «changes»): список изменений для разбора. */
+  changes?: import("@/lib/rod/helper-changes").Change[];
 };
 
 const post = async <T,>(path: string, body: unknown): Promise<T & { error?: string }> => {
