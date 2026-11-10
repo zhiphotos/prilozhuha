@@ -63,7 +63,7 @@ export function wrapAroundLines(block: TextBlock, blocks: PageBlock[]) {
   if (context) context.font = `${fontWeight(block.font)} ${metrics.size * 10}px ${fontFamily(block.font)}`;
   const gap = (block.wordGap ?? 0) * metrics.size;
   const measure = (text: string) => (context ? context.measureText(stripBold(text)).width / 10 : text.length * metrics.size * 0.5) + (text.split(" ").length - 1) * gap;
-  return flowAround({ ...block, text: explodeBold(block.text) }, obstaclesFor(blocks, block), measure, metrics.size * metrics.leading, pad);
+  return flowAround({ ...block, text: explodeBold(block.text) }, obstaclesFor(blocks, block), measure, metrics.size * metrics.leading * (block.leadMul ?? 1), pad);
 }
 
 /** Высота строки и внутренние поля в единицах ширины страницы. */

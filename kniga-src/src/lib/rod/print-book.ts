@@ -75,7 +75,8 @@ function fillLine(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
   if (text.includes("**")) {
     // Жирные слова: рисуем по словам, жирным шрифтом там, где слово размечено.
     const regular = ctx.font;
-    const heavy = regular.replace(/\b(normal|bold|[1-9]00)\b/, "700");
+    // Браузер не пишет вес в ctx.font, если он обычный (400), поэтому замена по слову не находила, что менять, и жирные слова у своих шрифтов печатались обычными. Вес ставим явно, 800, как на экране.
+    const heavy = `800 ${regular.replace(/^(?:(?:italic|oblique|normal|small-caps|bold|bolder|lighter|[1-9]00)\s+)+/, "")}`;
     const align = ctx.textAlign;
     const space = ctx.measureText(" ").width + gap;
     const words = text.split(" ").map((word) => ({ word: stripBold(word), bold: word.includes("**") }));
@@ -310,14 +311,15 @@ function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { ty
   const pad = lookPad(block.look);
   const colors = lookColors(block.look, block.color, block.bg, dark);
   const px = metrics.size * U;
-  const lh = px * metrics.leading;
+  const lead = metrics.leading * (block.leadMul ?? 1);
+  const lh = px * lead;
   ctx.font = `${fontWeight(block.font)} ${px}px ${fontFamily(block.font)}`;
   const boxW = (block.w / 100) * W;
   const innerW = boxW - pad.x * 2 * U;
   const gap = (block.wordGap ?? 0) * px;
   if (block.wrap && block.look !== "card" && block.look !== "pill") {
     // Текст обтекает фото и стикеры: те же строки, что на экране.
-    const around = flowAround(block, obstaclesFor(siblings, block), (text) => widthWith(ctx, text, gap) / U, metrics.size * metrics.leading, pad);
+    const around = flowAround(block, obstaclesFor(siblings, block), (text) => widthWith(ctx, text, gap) / U, metrics.size * lead, pad);
     const ax = (block.x / 100) * W;
     const ay = (block.y / 100) * H;
     ctx.save();
@@ -325,7 +327,7 @@ function paintText(ctx: CanvasRenderingContext2D, block: Extract<PageBlock, { ty
     ctx.fillStyle = colors.fg;
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";
-    around.lines.forEach((line) => fillLine(ctx, line.text, line.x * U, (line.y + metrics.size * metrics.leading / 2) * U, gap));
+    around.lines.forEach((line) => fillLine(ctx, line.text, line.x * U, (line.y + metrics.size * lead / 2) * U, gap));
     ctx.restore();
     return;
   }
