@@ -28,7 +28,7 @@ export function CenterPicker() {
     return (
       <button type="button" className="chip" aria-label="Выбрать центр дерева" onClick={() => setOpen(true)}>
         <LocateFixed className="size-5" />
-        Центр
+        Показать меня
       </button>
     );
   }

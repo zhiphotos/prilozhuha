@@ -171,7 +171,7 @@ export function InstallBanner() {
     <>
       <section role="note" className="mb-5 rounded-2xl border border-gold/60 bg-gold/15 p-4">
         <p className="text-[15px] font-semibold text-ink">Книга открыта в браузере</p>
-        <p className="mt-1 text-sm text-ink/80">Браузер может стереть её данные, например если вы долго не заходили. Поставьте значок на экран «Домой» и открывайте книгу с него: так данные хранятся надёжнее.</p>
+        <p className="mt-1 text-sm text-ink/80">Чтобы книга хранилась надёжно, поставьте значок на экран «Домой» и открывайте её с него.</p>
         <div className="mt-2 flex flex-wrap gap-x-4">
           <button type="button" onClick={() => setOpen(true)} className="min-h-10 text-sm font-semibold text-moss underline">
             Как это сделать

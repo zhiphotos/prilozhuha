@@ -273,7 +273,7 @@ export function StickersSheet({
             <Upload className="size-4" /> Добавить из файлов
           </Button>
           {mine.length === 0 ? (
-            <p className="text-sm text-muted">Здесь будут ваши стикеры и футажи: PNG с прозрачным фоном, WebP, GIF, SVG. Бумажные текстуры лучше ложатся с режимом «Умножение» (Свойства → Вид).</p>
+            <p className="text-sm text-muted">Здесь будут ваши картинки и стикеры. Лучше всего подходят картинки с прозрачным фоном.</p>
           ) : (
             <ul className="grid grid-cols-4 gap-3">
               {mine.map((ref) => (

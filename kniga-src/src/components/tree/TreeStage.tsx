@@ -559,7 +559,7 @@ export function TreeStage(props: Props) {
       </div>
       <div className="absolute inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-20 flex flex-col items-center gap-2 px-2 sm:px-3">
         {hint && (
-          <p className="pointer-events-none max-w-full rounded-full bg-chip px-4 py-1.5 text-center text-xs text-chip-fg">Тяните карту · щипок отдаляет и приближает</p>
+          <p className="pointer-events-none max-w-full rounded-full bg-chip px-4 py-1.5 text-center text-xs text-chip-fg">Двигайте пальцем. Двумя пальцами: крупнее или мельче</p>
         )}
         <div className="flex max-w-full flex-wrap items-center justify-center gap-1 rounded-full border border-chip-line bg-chip p-1 backdrop-blur-md" role="group" aria-label="Направление древа">
           <button type="button" aria-pressed={flow === "down"} className={`min-h-11 rounded-full px-3 text-sm font-semibold ${flow === "down" ? "bg-gold text-ink" : "text-chip-fg"}`} onClick={() => onFlow("down")}>

@@ -558,7 +558,7 @@ function TreeScreen() {
       <PersonDrawer onNewBook={() => undefined} />
       {pickMode && !schemeOpen && (
         <div className="pointer-events-auto absolute inset-x-0 bottom-[5.25rem] z-30 mx-auto flex w-[min(34rem,calc(100vw-1.5rem))] flex-wrap items-center gap-1.5 rounded-2xl bg-black/75 px-2.5 py-2 text-xs backdrop-blur-md">
-          <p className="basis-full text-sm">{picked.size ? `Отмечено: ${picked.size}. Нажимайте на людей.` : "Нажимайте на людей на древе."}</p>
+          <p className="basis-full text-sm">{picked.size ? `Отмечено: ${picked.size}. Ещё нажмите на людей или жмите «Далее».` : "Нажмите на человека на древе: у него появится галочка."}</p>
           {(["ancestors", "descendants", "spouses"] as const).map((r) => (
             <button key={r} type="button" disabled={picked.size === 0} className="min-h-9 rounded-full bg-white/15 px-2.5 font-semibold disabled:opacity-40" onClick={() => setPicked((prev) => addRelatives(unions, prev, r))}>
               {r === "ancestors" ? "+ предки" : r === "descendants" ? "+ потомки" : "+ супруги"}
@@ -569,7 +569,7 @@ function TreeScreen() {
             Отмена
           </button>
           <button type="button" disabled={picked.size === 0} className="min-h-9 rounded-full bg-gold px-3.5 font-semibold text-ink disabled:opacity-40" onClick={() => setSchemeOpen(true)}>
-            Далее
+            {picked.size ? `Далее (${picked.size})` : "Далее"}
           </button>
         </div>
       )}

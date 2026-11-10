@@ -105,7 +105,7 @@ export function GrowingTree({ growth, onHide }: { growth: TreeGrowth; onHide: ()
           </button>
         ) : null}
         <button type="button" className="block min-h-9 text-xs text-muted underline underline-offset-2" onClick={onHide}>
-          Выключить дерево
+          Убрать картинку-дерево
         </button>
       </figcaption>
       {picking ? (

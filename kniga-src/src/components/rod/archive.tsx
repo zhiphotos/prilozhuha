@@ -140,7 +140,8 @@ function PeoplePane() {
             setParentOfId("");
             setMoreSibs([]);
             setDraft(EMPTY_PERSON);
-            toast("Человек добавлен: он на ленте и в древе");
+            const linked = Boolean(parentOfId || draft.siblingOf || draft.spouse || (draft.parents ?? []).filter(Boolean).length);
+            toast(linked || people.length === 0 ? `Добавлено: ${draft.name.trim()}. Он в списке ниже и на древе` : `Добавлено: ${draft.name.trim()}. Чтобы он появился на древе, свяжите его: укажите, чей он родственник`);
           }}
         >
           <PersonFields value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} others={people} parentOf={parentOfId} onParentOf={setParentOfId} extraSiblings={moreSibs} onExtraSiblings={setMoreSibs} />

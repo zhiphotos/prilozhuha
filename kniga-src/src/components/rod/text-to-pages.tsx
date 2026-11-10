@@ -80,7 +80,7 @@ export function TextToPagesSheet({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Sheet title="Текст → страницы" onClose={onClose}>
+    <Sheet title="Вставить длинный рассказ" onClose={onClose}>
       <p className="text-sm text-muted">Вставьте текст целиком. Заголовки станут крупными, абзацы обычным шрифтом, цитаты рукописным, а длинное разойдётся по страницам. Останется только оформить.</p>
       <textarea className="field mt-3 min-h-40 w-full" value={text} onChange={(event) => { setText(event.target.value); setAiItems(null); }} placeholder="Вставьте текст сюда" />
       <div className="mt-2 flex flex-wrap items-center gap-3">

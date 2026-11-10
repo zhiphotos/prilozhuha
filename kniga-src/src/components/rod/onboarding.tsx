@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AUDIENCES } from "@/lib/rod/content";
 import type { Audience } from "@/lib/rod/types";
 import { useRod } from "@/lib/rod/store";
-import { Button, Field, lineStyle } from "@/components/rod/chrome";
+import { Button, Field } from "@/components/rod/chrome";
 import { InstallSheet, isStandalone } from "@/components/rod/install-hint";
 import { OpenCopyButton } from "@/components/rod/open-copy";
 import { Cut, packBg } from "@/components/rod/botanica";
@@ -21,7 +21,7 @@ export function Onboarding({ ready = true }: { ready?: boolean }) {
       <header className="forest rounded-none px-6 pb-14 pt-[max(2.5rem,env(safe-area-inset-top))]" style={{ ["--forest-img" as string]: packBg("bg_8154") }}>
         <div className="mx-auto max-w-xl">
           <p className="hand text-[2.4rem] leading-none text-[#c9ae74]">Книга рода</p>
-          <h1 className="display-title one-line mt-4 leading-[1.1] text-paper [--max:2.8rem]" style={lineStyle("Для кого эта книга?")}>Для кого эта книга?</h1>
+          <h1 className="display-title mt-4 text-[2.2rem] leading-[1.1] text-paper">Для кого эта книга?</h1>
           <p className="mt-3 max-w-[32ch] text-paper/75">Страница нужна тому, кто однажды её откроет.</p>
         </div>
         <Cut id="moth" className="pointer-events-none absolute -right-8 top-8 w-44 rotate-[14deg] opacity-90" />
@@ -77,9 +77,11 @@ export function Onboarding({ ready = true }: { ready?: boolean }) {
             />
           </Field>
         </div>
-        <Button className="mt-6 w-full" disabled={!ready || !audience} onClick={() => audience && finish({ audience, dedicatee, collector })}>
-          Начать собирать
-        </Button>
+        <div className="sticky bottom-0 -mx-5 mt-6 bg-paper/95 px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:-mx-8 sm:px-8">
+          <Button className="w-full" disabled={!ready || !audience} onClick={() => audience && finish({ audience, dedicatee, collector })}>
+            {audience ? "Начать собирать" : "Сначала выберите, для кого книга"}
+          </Button>
+        </div>
         {ready ? (
           <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-ink/10 pt-5">
             <p className="min-w-0 flex-1 text-sm text-muted">Уже сохраняли копию книги?</p>
