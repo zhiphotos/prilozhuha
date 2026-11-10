@@ -798,7 +798,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     const frame: PhotoFrame = target && target.type === "slot" ? target.frame : chosen === "cutout" ? "sticker" : chosen === "full" ? "none" : chosen;
     let block: Extract<PageBlock, { type: "photo" }>;
     if (target && target.type === "slot") {
-      block = { id: id(), type: "photo", x: target.x, y: target.y, w: target.w, h: target.h, rotate: target.rotate ?? 0, src: ref, caption: "", frame, shadow: shadowPref };
+      block = { id: id(), type: "photo", x: target.x, y: target.y, w: target.w, h: target.h, rotate: target.rotate ?? 0, src: ref, caption: "", frame, shadow: shadowPref, ...(target.shape ? { shape: target.shape } : {}) };
     } else {
       // Очень длинное или очень высокое фото: подбираем ширину так, чтобы оно легло целиком, а не обрезалось рамкой.
       const heightFor = (width: number) => {

@@ -33,7 +33,7 @@ export function ToolBtn({ label, children, onClick, active }: { label: string; c
     <button
       type="button"
       onClick={onClick}
-      className={cn("flex min-h-[3.6rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[1.2rem] text-[12.5px] font-medium leading-none transition", active ? "bg-white text-ink" : "text-paper/90 active:bg-white/15")}
+      className={cn("flex min-h-[3.6rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[1.2rem] text-[11px] font-medium leading-none transition min-[420px]:text-[12.5px]", active ? "bg-white text-ink" : "text-paper/90 active:bg-white/15")}
     >
       {children}
       <span className="truncate">{label}</span>

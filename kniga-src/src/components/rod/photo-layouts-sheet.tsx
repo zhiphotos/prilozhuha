@@ -9,8 +9,11 @@ function Thumb({ layout }: { layout: PhotoLayout }) {
         <span
           key={i}
           className={`absolute bg-ink/25 ${r.frame === "polaroid" ? "border-2 border-white shadow" : ""}`}
-          style={{ left: `${r.x}%`, top: `${r.y}%`, width: `${r.w}%`, height: `${r.h}%`, transform: r.rotate ? `rotate(${r.rotate}deg)` : undefined }}
+          style={{ left: `${r.x}%`, top: `${r.y}%`, width: `${r.w}%`, height: `${r.h}%`, transform: r.rotate ? `rotate(${r.rotate}deg)` : undefined, borderRadius: r.shape === "round" ? "50%" : r.shape === "arch" ? "50% 50% 2px 2px / 36% 36% 2px 2px" : r.shape === "rounded" ? "14%" : undefined }}
         />
+      ))}
+      {(layout.texts ?? []).map((t, i) => (
+        <span key={`t${i}`} className="absolute h-[3px] rounded bg-ink/45" style={{ left: `${t.x}%`, top: `${t.y + 1}%`, width: `${t.w}%` }} />
       ))}
     </div>
   );
