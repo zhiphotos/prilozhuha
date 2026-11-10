@@ -1,5 +1,5 @@
 import { bodyOf, cors, json } from "../config.js";
-import { redis, redisConfigured } from "../redis.js";
+import { pairs, redis, redisConfigured } from "../redis.js";
 import { getRoom, isInvited, isOwner, limited } from "../room.js";
 
 const MAX_BASE = 2500000; // знаков JSON
@@ -19,8 +19,19 @@ export default async function handler(req, res) {
     return json(res, 200, { ok: true });
   }
   if (!isInvited(room, body.invite)) return json(res, 404, { error: "Приглашение не найдено или больше не действует." });
-  if (await limited(req, "room-base", 60)) return json(res, 429, { error: "Слишком много обращений. Попробуйте завтра." });
+  // Помощник сам спрашивает про новую версию (с «since»): таких запросов много, лимит отдельный и большой.
+  const polling = body.since !== undefined;
+  if (await limited(req, polling ? "room-poll" : "room-base", polling ? 4000 : 60)) return json(res, 429, { error: "Слишком много обращений. Попробуйте завтра." });
   const raw = await redis("GET", `kr:base:${body.room}`);
   if (!raw) return json(res, 404, { error: "Владелец ещё не открыл книгу для правок." });
-  return json(res, 200, { ok: true, ...JSON.parse(raw), name: room.name });
+  const stored = JSON.parse(raw);
+  // Сколько присланных этим помощником правок владелец ещё не разобрал: пока они ждут, свежую версию поверх не кладём.
+  const who = String(body.who ?? "").slice(0, 60);
+  let waiting = 0;
+  if (who) {
+    const items = Object.values(pairs(await redis("HGETALL", `kr:inbox:${body.room}`))).map((r) => JSON.parse(r));
+    waiting = items.filter((i) => i.kind === "changes" && i.from?.name === who).length;
+  }
+  if (polling && Number(body.since) >= stored.at) return json(res, 200, { ok: true, same: true, at: stored.at, waiting });
+  return json(res, 200, { ok: true, ...stored, name: room.name, waiting });
 }
