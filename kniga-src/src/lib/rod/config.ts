@@ -69,3 +69,6 @@ export function embedUrl(url: string): { kind: "iframe" | "video"; src: string }
   if (/kinescope\.io/.test(url)) return { kind: "iframe", src: url.replace("kinescope.io/", "kinescope.io/embed/").replace("/embed/embed/", "/embed/") };
   return { kind: "video", src: url };
 }
+
+/** Куда переехала книга. Задаётся только при сборке старого адреса (VITE_MOVED_TO); на новом адресе пусто. */
+export const MOVED_TO = (import.meta.env.VITE_MOVED_TO as string | undefined) ?? "";
