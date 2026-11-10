@@ -14,6 +14,7 @@ import {
   Layers,
   Lightbulb,
   Lock,
+  Crop,
   MoreHorizontal,
   PenLine,
   Pipette,
@@ -2047,6 +2048,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
                           edges={edgesFor(block)}
                           onEdge={(event, edge) => beginGesture(event, block, "size", edge)}
                           onDelete={() => removeBlock(block.id)}
+                          onCrop={block.type === "photo" && ops ? ops.cropMode : undefined}
                           onLock={() => {
                             patchBlock(block.id, { locked: true } as Partial<PageBlock>);
                             toast("Элемент закреплён", { action: { label: "Снять", onClick: () => patchBlock(block.id, { locked: false } as Partial<PageBlock>) }, duration: 4000 });
@@ -2644,7 +2646,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   );
 }
 
-function Handles({ onTurn, onSize, onEdge, edges = [], onDelete, onLock }: { onTurn: (event: React.PointerEvent) => void; onSize: (event: React.PointerEvent) => void; onEdge?: (event: React.PointerEvent, edge: "l" | "r" | "t" | "b") => void; edges?: ("l" | "r" | "t" | "b")[]; onDelete: () => void; onLock: () => void }) {
+function Handles({ onTurn, onSize, onEdge, edges = [], onDelete, onLock, onCrop }: { onTurn: (event: React.PointerEvent) => void; onSize: (event: React.PointerEvent) => void; onEdge?: (event: React.PointerEvent, edge: "l" | "r" | "t" | "b") => void; edges?: ("l" | "r" | "t" | "b")[]; onDelete: () => void; onLock: () => void; onCrop?: () => void }) {
   return (
     <>
       <span className="pointer-events-none absolute -inset-[5px] rounded-[6px] border-2 border-dashed border-rose" />
@@ -2655,9 +2657,16 @@ function Handles({ onTurn, onSize, onEdge, edges = [], onDelete, onLock }: { onT
       <button type="button" aria-label="Удалить" className="pointer-events-auto absolute -right-5 -top-5 grid size-11 place-items-center rounded-full bg-rose-deep text-paper shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onDelete}>
         <Trash2 className="size-4" />
       </button>
-      <button type="button" aria-label="Заблокировать" className="pointer-events-auto absolute -left-5 -top-5 grid size-11 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onLock}>
-        <Lock className="size-4" />
-      </button>
+      {onCrop ? (
+        // У фото в углу значок кадрирования: так сразу понятно, что часть фото можно скрыть. Закрепить можно кнопкой на панели.
+        <button type="button" aria-label="Кадрировать фото" title="Кадрировать: выбрать, какая часть фото видна" className="pointer-events-auto absolute -left-5 -top-5 grid size-11 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onCrop}>
+          <Crop className="size-4" />
+        </button>
+      ) : (
+        <button type="button" aria-label="Заблокировать" className="pointer-events-auto absolute -left-5 -top-5 grid size-11 place-items-center rounded-full bg-white text-ink shadow-md" onPointerDown={(event) => event.stopPropagation()} onClick={onLock}>
+          <Lock className="size-4" />
+        </button>
+      )}
       <button type="button" aria-label="Размер" className="handle pointer-events-auto absolute -bottom-9 -right-9 size-11 rounded-full border-[3px] border-rose bg-white shadow-md" onPointerDown={onSize} />
       {onEdge && edges.length ? (
         <>
