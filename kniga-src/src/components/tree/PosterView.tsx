@@ -3,7 +3,7 @@ import { cardLine } from "@/lib/tree/card-fields";
 import type { PosterSheet } from "@/lib/tree/poster";
 import type { Person, Union } from "@/lib/tree/types";
 
-export function PosterView({ poster, people, unions, focusId, selectedId }: { poster: PosterSheet; people: Person[]; unions: Union[]; focusId: string; selectedId: string | null }) {
+export function PosterView({ poster, people, unions, focusId, selectedId, marked }: { poster: PosterSheet; people: Person[]; unions: Union[]; focusId: string; selectedId: string | null; marked?: ReadonlySet<string> }) {
   const byId = new Map(people.map((p) => [p.id, p]));
   const { cardH } = poster;
   return (
@@ -37,7 +37,7 @@ export function PosterView({ poster, people, unions, focusId, selectedId }: { po
       {poster.nodes.map((node) => {
         const person = byId.get(node.id);
         if (!person) return null;
-        const on = node.id === selectedId || node.id === focusId;
+        const on = node.id === selectedId || node.id === focusId || !!marked?.has(node.id);
         const years = cardLine(person, yearsOf(person));
         const role = kinship(people, unions, focusId, person.id).card;
         const lines = nameLines(person);

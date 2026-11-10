@@ -13,7 +13,7 @@ function frameOf(id: string) {
   return GZHEL_FRAMES[n]!;
 }
 
-export function GzhelView({ sheet, people, unions, focusId, selectedId }: { sheet: GzhelSheet; people: Person[]; unions: Union[]; focusId: string; selectedId: string | null }) {
+export function GzhelView({ sheet, people, unions, focusId, selectedId, marked }: { sheet: GzhelSheet; people: Person[]; unions: Union[]; focusId: string; selectedId: string | null; marked?: ReadonlySet<string> }) {
   const byId = new Map(people.map((p) => [p.id, p]));
   return (
     <div className="relative" style={{ width: sheet.width, height: sheet.height, background: "#fbfcfe" }}>
@@ -67,7 +67,7 @@ export function GzhelView({ sheet, people, unions, focusId, selectedId }: { shee
         const person = byId.get(node.id);
         if (!person) return null;
         const frame = frameOf(person.id);
-        return <FramedFace key={node.id} x={node.x} y={node.y} size={GZHEL_FRAME} hole={frame.hole} frame={frame.src} photo={person.photo} ring={node.id === selectedId || node.id === focusId ? "#1c4f97" : undefined} />;
+        return <FramedFace key={node.id} x={node.x} y={node.y} size={GZHEL_FRAME} hole={frame.hole} frame={frame.src} photo={person.photo} ring={node.id === selectedId || node.id === focusId || marked?.has(node.id) ? "#1c4f97" : undefined} />;
       })}
     </div>
   );

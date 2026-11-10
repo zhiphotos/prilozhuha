@@ -37,6 +37,8 @@ type Props = {
   unions: Union[];
   focusId: string;
   selectedId: string | null;
+  /** Люди, отмеченные для схемы: на каждом кольцо. */
+  marked?: ReadonlySet<string>;
   centerReq: { id: string; n: number } | null;
   fitReq: number;
   radius: number | null;
@@ -156,7 +158,7 @@ function Leaf({ motif }: { motif: { x: number; y: number; r: number; rot: number
 export function TreeStage(props: Props) {
   // Сводные братья и сёстры: у родителя несколько союзов с детьми, детей от следующих союзов ведём пунктиром.
   const halfUnions = useMemo(() => halfUnionIds(props.unions, props.people), [props.unions, props.people]);
-  const { layout, people, unions, focusId, selectedId, centerReq, fitReq, radius, onRadius, onSelectPerson, onSelectUnion, onClear, onLocate, onJump, style, onStyle, stylesLocked, poster, cameo, gzhel, boheme, taiga, flow, onFlow } = props;
+  const { layout, people, unions, focusId, selectedId, marked, centerReq, fitReq, radius, onRadius, onSelectPerson, onSelectUnion, onClear, onLocate, onJump, style, onStyle, stylesLocked, poster, cameo, gzhel, boheme, taiga, flow, onFlow } = props;
   // Подсветка линии остаётся после закрытия карточки (карточка закрывает почти весь экран телефона) и гаснет по нажатию на пустое место схемы.
   const [litId, setLitId] = useState<string | null>(null);
   useEffect(() => {
@@ -418,15 +420,15 @@ export function TreeStage(props: Props) {
       >
         <div className={`cam absolute left-0 top-0${gesturing ? " is-gesturing" : ""}`} style={{ transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.k})` }}>
           {style === "taiga" && taiga ? (
-            <TaigaView sheet={taiga} people={people} unions={unions} focusId={focusId} selectedId={selectedId} />
+            <TaigaView sheet={taiga} people={people} unions={unions} focusId={focusId} selectedId={selectedId} marked={marked} />
           ) : style === "boheme" && boheme ? (
-            <BohemeView sheet={boheme} people={people} unions={unions} focusId={focusId} selectedId={selectedId} />
+            <BohemeView sheet={boheme} people={people} unions={unions} focusId={focusId} selectedId={selectedId} marked={marked} />
           ) : style === "gzhel" && gzhel ? (
-            <GzhelView sheet={gzhel} people={people} unions={unions} focusId={focusId} selectedId={selectedId} />
+            <GzhelView sheet={gzhel} people={people} unions={unions} focusId={focusId} selectedId={selectedId} marked={marked} />
           ) : style === "cameo" && cameo ? (
-            <CameoView sheet={cameo} people={people} unions={unions} focusId={focusId} selectedId={selectedId} />
+            <CameoView sheet={cameo} people={people} unions={unions} focusId={focusId} selectedId={selectedId} marked={marked} />
           ) : style === "carved" && poster ? (
-            <PosterView poster={poster} people={people} unions={unions} focusId={focusId} selectedId={selectedId} />
+            <PosterView poster={poster} people={people} unions={unions} focusId={focusId} selectedId={selectedId} marked={marked} />
           ) : (
             <svg width={layout.width} height={layout.height} role="img" aria-label="Родословное древо">
               <g fill="none" stroke="var(--color-blood)" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
@@ -465,7 +467,13 @@ export function TreeStage(props: Props) {
                 const roleSize = role.length > 26 ? 8.5 : role.length > 18 ? 9.5 : 11;
                 return (
                   <g key={node.id}>
-                    {(selectedId === person.id || focusId === person.id) && <circle cx={node.x} cy={node.y} r={PORTRAIT_R + 6} fill="none" stroke="var(--color-gold)" strokeWidth={selectedId === person.id ? 2.5 : 1.6} />}
+                    {(selectedId === person.id || focusId === person.id || marked?.has(person.id)) && <circle cx={node.x} cy={node.y} r={PORTRAIT_R + 6} fill="none" stroke="var(--color-gold)" strokeWidth={marked?.has(person.id) ? 4 : selectedId === person.id ? 2.5 : 1.6} />}
+                    {marked?.has(person.id) && (
+                      <g>
+                        <circle cx={node.x + PORTRAIT_R * 0.75} cy={node.y - PORTRAIT_R * 0.75} r={13} fill="var(--color-gold)" />
+                        <path d={`M${node.x + PORTRAIT_R * 0.75 - 6} ${node.y - PORTRAIT_R * 0.75} l4 4.5 l8 -9`} fill="none" stroke="#1a1612" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+                      </g>
+                    )}
                     <circle cx={node.x} cy={node.y} r={PORTRAIT_R} fill="#d7c3a4" />
                     {!person.photo || broken[person.id] ? (
                       <text x={node.x} y={node.y} textAnchor="middle" dominantBaseline="middle" fill="var(--color-ink)" fontFamily="var(--font-serif)" fontSize={26}>
