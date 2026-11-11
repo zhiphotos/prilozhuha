@@ -20,6 +20,9 @@ export type Person = {
   side?: "left" | "right";
   /** Место ветки среди других в ряду слева направо (выбор пользователя). */
   rank?: number;
+  /** Ручной сдвиг карточки на схеме (перетащили пальцем). */
+  treeDx?: number;
+  treeDy?: number;
 };
 
 export type Union = {
@@ -67,6 +70,8 @@ export type ChildBus = {
   busY: number;
   xs: number[];
   childTop: number;
+  /** Ручной сдвиг: высота входа в каждого ребёнка (в порядке xs). Если нет, у всех childTop. */
+  childTops?: number[];
   /** Супруги далеко друг от друга: линии идут от каждого из них вниз к общей скобке. */
   partnerXs?: number[];
   partnerTop?: number;

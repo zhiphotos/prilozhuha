@@ -83,6 +83,8 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
       maidenName: names.lastName ? names.maidenName : undefined,
       side: p.treeSide,
       rank: p.treeRank,
+      treeDx: p.treeDx,
+      treeDy: p.treeDy,
     });
     known.add(p.id);
   }

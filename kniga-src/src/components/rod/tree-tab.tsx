@@ -18,6 +18,7 @@ import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { setCardFields, useCardFields } from "@/lib/tree/card-fields";
 import { publishShare, readShare, revokeShare } from "@/lib/rod/share-tree";
 import { layoutTree, sliceByRadius } from "@/lib/tree/layout";
+import { applyShifts, shiftsOf } from "@/lib/tree/offsets";
 import { SCOPES, scopeFilter } from "@/lib/tree/scope";
 import { addRelatives } from "@/lib/tree/subset";
 import { layoutCameo } from "@/lib/tree/cameo";
@@ -175,7 +176,7 @@ function TreeScreen() {
   const setSpread = useTree((s) => s.setSpread);
   const cardFields = useCardFields();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const layout = useMemo(() => layoutTree(view.people, view.unions, focusId, flow), [view, focusId, flow, spread]);
+  const layout = useMemo(() => applyShifts(layoutTree(view.people, view.unions, focusId, flow), view.unions, shiftsOf(view.people)), [view, focusId, flow, spread]);
   const poster = useMemo(() => (style === "carved" ? layoutPoster(view.people, view.unions, focusId, flow) : null), [style, view, focusId, flow]);
   const cameo = useMemo(() => (style === "cameo" ? layoutCameo(view.people, view.unions, focusId, flow) : null), [style, view, focusId, flow]);
   const gzhel = useMemo(() => (style === "gzhel" ? layoutGzhel(view.people, view.unions, focusId, flow) : null), [style, view, focusId, flow]);
@@ -266,6 +267,10 @@ function TreeScreen() {
         </div>
       ) : null}
       <TreeStage
+        onMovePerson={(id, dx, dy) => useRod.getState().updatePerson(id, { treeDx: Math.round(dx), treeDy: Math.round(dy) })}
+        onResetMoves={() => {
+          for (const p of useRod.getState().people) if (p.treeDx || p.treeDy) useRod.getState().updatePerson(p.id, { treeDx: undefined, treeDy: undefined });
+        }}
         layout={layout}
         people={people}
         unions={unions}
