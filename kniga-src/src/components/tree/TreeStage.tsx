@@ -1,3 +1,4 @@
+import { applyShifts } from "@/lib/tree/offsets";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cardLine, useCardFields } from "@/lib/tree/card-fields";
 import { LocateFixed, Minus, Plus, Users } from "lucide-react";
@@ -61,6 +62,9 @@ type Props = {
   taiga: TaigaSheet | null;
   flow: TreeFlow;
   onFlow: (flow: TreeFlow) => void;
+  /** Человека перетащили: новый полный сдвиг карточки. */
+  onMovePerson?: (id: string, dx: number, dy: number) => void;
+  onResetMoves?: () => void;
 };
 
 function lineColor(status: UnionStatus): string {
@@ -103,7 +107,7 @@ function busPath(bus: TreeLayout["buses"][number]): string {
     parts.push(`M ${mid} ${bus.bracketY} V ${bus.busY}`);
     parts.push(`M ${Math.min(mid, ...bus.xs)} ${bus.busY} H ${Math.max(mid, ...bus.xs)}`);
   } else if (min != null && max != null && bus.xs.length > 1) parts.push(`M ${min} ${bus.busY} H ${max}`);
-  for (const x of bus.xs) parts.push(`M ${x} ${bus.busY} V ${bus.childTop}`);
+  bus.xs.forEach((x, i) => parts.push(`M ${x} ${bus.busY} V ${bus.childTops?.[i] ?? bus.childTop}`));
   return parts.join(" ");
 }
 
@@ -158,7 +162,13 @@ function Leaf({ motif }: { motif: { x: number; y: number; r: number; rot: number
 export function TreeStage(props: Props) {
   // Сводные братья и сёстры: у родителя несколько союзов с детьми, детей от следующих союзов ведём пунктиром.
   const halfUnions = useMemo(() => halfUnionIds(props.unions, props.people), [props.unions, props.people]);
-  const { layout, people, unions, focusId, selectedId, marked, centerReq, fitReq, radius, onRadius, onSelectPerson, onSelectUnion, onClear, onLocate, onJump, style, onStyle, stylesLocked, poster, cameo, gzhel, boheme, taiga, flow, onFlow } = props;
+  const { layout: baseLayout, people, unions, focusId, selectedId, marked, centerReq, fitReq, radius, onRadius, onSelectPerson, onSelectUnion, onClear, onLocate, onJump, style, onStyle, stylesLocked, poster, cameo, gzhel, boheme, taiga, flow, onFlow, onMovePerson, onResetMoves } = props;
+  // Перетаскивание карточки: пока палец на экране, линии пересчитываются на лету; сдвиг запоминается, когда палец отпущен.
+  const [moveMode, setMoveMode] = useState(false);
+  const [live, setLive] = useState<{ id: string; dx: number; dy: number } | null>(null);
+  const personDrag = useRef<{ id: string; sx: number; sy: number; moved: boolean } | null>(null);
+  const layout = useMemo(() => (live ? applyShifts(baseLayout, unions, new Map([[live.id, { dx: live.dx, dy: live.dy }]])) : baseLayout), [baseLayout, unions, live]);
+  const anyMoved = people.some((person) => person.treeDx || person.treeDy);
   // Подсветка линии остаётся после закрытия карточки (карточка закрывает почти весь экран телефона) и гаснет по нажатию на пустое место схемы.
   const [litId, setLitId] = useState<string | null>(null);
   useEffect(() => {
@@ -331,6 +341,15 @@ export function TreeStage(props: Props) {
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     setGesturing(true);
     setHint(false);
+    if (moveMode && style === "work" && onMovePerson && pointers.current.size === 1) {
+      const w = world(e.clientX, e.clientY);
+      const found = hit(w.x, w.y);
+      if (found?.kind === "person") {
+        personDrag.current = { id: found.id, sx: w.x, sy: w.y, moved: false };
+        drag.current = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, moved: false };
+        return;
+      }
+    }
     if (pointers.current.size === 1) drag.current = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, moved: false };
     // Второй палец: это щипок, а не нажатие. Иначе после щипка последний поднятый палец открывал карточку случайного человека.
     else if (drag.current) drag.current.moved = true;
@@ -365,6 +384,17 @@ export function TreeStage(props: Props) {
     const d = drag.current;
     if (!d) return;
     if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) d.moved = true;
+    const pd = personDrag.current;
+    if (pd) {
+      if (!d.moved) return;
+      pd.moved = true;
+      const w = world(e.clientX, e.clientY);
+      const at = baseLayout.nodes.find((n) => n.id === pd.id);
+      const dx = at ? Math.max(w.x - pd.sx, 50 - at.x) : w.x - pd.sx;
+      const dy = at ? Math.max(w.y - pd.sy, 50 - at.y) : w.y - pd.sy;
+      setLive({ id: pd.id, dx, dy });
+      return;
+    }
     setCam((c) => ({ ...c, x: d.cx + (e.clientX - d.x), y: d.cy + (e.clientY - d.y) }));
   };
 
@@ -379,8 +409,17 @@ export function TreeStage(props: Props) {
     }
     if (pointers.current.size === 0) {
       setGesturing(false);
+      const pd = personDrag.current;
+      personDrag.current = null;
+      if (pd?.moved && !cancelled) {
+        const l = live;
+        const person = people.find((x) => x.id === pd.id);
+        if (l && l.id === pd.id && person && onMovePerson) onMovePerson(pd.id, (person.treeDx ?? 0) + l.dx, (person.treeDy ?? 0) + l.dy);
+      }
+      setLive(null);
       const d = drag.current;
       drag.current = null;
+      if (pd?.moved) return;
       // Прерванное касание (система забрала жест) выбором человека не считается.
       if (d && !d.moved && !cancelled) {
         const p = world(e.clientX, e.clientY);
@@ -568,7 +607,22 @@ export function TreeStage(props: Props) {
           <button type="button" aria-pressed={flow === "up"} className={`min-h-11 rounded-full px-3 text-sm font-semibold ${flow === "up" ? "bg-gold text-ink" : "text-chip-fg"}`} onClick={() => onFlow("up")}>
             Снизу вверх
           </button>
+          {style === "work" && onMovePerson ? (
+            <button type="button" aria-pressed={moveMode} className={`min-h-11 rounded-full px-3 text-sm font-semibold ${moveMode ? "bg-gold text-ink" : "text-chip-fg"}`} onClick={() => setMoveMode((v) => !v)}>
+              {moveMode ? "Готово" : "Переместить"}
+            </button>
+          ) : null}
         </div>
+        {moveMode && style === "work" ? (
+          <p className="max-w-full rounded-full bg-chip px-4 py-1.5 text-center text-xs text-chip-fg">
+            Тяните карточку пальцем, линии потянутся за ней.{anyMoved && onResetMoves ? " " : ""}
+            {anyMoved && onResetMoves ? (
+              <button type="button" className="font-semibold underline" onClick={onResetMoves}>
+                Вернуть всех на места
+              </button>
+            ) : null}
+          </p>
+        ) : null}
         <div className="flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto rounded-full border border-chip-line bg-chip p-1 backdrop-blur-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {(["work", "carved", "cameo", "gzhel", "boheme", "taiga"] as const).map((id) => (
             <button key={id} type="button" aria-pressed={style === id} className={`min-h-11 shrink-0 rounded-full px-3 text-sm font-semibold ${style === id ? "bg-gold text-ink" : "text-chip-fg"} ${stylesLocked && id !== "work" ? "opacity-80" : ""}`} onClick={() => onStyle(id)}>
