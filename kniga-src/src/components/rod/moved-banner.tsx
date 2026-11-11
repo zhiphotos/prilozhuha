@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowRight, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/rod/chrome";
@@ -47,9 +48,9 @@ function MoveTour({ onClose }: { onClose: () => void }) {
     onClose();
   };
   const canNext = step !== 1 || saved;
-  return (
-    <div role="dialog" aria-modal="true" aria-label="Переезд Книги рода" className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
-      <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl bg-paper p-5 text-ink shadow-2xl">
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-label="Переезд Книги рода" className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 p-4">
+      <div className="max-h-[88dvh] w-full max-w-md overflow-y-auto rounded-2xl bg-paper p-5 text-ink shadow-2xl">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-ink">Переезд · шаг {step + 1} из {LAST + 1}</p>
         {step === 0 ? (
           <>
@@ -119,7 +120,8 @@ function MoveTour({ onClose }: { onClose: () => void }) {
           Позже
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
