@@ -1,3 +1,4 @@
+import { schemeAnchor, schemeLayout } from "@/lib/tree/scheme";
 import { useMemo, useState } from "react";
 import { Sheet } from "@/components/rod/chrome";
 import { TreeStage } from "@/components/tree/TreeStage";
@@ -40,12 +41,12 @@ export function StylePreview({ style, real, onPick, onOpen, onClose }: { style: 
   const people = data.people;
   const unions = data.unions;
   const focusId = data.focusId;
-  const layout = useMemo(() => layoutTree(people, unions, focusId, flow), [people, unions, focusId, flow]);
-  const poster = useMemo(() => (style === "carved" ? layoutPoster(people, unions, focusId, flow) : null), [style, people, unions, focusId, flow]);
-  const cameo = useMemo(() => (style === "cameo" ? layoutCameo(people, unions, focusId, flow) : null), [style, people, unions, focusId, flow]);
-  const gzhel = useMemo(() => (style === "gzhel" ? layoutGzhel(people, unions, focusId, flow) : null), [style, people, unions, focusId, flow]);
-  const boheme = useMemo(() => (style === "boheme" ? layoutBoheme(people, unions, focusId, flow) : null), [style, people, unions, focusId, flow]);
-  const taiga = useMemo(() => (style === "taiga" ? layoutTaiga(people, unions, focusId, flow) : null), [style, people, unions, focusId, flow]);
+  const layout = useMemo(() => schemeLayout(people, unions, focusId, flow), [people, unions, focusId, flow]);
+  const poster = useMemo(() => (style === "carved" ? layoutPoster(people, unions, focusId, flow, schemeAnchor(people, unions, focusId, flow)) : null), [style, people, unions, focusId, flow]);
+  const cameo = useMemo(() => (style === "cameo" ? layoutCameo(people, unions, focusId, flow, schemeAnchor(people, unions, focusId, flow)) : null), [style, people, unions, focusId, flow]);
+  const gzhel = useMemo(() => (style === "gzhel" ? layoutGzhel(people, unions, focusId, flow, schemeAnchor(people, unions, focusId, flow)) : null), [style, people, unions, focusId, flow]);
+  const boheme = useMemo(() => (style === "boheme" ? layoutBoheme(people, unions, focusId, flow, schemeAnchor(people, unions, focusId, flow)) : null), [style, people, unions, focusId, flow]);
+  const taiga = useMemo(() => (style === "taiga" ? layoutTaiga(people, unions, focusId, flow, schemeAnchor(people, unions, focusId, flow)) : null), [style, people, unions, focusId, flow]);
   return (
     <Sheet title={`Так выглядит «${TITLE[style]}»`} onClose={onClose}>
       <div className="grid gap-3">

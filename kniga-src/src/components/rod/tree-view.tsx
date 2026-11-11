@@ -1,3 +1,4 @@
+import { schemeLayout } from "@/lib/tree/scheme";
 import { useEffect, useMemo, useState } from "react";
 import { loadShared } from "@/lib/rod/share-tree";
 import { TreeStage } from "@/components/tree/TreeStage";
@@ -24,7 +25,7 @@ export function TreeViewScreen({ id }: { id: string }) {
     };
   }, [id]);
 
-  const layout = useMemo(() => (tree ? layoutTree(tree.people, tree.unions, tree.focusId, flow) : null), [tree, flow]);
+  const layout = useMemo(() => (tree ? schemeLayout(tree.people, tree.unions, tree.focusId, flow) : null), [tree, flow]);
   const person = tree?.people.find((p) => p.id === selected) ?? null;
 
   if (error) {
