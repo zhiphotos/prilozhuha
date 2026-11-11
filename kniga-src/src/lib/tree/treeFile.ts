@@ -118,7 +118,7 @@ export function buildDiagnostics(people: Person[], opts: { anonymize: boolean; b
   const ids = new Map(people.map((p, i) => [p.id, `P${i + 1}`]));
   const idOf = (id: string) => (opts.anonymize ? ids.get(id) ?? "P?" : id);
   const src = opts.anonymize
-    ? people.map((p) => ({ id: idOf(p.id), name: idOf(p.id), relation: p.relation, birthYear: "", maidenName: "", notes: "", parents: p.parents?.map(idOf), siblingOf: p.siblingOf ? idOf(p.siblingOf) : undefined, spouse: p.spouse ? idOf(p.spouse) : undefined, spouseStatus: p.spouseStatus, moreSpouses: p.moreSpouses?.map((m) => ({ id: idOf(m.id), status: m.status })), gender: p.gender, line: p.line, fromFile: p.fromFile, treeSide: p.treeSide, treeRank: p.treeRank } as Person))
+    ? people.map((p) => ({ id: idOf(p.id), name: idOf(p.id), relation: p.relation, birthYear: "", maidenName: "", notes: "", parents: p.parents?.map(idOf), siblingOf: p.siblingOf ? idOf(p.siblingOf) : undefined, spouse: p.spouse ? idOf(p.spouse) : undefined, spouseStatus: p.spouseStatus, moreSpouses: p.moreSpouses?.map((m) => ({ id: idOf(m.id), status: m.status })), gender: p.gender, line: p.line, fromFile: p.fromFile, treeSide: p.treeSide, treeRank: p.treeRank, treeDx: p.treeDx, treeDy: p.treeDy } as Person))
     : people.map((p) => ({ ...JSON.parse(JSON.stringify(p)), photo: undefined }) as Person);
   const data = treeFromPeople(src);
   const g = buildRelationshipGraph(data);

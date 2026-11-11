@@ -1,3 +1,4 @@
+import { reposition, type Spot } from "./anchor.ts";
 import { assignGenerations } from "./layout.ts";
 import { fullName, kinship, yearNum, yearsOf } from "./kinship.ts";
 import { cardLine } from "./card-fields.ts";
@@ -88,7 +89,7 @@ function rowUnits(ids: string[], unions: Union[], people: Map<string, Person>): 
   return units;
 }
 
-export function layoutPoster(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down"): PosterSheet {
+export function layoutPoster(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down", anchor?: ReadonlyMap<string, Spot>): PosterSheet {
   const empty = { width: SHEET_W, height: SHEET_H, cardW: 160, cardH: CARD_H, nodes: [] as PosterNode[], links: [] as string[], rings: [] as { x: number; y: number }[], title: "РОД", titleX: SHEET_W / 2, titleY: SHEET_H * 0.64 };
   if (!people.length) return empty;
   const gen = assignGenerations(people, unions);
@@ -108,8 +109,8 @@ export function layoutPoster(people: Person[], unions: Union[], focusId: string,
     }
     return { spots, total: Math.max(120, left - 10) };
   });
-  const width = Math.max(SHEET_W, ...measured.map((row) => row.total + 160));
-  const height = Math.round(width * (SHEET_H / SHEET_W));
+  let width = Math.max(SHEET_W, ...measured.map((row) => row.total + 160));
+  let height = Math.round(width * (SHEET_H / SHEET_W));
   const nodes: PosterNode[] = [];
   measured.forEach((row, index) => {
     const slot = flow === "up" ? levels.length - 1 - index : index;
@@ -117,6 +118,16 @@ export function layoutPoster(people: Person[], unions: Union[], focusId: string,
     const origin = (width - row.total) / 2;
     for (const spot of row.spots) nodes.push({ id: spot.id, x: origin + spot.left + spot.w / 2, y, gen: levels[index] ?? 0, w: spot.w });
   });
+  if (anchor) {
+    // Листу нужен запас по краям; форма листа 2:3 сохраняется.
+    const ext = reposition(nodes, anchor, { hw: (n) => n.w / 2, hh: CARD_H / 2 }, { left: 80, top: 120 });
+    if (ext) {
+      const needW = ext.maxX + Math.max(...nodes.map((n) => n.w)) / 2 + 80;
+      const needH = ext.maxY + CARD_H / 2 + 160;
+      width = Math.max(SHEET_W, needW, needH * (SHEET_W / SHEET_H));
+      height = Math.round(width * (SHEET_H / SHEET_W));
+    }
+  }
   const at = new Map(nodes.map((n) => [n.id, n]));
   const links: string[] = [];
   const rings: { x: number; y: number }[] = [];

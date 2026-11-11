@@ -177,11 +177,13 @@ function TreeScreen() {
   const cardFields = useCardFields();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const layout = useMemo(() => applyShifts(layoutTree(view.people, view.unions, focusId, flow), view.unions, shiftsOf(view.people)), [view, focusId, flow, spread]);
-  const poster = useMemo(() => (style === "carved" ? layoutPoster(view.people, view.unions, focusId, flow) : null), [style, view, focusId, flow]);
-  const cameo = useMemo(() => (style === "cameo" ? layoutCameo(view.people, view.unions, focusId, flow) : null), [style, view, focusId, flow]);
-  const gzhel = useMemo(() => (style === "gzhel" ? layoutGzhel(view.people, view.unions, focusId, flow) : null), [style, view, focusId, flow]);
-  const boheme = useMemo(() => (style === "boheme" ? layoutBoheme(view.people, view.unions, focusId, flow) : null), [style, view, focusId, flow]);
-  const taiga = useMemo(() => (style === "taiga" ? layoutTaiga(view.people, view.unions, focusId, flow) : null), [style, view, focusId, flow]);
+  // Во всех стилях карточки стоят там же, где на «Схеме» (с ручными сдвигами).
+  const anchor = useMemo(() => new Map(layout.nodes.map((n) => [n.id, { x: n.x, y: n.y }])), [layout]);
+  const poster = useMemo(() => (style === "carved" ? layoutPoster(view.people, view.unions, focusId, flow, anchor) : null), [style, view, focusId, flow, anchor]);
+  const cameo = useMemo(() => (style === "cameo" ? layoutCameo(view.people, view.unions, focusId, flow, anchor) : null), [style, view, focusId, flow, anchor]);
+  const gzhel = useMemo(() => (style === "gzhel" ? layoutGzhel(view.people, view.unions, focusId, flow, anchor) : null), [style, view, focusId, flow, anchor]);
+  const boheme = useMemo(() => (style === "boheme" ? layoutBoheme(view.people, view.unions, focusId, flow, anchor) : null), [style, view, focusId, flow, anchor]);
+  const taiga = useMemo(() => (style === "taiga" ? layoutTaiga(view.people, view.unions, focusId, flow, anchor) : null), [style, view, focusId, flow, anchor]);
   const banner = useTree((s) => s.banner);
   const focus = people.find((p) => p.id === focusId);
 

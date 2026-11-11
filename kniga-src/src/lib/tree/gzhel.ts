@@ -1,3 +1,4 @@
+import { reposition, type Spot } from "./anchor.ts";
 import { yearNum } from "./kinship.ts";
 import { assignGenerations } from "./layout.ts";
 import type { Person, Union } from "./types.ts";
@@ -57,7 +58,7 @@ function glaze(x1: number, y1: number, x2: number, y2: number): string {
   return `M ${x1} ${y1} C ${x1 + dx * 0.2} ${y1 + dy * 0.42}, ${x2 - dx * 0.2} ${y1 + dy * 0.58}, ${x2} ${y2}`;
 }
 
-export function layoutGzhel(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down"): GzhelSheet {
+export function layoutGzhel(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down", anchor?: ReadonlyMap<string, Spot>): GzhelSheet {
   const empty: GzhelSheet = { width: 720, height: 960, nodes: [], vines: [], marks: [], title: "РОД", kicker: "Гжель" };
   if (!people.length) return empty;
   const gen = assignGenerations(people, unions);
@@ -77,8 +78,8 @@ export function layoutGzhel(people: Person[], unions: Union[], focusId: string, 
     }
     return { spots, width: Math.max(BOX, left - UNIT_GAP) };
   });
-  const width = Math.max(...drafts.map((row) => row.width)) + PAD_X * 2;
-  const height = PAD_Y + Math.max(0, levels.length - 1) * ROW + BOX + CAPTION + 120;
+  let width = Math.max(...drafts.map((row) => row.width)) + PAD_X * 2;
+  let height = PAD_Y + Math.max(0, levels.length - 1) * ROW + BOX + CAPTION + 120;
   const nodes: GzhelNode[] = [];
   levels.forEach((_, index) => {
     const draft = drafts[index];
@@ -87,6 +88,13 @@ export function layoutGzhel(people: Person[], unions: Union[], focusId: string, 
     const origin = (width - draft.width) / 2;
     for (const spot of draft.spots) nodes.push({ id: spot.id, x: origin + spot.left + GZHEL_FRAME, y });
   });
+  if (anchor) {
+    const ext = reposition(nodes, anchor, { hw: GZHEL_FRAME, hh: GZHEL_FRAME + CAPTION / 2 }, { left: PAD_X + GZHEL_FRAME, top: PAD_Y + GZHEL_FRAME });
+    if (ext) {
+      width = ext.maxX + GZHEL_FRAME + PAD_X;
+      height = ext.maxY + GZHEL_FRAME + CAPTION + 120;
+    }
+  }
   const at = new Map(nodes.map((n) => [n.id, n]));
   const vines: string[] = [];
   const marks: GzhelMark[] = [];

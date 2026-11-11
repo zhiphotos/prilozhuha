@@ -109,3 +109,90 @@ test("человек без карточки на схеме и неизвест
   assert.equal(out.buses[0]!.xs.length, layout.buses[0]!.xs.length);
   void d;
 });
+
+// ---- Те же места во всех стилях ----
+import { layoutBoheme } from "./boheme.ts";
+import { layoutCameo } from "./cameo.ts";
+import { layoutGzhel } from "./gzhel.ts";
+import { layoutPoster } from "./poster.ts";
+import { layoutTaiga } from "./taiga.ts";
+import { schemeAnchor, schemeLayout } from "./scheme.ts";
+
+const wide = (): TreeData => ({
+  people: [person("F", "m"), person("M", "f"), person("a", "m"), person("b", "f"), person("c", "m")],
+  unions: [union("u", ["F", "M"], ["a", "b", "c"])],
+  focusId: "a",
+});
+
+const styles: [string, (d: TreeData, anchor?: ReadonlyMap<string, { x: number; y: number }>) => { nodes: { id: string; x: number; y: number }[]; width: number; height: number }][] = [
+  ["Древо", (d, a) => layoutPoster(d.people, d.unions, d.focusId, "down", a)],
+  ["Камея", (d, a) => layoutCameo(d.people, d.unions, d.focusId, "down", a)],
+  ["Гжель", (d, a) => layoutGzhel(d.people, d.unions, d.focusId, "down", a)],
+  ["Богема", (d, a) => layoutBoheme(d.people, d.unions, d.focusId, "down", a)],
+  ["Тайга", (d, a) => layoutTaiga(d.people, d.unions, d.focusId, "down", a)],
+];
+
+for (const [name, make] of styles) {
+  test(`${name}: карточки стоят так же, как на схеме (с ручным сдвигом), только в другом масштабе`, () => {
+    const d = wide();
+    d.people.find((p) => p.id === "b")!.treeDx = 260;
+    d.people.find((p) => p.id === "b")!.treeDy = 140;
+    const anchor = schemeAnchor(d.people, d.unions, d.focusId, "down");
+    const sheet = make(d, anchor);
+    const ids = [...anchor.keys()];
+    const ax = ids.map((id) => anchor.get(id)!.x);
+    const ay = ids.map((id) => anchor.get(id)!.y);
+    const sx = ids.map((id) => sheet.nodes.find((n) => n.id === id)!.x);
+    const sy = ids.map((id) => sheet.nodes.find((n) => n.id === id)!.y);
+    // Порядок слева направо и сверху вниз тот же.
+    const order = (v: number[]) => ids.map((_, i) => v.filter((x) => x < v[i]! - 1e-6).length);
+    assert.deepEqual(order(sx), order(ax));
+    assert.deepEqual(order(sy), order(ay));
+    // Один общий масштаб по обеим осям: отношения расстояний сохраняются.
+    const i0 = ax.findIndex((x) => x !== ax[0]);
+    const j0 = ay.findIndex((y) => y !== ay[0]);
+    if (i0 > 0 && j0 > 0) {
+      const kx = (sx[i0]! - sx[0]!) / (ax[i0]! - ax[0]!);
+      const ky = (sy[j0]! - sy[0]!) / (ay[j0]! - ay[0]!);
+      assert.ok(Math.abs(kx - ky) < 1e-6, `масштаб по осям разный: ${kx} и ${ky}`);
+    }
+    // Внутри листа.
+    for (let i = 0; i < ids.length; i += 1) {
+      assert.ok(sx[i]! > 0 && sx[i]! < sheet.width);
+      assert.ok(sy[i]! > 0 && sy[i]! < sheet.height);
+    }
+  });
+
+  test(`${name}: без якоря раскладка прежняя`, () => {
+    const d = wide();
+    assert.deepEqual(make(d).nodes, make(d, undefined).nodes);
+  });
+
+  test(`${name}: неполный якорь (кого-то нет на схеме) не ломает раскладку`, () => {
+    const d = wide();
+    const anchor = schemeAnchor(d.people, d.unions, d.focusId, "down");
+    anchor.delete("c");
+    assert.deepEqual(make(d, anchor).nodes, make(d).nodes);
+  });
+}
+
+test("карточки в стилях не налезают друг на друга после сдвига", () => {
+  const d = wide();
+  d.people.find((p) => p.id === "c")!.treeDx = 30; d.people.find((p) => p.id === "c")!.treeDy = 300;
+  const anchor = schemeAnchor(d.people, d.unions, d.focusId, "down");
+  const sheet = layoutCameo(d.people, d.unions, d.focusId, "down", anchor);
+  for (let i = 0; i < sheet.nodes.length; i += 1)
+    for (let j = i + 1; j < sheet.nodes.length; j += 1) {
+      const a = sheet.nodes[i]!;
+      const b = sheet.nodes[j]!;
+      assert.ok(Math.abs(a.x - b.x) >= 160 || Math.abs(a.y - b.y) >= 160, `${a.id} и ${b.id} налезают`);
+    }
+});
+
+test("схема с ручными сдвигами из списка людей совпадает со схемой, собранной вручную", () => {
+  const d = wide();
+  d.people.find((p) => p.id === "a")!.treeDx = 50;
+  const viaScheme = schemeLayout(d.people, d.unions, d.focusId, "down");
+  const manual = applyShifts(layoutTree(d.people, d.unions, d.focusId, "down"), d.unions, shiftsOf(d.people));
+  assert.deepEqual(viaScheme.nodes, manual.nodes);
+});

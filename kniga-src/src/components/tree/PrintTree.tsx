@@ -1,3 +1,4 @@
+import { schemeAnchor, schemeLayout } from "@/lib/tree/scheme";
 import { useMemo } from "react";
 import { createPortal } from "react-dom";
 import { BohemeView } from "@/components/tree/BohemeView";
@@ -23,26 +24,26 @@ export function PrintTree({ style, data, flow, onClose }: { style: TreeStyle; da
   const sheet = useMemo(() => {
     const { people, unions, focusId } = data;
     if (style === "carved") {
-      const p = layoutPoster(people, unions, focusId, flow);
+      const p = layoutPoster(people, unions, focusId, flow, schemeAnchor(people, unions, focusId, flow));
       return { w: p.width, h: p.height, node: <PosterView poster={p} people={people} unions={unions} focusId={focusId} selectedId={null} /> };
     }
     if (style === "cameo") {
-      const s = layoutCameo(people, unions, focusId, flow);
+      const s = layoutCameo(people, unions, focusId, flow, schemeAnchor(people, unions, focusId, flow));
       return { w: s.width, h: s.height, node: <CameoView sheet={s} people={people} unions={unions} focusId={focusId} selectedId={null} /> };
     }
     if (style === "gzhel") {
-      const s = layoutGzhel(people, unions, focusId, flow);
+      const s = layoutGzhel(people, unions, focusId, flow, schemeAnchor(people, unions, focusId, flow));
       return { w: s.width, h: s.height, node: <GzhelView sheet={s} people={people} unions={unions} focusId={focusId} selectedId={null} /> };
     }
     if (style === "boheme") {
-      const s = layoutBoheme(people, unions, focusId, flow);
+      const s = layoutBoheme(people, unions, focusId, flow, schemeAnchor(people, unions, focusId, flow));
       return { w: s.width, h: s.height, node: <BohemeView sheet={s} people={people} unions={unions} focusId={focusId} selectedId={null} /> };
     }
     if (style === "taiga") {
-      const s = layoutTaiga(people, unions, focusId, flow);
+      const s = layoutTaiga(people, unions, focusId, flow, schemeAnchor(people, unions, focusId, flow));
       return { w: s.width, h: s.height, node: <TaigaView sheet={s} people={people} unions={unions} focusId={focusId} selectedId={null} /> };
     }
-    const l = layoutTree(people, unions, focusId, flow);
+    const l = schemeLayout(people, unions, focusId, flow);
     return { w: l.width, h: l.height, node: <SchemaSvg data={data} layout={l} /> };
   }, [style, data, flow]);
 

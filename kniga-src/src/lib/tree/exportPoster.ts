@@ -1,3 +1,4 @@
+import { schemeAnchor, schemeLayout } from "./scheme.ts";
 import { buildJpegPdf } from "../rod/pdf.ts";
 import { fullName, kinship, yearsOf } from "./kinship.ts";
 import { cardLine } from "./card-fields.ts";
@@ -203,7 +204,7 @@ async function prepareWork(data: TreeData, paper: "white" | "black", flow: "down
     own = "";
   }
   if (/^#[0-9a-f]{6}$/i.test(own)) tone.blood = own;
-  const layout = layoutTree(data.people, data.unions, data.focusId, flow);
+  const layout = schemeLayout(data.people, data.unions, data.focusId, flow);
   const people = new Map(data.people.map((p) => [p.id, p]));
   const photos = new Map<string, HTMLImageElement | null>();
   await Promise.all([...people.values()].map(async (p) => photos.set(p.id, await loadImage(p.photo))));
@@ -552,7 +553,7 @@ function paintFooter(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, s
 }
 
 async function renderLiving(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up"): Promise<HTMLCanvasElement> {
-  const poster = layoutPoster(data.people, data.unions, data.focusId, flow);
+  const poster = layoutPoster(data.people, data.unions, data.focusId, flow, schemeAnchor(data.people, data.unions, data.focusId, flow));
   const footer = 88;
   const scale = fitScale(poster.width, poster.height + footer);
   const canvas = document.createElement("canvas");
@@ -728,11 +729,11 @@ async function renderFramed(
 }
 
 async function renderCameo(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up") {
-  return renderFramed(data, titleOf, layoutCameo(data.people, data.unions, data.focusId, flow), FRAMES, FRAME, "#f4efe4", "#000");
+  return renderFramed(data, titleOf, layoutCameo(data.people, data.unions, data.focusId, flow, schemeAnchor(data.people, data.unions, data.focusId, flow)), FRAMES, FRAME, "#f4efe4", "#000");
 }
 
 async function renderGzhel(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up") {
-  const sheet = layoutGzhel(data.people, data.unions, data.focusId, flow);
+  const sheet = layoutGzhel(data.people, data.unions, data.focusId, flow, schemeAnchor(data.people, data.unions, data.focusId, flow));
   const canvas = await renderFramed(data, titleOf, sheet, GZHEL_FRAMES, GZHEL_FRAME, "#163a78", "#fbfcfe");
   const ctx = canvas.getContext("2d");
   if (!ctx) return canvas;
@@ -755,7 +756,7 @@ async function renderGzhel(data: TreeData, titleOf: (fallback: string) => string
 }
 
 async function renderBoheme(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up") {
-  return renderFramed(data, titleOf, layoutBoheme(data.people, data.unions, data.focusId, flow), BOHEME_FRAMES, BOHEME_FRAME, "#f6f1e6", "#1a2418", {
+  return renderFramed(data, titleOf, layoutBoheme(data.people, data.unions, data.focusId, flow, schemeAnchor(data.people, data.unions, data.focusId, flow)), BOHEME_FRAMES, BOHEME_FRAME, "#f6f1e6", "#1a2418", {
     bg: "./tree/boheme/bg.jpg",
     blur: 10,
     veil: "rgba(16,22,14,0.42)",
@@ -764,7 +765,7 @@ async function renderBoheme(data: TreeData, titleOf: (fallback: string) => strin
 }
 
 async function renderTaiga(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up") {
-  return renderFramed(data, titleOf, layoutTaiga(data.people, data.unions, data.focusId, flow), TAIGA_FRAMES, TAIGA_FRAME, "#f4f7f2", "#142018", {
+  return renderFramed(data, titleOf, layoutTaiga(data.people, data.unions, data.focusId, flow, schemeAnchor(data.people, data.unions, data.focusId, flow)), TAIGA_FRAMES, TAIGA_FRAME, "#f4f7f2", "#142018", {
     bg: "./tree/taiga/bg.jpg",
     blur: 3,
     veil: "rgba(14,22,18,0.35)",

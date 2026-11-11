@@ -1,3 +1,4 @@
+import { reposition, type Spot } from "./anchor.ts";
 import { yearNum } from "./kinship.ts";
 import { assignGenerations } from "./layout.ts";
 import type { Person, Union } from "./types.ts";
@@ -55,7 +56,7 @@ function vine(x1: number, y1: number, x2: number, y2: number): string {
   return `M ${x1} ${y1} C ${x1 + dx * 0.12} ${y1 + dy * 0.46}, ${x2 - dx * 0.12} ${y1 + dy * 0.54}, ${x2} ${y2}`;
 }
 
-export function layoutBoheme(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down"): BohemeSheet {
+export function layoutBoheme(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down", anchor?: ReadonlyMap<string, Spot>): BohemeSheet {
   const empty: BohemeSheet = { width: 720, height: 980, nodes: [], vines: [], marks: [], title: "РОД" };
   if (!people.length) return empty;
   const gen = assignGenerations(people, unions);
@@ -75,8 +76,8 @@ export function layoutBoheme(people: Person[], unions: Union[], focusId: string,
     }
     return { spots, width: Math.max(BOX, left - UNIT_GAP) };
   });
-  const width = Math.max(...drafts.map((row) => row.width)) + PAD_X * 2;
-  const height = PAD_Y + Math.max(0, levels.length - 1) * ROW + BOX + CAPTION + 16;
+  let width = Math.max(...drafts.map((row) => row.width)) + PAD_X * 2;
+  let height = PAD_Y + Math.max(0, levels.length - 1) * ROW + BOX + CAPTION + 16;
   const nodes: BohemeNode[] = [];
   levels.forEach((_, index) => {
     const draft = drafts[index];
@@ -85,6 +86,13 @@ export function layoutBoheme(people: Person[], unions: Union[], focusId: string,
     const origin = (width - draft.width) / 2;
     for (const spot of draft.spots) nodes.push({ id: spot.id, x: origin + spot.left + BOHEME_FRAME, y });
   });
+  if (anchor) {
+    const ext = reposition(nodes, anchor, { hw: BOHEME_FRAME, hh: BOHEME_FRAME + CAPTION / 2 }, { left: PAD_X + BOHEME_FRAME, top: PAD_Y + BOHEME_FRAME });
+    if (ext) {
+      width = ext.maxX + BOHEME_FRAME + PAD_X;
+      height = ext.maxY + BOHEME_FRAME + CAPTION + 16;
+    }
+  }
   const at = new Map(nodes.map((n) => [n.id, n]));
   const vines: string[] = [];
   const marks: BohemeMark[] = [];

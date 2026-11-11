@@ -1,3 +1,4 @@
+import { reposition, type Spot } from "./anchor.ts";
 import { yearNum } from "./kinship.ts";
 import { assignGenerations } from "./layout.ts";
 import type { Person, Union } from "./types.ts";
@@ -56,7 +57,7 @@ function wave(x1: number, x2: number, y: number): string {
   return `M ${x1} ${y} C ${x1 + 16} ${y - 18}, ${mid - 18} ${y - 22}, ${mid} ${y} C ${mid + 18} ${y + 22}, ${x2 - 16} ${y + 18}, ${x2} ${y}`;
 }
 
-export function layoutCameo(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down"): CameoSheet {
+export function layoutCameo(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down", anchor?: ReadonlyMap<string, Spot>): CameoSheet {
   const empty: CameoSheet = { width: 720, height: 960, nodes: [], vines: [], marks: [], title: "РОД", kicker: "Книга рода" };
   if (!people.length) return empty;
   const gen = assignGenerations(people, unions);
@@ -76,8 +77,8 @@ export function layoutCameo(people: Person[], unions: Union[], focusId: string, 
     }
     return { spots, width: Math.max(BOX, left - UNIT_GAP) };
   });
-  const width = Math.max(...drafts.map((row) => row.width)) + PAD_X * 2;
-  const height = PAD_Y + Math.max(0, levels.length - 1) * ROW + BOX + CAPTION + 12;
+  let width = Math.max(...drafts.map((row) => row.width)) + PAD_X * 2;
+  let height = PAD_Y + Math.max(0, levels.length - 1) * ROW + BOX + CAPTION + 12;
   const nodes: CameoNode[] = [];
   levels.forEach((_, index) => {
     const draft = drafts[index];
@@ -86,6 +87,13 @@ export function layoutCameo(people: Person[], unions: Union[], focusId: string, 
     const origin = (width - draft.width) / 2;
     for (const spot of draft.spots) nodes.push({ id: spot.id, x: origin + spot.left + FRAME, y });
   });
+  if (anchor) {
+    const ext = reposition(nodes, anchor, { hw: FRAME, hh: FRAME + CAPTION / 2 }, { left: PAD_X + FRAME, top: PAD_Y + FRAME });
+    if (ext) {
+      width = ext.maxX + FRAME + PAD_X;
+      height = ext.maxY + FRAME + CAPTION + 12;
+    }
+  }
   const at = new Map(nodes.map((n) => [n.id, n]));
   const vines: string[] = [];
   const marks: CameoMark[] = [];
