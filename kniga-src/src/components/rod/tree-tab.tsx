@@ -511,8 +511,15 @@ function TreeScreen() {
               <button type="button" className="chip" disabled={busy || people.length === 0} aria-expanded={sheetPick} onClick={() => setSheetPick((open) => !open)}>
                 {busy ? "…" : "Сохранить как"}
               </button>
-              {sheetPick && (
-                <div className="absolute top-12 left-0 z-30 grid max-h-[55dvh] w-56 max-w-[calc(100vw-1.5rem)] touch-pan-y gap-1 overflow-y-auto overscroll-contain rounded-2xl border border-chip-line bg-chip p-1 shadow-lg">
+              {sheetPick && createPortal(
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/55 p-4" onClick={() => setSheetPick(false)}>
+                <div role="dialog" aria-modal="true" aria-label="Сохранить древо" onClick={(e) => e.stopPropagation()} className="grid max-h-[85dvh] w-full max-w-sm touch-pan-y gap-1 overflow-y-auto overscroll-contain rounded-2xl border border-chip-line bg-chip p-3 text-chip-fg shadow-2xl">
+                  <div className="flex items-center justify-between px-1 pb-1">
+                    <span className="text-base font-semibold">Сохранить древо</span>
+                    <button type="button" className="min-h-9 rounded-full px-3 text-sm font-semibold underline" onClick={() => setSheetPick(false)}>
+                      Закрыть
+                    </button>
+                  </div>
                   {style === "work" ? (
                     <>
                       <div className="grid gap-1 px-1 pb-1 text-xs text-muted">
@@ -559,6 +566,8 @@ function TreeScreen() {
                     </>
                   )}
                 </div>
+                </div>,
+                document.body,
               )}
             </div>
             </>
