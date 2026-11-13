@@ -242,6 +242,7 @@ function TreeScreen() {
     try {
       await revokeShare();
       setNote("Ссылка отозвана: по ней древо больше не откроется");
+      setShareUrl(null);
     } catch (error) {
       setNote(error instanceof Error ? error.message : "Не получилось отозвать");
     }
@@ -358,6 +359,11 @@ function TreeScreen() {
             <Plus className="size-5" />
             Добавить
           </button>
+          {people.length >= 1 && (
+            <button type="button" className="chip" onClick={() => void shareLink()}>
+              <Share2 className="size-4" /> Поделиться
+            </button>
+          )}
           {people.length >= 2 && (
             <button
               type="button"
@@ -460,20 +466,6 @@ function TreeScreen() {
                           {label}
                         </button>
                       ))}
-                    </div>
-                  </div>
-                  <div className="mt-1 border-t border-chip-line px-3 pt-2 pb-1">
-                    <p className="text-sm font-semibold text-chip-fg">Ссылка для родных</p>
-                    <p className="mt-0.5 text-xs text-chip-fg/80">Родственник откроет древо и сможет только смотреть. Заметки и фото не передаются.</p>
-                    <div className="mt-1 flex gap-1">
-                      <button type="button" className="min-h-9 flex-1 rounded-xl bg-gold px-2 text-xs font-semibold text-ink" onClick={() => void shareLink()}>
-                        {readShare() ? "Обновить ссылку" : "Создать ссылку"}
-                      </button>
-                      {readShare() ? (
-                        <button type="button" className="min-h-9 flex-1 rounded-xl px-2 text-xs font-semibold text-chip-fg" onClick={() => void unshareLink()}>
-                          Отозвать ссылку
-                        </button>
-                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -583,6 +575,11 @@ function TreeScreen() {
               </Button>
             ) : null}
           </div>
+          {readShare() ? (
+            <button type="button" className="mt-3 text-sm text-muted underline" onClick={() => void unshareLink()}>
+              Отозвать ссылку: по ней древо больше не откроется
+            </button>
+          ) : null}
           <p role="status" aria-live="polite" className="mt-3 min-h-5 text-sm text-ink">
             {shareCopied === "copied" ? "Ссылка скопирована. Вставьте её в сообщение." : shareCopied === "failed" ? "Не получилось скопировать само. Нажмите на ссылку выше, выделите её и скопируйте вручную." : ""}
           </p>
