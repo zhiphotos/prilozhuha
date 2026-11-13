@@ -8,6 +8,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "nodemailer": "^10.5.0",
     "web-push": "^3.6.7"
   }
 }
