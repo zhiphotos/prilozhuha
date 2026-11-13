@@ -1,6 +1,7 @@
 import { throttled } from "../throttle.js";
 import { alfaConfigured, createCheckout } from "../alfa.js";
 import { bodyOf, cors, isAllowedApp, json } from "../config.js";
+import { rememberPending } from "../pay-pending.js";
 
 // POST /api/checkout { email, app }  ->  { url }  – адрес платёжной страницы Альфа-Банка
 export default async function handler(req, res) {
@@ -23,6 +24,8 @@ export default async function handler(req, res) {
       returnUrl: `${base}/api/pay-return?to=${target}`,
       failUrl: `${appUrl}${appUrl.includes("?") ? "&" : "?"}paid=0`,
     });
+    // Запоминаем заказ: если человек не вернётся со страницы банка, оплату всё равно найдёт сверка с банком.
+    await rememberPending({ orderId: result.orderId, orderNumber: result.orderNumber, email: mail }).catch((error) => console.error("[checkout] pending", error instanceof Error ? error.message : error));
     return json(res, 200, { url: result.formUrl });
   } catch (error) {
     console.error("[checkout]", error instanceof Error ? error.message : error);
