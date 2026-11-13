@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, Moon, Plus, Settings, Sun, Users } from "lucide-react";
+import { Check, ChevronLeft, Copy, Moon, Plus, Settings, Share2, Sun, Users } from "lucide-react";
 import { PaySheet } from "@/components/rod/lessons";
-import { useNav } from "@/components/rod/chrome";
+import { Button, Sheet, useNav } from "@/components/rod/chrome";
+import { copyText } from "@/lib/rod/invite";
 import { useRod } from "@/lib/rod/store";
 import { AddPerson } from "@/components/tree/AddPerson";
 import { PersonDrawer } from "@/components/tree/PersonDrawer";
@@ -97,6 +98,8 @@ function TreeScreen() {
   const [centerReq, setCenterReq] = useState<{ id: string; n: number } | null>(null);
   const [radius, setRadius] = useState<number | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState<"idle" | "copied" | "failed">("idle");
   const [busy, setBusy] = useState(false);
   const [add, setAdd] = useState(false);
   const [sheetPick, setSheetPick] = useState(false);
@@ -227,13 +230,9 @@ function TreeScreen() {
     setNote("Готовим ссылку…");
     try {
       const url = await publishShare({ people, unions, focusId });
-      try {
-        await navigator.clipboard.writeText(url);
-        setNote("Ссылка скопирована. Отправьте её родным: они смогут только смотреть.");
-      } catch {
-        window.prompt("Скопируйте ссылку и отправьте родным", url);
-        setNote("Ссылка готова");
-      }
+      setNote(null);
+      setShareCopied("idle");
+      setShareUrl(url);
       setToolsOpen(false);
     } catch (error) {
       setNote(error instanceof Error ? error.message : "Не получилось создать ссылку");
@@ -468,7 +467,7 @@ function TreeScreen() {
                     <p className="mt-0.5 text-xs text-chip-fg/80">Родственник откроет древо и сможет только смотреть. Заметки и фото не передаются.</p>
                     <div className="mt-1 flex gap-1">
                       <button type="button" className="min-h-9 flex-1 rounded-xl bg-gold px-2 text-xs font-semibold text-ink" onClick={() => void shareLink()}>
-                        {readShare() ? "Обновить и скопировать" : "Создать и скопировать"}
+                        {readShare() ? "Обновить ссылку" : "Создать ссылку"}
                       </button>
                       {readShare() ? (
                         <button type="button" className="min-h-9 flex-1 rounded-xl px-2 text-xs font-semibold text-chip-fg" onClick={() => void unshareLink()}>
@@ -494,20 +493,6 @@ function TreeScreen() {
             </button>
             <button type="button" className="chip" aria-label="Тема" onClick={() => setTheme(theme === "night" ? "paper" : "night")}>
               {theme === "night" ? <Sun className="size-5" /> : <Moon className="size-5" />}
-            </button>
-            <button
-              type="button"
-              className="chip"
-              disabled={people.length === 0}
-              onClick={() => {
-                selectPerson(null);
-                selectUnion(null);
-                setPickMode(true);
-                setToolsOpen(false);
-                setRoster(false);
-              }}
-            >
-              Схема из выбранных
             </button>
             <div className="relative">
               <button type="button" className="chip" disabled={busy || people.length === 0} aria-expanded={sheetPick} onClick={() => setSheetPick((open) => !open)}>
@@ -576,6 +561,33 @@ function TreeScreen() {
           )}
         </div>
       </header>
+      {shareUrl ? (
+        <Sheet title="Ссылка для родных" onClose={() => setShareUrl(null)}>
+          <p className="mb-3 text-sm text-muted">Родственник откроет древо и сможет только смотреть. Заметки и фото не передаются.</p>
+          <textarea readOnly aria-label="Ссылка на древо" value={shareUrl} className="field min-h-24 w-full break-all text-[15px] leading-snug" onFocus={(event) => event.currentTarget.select()} />
+          <div className="mt-3 grid gap-2">
+            <Button onClick={() => void copyText(shareUrl).then((ok) => setShareCopied(ok ? "copied" : "failed"))}>
+              {shareCopied === "copied" ? <Check className="size-4" /> : <Copy className="size-4" />}
+              {shareCopied === "copied" ? "Скопировано" : "Скопировать ссылку"}
+            </Button>
+            {typeof navigator !== "undefined" && typeof navigator.share === "function" ? (
+              <Button
+                variant="soft"
+                onClick={() => {
+                  void navigator.share({ title: "Древо рода", url: shareUrl }).catch(() => {
+                    /* человек закрыл меню «Поделиться»: это не ошибка */
+                  });
+                }}
+              >
+                <Share2 className="size-4" /> Поделиться через…
+              </Button>
+            ) : null}
+          </div>
+          <p role="status" aria-live="polite" className="mt-3 min-h-5 text-sm text-ink">
+            {shareCopied === "copied" ? "Ссылка скопирована. Вставьте её в сообщение." : shareCopied === "failed" ? "Не получилось скопировать само. Нажмите на ссылку выше, выделите её и скопируйте вручную." : ""}
+          </p>
+        </Sheet>
+      ) : null}
       {note && <p className="absolute top-24 right-3 left-3 z-20 mx-auto max-w-md rounded-2xl bg-chip px-4 py-3 text-center text-sm text-chip-fg">{note}</p>}
       {roster && (
         <Roster
