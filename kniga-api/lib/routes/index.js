@@ -6,6 +6,8 @@ import claim from "./claim.js";
 import grantsAdmin from "./grants-admin.js";
 import layout from "./layout.js";
 import lead from "./lead.js";
+import loginCode from "./login-code.js";
+import loginVerify from "./login-verify.js";
 import payReturn from "./pay-return.js";
 import platformLogin from "./platform-login.js";
 import pushBroadcast from "./push-broadcast.js";
@@ -37,6 +39,8 @@ export const ROUTES = {
   "grants-admin": grantsAdmin,
   layout,
   lead,
+  "login-code": loginCode,
+  "login-verify": loginVerify,
   "pay-return": payReturn,
   "platform-login": platformLogin,
   "push-broadcast": pushBroadcast,
