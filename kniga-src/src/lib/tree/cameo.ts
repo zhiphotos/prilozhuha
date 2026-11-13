@@ -1,4 +1,4 @@
-import { reposition, type Spot } from "./anchor.ts";
+import { NAME_HALF, reposition, type Spot } from "./anchor.ts";
 import { yearNum } from "./kinship.ts";
 import { assignGenerations } from "./layout.ts";
 import type { Person, Union } from "./types.ts";
@@ -25,6 +25,8 @@ export type CameoMark = { x: number; y: number; text: string };
 export type CameoSheet = {
   width: number;
   height: number;
+  /** Во сколько раз расстояния растянуты относительно «Схемы»: нужно для перетаскивания карточек. */
+  scale: number;
   nodes: CameoNode[];
   vines: string[];
   marks: CameoMark[];
@@ -58,7 +60,7 @@ function wave(x1: number, x2: number, y: number): string {
 }
 
 export function layoutCameo(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down", anchor?: ReadonlyMap<string, Spot>): CameoSheet {
-  const empty: CameoSheet = { width: 720, height: 960, nodes: [], vines: [], marks: [], title: "РОД", kicker: "Книга рода" };
+  const empty: CameoSheet = { width: 720, height: 960, scale: 1, nodes: [], vines: [], marks: [], title: "РОД", kicker: "Книга рода" };
   if (!people.length) return empty;
   const gen = assignGenerations(people, unions);
   const byId = new Map(people.map((p) => [p.id, p]));
@@ -79,6 +81,7 @@ export function layoutCameo(people: Person[], unions: Union[], focusId: string, 
   });
   let width = Math.max(...drafts.map((row) => row.width)) + PAD_X * 2;
   let height = PAD_Y + Math.max(0, levels.length - 1) * ROW + BOX + CAPTION + 12;
+  let scale = 1;
   const nodes: CameoNode[] = [];
   levels.forEach((_, index) => {
     const draft = drafts[index];
@@ -88,8 +91,9 @@ export function layoutCameo(people: Person[], unions: Union[], focusId: string, 
     for (const spot of draft.spots) nodes.push({ id: spot.id, x: origin + spot.left + FRAME, y });
   });
   if (anchor) {
-    const ext = reposition(nodes, anchor, { hw: FRAME, hh: FRAME + CAPTION / 2 }, { left: PAD_X + FRAME, top: PAD_Y + FRAME });
+    const ext = reposition(nodes, anchor, { hw: Math.max(FRAME, NAME_HALF), hh: FRAME + CAPTION / 2 }, { left: PAD_X + FRAME, top: PAD_Y + FRAME });
     if (ext) {
+      scale = ext.scale;
       width = ext.maxX + FRAME + PAD_X;
       height = ext.maxY + FRAME + CAPTION + 12;
     }
@@ -122,5 +126,5 @@ export function layoutCameo(people: Person[], unions: Union[], focusId: string, 
     for (const kid of kids) vines.push(`M ${kid.x} ${busY} V ${upward ? kid.y + FRAME + CAPTION : kid.y - FRAME}`);
   }
   const focus = byId.get(focusId);
-  return { width, height, nodes, vines, marks, title: (focus?.lastName || "Род").toLocaleUpperCase("ru"), kicker: "Книга рода" };
+  return { width, height, scale, nodes, vines, marks, title: (focus?.lastName || "Род").toLocaleUpperCase("ru"), kicker: "Книга рода" };
 }

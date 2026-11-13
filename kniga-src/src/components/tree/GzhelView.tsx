@@ -1,7 +1,9 @@
 import { FramedFace } from "@/components/tree/FramedFace";
 import { cardLine } from "@/lib/tree/card-fields";
 import { SheetTitle } from "@/components/tree/SheetTitle";
-import { fitName, kinship, yearsOf } from "@/lib/tree/kinship";
+import { useMemo } from "react";
+import { fitText, initialsOf, nameLines, yearsOf } from "@/lib/tree/kinship";
+import { relationCard, relationsFrom } from "@/lib/tree/recenter";
 import { GZHEL_FRAME, GZHEL_FRAMES, type GzhelSheet } from "@/lib/tree/gzhel";
 import type { Person, Union } from "@/lib/tree/types";
 
@@ -13,8 +15,9 @@ function frameOf(id: string) {
   return GZHEL_FRAMES[n]!;
 }
 
-export function GzhelView({ sheet, people, unions, focusId, selectedId, marked }: { sheet: GzhelSheet; people: Person[]; unions: Union[]; focusId: string; selectedId: string | null; marked?: ReadonlySet<string> }) {
+export function GzhelView({ sheet, people, unions, focusId, homeId, selectedId, marked }: { sheet: GzhelSheet; people: Person[]; unions: Union[]; focusId: string; homeId?: string; selectedId: string | null; marked?: ReadonlySet<string> }) {
   const byId = new Map(people.map((p) => [p.id, p]));
+  const rels = useMemo(() => relationsFrom(people, unions, focusId, homeId), [people, unions, focusId, homeId]);
   return (
     <div className="relative" style={{ width: sheet.width, height: sheet.height, background: "#fbfcfe" }}>
       <svg className="absolute inset-0" width={sheet.width} height={sheet.height} role="img" aria-label="Гжель">
@@ -34,23 +37,33 @@ export function GzhelView({ sheet, people, unions, focusId, selectedId, marked }
           const person = byId.get(node.id);
           if (!person) return null;
           const top = node.y + GZHEL_FRAME + 6;
-          const role = kinship(people, unions, focusId, person.id).card;
+          const rel = rels.get(person.id);
+          const role = rel ? relationCard(rel) : "";
           const years = cardLine(person, yearsOf(person));
           return (
             <g key={node.id}>
               {(() => {
-                const f = fitName(person, 210, 16);
+                const lines = nameLines(person);
+                const a = fitText(lines.top, 210, 16);
+                const b = lines.bottom ? fitText(lines.bottom, 210, 13, 9) : null;
                 return (
-                  <text x={node.x} y={top + 18} textAnchor="middle" fill={INK} fontFamily="var(--font-serif)" fontSize={f.size} textLength={f.textLength} lengthAdjust="spacingAndGlyphs">
-                    {f.text}
-                  </text>
+                  <>
+                    <text x={node.x} y={top + 18} textAnchor="middle" fill={INK} fontFamily="var(--font-serif)" fontSize={a.size} textLength={a.textLength} lengthAdjust="spacingAndGlyphs">
+                      {a.text}
+                    </text>
+                    {b ? (
+                      <text x={node.x} y={top + 33} textAnchor="middle" fill={INK} fontFamily="var(--font-serif)" opacity={0.9} fontSize={b.size} textLength={b.textLength} lengthAdjust="spacingAndGlyphs">
+                        {b.text}
+                      </text>
+                    ) : null}
+                  </>
                 );
               })()}
-              <text x={node.x} y={top + 36} textAnchor="middle" fill="#3d6eae" fontFamily="var(--font-serif)" fontSize={12}>
+              <text x={node.x} y={top + 49} textAnchor="middle" fill="#3d6eae" fontFamily="var(--font-serif)" fontSize={12}>
                 {role}
               </text>
               {years && (
-                <text x={node.x} y={top + 54} textAnchor="middle" fill="#3d6eae" fontFamily="var(--font-serif)" fontSize={12}>
+                <text x={node.x} y={top + 67} textAnchor="middle" fill="#3d6eae" fontFamily="var(--font-serif)" fontSize={12}>
                   {years}
                 </text>
               )}
@@ -67,7 +80,7 @@ export function GzhelView({ sheet, people, unions, focusId, selectedId, marked }
         const person = byId.get(node.id);
         if (!person) return null;
         const frame = frameOf(person.id);
-        return <FramedFace key={node.id} x={node.x} y={node.y} size={GZHEL_FRAME} hole={frame.hole} frame={frame.src} photo={person.photo} ring={node.id === selectedId || node.id === focusId || marked?.has(node.id) ? "#1c4f97" : undefined} />;
+        return <FramedFace key={node.id} x={node.x} y={node.y} size={GZHEL_FRAME} hole={frame.hole} frame={frame.src} photo={person.photo} initials={initialsOf(person)} ring={node.id === selectedId || node.id === focusId || marked?.has(node.id) ? "#1c4f97" : undefined} />;
       })}
     </div>
   );

@@ -1,6 +1,9 @@
 // Во всех стилях древа карточки стоят там же, где на «Схеме» (вместе с ручными сдвигами): схему можно подобрать один раз и переодеть в любой стиль.
 export type Spot = { x: number; y: number };
 
+/** Половина ширины подписи под карточкой стиля (имя подгоняется под ~220 px). Расстояния растягиваем так, чтобы подписи соседей не наезжали. */
+export const NAME_HALF = 112;
+
 /** Ставит карточки стиля по местам «Схемы». Расстояния растягиваются или сжимаются одним общим множителем, чтобы карточки не налезали друг на друга и расположение осталось тем же.
  * Левый верхний угол занимаемой области ставится в (left, top). Возвращает правый и нижний край центров карточек или null, если кого-то нет на «Схеме» (тогда ничего не меняется). */
 export function reposition<N extends { id: string; x: number; y: number }>(
@@ -8,7 +11,7 @@ export function reposition<N extends { id: string; x: number; y: number }>(
   anchor: ReadonlyMap<string, Spot>,
   size: { hw: number | ((n: N) => number); hh: number },
   place: { left: number; top: number },
-): { maxX: number; maxY: number } | null {
+): { maxX: number; maxY: number; scale: number } | null {
   if (!nodes.length || nodes.some((n) => !anchor.has(n.id))) return null;
   const half = (n: N) => (typeof size.hw === "function" ? size.hw(n) : size.hw);
   const gap = 10;
@@ -37,5 +40,5 @@ export function reposition<N extends { id: string; x: number; y: number }>(
     maxX = Math.max(maxX, n.x);
     maxY = Math.max(maxY, n.y);
   }
-  return { maxX, maxY };
+  return { maxX, maxY, scale: s };
 }

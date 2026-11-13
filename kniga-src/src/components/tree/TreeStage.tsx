@@ -305,6 +305,13 @@ export function TreeStage(props: Props) {
     return { x: (clientX - rect.left - cam.x) / cam.k, y: (clientY - rect.top - cam.y) / cam.k };
   };
 
+  // Стили растягивают «Схему» одним общим множителем: при перетаскивании сдвиг переводим обратно в масштаб схемы.
+  const styled = style === "cameo" && cameo ? { k: cameo.scale, nodes: cameo.nodes, r: FRAME }
+    : style === "gzhel" && gzhel ? { k: gzhel.scale, nodes: gzhel.nodes, r: GZHEL_FRAME }
+    : style === "boheme" && boheme ? { k: boheme.scale, nodes: boheme.nodes, r: BOHEME_FRAME }
+    : style === "taiga" && taiga ? { k: taiga.scale, nodes: taiga.nodes, r: TAIGA_FRAME }
+    : null;
+
   const hit = (x: number, y: number): { kind: "person" | "union"; id: string } | null => {
     const nodes =
       style === "carved" && poster
@@ -341,7 +348,7 @@ export function TreeStage(props: Props) {
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     setGesturing(true);
     setHint(false);
-    if (moveMode && style === "work" && onMovePerson && pointers.current.size === 1) {
+    if (moveMode && (style === "work" || styled) && onMovePerson && pointers.current.size === 1) {
       const w = world(e.clientX, e.clientY);
       const found = hit(w.x, w.y);
       if (found?.kind === "person") {
@@ -390,8 +397,9 @@ export function TreeStage(props: Props) {
       pd.moved = true;
       const w = world(e.clientX, e.clientY);
       const at = baseLayout.nodes.find((n) => n.id === pd.id);
-      const dx = at ? Math.max(w.x - pd.sx, 50 - at.x) : w.x - pd.sx;
-      const dy = at ? Math.max(w.y - pd.sy, 50 - at.y) : w.y - pd.sy;
+      const k = styled ? Math.max(0.2, styled.k) : 1;
+      const dx = at ? Math.max((w.x - pd.sx) / k, 50 - at.x) : (w.x - pd.sx) / k;
+      const dy = at ? Math.max((w.y - pd.sy) / k, 50 - at.y) : (w.y - pd.sy) / k;
       setLive({ id: pd.id, dx, dy });
       return;
     }
@@ -459,13 +467,13 @@ export function TreeStage(props: Props) {
       >
         <div className={`cam absolute left-0 top-0${gesturing ? " is-gesturing" : ""}`} style={{ transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.k})` }}>
           {style === "taiga" && taiga ? (
-            <TaigaView sheet={taiga} people={people} unions={unions} focusId={focusId} selectedId={selectedId} marked={marked} />
+            <TaigaView sheet={taiga} people={people} unions={unions} focusId={focusId} homeId={homeId} selectedId={selectedId} marked={marked} />
           ) : style === "boheme" && boheme ? (
-            <BohemeView sheet={boheme} people={people} unions={unions} focusId={focusId} selectedId={selectedId} marked={marked} />
+            <BohemeView sheet={boheme} people={people} unions={unions} focusId={focusId} homeId={homeId} selectedId={selectedId} marked={marked} />
           ) : style === "gzhel" && gzhel ? (
-            <GzhelView sheet={gzhel} people={people} unions={unions} focusId={focusId} selectedId={selectedId} marked={marked} />
+            <GzhelView sheet={gzhel} people={people} unions={unions} focusId={focusId} homeId={homeId} selectedId={selectedId} marked={marked} />
           ) : style === "cameo" && cameo ? (
-            <CameoView sheet={cameo} people={people} unions={unions} focusId={focusId} selectedId={selectedId} marked={marked} />
+            <CameoView sheet={cameo} people={people} unions={unions} focusId={focusId} homeId={homeId} selectedId={selectedId} marked={marked} />
           ) : style === "carved" && poster ? (
             <PosterView poster={poster} people={people} unions={unions} focusId={focusId} selectedId={selectedId} marked={marked} />
           ) : (
@@ -594,6 +602,17 @@ export function TreeStage(props: Props) {
                 />
               );
             })}
+          {styled && live ? (() => {
+            const at = styled.nodes.find((n) => n.id === live.id);
+            if (!at) return null;
+            const r = styled.r;
+            return (
+              <div
+                className="pointer-events-none absolute rounded-full border-[3px] border-[var(--color-gold)] bg-[var(--color-gold)]/20"
+                style={{ left: at.x + live.dx * styled.k - r, top: at.y + live.dy * styled.k - r, width: r * 2, height: r * 2 }}
+              />
+            );
+          })() : null}
         </div>
       </div>
       <div className="absolute inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-20 flex flex-col items-center gap-2 px-2 sm:px-3">
@@ -607,13 +626,13 @@ export function TreeStage(props: Props) {
           <button type="button" aria-pressed={flow === "up"} className={`min-h-11 rounded-full px-3 text-sm font-semibold ${flow === "up" ? "bg-gold text-ink" : "text-chip-fg"}`} onClick={() => onFlow("up")}>
             Снизу вверх
           </button>
-          {style === "work" && onMovePerson ? (
+          {onMovePerson ? (
             <button type="button" aria-pressed={moveMode} className={`min-h-11 rounded-full px-3 text-sm font-semibold ${moveMode ? "bg-gold text-ink" : "text-chip-fg"}`} onClick={() => setMoveMode((v) => !v)}>
               {moveMode ? "Готово" : "Переместить"}
             </button>
           ) : null}
         </div>
-        {moveMode && style === "work" ? (
+        {moveMode ? (
           <p className="max-w-full rounded-full bg-chip px-4 py-1.5 text-center text-xs text-chip-fg">
             Тяните карточку пальцем, линии потянутся за ней.{anyMoved && onResetMoves ? " " : ""}
             {anyMoved && onResetMoves ? (

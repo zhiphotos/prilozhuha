@@ -1,4 +1,4 @@
-import { reposition, type Spot } from "./anchor.ts";
+import { NAME_HALF, reposition, type Spot } from "./anchor.ts";
 import { yearNum } from "./kinship.ts";
 import { assignGenerations } from "./layout.ts";
 import type { Person, Union } from "./types.ts";
@@ -24,6 +24,8 @@ export type BohemeMark = { x: number; y: number; text: string };
 export type BohemeSheet = {
   width: number;
   height: number;
+  /** Во сколько раз расстояния растянуты относительно «Схемы»: нужно для перетаскивания карточек. */
+  scale: number;
   nodes: BohemeNode[];
   vines: string[];
   marks: BohemeMark[];
@@ -57,7 +59,7 @@ function vine(x1: number, y1: number, x2: number, y2: number): string {
 }
 
 export function layoutBoheme(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down", anchor?: ReadonlyMap<string, Spot>): BohemeSheet {
-  const empty: BohemeSheet = { width: 720, height: 980, nodes: [], vines: [], marks: [], title: "РОД" };
+  const empty: BohemeSheet = { width: 720, height: 980, scale: 1, nodes: [], vines: [], marks: [], title: "РОД" };
   if (!people.length) return empty;
   const gen = assignGenerations(people, unions);
   const byId = new Map(people.map((p) => [p.id, p]));
@@ -78,6 +80,7 @@ export function layoutBoheme(people: Person[], unions: Union[], focusId: string,
   });
   let width = Math.max(...drafts.map((row) => row.width)) + PAD_X * 2;
   let height = PAD_Y + Math.max(0, levels.length - 1) * ROW + BOX + CAPTION + 16;
+  let scale = 1;
   const nodes: BohemeNode[] = [];
   levels.forEach((_, index) => {
     const draft = drafts[index];
@@ -87,8 +90,9 @@ export function layoutBoheme(people: Person[], unions: Union[], focusId: string,
     for (const spot of draft.spots) nodes.push({ id: spot.id, x: origin + spot.left + BOHEME_FRAME, y });
   });
   if (anchor) {
-    const ext = reposition(nodes, anchor, { hw: BOHEME_FRAME, hh: BOHEME_FRAME + CAPTION / 2 }, { left: PAD_X + BOHEME_FRAME, top: PAD_Y + BOHEME_FRAME });
+    const ext = reposition(nodes, anchor, { hw: Math.max(BOHEME_FRAME, NAME_HALF), hh: BOHEME_FRAME + CAPTION / 2 }, { left: PAD_X + BOHEME_FRAME, top: PAD_Y + BOHEME_FRAME });
     if (ext) {
+      scale = ext.scale;
       width = ext.maxX + BOHEME_FRAME + PAD_X;
       height = ext.maxY + BOHEME_FRAME + CAPTION + 16;
     }
@@ -116,5 +120,5 @@ export function layoutBoheme(people: Person[], unions: Union[], focusId: string,
     for (const kid of kids) vines.push(vine(fromX, fromY, kid.x, upward ? kid.y + BOHEME_FRAME + CAPTION : kid.y - BOHEME_FRAME));
   }
   const focus = byId.get(focusId);
-  return { width, height, nodes, vines, marks, title: (focus?.lastName || "Род").toLocaleUpperCase("ru") };
+  return { width, height, scale, nodes, vines, marks, title: (focus?.lastName || "Род").toLocaleUpperCase("ru") };
 }
