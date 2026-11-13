@@ -298,6 +298,8 @@ export function PaySheet({ onClose }: { onClose: () => void }) {
   const nav = useNav();
   const openProgram = useRod((state) => state.openProgram);
   const [mode, setMode] = useState<"buy" | "restore">("buy");
+  // Откуда платит человек: из России (Альфа-Банк) или со всего мира (Tribute). Спрашиваем один раз.
+  const [region, setRegion] = useState<"ru" | "world" | null>(() => (new URLSearchParams(window.location.search).get("pay") === "ru" ? "ru" : null));
   const [email, setEmail] = useState("");
   const [terms, setTerms] = useState(false);
   const [pd, setPd] = useState(false);
@@ -349,7 +351,24 @@ export function PaySheet({ onClose }: { onClose: () => void }) {
       <p className="mt-2 text-sm text-muted">Шесть уроков с видео, ИИ-помощник и шаблоны, полный шаблон книги на 100 страниц, материалы для печати. Платите один раз: единоразовая плата, приложение остаётся с вами навсегда, без автоматических списаний.</p>
       <IncludesList />
 
-      {live && mode === "buy" ? (
+      {live && PAY_URL && mode === "buy" && region === null ? (
+        <div className="mt-4 grid gap-3">
+          <p className="text-sm font-medium text-ink">Откуда вы платите?</p>
+          <Button className="h-auto min-h-12 w-full whitespace-normal py-3" onClick={() => setRegion("ru")}>Покупаю из России · карта российского банка</Button>
+          <Button variant="soft" className="h-auto min-h-12 w-full whitespace-normal py-3" onClick={() => setRegion("world")}>Оплата со всего мира · Tribute</Button>
+          <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("restore")}>Уже оплатили? Вернуть доступ на этом устройстве</button>
+        </div>
+      ) : null}
+
+      {live && PAY_URL && mode === "buy" && region === "world" ? (
+        <div className="mt-4 grid gap-2">
+          <a href={PAY_URL} target="_blank" rel="noopener noreferrer" className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-moss px-4 py-3 text-center font-semibold text-paper no-underline">Оплатить через Tribute</a>
+          <p className="text-sm text-ink">После оплаты зайдите в Телеграм к боту <a className="font-semibold text-moss underline" href="https://t.me/ded_privratnik_kniga_bot" target="_blank" rel="noopener noreferrer">@ded_privratnik_kniga_bot</a>, нажмите «Старт» и напишите почту. Он сразу пришлёт ключ, его вводят ниже в поле «Есть код доступа?».</p>
+          <button type="button" className="text-left text-sm text-moss underline" onClick={() => setRegion(null)}>Назад к выбору</button>
+        </div>
+      ) : null}
+
+      {live && (region === "ru" || !PAY_URL) && mode === "buy" ? (
         <form className="mt-4 grid gap-3" onSubmit={(event) => { event.preventDefault(); if (validEmail && terms && pd) void pay(); }}>
           <div>
             <label className="block text-sm font-medium text-ink" htmlFor="pay-email">Почта для чека</label>
@@ -371,6 +390,7 @@ export function PaySheet({ onClose }: { onClose: () => void }) {
             {busy ? "Открываю оплату…" : `Оплатить ${PROGRAM_PRICE}`}
           </Button>
           <p className="text-xs text-muted">Оплата на защищённой странице Альфа-Банка. Чек придёт на указанную почту.</p>
+          {PAY_URL ? <button type="button" className="text-left text-sm text-moss underline" onClick={() => setRegion(null)}>Назад к выбору</button> : null}
           <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("restore")}>Уже оплатили? Вернуть доступ на этом устройстве</button>
         </form>
       ) : null}

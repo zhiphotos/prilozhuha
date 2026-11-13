@@ -14,12 +14,14 @@
     if (m) { m.href = "mailto:" + cfg.CONTACT_EMAIL; m.textContent = cfg.CONTACT_EMAIL; }
   }
   var goBtn = document.getElementById("soonGo");
+  var ruBtn = document.getElementById("soonRu");
+  if (ruBtn) ruBtn.href = (cfg.APP_URL || "/app/") + "?pay=ru";
   document.querySelectorAll(".js-buy").forEach(function (a) {
     a.setAttribute("role", "button"); a.setAttribute("aria-haspopup", "dialog");
     a.addEventListener("click", function (e) {
       e.preventDefault();
       if (goBtn) { if (buy) { goBtn.href = buy; goBtn.style.display = ""; } else { goBtn.style.display = "none"; } }
-      if (soon && soon.showModal) soon.showModal(); else if (buy) window.open(buy, "_blank", "noopener");
+      if (soon && soon.showModal) soon.showModal(); else window.location.href = (cfg.APP_URL || "/app/") + "?pay=ru";
     });
   });
 

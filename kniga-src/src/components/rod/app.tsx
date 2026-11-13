@@ -16,7 +16,7 @@ import { FlipBookScreen } from "@/components/rod/flipbook";
 import { startAutoSync } from "@/lib/rod/sync";
 import { startHelperSync } from "@/lib/rod/helper";
 import { HomeScreen } from "@/components/rod/home";
-import { LessonScreen, LessonsScreen } from "@/components/rod/lessons";
+import { LessonScreen, LessonsScreen, PaySheet } from "@/components/rod/lessons";
 import { AppTour } from "@/components/rod/tour";
 import { Onboarding } from "@/components/rod/onboarding";
 import { PhotoNewScreen } from "@/components/rod/photo";
@@ -59,6 +59,8 @@ function RodAppMain() {
   const formatKey = `${print.size}x${print.height ?? print.size}`;
   const [hydrated, setHydrated] = useState(false);
   const [stack, setStack] = useState<Screen[]>(() => initialStack());
+  // Ссылка с лендинга «Покупаю из России»: открываем оплату сразу.
+  const [payDeep, setPayDeep] = useState(() => new URLSearchParams(window.location.search).get("pay") === "ru");
   const stackRef = useRef(stack);
   stackRef.current = stack;
 
@@ -147,6 +149,18 @@ function RodAppMain() {
           <Dock />
         </>
       )}
+      {payDeep ? (
+        <PaySheet
+          onClose={() => {
+            setPayDeep(false);
+            try {
+              window.history.replaceState(window.history.state, "", window.location.pathname + window.location.hash);
+            } catch {
+              /* адрес можно не чистить */
+            }
+          }}
+        />
+      ) : null}
       <AppTour />
       <HelperBar />
       <Toaster position="top-center" offset={{ top: "4.75rem" }} mobileOffset={{ top: "4.75rem" }} toastOptions={{ className: "rod-toast" }} />
