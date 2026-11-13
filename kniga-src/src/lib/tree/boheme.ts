@@ -5,10 +5,10 @@ import type { Person, Union } from "./types.ts";
 
 export const BOHEME_FRAME = 96;
 export const BOHEME_FRAMES = [
-  { src: "./tree/boheme/frame-1.png", hole: 0.44 },
-  { src: "./tree/boheme/frame-2.png", hole: 0.5 },
-  { src: "./tree/boheme/frame-3.png", hole: 0.36 },
-  { src: "./tree/boheme/frame-4.png", hole: 0.42 },
+  { src: "./tree/boheme/frame-1.webp", hole: 0.44 },
+  { src: "./tree/boheme/frame-2.webp", hole: 0.5 },
+  { src: "./tree/boheme/frame-3.webp", hole: 0.36 },
+  { src: "./tree/boheme/frame-4.webp", hole: 0.42 },
 ] as const;
 
 const BOX = BOHEME_FRAME * 2;

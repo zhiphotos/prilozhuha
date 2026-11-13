@@ -5,11 +5,11 @@ import type { Person, Union } from "./types.ts";
 
 export const TAIGA_FRAME = 74;
 export const TAIGA_FRAMES = [
-  { src: "./tree/taiga/frame-1.png", hole: 0.34 },
-  { src: "./tree/taiga/frame-2.png", hole: 0.36 },
-  { src: "./tree/taiga/frame-3.png", hole: 0.34 },
-  { src: "./tree/taiga/frame-4.png", hole: 0.46 },
-  { src: "./tree/taiga/frame-5.png", hole: 0.36 },
+  { src: "./tree/taiga/frame-1.webp", hole: 0.34 },
+  { src: "./tree/taiga/frame-2.webp", hole: 0.36 },
+  { src: "./tree/taiga/frame-3.webp", hole: 0.34 },
+  { src: "./tree/taiga/frame-4.webp", hole: 0.46 },
+  { src: "./tree/taiga/frame-5.webp", hole: 0.36 },
 ] as const;
 
 const BOX = TAIGA_FRAME * 2;
