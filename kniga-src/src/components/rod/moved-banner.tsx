@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowRight, Download } from "lucide-react";
+import { ArrowRight, Download, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/rod/chrome";
 import { exportBook } from "@/lib/rod/backup";
@@ -23,9 +23,25 @@ const markDone = () => {
   }
 };
 
+const HIDE_KEY = "kniga-move-banner-hidden";
+const hiddenAlready = () => {
+  try {
+    return window.localStorage.getItem(HIDE_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+const markHidden = () => {
+  try {
+    window.localStorage.setItem(HIDE_KEY, "1");
+  } catch {
+    // без записи плашка просто покажется ещё раз
+  }
+};
+
 const LAST = 5;
 
-/** Пошаговое окно переезда. Появляется при каждом открытии старого адреса, пока человек не нажмёт «Я переехала». */
+/** Пошаговое окно переезда. Открывается только по кнопке в плашке вверху экрана: само поверх экрана не выскакивает, чтобы не пугать новых людей. */
 function MoveTour({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState(0);
   const [saved, setSaved] = useState(false);
@@ -125,21 +141,27 @@ function MoveTour({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** Баннер «Книга рода переезжает»: на старом адресе открывает пошаговое окно переезда. На новом адресе (VITE_MOVED_TO пуст) ничего не показывает. */
+/** Плашка вверху экрана на старом адресе (VITE_MOVED_TO). Для тех, кто вёл книгу здесь и переезжает; новому человеку достаточно её закрыть. На новом адресе ничего не показывает. */
 export function MovedBanner() {
-  const [open, setOpen] = useState(() => Boolean(MOVED_TO) && !doneAlready());
-  if (!MOVED_TO) return null;
+  const [open, setOpen] = useState(false);
+  const [hidden, setHidden] = useState(hiddenAlready);
+  if (!MOVED_TO || hidden) return null;
   const host = movedHost(MOVED_TO);
+  const close = () => {
+    markHidden();
+    setHidden(true);
+  };
   return (
     <>
-      <section className="aurora mb-5 rounded-2xl p-5" aria-label="Книга рода переехала на новый адрес">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-ink">Важно</p>
-        <h2 className="mt-1 text-[1.25rem] font-semibold leading-tight text-ink">Этот адрес закроется примерно через месяц</h2>
-        <p className="mt-2 text-sm text-ink/75">
-          Книга рода переезжает на <b>{host}</b>. Данные сами не переносятся: сохраните книгу файлом и загрузите её на новом адресе. Пройдём по шагам, это пять минут.
-        </p>
-        <div className="mt-3">
-          <Button onClick={() => setOpen(true)}>Переехать по шагам</Button>
+      <section className="aurora relative mb-5 rounded-2xl p-4 pr-11" aria-label="Книга рода переезжает на новый адрес">
+        <button type="button" aria-label="Закрыть" className="absolute right-2 top-2 grid size-9 place-items-center rounded-full text-ink/60" onClick={close}>
+          <X className="size-5" />
+        </button>
+        <p className="text-sm font-semibold leading-snug text-ink">Вели книгу на этом адресе раньше? Она переезжает на {host}</p>
+        <p className="mt-1 text-sm text-ink/75">Книгу нужно один раз перенести, это пять минут. Если вы здесь впервые или ещё не заполняли книгу, просто закройте это сообщение: вам ничего делать не нужно.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button variant="soft" onClick={() => setOpen(true)}>Переехать по шагам</Button>
+          <button type="button" className="text-sm text-muted underline" onClick={close}>Я здесь впервые, закрыть</button>
         </div>
       </section>
       {open ? <MoveTour onClose={() => setOpen(false)} /> : null}
