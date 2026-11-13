@@ -5,10 +5,10 @@ import type { Person, Union } from "./types.ts";
 
 export const FRAME = 86;
 export const FRAMES = [
-  { src: "./tree/frames/frame-1.png", hole: 0.42 },
-  { src: "./tree/frames/frame-2.png", hole: 0.32 },
-  { src: "./tree/frames/frame-3.png", hole: 0.36 },
-  { src: "./tree/frames/frame-4.png", hole: 0.42 },
+  { src: "./tree/frames/frame-1.webp", hole: 0.42 },
+  { src: "./tree/frames/frame-2.webp", hole: 0.32 },
+  { src: "./tree/frames/frame-3.webp", hole: 0.36 },
+  { src: "./tree/frames/frame-4.webp", hole: 0.42 },
 ] as const;
 
 const BOX = FRAME * 2;
