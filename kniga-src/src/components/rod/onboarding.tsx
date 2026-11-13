@@ -5,6 +5,7 @@ import { useRod } from "@/lib/rod/store";
 import { Button, Field } from "@/components/rod/chrome";
 import { InstallSheet, isStandalone } from "@/components/rod/install-hint";
 import { OpenCopyButton } from "@/components/rod/open-copy";
+import { CloudLoginButton } from "@/components/rod/cloud-login";
 import { Cut, packBg } from "@/components/rod/botanica";
 import { cn } from "@/lib/cn";
 
@@ -83,9 +84,15 @@ export function Onboarding({ ready = true }: { ready?: boolean }) {
           </Button>
         </div>
         {ready ? (
-          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-ink/10 pt-5">
-            <p className="min-w-0 flex-1 text-sm text-muted">Уже сохраняли копию книги?</p>
-            <OpenCopyButton />
+          <div className="mt-5 grid gap-4 border-t border-ink/10 pt-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="min-w-0 flex-1 text-sm text-muted">Уже оплачивали программу? Книга ждёт вас в облаке.</p>
+              <CloudLoginButton />
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="min-w-0 flex-1 text-sm text-muted">Уже сохраняли копию книги файлом?</p>
+              <OpenCopyButton />
+            </div>
           </div>
         ) : null}
       </div>

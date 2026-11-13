@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, Share } from "lucide-react";
 import { Button, Sheet } from "@/components/rod/chrome";
+import { useRod } from "@/lib/rod/store";
 
 const KEY = "kniga-install-dismissed";
 
@@ -20,13 +21,61 @@ export function isStandalone(): boolean {
   return window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 }
 
+/** Компьютер: есть мышь и это не телефон и не планшет. Для него подсказки про закладку и установку, а не про экран «Домой». */
+export function isDesktop(): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+  if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) return false;
+  return window.matchMedia("(pointer: fine)").matches;
+}
+
+const isMac = () => typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+
 export function isApple(): boolean {
   if (typeof navigator === "undefined") return false;
   return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
+function DesktopSheet({ onClose, first }: { onClose: () => void; first: boolean }) {
+  const key = isMac() ? "⌘ + D" : "Ctrl + D";
+  const step = (n: number, text: React.ReactNode) => (
+    <li className="flex items-start gap-3">
+      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-moss text-sm font-semibold text-paper">{n}</span>
+      <span>{text}</span>
+    </li>
+  );
+  return (
+    <Sheet title={first ? "Чтобы книга не потерялась на компьютере" : "Как сохранить книгу на компьютере"} onClose={onClose}>
+      <p className="mb-4 rounded-xl bg-gold/15 p-3 text-sm text-ink">
+        Книга хранится в этом браузере на этом компьютере, а не на сервере. Если открыть ссылку в другом браузере, в режиме инкогнито или на другом компьютере, книга там будет пустой: ваши записи остались в первом месте. Поэтому открывайте её всегда там, где начали.
+      </p>
+      <ol className="grid gap-3 text-[15px] text-ink">
+        {step(1, <>Добавьте страницу в закладки: нажмите <b>{key}</b>. Так вы всегда откроете тот же адрес.</>)}
+        {step(2, <>Лучше установите книгу как приложение: в Chrome и Edge справа в адресной строке есть значок установки (монитор со стрелкой) или меню ⋮ → «Установить Книгу рода». Она откроется в своём окне, как обычная программа.</>)}
+        {step(3, <>В Safari на Mac: меню «Файл» → «Добавить в Dock».</>)}
+        {step(4, <>Если вы уже оплатили программу, книга сохраняется в облаке: на другом компьютере нажмите «Войти по почте», и она появится сама. Без оплаты сохраняйте копию файлом: ⚙ на главной → «Копия книги».</>)}
+      </ol>
+      {deferred ? (
+        <Button
+          className="mt-4 w-full"
+          onClick={() => {
+            void deferred?.prompt();
+            deferred = null;
+            onClose();
+          }}
+        >
+          Установить как приложение
+        </Button>
+      ) : null}
+      <Button variant={first ? "soft" : "primary"} className="mt-4 w-full" onClick={onClose}>
+        {first ? "Продолжить в браузере" : "Понятно"}
+      </Button>
+    </Sheet>
+  );
+}
+
 export function InstallSheet({ onClose, first = false }: { onClose: () => void; first?: boolean }) {
   const apple = isApple();
+  if (isDesktop()) return <DesktopSheet onClose={onClose} first={first} />;
   return (
     <Sheet title={first ? "Сначала поставьте книгу на экран" : "Значок на экране «Домой»"} onClose={onClose}>
       {first ? (
@@ -166,15 +215,23 @@ export function bannerVisible(): boolean {
 export function InstallBanner() {
   const [open, setOpen] = useState(false);
   const [snoozed, setSnoozed] = useState(bannerSnoozed);
+  const paid = useRod((state) => Boolean(state.access?.token));
+  const desktop = isDesktop();
   if (snoozed || isStandalone()) return null;
+  const title = paid ? "Книга сохраняется в облаке" : desktop ? "Книга хранится в этом браузере" : "Книга открыта в браузере";
+  const text = paid
+    ? "Ваша книга копируется в облако сама. На другом телефоне или компьютере откройте сайт, нажмите «Войти по почте» и впишите почту оплаты: книга появится там."
+    : desktop
+      ? "Она сохранена на этом компьютере. Откройте её в другом браузере или на другом компьютере, и там будет пусто. Добавьте страницу в закладки или установите как приложение."
+      : "Чтобы книга хранилась надёжно, поставьте значок на экран «Домой» и открывайте её с него.";
   return (
     <>
       <section role="note" className="mb-5 rounded-2xl border border-gold/60 bg-gold/15 p-4">
-        <p className="text-[15px] font-semibold text-ink">Книга открыта в браузере</p>
-        <p className="mt-1 text-sm text-ink/80">Чтобы книга хранилась надёжно, поставьте значок на экран «Домой» и открывайте её с него.</p>
+        <p className="text-[15px] font-semibold text-ink">{title}</p>
+        <p className="mt-1 text-sm text-ink/80">{text}</p>
         <div className="mt-2 flex flex-wrap gap-x-4">
           <button type="button" onClick={() => setOpen(true)} className="min-h-10 text-sm font-semibold text-moss underline">
-            Как это сделать
+            {paid ? "Подробнее" : desktop ? "Как сохранить" : "Как это сделать"}
           </button>
           <button
             type="button"
