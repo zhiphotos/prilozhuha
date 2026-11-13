@@ -39,6 +39,19 @@ export async function claimAccess(order: string, email: string): Promise<void> {
   useRod.getState().grantAccess({ token: answer.token, until: answer.until, order: order.trim() });
 }
 
+/** Вход по почте, шаг 1: на оплаченную почту приходит письмо с шестью цифрами. */
+export async function requestLoginCode(email: string): Promise<void> {
+  const answer = await post<{ ok?: boolean }>("/api/login-code", { email: email.trim() });
+  if (!answer.ok) throw new Error(answer.error || "Не получилось отправить код.");
+}
+
+/** Вход по почте, шаг 2: шесть цифр из письма открывают доступ на этом устройстве. */
+export async function loginWithCode(email: string, code: string): Promise<void> {
+  const answer = await post<{ token?: string; until?: number; order?: string }>("/api/login-verify", { email: email.trim(), code: code.trim() });
+  if (!answer.token || !answer.until) throw new Error(answer.error || "Код не подошёл.");
+  useRod.getState().grantAccess({ token: answer.token, until: answer.until, order: answer.order ?? "mail" });
+}
+
 /** Личный код действующей ученицы: сервер проверяет его и выдаёт подписанный доступ. */
 export async function redeemCode(code: string): Promise<string | null> {
   try {
@@ -90,7 +103,7 @@ export function handlePaymentReturn(): void {
       /* срок возьмёт сервер при проверке */
     }
     useRod.getState().grantAccess({ token, until, order });
-    toast("Оплата прошла. Программа открыта", { description: order ? `Номер заказа: ${order}. Чек пришёл на почту.` : undefined, duration: 12000 });
+    toast("Оплата прошла. Программа открыта", { description: order ? `Я отправила на вашу почту письмо с тем, как входить на других устройствах. Если его нет, загляните в «Спам». Номер заказа: ${order}.` : undefined, duration: 12000 });
   } else if (paid === "0") {
     toast("Оплата не прошла. Деньги не списаны. Попробуйте ещё раз.", { duration: 8000 });
   }

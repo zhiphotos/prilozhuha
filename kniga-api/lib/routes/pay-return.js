@@ -1,5 +1,6 @@
 import { accessUntil, orderState } from "../alfa.js";
 import { isAllowedApp } from "../config.js";
+import { recordPaid } from "../paid.js";
 import { makeToken } from "../token.js";
 
 // Банк возвращает сюда после оплаты (?orderId=…&to=<адрес приложения>). Проверяем оплату в банке и отправляем человека обратно в приложение с токеном.
@@ -23,7 +24,9 @@ export default async function handler(req, res) {
     if (!/^[0-9a-zA-Z-]{8,64}$/.test(orderId)) return back("?paid=0");
     const state = await orderState({ orderId });
     if (!state.ok || !state.orderNumber) return back("?paid=0");
-    const token = makeToken({ order: state.orderNumber, until: accessUntil(state.paidAt) });
+    const until = accessUntil(state.paidAt);
+    await recordPaid({ email: state.email, orderNumber: state.orderNumber, until, paidAt: state.paidAt });
+    const token = makeToken({ order: state.orderNumber, until });
     return back("?paid=1", `#kr-access=${token}&order=${encodeURIComponent(state.orderNumber)}`);
   } catch (error) {
     console.error("[pay-return]", error instanceof Error ? error.message : error);

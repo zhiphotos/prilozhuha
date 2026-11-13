@@ -9,7 +9,7 @@ import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
 import { INTRO_VIDEO, LESSON_VIDEO, PAY_URL, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
 import { LegalLinks } from "@/components/rod/legal";
 import { serverStatus } from "@/lib/rod/server";
-import { claimAccess, leaveLead, platformLogin, redeemCode, startCheckout } from "@/lib/rod/pay";
+import { leaveLead, loginWithCode, platformLogin, redeemCode, requestLoginCode, startCheckout } from "@/lib/rod/pay";
 import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
 import { Button, ScreenFrame, Sheet, TopBar, linkScreen, useNav } from "@/components/rod/chrome";
@@ -305,7 +305,8 @@ export function PaySheet({ onClose }: { onClose: () => void }) {
   const [pd, setPd] = useState(false);
   const [ads, setAds] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [order, setOrder] = useState("");
+  const [mailCode, setMailCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState("");
   const [wrong, setWrong] = useState(false);
   const [pEmail, setPEmail] = useState("");
@@ -332,14 +333,26 @@ export function PaySheet({ onClose }: { onClose: () => void }) {
       setBusy(false);
     }
   };
-  const restore = async () => {
+  const sendLoginCode = async () => {
     setBusy(true);
     try {
-      await claimAccess(order, email);
+      await requestLoginCode(email);
+      setCodeSent(true);
+      toast("Код отправлен на почту", { duration: 5000 });
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Не получилось отправить код.", { duration: 7000 });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const enterWithCode = async () => {
+    setBusy(true);
+    try {
+      await loginWithCode(email, mailCode);
       toast("Программа открыта");
       onClose();
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Заказ не найден.", { duration: 6000 });
+      toast(error instanceof Error ? error.message : "Код не подошёл.", { duration: 7000 });
     } finally {
       setBusy(false);
     }
@@ -356,7 +369,7 @@ export function PaySheet({ onClose }: { onClose: () => void }) {
           <p className="text-sm font-medium text-ink">Откуда вы платите?</p>
           <Button className="h-auto min-h-12 w-full whitespace-normal py-3" onClick={() => setRegion("ru")}>Покупаю из России · карта российского банка</Button>
           <Button variant="soft" className="h-auto min-h-12 w-full whitespace-normal py-3" onClick={() => setRegion("world")}>Оплата со всего мира · Tribute</Button>
-          <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("restore")}>Уже оплатили? Вернуть доступ на этом устройстве</button>
+          <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("restore")}>Уже оплатили? Войти по почте</button>
         </div>
       ) : null}
 
@@ -391,16 +404,32 @@ export function PaySheet({ onClose }: { onClose: () => void }) {
           </Button>
           <p className="text-xs text-muted">Оплата на защищённой странице Альфа-Банка. Чек придёт на указанную почту.</p>
           {PAY_URL ? <button type="button" className="text-left text-sm text-moss underline" onClick={() => setRegion(null)}>Назад к выбору</button> : null}
-          <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("restore")}>Уже оплатили? Вернуть доступ на этом устройстве</button>
+          <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("restore")}>Уже оплатили? Войти по почте</button>
         </form>
       ) : null}
 
       {live && mode === "restore" ? (
-        <form className="mt-4 grid gap-3" onSubmit={(event) => { event.preventDefault(); void restore(); }}>
-          <p className="text-sm text-muted">Номер заказа и почту можно найти в чеке или в письме банка.</p>
-          <input className="field" value={order} onChange={(event) => setOrder(event.target.value)} placeholder="Номер заказа, например kr-abc123-1a2b3c4d" autoComplete="off" />
-          <input className="field" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Почта из чека" />
-          <Button type="submit" disabled={busy || !order.trim() || !validEmail}>{busy ? "Проверяю…" : "Вернуть доступ"}</Button>
+        <form
+          className="mt-4 grid gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (codeSent) void enterWithCode();
+            else void sendLoginCode();
+          }}
+        >
+          <p className="text-base font-semibold text-ink">Вход по почте</p>
+          <p className="text-sm text-muted">Впишите ту почту, которую вводили при оплате. Пароль не нужен: на неё придёт письмо с шестью цифрами.</p>
+          <input className="field" type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); setCodeSent(false); }} placeholder="name@mail.ru" />
+          {codeSent ? (
+            <>
+              <p className="text-sm text-ink">Код отправлен. Если письма нет, загляните в папку «Спам».</p>
+              <input className="field text-center text-2xl tracking-[0.3em]" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={mailCode} onChange={(event) => setMailCode(event.target.value.replace(/\D/g, ""))} placeholder="••••••" />
+              <Button type="submit" disabled={busy || mailCode.length !== 6} className="h-auto min-h-12 w-full py-3">{busy ? "Проверяю…" : "Войти"}</Button>
+              <button type="button" className="text-left text-sm text-moss underline" disabled={busy} onClick={() => void sendLoginCode()}>Прислать код ещё раз</button>
+            </>
+          ) : (
+            <Button type="submit" disabled={busy || !validEmail} className="h-auto min-h-12 w-full py-3">{busy ? "Отправляю…" : "Прислать код"}</Button>
+          )}
           <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("buy")}>Назад к оплате</button>
         </form>
       ) : null}
