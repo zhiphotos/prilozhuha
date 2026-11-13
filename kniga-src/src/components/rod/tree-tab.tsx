@@ -227,7 +227,7 @@ function TreeScreen() {
   };
 
   const shareLink = async () => {
-    setNote("Готовим ссылку…");
+    setNote("Готовим ссылку и аватарки…");
     try {
       const url = await publishShare({ people, unions, focusId });
       setNote(null);
@@ -555,7 +555,7 @@ function TreeScreen() {
       </header>
       {shareUrl ? (
         <Sheet title="Ссылка для родных" onClose={() => setShareUrl(null)}>
-          <p className="mb-3 text-sm text-muted">Родственник откроет древо и сможет только смотреть. Заметки и фото не передаются.</p>
+          <p className="mb-3 text-sm text-muted">Родственник откроет древо и сможет только смотреть. Заметки не передаются, аватарки уходят маленькими.</p>
           <textarea readOnly aria-label="Ссылка на древо" value={shareUrl} className="field min-h-24 w-full break-all text-[15px] leading-snug" onFocus={(event) => event.currentTarget.select()} />
           <div className="mt-3 grid gap-2">
             <Button onClick={() => void copyText(shareUrl).then((ok) => setShareCopied(ok ? "copied" : "failed"))}>
