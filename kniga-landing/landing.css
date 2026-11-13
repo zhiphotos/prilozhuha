@@ -409,6 +409,8 @@ main:focus{outline:none}
 .price__help{font-size:14.5px;color:#3a2d1b;background:#e3d8bd;border-radius:12px;padding:12px 16px;margin:0 0 12px}
 .soon__help{background:rgba(201,174,116,.12);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:15px}
 .soon__btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.soon__btns--col{flex-direction:column;margin:14px 0}
+.soon__btns--col .btn{width:100%;text-align:center}
 .offer__card p{font-size:16px}
 
 /* вайб уроков */

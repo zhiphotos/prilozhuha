@@ -428,11 +428,15 @@
 
 <dialog class="soon" id="soon" aria-labelledby="soonTitle">
   <form method="dialog">
-    <p class="soon__title" id="soonTitle">Оплата через Tribute</p>
-    <p>Откроется страница оплаты в Tribute.</p>
-    <p><strong>После оплаты зайдите в Телеграм к боту <a href="https://t.me/ded_privratnik_kniga_bot" target="_blank" rel="noopener">@ded_privratnik_kniga_bot</a>:</strong> нажмите «Старт» и напишите почту, бот сразу пришлёт ключ. С ним вы откроете приложение: kniga-balanuca.ru/app, вкладка «Уроки», поле «Есть код доступа?».</p>
+    <p class="soon__title" id="soonTitle">Откуда вы платите?</p>
+    <div class="soon__btns soon__btns--col">
+      <a class="btn" id="soonRu" href="/app/?pay=ru">Покупаю из России</a>
+      <a class="btn btn--ghost" id="soonGo" href="#" target="_blank" rel="noopener">Оплата со всего мира (Tribute)</a>
+    </div>
+    <p>Из России: карта российского банка, оплата на странице Альфа-Банка. Откроется приложение, там нужно указать почту для чека.</p>
+    <p><strong>Со всего мира, Tribute:</strong> после оплаты зайдите в Телеграм к боту <a href="https://t.me/ded_privratnik_kniga_bot" target="_blank" rel="noopener">@ded_privratnik_kniga_bot</a>: нажмите «Старт» и напишите почту, бот сразу пришлёт ключ. С ним вы откроете приложение: kniga-balanuca.ru/app, вкладка «Уроки», поле «Есть код доступа?».</p>
     <p class="soon__help"><strong>Не получается оплатить?</strong> Напишите Дарине: <a class="js-tg" href="#" target="_blank" rel="noopener">в Телеграм</a><span class="js-tg-or"> или </span>на почту <a class="js-mail" id="soonMail" href="mailto:darinazizina@gmail.com">darinazizina@gmail.com</a>. Она свяжется и подберёт другой вариант.</p>
-    <div class="soon__btns"><a class="btn" id="soonGo" href="#" target="_blank" rel="noopener">Перейти к оплате</a><button class="btn btn--ghost" value="ok" autofocus>Закрыть</button></div>
+    <div class="soon__btns"><button class="btn btn--ghost" value="ok" autofocus>Закрыть</button></div>
   </form>
 </dialog>
 
