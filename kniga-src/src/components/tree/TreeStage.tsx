@@ -624,9 +624,9 @@ export function TreeStage(props: Props) {
           </p>
         ) : null}
         <div className="flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto rounded-full border border-chip-line bg-chip p-1 backdrop-blur-md [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {(["work", "carved", "cameo", "gzhel", "boheme", "taiga"] as const).map((id) => (
+          {(["work", "cameo", "gzhel", "boheme", "taiga"] as const).map((id) => (
             <button key={id} type="button" aria-pressed={style === id} className={`min-h-11 shrink-0 rounded-full px-3 text-sm font-semibold ${style === id ? "bg-gold text-ink" : "text-chip-fg"} ${stylesLocked && id !== "work" ? "opacity-80" : ""}`} onClick={() => onStyle(id)}>
-              {stylesLocked && id !== "work" ? "🔒 " : ""}{id === "work" ? "Схема" : id === "carved" ? "Древо" : id === "cameo" ? "Камея" : id === "gzhel" ? "Гжель" : id === "boheme" ? "Богема" : "Тайга"}
+              {stylesLocked && id !== "work" ? "🔒 " : ""}{id === "work" ? "Схема" : id === "cameo" ? "Камея" : id === "gzhel" ? "Гжель" : id === "boheme" ? "Богема" : "Тайга"}
             </button>
           ))}
           <span className="mx-1 inline h-6 w-px shrink-0 bg-chip-line" />
