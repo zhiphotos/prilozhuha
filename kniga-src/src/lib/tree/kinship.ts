@@ -56,10 +56,14 @@ function cap(word: string): string {
   return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
-/** «пра» столько раз, сколько нужно; длинную цепочку (больше четырёх) пишем числом: пра9. */
-function praPrefix(count: number, sep = ""): string {
+const SUPERSCRIPT = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+
+/** «пра» столько раз, сколько нужно; длинную цепочку (больше четырёх) пишем числом в верхнем индексе: пра⁶дедушка. */
+export function praPrefix(count: number, _sep = ""): string {
   if (count <= 0) return "";
-  return count > 4 ? `пра${count}${sep}` : "пра".repeat(count);
+  const power = String(count).split("").map((digit) => SUPERSCRIPT[Number(digit)]).join("");
+  // Верхний индекс читается без пробела: «пра⁶дедушка». Пробел оставляем только для цифр обычного размера.
+  return count > 4 ? `пра${power}` : "пра".repeat(count);
 }
 
 function ancestorTitle(dist: number, gender: Gender): string {
@@ -350,7 +354,9 @@ function inLawViaSpouse(index: Index, focus: string, other: string): Kinship | n
 
 function withCard(kin: Kinship): Kinship {
   if (kin.kind === "ancestor" || kin.kind === "descendant") {
-    if (kin.degree != null && kin.degree >= 3) return { ...kin, card: `${kin.title} (${kin.degree})` };
+    // Номер поколения в скобках не дублируем, если в названии уже есть число: «пра⁵дедушка» или «Предок (7)».
+    const numbered = /[⁰-⁹(]/.test(kin.title);
+    if (kin.degree != null && kin.degree >= 3 && !numbered) return { ...kin, card: `${kin.title} (${kin.degree})` };
   }
   return { ...kin, card: kin.title };
 }
@@ -468,6 +474,11 @@ export function displayName(person: Person, style: "card" | "full" = "card"): st
     return person.maidenName && full ? `${full} (${person.maidenName})` : full;
   }
   return [person.firstName, person.lastName].filter(Boolean).join(" ") || "Без имени";
+}
+
+/** Инициалы для круга без фото: имя и фамилия, как на «Схеме». */
+export function initialsOf(person: Person): string {
+  return `${person.firstName[0] ?? ""}${person.lastName[0] ?? ""}`.toUpperCase();
 }
 
 /** Подпись на карточке: сверху фамилия (в скобках девичья), ниже имя и отчество. */
