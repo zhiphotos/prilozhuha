@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { bodyOf, cors, json } from "../config.js";
-import { redis, redisConfigured } from "../redis.js";
+import { pairs, redis, redisConfigured } from "../redis.js";
 import { throttled } from "../throttle.js";
 
 /**
@@ -9,11 +9,17 @@ import { throttled } from "../throttle.js";
  *   POST /api/tree-share { id, owner, tree }             обновить снимок по той же ссылке
  *   POST /api/tree-share { id, owner, revoke: true }     отозвать ссылку
  *   GET  /api/tree-share?id=<id>                         получить снимок для просмотра
- * Хранится урезанный снимок: имена, даты, место рождения, связи. Заметки, фото и истории не сохраняются.
+ *   POST /api/tree-share { id, owner, photos: { <id человека>: <data-URL миниатюры> } }  добавить аватарки (до 12 за раз)
+ *   GET  /api/tree-share?id=<id>&photos=1                получить аватарки: { photos: { <id человека>: <data-URL> } }
+ * Хранится урезанный снимок: имена, даты, место рождения, связи и маленькие аватарки. Заметки, большие фото и истории не сохраняются.
  * Секрет владельца на сервере только в виде хеша, ссылка действует год с последнего обновления.
  */
 const KEEP_DAYS = 365;
 const MAX_PEOPLE = 3000;
+const MAX_AVATARS = 400;
+const MAX_AVATAR_CHARS = 30000; // миниатюра около 20 КБ
+const IMG = /^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/;
+const photoKey = (id) => `kr:sharep:${id}`;
 const sha = (text) => createHash("sha256").update(text).digest("hex");
 const str = (v, n = 120) => String(v ?? "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, n);
 const ids = (v) => (Array.isArray(v) ? v.map((x) => str(x, 64)).filter(Boolean).slice(0, 60) : []);
@@ -64,6 +70,10 @@ export default async function handler(req, res) {
     if (!/^[0-9a-f]{16}$/.test(id)) return json(res, 400, { error: "Ссылка не подошла." });
     const raw = await redis("GET", `kr:share:${id}`).catch(() => null);
     if (!raw) return json(res, 404, { error: "Ссылка больше не действует: владелец её отозвал или она устарела." });
+    if (url.searchParams.get("photos") === "1") {
+      const flat = await redis("HGETALL", photoKey(id)).catch(() => []);
+      return json(res, 200, { photos: pairs(flat ?? []) });
+    }
     const record = JSON.parse(raw);
     return json(res, 200, { tree: record.tree, at: record.at });
   }
@@ -81,11 +91,25 @@ export default async function handler(req, res) {
     if (!record || record.h !== sha(owner)) return json(res, 403, { error: "Эту ссылку нельзя изменить с этого устройства." });
     if (body.revoke === true) {
       await redis("DEL", `kr:share:${id}`);
+      await redis("DEL", photoKey(id));
+      return json(res, 200, { ok: true });
+    }
+    if (body.photos && typeof body.photos === "object") {
+      const known = new Set(record.tree.people.map((p) => p.id));
+      const entries = Object.entries(body.photos).slice(0, 12);
+      for (const [pid, data] of entries) {
+        if (!known.has(pid) || typeof data !== "string" || data.length > MAX_AVATAR_CHARS || !IMG.test(data)) return json(res, 400, { error: "Аватарка не подошла." });
+      }
+      const have = Number(await redis("HLEN", photoKey(id)).catch(() => 0));
+      if (have + entries.length > MAX_AVATARS) return json(res, 429, { error: "Слишком много аватарок для одной ссылки." });
+      for (const [pid, data] of entries) await redis("HSET", photoKey(id), pid, data);
+      await redis("EXPIRE", photoKey(id), KEEP_DAYS * 86400);
       return json(res, 200, { ok: true });
     }
     const tree = cleanTree(body.tree);
     if (!tree.people.length) return json(res, 400, { error: "В древе пока никого нет." });
     await redis("SET", `kr:share:${id}`, JSON.stringify({ h: record.h, tree, at: Date.now() }), "EX", KEEP_DAYS * 86400);
+    await redis("EXPIRE", photoKey(id), KEEP_DAYS * 86400).catch(() => undefined);
     return json(res, 200, { ok: true, id });
   }
 

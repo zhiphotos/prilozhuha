@@ -29,5 +29,17 @@ ok("обновление применилось", (await run({ method: "GET", ur
 ok("кривой номер отклонён", (await run({ method: "GET", url: "/api/tree-share?id=zzz" })).status === 400);
 ok("пустое древо отклонено", (await run({ body: { tree: { people: [], unions: [] } } })).status === 400);
 ok("чужой не отзовёт", (await run({ body: { id: made.json.id, owner: "y".repeat(24), revoke: true } })).status === 403);
+const px = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ==";
+const made2 = await run({ body: { tree } });
+ok("аватарка принимается от владельца", (await run({ body: { id: made2.json.id, owner: made2.json.owner, photos: { a: px } } })).status === 200);
+ok("аватарка чужому человеку отклонена", (await run({ body: { id: made2.json.id, owner: made2.json.owner, photos: { ghost: px } } })).status === 400);
+ok("не картинка отклонена", (await run({ body: { id: made2.json.id, owner: made2.json.owner, photos: { a: "data:text/html;base64,AAAA" } } })).status === 400);
+ok("слишком большая аватарка отклонена", (await run({ body: { id: made2.json.id, owner: made2.json.owner, photos: { a: "data:image/jpeg;base64," + "A".repeat(40000) } } })).status === 400);
+ok("чужой не кладёт аватарки", (await run({ body: { id: made2.json.id, owner: "z".repeat(24), photos: { a: px } } })).status === 403);
+const ph = await run({ method: "GET", url: `/api/tree-share?id=${made2.json.id}&photos=1` });
+ok("аватарка отдаётся по ссылке", ph.status === 200 && ph.json.photos.a === px);
+ok("снимок без &photos не содержит аватарок", (await run({ method: "GET", url: `/api/tree-share?id=${made2.json.id}` })).json.tree.people[0].photo === "");
+await run({ body: { id: made2.json.id, owner: made2.json.owner, revoke: true } });
+ok("после отзыва аватарки недоступны", (await run({ method: "GET", url: `/api/tree-share?id=${made2.json.id}&photos=1` })).status === 404);
 ok("владелец отзывает", (await run({ body: { id: made.json.id, owner: made.json.owner, revoke: true } })).status === 200);
 ok("после отзыва 404", (await run({ method: "GET", url: `/api/tree-share?id=${made.json.id}` })).status === 404);
