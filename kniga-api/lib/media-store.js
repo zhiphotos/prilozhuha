@@ -46,22 +46,22 @@ export async function getChunk(id, ref, i) {
 /** Перенос фото одного доступа из Redis на диск; после успеха ключ в Redis удаляется. Возвращает число перенесённых фото. */
 export async function moveToDisk(id) {
   if (!dir()) return 0;
-  const all = (await redis("HGETALL", rkey(id))) ?? [];
-  const map = {};
-  for (let i = 0; i + 1 < all.length; i += 2) map[all[i]] = all[i + 1];
+  const keys = (await redis("HKEYS", rkey(id))) ?? [];
+  const refs = keys.filter((k) => k.endsWith("#n")).map((k) => k.slice(0, -2));
   let photos = 0;
-  for (const k of Object.keys(map)) {
-    if (!k.endsWith("#n")) continue;
-    const ref = k.slice(0, -2);
-    const n = Number(map[k]);
-    for (let i = 0; i < n; i += 1) if (map[`${ref}#${i}`] == null) throw new Error(`нет куска ${ref}#${i}`);
+  for (const ref of refs) {
+    const n = Number((await redis("HGET", rkey(id), `${ref}#n`)) ?? 0);
     await mkdir(folder(id), { recursive: true });
-    for (let i = 0; i < n; i += 1) await writeFile(file(id, ref, String(i)), map[`${ref}#${i}`]);
+    for (let i = 0; i < n; i += 1) {
+      const data = await redis("HGET", rkey(id), `${ref}#${i}`);
+      if (data == null) throw new Error(`нет куска ${ref}#${i}`);
+      await writeFile(file(id, ref, String(i)), data);
+    }
     await writeFile(file(id, ref, "n"), String(n));
     photos += 1;
   }
   // Проверяем, что всё записано, и только потом стираем из памяти.
-  for (const k of Object.keys(map)) if (k.endsWith("#n") && !(await exists(file(id, k.slice(0, -2), "n")))) throw new Error("не записалось");
+  for (const ref of refs) if (!(await exists(file(id, ref, "n")))) throw new Error("не записалось");
   await redis("DEL", rkey(id));
   return photos;
 }

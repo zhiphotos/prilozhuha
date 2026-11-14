@@ -22,6 +22,7 @@ function memory(args) {
     case "HDEL": return h().delete(rest[0]) ? 1 : 0;
     case "HLEN": return h().size;
     case "HGETALL": return [...h().entries()].flat();
+    case "HKEYS": return [...h().keys()];
     case "SADD": s().add(rest[0]); return 1;
     case "SREM": return s().delete(rest[0]) ? 1 : 0;
     case "SMEMBERS": return [...s()];
