@@ -117,3 +117,15 @@ export function CommunityCard() {
     </section>
   );
 }
+
+/** Короткая подсказка рядом с «сохраните копию»: у бесплатных говорит про облако, у платных молчит. */
+export function CloudNote({ onOpen, className }: { onOpen: () => void; className?: string }) {
+  const paid = useRod((state) => state.programOpen);
+  if (paid) return null;
+  return (
+    <p className={className ?? "mt-2 rounded-xl border border-burgundy/20 bg-burgundy-soft/25 px-3 py-2 text-sm text-ink"}>
+      На полном доступе книгу можно загружать в облако: приложение вас запомнит, и книга откроется на любом устройстве.{" "}
+      <button type="button" onClick={onOpen} className="font-semibold text-burgundy underline underline-offset-2">Что входит</button>
+    </p>
+  );
+}
