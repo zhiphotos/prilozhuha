@@ -816,8 +816,9 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
 function rowLabel(delta: number): string {
   if (delta === 0) return "Вы и ваши";
   const n = Math.abs(delta);
-  if (delta < 0) return n === 1 ? "Родители" : n === 2 ? "Деды" : `${n} колено вверх`;
-  return n === 1 ? "Дети" : n === 2 ? "Внуки" : `${n} колено вниз`;
+  // Колено считается от вас: вы первое, родители второе, деды третье, прадеды четвёртое.
+  if (delta < 0) return n === 1 ? "Родители" : n === 2 ? "Деды" : n === 3 ? "Прадеды" : `${n + 1} колено вверх`;
+  return n === 1 ? "Дети" : n === 2 ? "Внуки" : n === 3 ? "Правнуки" : `${n + 1} колено вниз`;
 }
 
 /**

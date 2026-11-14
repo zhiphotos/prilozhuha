@@ -1,6 +1,7 @@
 import { ageText } from "@/lib/rod/age";
 import { DateInput } from "@/components/rod/date-input";
 import { useMemo, useState } from "react";
+import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import { AncestorGate } from "@/components/tree/AncestorGate";
 import { familyOf, inflectSurname } from "@/lib/tree/fill";
@@ -138,7 +139,7 @@ function PersonBody({ person, people, unions, focusId, onNewBook }: { person: Pe
           <p className="mt-1 text-sm text-muted">
             {yearsOf(person)}
             {ageText(person.birthYear, person.deathYear) ? ` (${ageText(person.birthYear, person.deathYear)})` : ""}
-            {kin.degree != null && kin.kind !== "self" ? ` · ${kin.degree} колено` : ""}
+            {kin.degree != null && kin.kind !== "self" ? ` · ${kin.kind === "ancestor" || kin.kind === "descendant" ? kin.degree + 1 : kin.degree} колено` : ""}
           </p>
           {(rel.also.length > 0 || rel.paths > 1 || rel.undetermined) && <p className="mt-1 text-xs text-muted">{relationNote(rel)}</p>}
         </div>
@@ -648,12 +649,45 @@ function PersonForm({
   );
 }
 
+/** Кружок с фото в карточке: нажатие сразу предлагает выбрать снимок, обрезать и сохранить, без захода в «Редактировать». */
 function Portrait({ person }: { person: Person }) {
   const [broken, setBroken] = useState(false);
+  const [cropping, setCropping] = useState<File | null>(null);
   const initials = `${person.firstName[0] ?? ""}${person.lastName[0] ?? ""}`;
   return (
-    <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-white bg-[#d7c3a4] font-serif text-2xl">
-      {person.photo && !broken ? <img src={person.photo} alt="" className="size-full object-cover" onError={() => setBroken(true)} /> : initials}
-    </div>
+    <>
+      <label className="relative block shrink-0 cursor-pointer" aria-label={person.photo ? "Заменить фото" : "Добавить фото"}>
+        <span className="grid size-20 place-items-center overflow-hidden rounded-full border-2 border-white bg-[#d7c3a4] font-serif text-2xl">
+          {person.photo && !broken ? <img src={person.photo} alt="" className="size-full object-cover" onError={() => setBroken(true)} /> : initials}
+        </span>
+        <span className="absolute -bottom-1 -right-1 grid size-7 place-items-center rounded-full border-2 border-white bg-ink text-sheet">
+          <Camera className="size-3.5" />
+        </span>
+        <input
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) setCropping(file);
+          }}
+        />
+      </label>
+      {cropping ? (
+        <CircleCrop
+          file={cropping}
+          onCancel={() => setCropping(null)}
+          onDone={(out) => {
+            setCropping(null);
+            void fileToPhoto(new File([out], "photo.jpg", { type: out.type || "image/jpeg" })).then((photo) => {
+              setBroken(false);
+              useTree.getState().updatePerson(person.id, { ...draftFrom(person), photo });
+              toast("Фото сохранено");
+            });
+          }}
+        />
+      ) : null}
+    </>
   );
 }
