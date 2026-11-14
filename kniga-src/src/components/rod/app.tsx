@@ -89,13 +89,26 @@ function RodAppMain() {
   useEffect(() => {
     const initial: HistoryState = { rod: true, stack: stackRef.current };
     window.history.replaceState(initial, "");
+    // Ссылка-приглашение при уже открытом приложении меняет только «#»: показываем её сразу, что бы ни лежало в истории.
+    const newJoin = () => /^#\/join\//.test(window.location.hash) && stackRef.current[stackRef.current.length - 1]?.id !== "join";
+    const onHash = () => {
+      if (!newJoin()) return;
+      const next = initialStack();
+      setStack(next);
+      window.history.replaceState({ rod: true, stack: next }, "");
+    };
     const onPop = (event: PopStateEvent) => {
+      if (newJoin()) return onHash();
       const state = event.state as HistoryState | null;
       if (state?.rod && Array.isArray(state.stack) && state.stack.length) setStack(state.stack);
       else setStack(initialStack()); // ссылка-приглашение при уже открытом приложении меняет только «#»: читаем её заново, а не уходим на главную
     };
     window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
+    window.addEventListener("hashchange", onHash);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      window.removeEventListener("hashchange", onHash);
+    };
   }, []);
 
   const push = useCallback((next: Screen[], replace = false) => {
