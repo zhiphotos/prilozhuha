@@ -361,9 +361,9 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
   };
 
   return (
-    <Sheet title="Программа «Книга рода»" onClose={onClose}>
-      <PriceTag />
-      <p className="mt-2 text-sm text-muted">Шесть уроков с видео, ИИ-помощник и шаблоны, полный шаблон книги на 100 страниц, материалы для печати. Платите один раз: единоразовая плата, приложение остаётся с вами навсегда, без автоматических списаний.</p>
+    <Sheet title={mode === "restore" ? "Вход по почте" : "Программа «Книга рода»"} onClose={onClose}>
+      {mode === "buy" ? <PriceTag /> : null}
+      {mode === "buy" ? <p className="mt-2 text-sm text-muted">Шесть уроков с видео, ИИ-помощник и шаблоны, полный шаблон книги на 100 страниц, материалы для печати. Платите один раз: единоразовая плата, приложение остаётся с вами навсегда, без автоматических списаний.</p> : null}
 
       {mode === "buy" && !started ? (
         <div className="mt-4 grid gap-3">
@@ -517,7 +517,7 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
         </form>
       ) : null}
 
-      {live && mode === "restore" ? (
+      {mode === "restore" ? (
         <form
           className="mt-4 grid gap-3"
           onSubmit={(event) => {
@@ -526,7 +526,6 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
             else void sendLoginCode();
           }}
         >
-          <p className="text-base font-semibold text-ink">Вход по почте</p>
           <p className="text-sm text-muted">Впишите ту почту, которую вводили при оплате. Пароль не нужен: на неё придёт письмо с шестью цифрами.</p>
           <input className="field" type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); setCodeSent(false); }} placeholder="name@mail.ru" />
           {codeSent ? (
@@ -570,7 +569,7 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
         )
       ) : null}
 
-      <IncludesList />
+      {mode === "buy" ? <IncludesList /> : null}
     </Sheet>
   );
 }
