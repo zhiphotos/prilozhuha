@@ -1,3 +1,4 @@
+import { childTrunk } from "@/lib/tree/trunk";
 import { reposition, type Spot } from "./anchor.ts";
 import { assignGenerations } from "./layout.ts";
 import { fullName, kinship, yearNum, yearsOf } from "./kinship.ts";
@@ -150,9 +151,7 @@ export function layoutPoster(people: Person[], unions: Union[], focusId: string,
     const fromY = upward ? Math.min(...partners.map((n) => n.y)) - CARD_H / 2 : Math.max(...partners.map((n) => n.y)) + CARD_H / 2;
     const edge = upward ? Math.max(...kids.map((k) => k.y)) + CARD_H / 2 : Math.min(...kids.map((k) => k.y)) - CARD_H / 2;
     const busY = upward ? edge + (fromY - edge) * 0.35 : fromY + 16;
-    const xs = [fromX, ...kids.map((k) => k.x)];
-    links.push(`M ${fromX} ${fromY} V ${busY}`);
-    links.push(`M ${Math.min(...xs)} ${busY} H ${Math.max(...xs)}`);
+    links.push(...childTrunk(fromX, fromY, busY, kids.map((k) => k.x)));
     for (const kid of kids) links.push(`M ${kid.x} ${busY} V ${upward ? kid.y + CARD_H / 2 : kid.y - CARD_H / 2}`);
   }
   const focus = byId.get(focusId);

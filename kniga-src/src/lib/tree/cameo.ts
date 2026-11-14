@@ -1,3 +1,4 @@
+import { childTrunk } from "@/lib/tree/trunk";
 import { NAME_HALF, reposition, type Spot } from "./anchor.ts";
 import { yearNum } from "./kinship.ts";
 import { assignGenerations } from "./layout.ts";
@@ -121,8 +122,7 @@ export function layoutCameo(people: Person[], unions: Union[], focusId: string, 
     const childEdge = upward ? Math.max(...kids.map((kid) => kid.y)) + FRAME + CAPTION : Math.min(...kids.map((kid) => kid.y)) - FRAME;
     const busY = upward ? childEdge + Math.max(10, (fromY - childEdge) * 0.45) : fromY + Math.max(10, (childEdge - fromY) * 0.45);
     const xs = kids.map((kid) => kid.x);
-    vines.push(`M ${fromX} ${fromY} V ${busY}`);
-    vines.push(`M ${Math.min(fromX, ...xs)} ${busY} H ${Math.max(fromX, ...xs)}`);
+    vines.push(...childTrunk(fromX, fromY, busY, xs));
     for (const kid of kids) vines.push(`M ${kid.x} ${busY} V ${upward ? kid.y + FRAME + CAPTION : kid.y - FRAME}`);
   }
   const focus = byId.get(focusId);
