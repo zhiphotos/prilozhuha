@@ -312,6 +312,8 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
   const [pEmail, setPEmail] = useState("");
   const [pPass, setPPass] = useState("");
   const [leadDone, setLeadDone] = useState(false);
+  const [started, setStarted] = useState(() => new URLSearchParams(window.location.search).get("pay") === "ru");
+  const [more, setMore] = useState(false);
   const [live, setLive] = useState(false);
   useEffect(() => {
     void serverStatus().then((status) => setLive(status.pay));
@@ -362,26 +364,134 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
     <Sheet title="Программа «Книга рода»" onClose={onClose}>
       <PriceTag />
       <p className="mt-2 text-sm text-muted">Шесть уроков с видео, ИИ-помощник и шаблоны, полный шаблон книги на 100 страниц, материалы для печати. Платите один раз: единоразовая плата, приложение остаётся с вами навсегда, без автоматических списаний.</p>
-      <IncludesList />
 
-      {live && PAY_URL && mode === "buy" && region === null ? (
+      {mode === "buy" && !started ? (
         <div className="mt-4 grid gap-3">
-          <p className="text-sm font-medium text-ink">Откуда вы платите?</p>
-          <Button className="h-auto min-h-12 w-full whitespace-normal py-3" onClick={() => setRegion("ru")}>Покупаю из России · карта российского банка</Button>
-          <Button variant="soft" className="h-auto min-h-12 w-full whitespace-normal py-3" onClick={() => setRegion("world")}>Оплата со всего мира · Tribute</Button>
-          <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("restore")}>Уже оплатили? Войти по почте</button>
+          <Button className="h-auto min-h-12 w-full py-3" onClick={() => setStarted(true)}>Оплатить · {PROGRAM_PRICE}</Button>
+          {live ? <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("restore")}>Уже оплатили? Войти по почте</button> : null}
+          <button type="button" className="text-left text-sm text-muted underline" onClick={() => setMore((v) => !v)}>{more ? "Скрыть" : "Другие способы войти"}</button>
+          {more ? (
+            <div className="grid gap-4 rounded-2xl bg-white/60 p-4">
+              <div>
+      <form
+        className="mt-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (checkCode(code)) {
+            openProgram();
+            toast("Программа открыта");
+            onClose();
+            return;
+          }
+          setBusy(true);
+          void redeemCode(code).then((problem) => {
+            setBusy(false);
+            if (!problem) {
+              toast("Программа открыта");
+              onClose();
+            } else {
+              setWrong(true);
+              toast(problem, { duration: 8000 });
+            }
+          });
+        }}
+      >
+        <label className="block text-sm font-medium text-ink" htmlFor="access-code">
+          Ключ от бота
+        </label>
+        <p className="mt-1 text-xs text-muted">Ключ выдаёт бот <a className="text-moss underline" href="https://t.me/ded_privratnik_kniga_bot" target="_blank" rel="noopener noreferrer">@ded_privratnik_kniga_bot</a> в Телеграме, когда оплатите.</p>
+        <div className="mt-1.5 flex gap-2">
+          <input id="access-code" className="field uppercase" value={code} onChange={(event) => { setCode(event.target.value); setWrong(false); }} placeholder="Введите код" autoComplete="off" />
+          <Button type="submit" disabled={!code.trim() || busy}>
+            Открыть
+          </Button>
+        </div>
+        {wrong ? <p className="mt-2 text-sm text-rose-deep">Код не подошёл. Проверьте буквы или напишите Дарине.</p> : null}
+      </form>
+
+              </div>
+              <div className="border-t border-ink/10 pt-4">
+      <form
+        className="mt-4 grid gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setBusy(true);
+          void platformLogin(pEmail, pPass)
+            .then(() => {
+              toast("Программа открыта");
+              onClose();
+            })
+            .catch((error) => toast(error instanceof Error ? error.message : "Не получилось войти.", { duration: 6000 }))
+            .finally(() => setBusy(false));
+        }}
+      >
+        <p className="text-sm font-medium text-ink">Учились на платформе balanuca? Войдите тем же аккаунтом</p>
+        <input className="field" type="email" autoComplete="email" value={pEmail} onChange={(event) => setPEmail(event.target.value)} placeholder="Почта с платформы" />
+        <input className="field" type="password" autoComplete="current-password" value={pPass} onChange={(event) => setPPass(event.target.value)} placeholder="Пароль" />
+        <Button type="submit" disabled={busy || !pEmail.trim() || !pPass}>{busy ? "Проверяю…" : "Войти"}</Button>
+      </form>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
-      {live && PAY_URL && mode === "buy" && region === "world" ? (
-        <div className="mt-4 grid gap-2">
-          <a href={PAY_URL} target="_blank" rel="noopener noreferrer" className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-moss px-4 py-3 text-center font-semibold text-paper no-underline">Оплатить через Tribute</a>
-          <p className="text-sm text-ink">После оплаты зайдите в Телеграм к боту <a className="font-semibold text-moss underline" href="https://t.me/ded_privratnik_kniga_bot" target="_blank" rel="noopener noreferrer">@ded_privratnik_kniga_bot</a>, нажмите «Старт» и напишите почту. Он сразу пришлёт ключ, его вводят ниже в поле «Есть код доступа?».</p>
+      {mode === "buy" && started && region === null ? (
+        <div className="mt-4 grid gap-3">
+          <p className="text-sm font-medium text-ink">Откуда вы платите?</p>
+          <Button className="h-auto min-h-12 w-full whitespace-normal py-3" onClick={() => setRegion("ru")}>Из России · карта российского банка</Button>
+          <Button variant="soft" className="h-auto min-h-12 w-full whitespace-normal py-3" onClick={() => setRegion("world")}>Со всего мира · Tribute</Button>
+          <button type="button" className="text-left text-sm text-moss underline" onClick={() => setStarted(false)}>Назад</button>
+        </div>
+      ) : null}
+
+      {mode === "buy" && started && region === "world" ? (
+        <div className="mt-4 grid gap-3">
+          <a href={PAY_URL} target="_blank" rel="noopener noreferrer" className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-moss px-4 py-3 text-center font-semibold text-paper no-underline">Перейти к оплате в Tribute</a>
+          <p className="text-sm text-ink">После оплаты зайдите в Телеграм к боту <a className="font-semibold text-moss underline" href="https://t.me/ded_privratnik_kniga_bot" target="_blank" rel="noopener noreferrer">@ded_privratnik_kniga_bot</a>, нажмите «Старт» и напишите почту. Он сразу пришлёт ключ доступа.</p>
+          <div className="rounded-2xl bg-white/60 p-4">
+      <form
+        className="mt-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (checkCode(code)) {
+            openProgram();
+            toast("Программа открыта");
+            onClose();
+            return;
+          }
+          setBusy(true);
+          void redeemCode(code).then((problem) => {
+            setBusy(false);
+            if (!problem) {
+              toast("Программа открыта");
+              onClose();
+            } else {
+              setWrong(true);
+              toast(problem, { duration: 8000 });
+            }
+          });
+        }}
+      >
+        <label className="block text-sm font-medium text-ink" htmlFor="access-code">
+          Ключ от бота
+        </label>
+        <p className="mt-1 text-xs text-muted">Ключ выдаёт бот <a className="text-moss underline" href="https://t.me/ded_privratnik_kniga_bot" target="_blank" rel="noopener noreferrer">@ded_privratnik_kniga_bot</a> в Телеграме, когда оплатите.</p>
+        <div className="mt-1.5 flex gap-2">
+          <input id="access-code" className="field uppercase" value={code} onChange={(event) => { setCode(event.target.value); setWrong(false); }} placeholder="Введите код" autoComplete="off" />
+          <Button type="submit" disabled={!code.trim() || busy}>
+            Открыть
+          </Button>
+        </div>
+        {wrong ? <p className="mt-2 text-sm text-rose-deep">Код не подошёл. Проверьте буквы или напишите Дарине.</p> : null}
+      </form>
+
+          </div>
           <button type="button" className="text-left text-sm text-moss underline" onClick={() => setRegion(null)}>Назад к выбору</button>
         </div>
       ) : null}
 
-      {live && (region === "ru" || !PAY_URL) && mode === "buy" ? (
+      {live && started && region === "ru" && mode === "buy" ? (
         <form className="mt-4 grid gap-3" onSubmit={(event) => { event.preventDefault(); if (validEmail && terms && pd) void pay(); }}>
           <div>
             <label className="block text-sm font-medium text-ink" htmlFor="pay-email">Почта для чека</label>
@@ -403,8 +513,7 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
             {busy ? "Открываю оплату…" : `Оплатить ${PROGRAM_PRICE}`}
           </Button>
           <p className="text-xs text-muted">Оплата на защищённой странице Альфа-Банка. Чек придёт на указанную почту.</p>
-          {PAY_URL ? <button type="button" className="text-left text-sm text-moss underline" onClick={() => setRegion(null)}>Назад к выбору</button> : null}
-          <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("restore")}>Уже оплатили? Войти по почте</button>
+          <button type="button" className="text-left text-sm text-moss underline" onClick={() => setRegion(null)}>Назад к выбору</button>
         </form>
       ) : null}
 
@@ -434,21 +543,7 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
         </form>
       ) : null}
 
-      {!live && PAY_URL ? (
-        <div className="mt-4 grid gap-2">
-          <a
-            href={PAY_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-moss px-4 py-3 text-center font-semibold text-paper no-underline"
-          >
-            Оплатить через Tribute
-          </a>
-          <p className="text-sm text-ink">После оплаты зайдите в Телеграм к боту <a className="font-semibold text-moss underline" href="https://t.me/ded_privratnik_kniga_bot" target="_blank" rel="noopener noreferrer">@ded_privratnik_kniga_bot</a>, нажмите «Старт» и напишите почту. Он сразу пришлёт ключ, его вводят ниже в поле «Есть код доступа?».</p>
-        </div>
-      ) : null}
-
-      {!live && !PAY_URL ? (
+      {!live && started && region === "ru" && mode === "buy" ? (
         leadDone ? (
           <p className="mt-4 rounded-2xl bg-white/60 p-4 text-sm text-ink">Спасибо! Мы напишем на эту почту, когда откроется покупка.</p>
         ) : (
@@ -464,7 +559,7 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
               });
             }}
           >
-            <p className="text-sm text-ink">Покупка откроется совсем скоро. Оставьте почту, и мы сразу напишем вам.</p>
+            <p className="text-sm text-ink">Оплата картой российского банка откроется совсем скоро. Оставьте почту, и мы сразу напишем вам. Если хотите оплатить уже сейчас, выберите «Со всего мира».</p>
             <input className="field" type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@mail.ru" />
             <label className="flex cursor-pointer items-start gap-3 text-sm leading-snug text-ink">
               <input type="checkbox" className={check} checked={pd} onChange={(event) => setPd(event.target.checked)} />
@@ -475,61 +570,7 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
         )
       ) : null}
 
-      <form
-        className="mt-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (checkCode(code)) {
-            openProgram();
-            toast("Программа открыта");
-            onClose();
-            return;
-          }
-          setBusy(true);
-          void redeemCode(code).then((problem) => {
-            setBusy(false);
-            if (!problem) {
-              toast("Программа открыта");
-              onClose();
-            } else {
-              setWrong(true);
-              toast(problem, { duration: 8000 });
-            }
-          });
-        }}
-      >
-        <label className="block text-sm font-medium text-ink" htmlFor="access-code">
-          Есть код доступа?
-        </label>
-        <p className="mt-1 text-xs text-muted">Ключ выдаёт бот <a className="text-moss underline" href="https://t.me/ded_privratnik_kniga_bot" target="_blank" rel="noopener noreferrer">@ded_privratnik_kniga_bot</a> в Телеграме, когда оплатите.</p>
-        <div className="mt-1.5 flex gap-2">
-          <input id="access-code" className="field uppercase" value={code} onChange={(event) => { setCode(event.target.value); setWrong(false); }} placeholder="Введите код" autoComplete="off" />
-          <Button type="submit" disabled={!code.trim() || busy}>
-            Открыть
-          </Button>
-        </div>
-        {wrong ? <p className="mt-2 text-sm text-rose-deep">Код не подошёл. Проверьте буквы или напишите Дарине.</p> : null}
-      </form>
-
-      <form
-        className="mt-6 grid gap-2 border-t border-ink/10 pt-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setBusy(true);
-          void platformLogin(pEmail, pPass)
-            .then(() => {
-              toast("Программа открыта");
-              onClose();
-            })
-            .catch((error) => toast(error instanceof Error ? error.message : "Не получилось войти.", { duration: 6000 }))
-            .finally(() => setBusy(false));
-        }}
-      >
-        <p className="text-sm font-medium text-ink">Учились на платформе balanuca? Войдите тем же аккаунтом</p>
-        <input className="field" type="email" autoComplete="email" value={pEmail} onChange={(event) => setPEmail(event.target.value)} placeholder="Почта с платформы" />
-        <input className="field" type="password" autoComplete="current-password" value={pPass} onChange={(event) => setPPass(event.target.value)} placeholder="Пароль" />
-        <Button type="submit" disabled={busy || !pEmail.trim() || !pPass}>{busy ? "Проверяю…" : "Войти"}</Button>
-      </form>
+      <IncludesList />
     </Sheet>
   );
 }
