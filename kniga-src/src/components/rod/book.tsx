@@ -157,6 +157,8 @@ export function BookScreen() {
       ) : null}
 
       {/* Одна карусель шаблонов, под ней покупка и «Скоро в приложении» (у платных вместо них сообщество). */}
+      <h2 className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Шаблоны книги</h2>
+      <p className="mb-3 mt-1 text-sm text-muted">Листайте и нажмите на круг в центре: покажем, что внутри, и можно взять шаблон.</p>
       <TemplateStage pages={pages} meta={meta} onUnlock={() => setPay(true)} />
       {data.programOpen ? <CommunityCard /> : <SoonBlock onBuy={() => setPay(true)} />}
 
@@ -821,7 +823,7 @@ function TemplateStage({ pages, meta, onUnlock }: { pages: BookPage[]; meta: { d
       id: tpl.tag,
       first: pic.first,
       second: pic.second,
-      note: pic.note,
+      note: `${tpl.total} страниц · ${pic.note}`,
       title: tpl.title,
       intro: tpl.intro,
       work: `${base}${pic.work}`,
@@ -848,7 +850,7 @@ function TemplateStage({ pages, meta, onUnlock }: { pages: BookPage[]; meta: { d
 function SoonBlock({ onBuy }: { onBuy: () => void }) {
   return (
     <section className="mb-6">
-      <Button className="h-auto min-h-12 w-full whitespace-normal bg-burgundy py-3 hover:bg-burgundy" onClick={onBuy}>
+      <Button variant="primary" className="btn-glass-green h-auto min-h-12 w-full whitespace-normal py-3" onClick={onBuy}>
         Купить мини-уроки и полный доступ в приложение · {PROGRAM_PRICE}
       </Button>
       <p className="mt-2 text-center text-xs text-muted">Один платёж, без подписки</p>

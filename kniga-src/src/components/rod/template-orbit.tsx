@@ -348,7 +348,7 @@ export function TemplateOrbit({
         </div>
         <div className="tpo-foot">
         {!access ? (
-          <button type="button" className="tpo-take tpo-take-lock" onClick={onUnlock}>
+          <button type="button" className="tpo-take btn-glass-green" onClick={onUnlock}>
             <Lock size={16} /> Открыть полный доступ
           </button>
         ) : current.added ? (

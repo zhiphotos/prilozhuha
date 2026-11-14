@@ -781,7 +781,7 @@ body {
 .tpo-ring { position: absolute; border-radius: 50%; pointer-events: none; z-index: 28; transform: translate(-50%, -50%); background: conic-gradient(from 110deg, #8c8678 0deg, #f3efe4 38deg, #b8b1a0 88deg, #fbf8ef 132deg, #6f6a5e 190deg, #d9d2c0 236deg, #9a937f 292deg, #f1ecdd 332deg, #8c8678 360deg); -webkit-mask: radial-gradient(circle, transparent 67%, #000 68.4%, #000 97%, transparent 100%); mask: radial-gradient(circle, transparent 67%, #000 68.4%, #000 97%, transparent 100%); animation: tpo-spin 46s linear infinite; }
 .tpo-disc { position: absolute; left: 0; top: 0; padding: 0; border: 0; border-radius: 50%; overflow: hidden; background: #26231d; box-shadow: 0 0 0 1px rgba(243,240,232,0.4), inset 0 0 0 3px rgba(0,0,0,0.4), 0 14px 26px rgba(0,0,0,0.38); }
 .tpo-disc img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-.tpo-lock { position: absolute; right: 12%; bottom: 12%; display: grid; place-items: center; width: 1.9rem; height: 1.9rem; border-radius: 50%; background: var(--color-burgundy); color: #f3f0e8; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+.tpo-lock { position: absolute; right: 12%; bottom: 12%; display: grid; place-items: center; width: 1.9rem; height: 1.9rem; border-radius: 50%; background: #3f4a22; color: #f3f0e8; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
 .tpo-caption { position: absolute; left: 0; right: 0; z-index: 32; bottom: 2.9rem; height: 6.2rem; pointer-events: none; }
 .tpo-caption-layer { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; padding-inline: 1.25rem; }
 .tpo-name { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(1.7rem, 8vw, 2.5rem); line-height: 1.04; color: #f3f0e8; text-shadow: 0 2px 14px rgba(0,0,0,0.6); text-wrap: balance; }
@@ -801,7 +801,6 @@ body {
 .tpo-chapters ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.3rem; }
 .tpo-chapters li span { display: inline-block; width: 3.4rem; color: #e5d3a4; font-variant-numeric: tabular-nums; }
 .tpo-take { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; min-height: 2.9rem; margin-top: 0.8rem; padding: 0 1rem; border: 0; border-radius: 999px; background: #f3f0e8; color: #1c1a16; font-family: var(--font-sans); font-weight: 700; font-size: 0.95rem; }
-.tpo-take-lock { background: var(--color-burgundy); color: #f3f0e8; }
 .tpo-ask { display: grid; gap: 0.3rem; }
 .tpo-cancel, .tpo-close { min-height: 2.6rem; border: 0; background: transparent; color: rgba(243,240,232,0.75); font-family: var(--font-sans); font-size: 0.85rem; text-decoration: underline; text-underline-offset: 3px; }
 .tpo-added { display: flex; gap: 0.5rem; align-items: center; margin: 0.8rem 0 0; font-family: var(--font-sans); font-size: 0.88rem; color: #e5d3a4; }
@@ -812,3 +811,7 @@ body {
 .tpo-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 0.15rem; }
 .tpo-foot { flex: none; padding-top: 0.2rem; }
 .tpo-menu-title + .tpo-menu-meta { margin-top: 0.25rem; }
+
+/* Зелёная «стеклянная» кнопка: тот же мох, что у главных кнопок, с глянцем и тонким светлым краем. */
+.btn-glass-green { position: relative; overflow: hidden; color: #f3f0e8; border: 1px solid rgba(255,255,255,0.32); background-color: #3f4a22; background-image: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.06) 46%, rgba(0,0,0,0.12) 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -10px 16px -8px rgba(0,0,0,0.28), 0 12px 24px -14px rgba(30,40,12,0.75); text-shadow: 0 1px 1px rgba(0,0,0,0.25); }
+.btn-glass-green:hover { background-color: #4a5729; }

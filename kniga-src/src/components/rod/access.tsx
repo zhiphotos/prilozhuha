@@ -77,7 +77,7 @@ export function AccessSheet({ onClose, onBooks }: { onClose: () => void; onBooks
               ))}
             </ul>
             <p className="mt-3 text-sm text-muted">Платёж один раз, без подписки.</p>
-            <Button className="mt-4 h-auto min-h-12 w-full whitespace-normal bg-burgundy py-3 hover:bg-burgundy" onClick={() => setPay("buy")}>
+            <Button className="btn-glass-green mt-4 h-auto min-h-12 w-full whitespace-normal py-3" onClick={() => setPay("buy")}>
               Открыть полный доступ · {PROGRAM_PRICE}
             </Button>
           </div>
@@ -99,7 +99,7 @@ export function TariffCard({ onOpen }: { onOpen: () => void }) {
         <span className="mt-0.5 block text-[15px] font-semibold leading-snug text-ink">Вход, облако и до трёх книг</span>
         <span className="mt-0.5 block text-sm text-muted">Один платёж, без подписки</span>
       </span>
-      <span className="shrink-0 rounded-full bg-burgundy px-4 py-2 text-sm font-semibold text-paper">{PROGRAM_PRICE}</span>
+      <span className="btn-glass-green shrink-0 rounded-full px-4 py-2 text-sm font-semibold">{PROGRAM_PRICE}</span>
     </button>
   );
 }
