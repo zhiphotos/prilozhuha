@@ -3,7 +3,7 @@ import { Check, Users } from "lucide-react";
 import { toast } from "sonner";
 import { defaultDecision, summarize, type Change, type Decision, type ReviewItem } from "@/lib/rod/helper-changes";
 import { helperChanges, helperSession, joinAsHelper, leaveHelper, rememberWho, reviewIncoming, applyIncoming, sendChanges, type HelperSession } from "@/lib/rod/helper";
-import { Button } from "@/components/rod/chrome";
+import { Button, useNav } from "@/components/rod/chrome";
 import { useMedia } from "@/lib/rod/media";
 import { cn } from "@/lib/cn";
 
@@ -84,6 +84,7 @@ export function ChangesCard({ changes, who, onDone }: { changes: Change[]; who: 
 
 /** Помощник: на странице приглашения. */
 export function HelperJoin({ room, invite }: { room: string; invite: string }) {
+  const nav = useNav();
   const [busy, setBusy] = useState("");
   const [ready, setReady] = useState(Boolean(helperSession()?.room === room));
   const start = async () => {
@@ -91,6 +92,7 @@ export function HelperJoin({ room, invite }: { room: string; invite: string }) {
     try {
       await joinAsHelper(room, invite, setBusy);
       setReady(true);
+      nav.replace({ id: "home" });
       toast("Книга открыта. Правьте древо, потом нажмите «Отправить правки».", { duration: 6000 });
     } catch (error) {
       toast(error instanceof Error ? error.message : "Не получилось.", { duration: 8000 });
