@@ -7,6 +7,13 @@ export const SELF_ID = "__self";
 type Role = "self" | "spousesib" | "mother" | "father" | "grand" | "greatgrand" | "uncle" | "sibling" | "child" | "grandchild" | "spouse" | "other";
 
 /** «Брат мужа», «сестра жены», «родной брат супруга»: родной человек супруга, а не мой. */
+/** «Кем приходится», записанное человеком, если это настоящее родство, а не заглушка. */
+function declaredRelation(relation: string | undefined): string | undefined {
+  const text = (relation ?? "").trim();
+  if (!text || /^(не указано|родственник|родственница|я|центр)$/i.test(text)) return undefined;
+  return text.charAt(0).toLocaleUpperCase("ru") + text.slice(1);
+}
+
 export function spouseSiblingWord(r: string): boolean {
   return /(брат|сестр)\S*\s+(мужа|жены|супруг)/.test(r.trim().toLowerCase());
 }
@@ -80,6 +87,7 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
       photo: p.photo ?? "",
       note: p.notes ?? "",
       birthPlace: p.birthPlace?.trim() || undefined,
+      declared: declaredRelation(p.relation),
       maidenName: names.lastName ? names.maidenName : undefined,
       side: p.treeSide,
       rank: p.treeRank,

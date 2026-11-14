@@ -199,3 +199,16 @@ test("на обезличенных файлах: любой центр счит
   }
   assert.ok(checked > 0);
 });
+
+test("не хватает связей, но человек сам записал «Кем приходится»: подпись берётся из записи, только от лица хозяина книги", () => {
+  const withDeclared = [...people, { ...p("cousinX", "f"), declared: "Двоюродная сестра" }];
+  const home = relationsFrom(withDeclared, unions, "me", "me").get("cousinX")!;
+  assert.equal(home.title, "Двоюродная сестра");
+  assert.equal(home.declared, true);
+  assert.match(relationNote(home), /Записано в карточке: Двоюродная сестра/);
+  // от другого центра чужая запись не подходит
+  assert.equal(relationsFrom(withDeclared, unions, "sis", "me").get("cousinX")!.title, UNDETERMINED);
+  // доказанное по связям родство запись не перебивает
+  const proven = relationsFrom([...people.filter((x) => x.id !== "cousin"), { ...p("cousin", "m"), declared: "Брат" }], unions, "me", "me").get("cousin")!;
+  assert.equal(proven.declared, undefined);
+});
