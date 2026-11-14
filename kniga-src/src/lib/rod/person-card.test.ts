@@ -20,3 +20,10 @@ test("карточка: годы, родители, муж, братья и де
 test("карточка без данных: только имя", () => {
   assert.equal(personCardText(p("x", "Один"), [p("x", "Один")]), "Один");
 });
+
+test("карточка: девичья фамилия женщины попадает на страницу, у мужчины нет", () => {
+  const woman = p("w", "Щербакова Галина", { gender: "f", maidenName: "Иванова", birthYear: "1954" });
+  assert.equal(personCardText(woman, [woman]), "Щербакова Галина\nДевичья фамилия: Иванова\nрод. 1954");
+  const man = p("m", "Щербаков Иван", { gender: "m", maidenName: "Иванов" });
+  assert.equal(personCardText(man, [man]), "Щербаков Иван");
+});
