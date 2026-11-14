@@ -2,6 +2,7 @@ import { bodyOf, cors, json } from "../config.js";
 import { DEVICE_ERROR, claimDevice } from "../devices.js";
 import { redis, redisConfigured } from "../redis.js";
 import { readToken } from "../token.js";
+import { getChunk, hasMedia, putChunk } from "../media-store.js";
 
 // POST /api/sync { token, deviceId, op, ... }  – синхронизация книги между устройствами одного оплаченного доступа.
 // Книга хранится кусками (не больше PART байт каждый, чтобы влезать в запрос к хранилищу), фото – отдельно по ссылке.
@@ -19,7 +20,6 @@ const REF = /^media:[0-9a-f-]{8,64}$/i;
 
 const bookKey = (id) => `kr:sync:${id}`;
 const partKey = (id, rev, i) => `kr:sync:${id}:p:${rev}:${i}`;
-const mediaKey = (id) => `kr:syncm:${id}`;
 
 export default async function handler(req, res) {
   if (cors(req, res)) return;
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
       case "media-has": {
         const refs = Array.isArray(body.refs) ? body.refs.map(String).filter((r) => REF.test(r)).slice(0, 400) : [];
         const missing = [];
-        for (const ref of refs) if ((await redis("HEXISTS", mediaKey(id), `${ref}#n`)) !== 1) missing.push(ref);
+        for (const ref of refs) if (!(await hasMedia(id, ref))) missing.push(ref);
         return json(res, 200, { missing });
       }
       case "media-put": {
@@ -82,16 +82,15 @@ export default async function handler(req, res) {
         const i = Number(body.i);
         const data = String(body.data ?? "");
         if (!REF.test(ref) || !(n >= 1 && n <= MAX_MEDIA_CHUNKS) || !(i >= 0 && i < n) || data.length > PART + 1000) return json(res, 400, { error: "Некорректное фото." });
-        await redis("HSET", mediaKey(id), `${ref}#${i}`, data);
-        if (i === n - 1) await redis("HSET", mediaKey(id), `${ref}#n`, String(n)); // отметка «фото целиком» ставится последней
+        await putChunk(id, ref, i, n, data);
         return json(res, 200, { ok: true });
       }
       case "media-get": {
         const ref = String(body.ref ?? "");
         const i = Number(body.i);
         if (!REF.test(ref)) return json(res, 400, { error: "Некорректное фото." });
-        const [n, data] = (await redis("HMGET", mediaKey(id), `${ref}#n`, `${ref}#${i}`)) ?? [];
-        return data == null ? json(res, 404, { error: "Фото нет в облаке." }) : json(res, 200, { data, n: Number(n ?? 1) });
+        const got = await getChunk(id, ref, i);
+        return got ? json(res, 200, got) : json(res, 404, { error: "Фото нет в облаке." });
       }
       default:
         return json(res, 400, { error: "Неизвестная операция." });

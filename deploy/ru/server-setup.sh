@@ -44,6 +44,7 @@ tar xzf "$UP/kniga-api.tgz" -C /opt/kniga/kniga-api.new
 [ -d /opt/kniga/kniga-api.new/node_modules/web-push ] || { echo "в загрузке нет node_modules/web-push"; exit 1; }
 if [ -d /opt/kniga/kniga-api ]; then rm -rf /opt/kniga/kniga-api.old && mv /opt/kniga/kniga-api /opt/kniga/kniga-api.old; fi
 mv /opt/kniga/kniga-api.new /opt/kniga/kniga-api
+mkdir -p /var/lib/kniga-media && chown kniga:kniga /var/lib/kniga-media && chmod 700 /var/lib/kniga-media
 chown -R kniga:kniga /opt/kniga
 install -m 600 -o root -g root "$UP/kniga-api.env" /etc/kniga-api.env
 
