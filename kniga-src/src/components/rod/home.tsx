@@ -19,7 +19,7 @@ import { changedSinceBackup, exportBook, lastBackupAt } from "@/lib/rod/backup";
 import { ShareInvite } from "@/components/rod/share-invite";
 import { InstallBanner, InstallCard, InstallSheet } from "@/components/rod/install-hint";
 import { TransferCard } from "@/components/rod/transfer-card";
-import { AccessSheet, CommunityCard, ProfileButton, TariffCard } from "@/components/rod/access";
+import { AccessSheet, CloudNote, CommunityCard, ProfileButton, TariffCard } from "@/components/rod/access";
 import { PaySheet } from "@/components/rod/lessons";
 import { ProjectsSheet } from "@/components/rod/projects-sheet";
 import { activeProjectId, listProjects } from "@/lib/rod/projects";
@@ -289,6 +289,7 @@ export function HomeScreen() {
 
 function BackupCard({ hasData }: { hasData: boolean }) {
   const [busy, setBusy] = useState(false);
+  const [pay, setPay] = useState(false);
   const [last, setLast] = useState(() => lastBackupAt());
   const old = last ? Date.now() - last.getTime() > 7 * 86400000 || changedSinceBackup() : hasData;
   const save = () => {
@@ -312,6 +313,8 @@ function BackupCard({ hasData }: { hasData: boolean }) {
       <Button className="mt-4" onClick={save} disabled={busy || !hasData}>
         {busy ? "Собираю…" : "Скачать копию всей книги"}
       </Button>
+      <CloudNote onOpen={() => setPay(true)} className="mt-3 rounded-xl border border-burgundy/20 bg-burgundy-soft/25 px-3 py-2 text-sm text-ink" />
+      {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
     </section>
   );
 }
@@ -342,6 +345,7 @@ function ProfileSheet({ onClose, onBooks }: { onClose: () => void; onBooks: () =
   const [mine, setMine] = useState(collector);
   const [confirmReset, setConfirmReset] = useState(false);
   const [install, setInstall] = useState(false);
+  const [pay, setPay] = useState(false);
 
   return (
     <Sheet title="Для кого эта книга" onClose={onClose}>
@@ -397,6 +401,8 @@ function ProfileSheet({ onClose, onBooks }: { onClose: () => void; onBooks: () =
             </Button>
             <OpenCopyButton onDone={onClose} />
           </div>
+          <CloudNote onOpen={() => setPay(true)} />
+          {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
         </div>
         <div className="mt-4 grid gap-2">
           <Button variant="soft" onClick={onBooks}>

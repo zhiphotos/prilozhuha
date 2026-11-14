@@ -44,8 +44,10 @@ export function remindBackup(): void {
   // Не после каждого выхода: только когда накопилось 20 правок и не чаще раза в несколько часов.
   if (!shouldRemind()) return;
   markReminded();
+  const paid = useRod.getState().programOpen;
   toast("Книга хранится только на этом устройстве, ни в каком аккаунте. Сохраните копию после работы.", {
-    duration: 14000,
+    description: paid ? undefined : "На полном доступе книгу можно загружать в облако: приложение вас запомнит, и книга откроется на любом устройстве.",
+    duration: 16000,
     action: {
       label: "Сохранить копию",
       onClick: () =>
