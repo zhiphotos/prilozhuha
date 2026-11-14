@@ -812,6 +812,10 @@ body {
 .tpo-foot { flex: none; padding-top: 0.2rem; }
 .tpo-menu-title + .tpo-menu-meta { margin-top: 0.25rem; }
 
-/* Зелёная «стеклянная» кнопка: тот же мох, что у главных кнопок, с глянцем и тонким светлым краем. */
-.btn-glass-green { position: relative; overflow: hidden; color: #f3f0e8; border: 1px solid rgba(255,255,255,0.32); background-color: #3f4a22; background-image: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.06) 46%, rgba(0,0,0,0.12) 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -10px 16px -8px rgba(0,0,0,0.28), 0 12px 24px -14px rgba(30,40,12,0.75); text-shadow: 0 1px 1px rgba(0,0,0,0.25); }
-.btn-glass-green:hover { background-color: #4a5729; }
+/* Зелёная кнопка «под стеклом»: внутри льняная ткань в нашем мху, сверху стекло с бликом и светлым преломлённым краем. */
+.btn-glass-green { position: relative; isolation: isolate; overflow: hidden; color: #f6f3ea; border: 1px solid rgba(255,255,255,0.36); background: linear-gradient(180deg, #4d5d26 0%, #3f4a22 55%, #313c16 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.75), inset 0 0 0 1px rgba(255,255,255,0.1), inset 0 -14px 18px -10px rgba(10,16,4,0.55), inset 0 14px 18px -14px rgba(255,255,255,0.4), 0 14px 24px -14px rgba(26,36,8,0.8); text-shadow: 0 1px 2px rgba(0,0,0,0.45); }
+/* ткань под стеклом: чуть крупнее, чем есть, как будто линза */
+.btn-glass-green::before { content: ""; position: absolute; inset: 0; z-index: -2; border-radius: inherit; background: url("/tex/linen.webp") center / 260px auto; mix-blend-mode: soft-light; opacity: 0.6; pointer-events: none; }
+/* стекло: общий блик сверху, дуга-линза и светлый нижний край */
+.btn-glass-green::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: radial-gradient(130% 80% at 50% -30%, rgba(255,255,255,0.5), rgba(255,255,255,0) 60%), linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 40%), linear-gradient(0deg, rgba(255,255,255,0.16), rgba(255,255,255,0) 28%); pointer-events: none; }
+.btn-glass-green:active { filter: brightness(0.95); }
