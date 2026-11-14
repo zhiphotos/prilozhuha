@@ -1,3 +1,4 @@
+import { maidenAllowed } from "@/lib/rod/person";
 import type { Person } from "@/lib/rod/types";
 
 const years = (p: Person) => {
@@ -26,6 +27,7 @@ export function personCardLines(person: Person, people: Person[]): string[] {
   }
   const siblings = [...sib].map((id) => byId.get(id)).filter((p): p is Person => Boolean(p));
   const lines = [person.name];
+  if (person.maidenName?.trim() && maidenAllowed(person)) lines.push(`Девичья фамилия: ${person.maidenName.trim()}`);
   const life = years(person);
   if (life) lines.push(life);
   if (person.birthPlace?.trim()) lines.push(person.birthPlace.trim());
