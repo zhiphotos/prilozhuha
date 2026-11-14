@@ -191,8 +191,6 @@ export function HomeScreen() {
       ) : null}
 
       {data.programOpen ? <CommunityCard /> : null}
-      {!data.programOpen ? <TariffCard onOpen={() => setTariff(true)} /> : null}
-
       {free && mode !== "going" && !data.programOpen ? (
         <button type="button" onClick={() => nav.go({ id: "lesson", lessonId: free.id })} className="relative mt-9 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">
           <img src={`${import.meta.env.BASE_URL}course/site/free.jpg`} alt="" className="absolute inset-0 size-full scale-110 object-cover blur-md" draggable={false} />
@@ -269,6 +267,7 @@ export function HomeScreen() {
           </Button>
         ) : null}
       </section>
+      {!data.programOpen ? <TariffCard onOpen={() => setTariff(true)} /> : null}
 
       <RemindersCard />
       <BackupCard hasData={total > 0 || data.pages.length > 1} />

@@ -90,27 +90,17 @@ export function AccessSheet({ onClose, onBooks }: { onClose: () => void; onBooks
   );
 }
 
-/** Карточка тарифа на «Главной» для тех, у кого полного доступа ещё нет. */
+/** Спокойная строка-приглашение на «Главной» для тех, у кого полного доступа ещё нет: без списков и цветных заливок. */
 export function TariffCard({ onOpen }: { onOpen: () => void }) {
   return (
-    <section className="mt-9 overflow-hidden rounded-3xl" style={{ background: "linear-gradient(180deg,#f1e4e4,#e6cfd2)", boxShadow: "inset 0 0 0 1px rgb(106 34 52 / 0.18), 0 18px 30px -24px rgb(106 34 52 / 0.6)" }}>
-      <div className="p-5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-burgundy">Полный доступ</p>
-        <h2 className="mt-1 text-[1.35rem] font-semibold leading-tight text-ink">Книга, которую можно открыть где угодно</h2>
-        <ul className="mt-3 grid gap-2">
-          {PAID_GAINS.slice(0, 4).map((text) => (
-            <li key={text} className="flex gap-3 text-sm text-ink">
-              <Check className="mt-0.5 size-4 shrink-0 text-burgundy" />
-              <span>{text}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button className="bg-burgundy hover:bg-burgundy" onClick={onOpen}>Посмотреть и открыть · {PROGRAM_PRICE}</Button>
-          <span className="text-xs text-muted">Один платёж, без подписки</span>
-        </div>
-      </div>
-    </section>
+    <button type="button" onClick={onOpen} className="mt-4 flex w-full items-center gap-4 rounded-2xl border border-burgundy/25 bg-paper/70 px-4 py-3.5 text-left transition active:scale-[0.99]">
+      <span className="min-w-0 flex-1">
+        <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-burgundy">Полный доступ</span>
+        <span className="mt-0.5 block text-[15px] font-semibold leading-snug text-ink">Вход, облако и до трёх книг</span>
+        <span className="mt-0.5 block text-sm text-muted">Один платёж, без подписки</span>
+      </span>
+      <span className="shrink-0 rounded-full bg-burgundy px-4 py-2 text-sm font-semibold text-paper">{PROGRAM_PRICE}</span>
+    </button>
   );
 }
 
