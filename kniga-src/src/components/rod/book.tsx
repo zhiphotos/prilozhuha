@@ -138,7 +138,7 @@ export function BookScreen() {
       </div>
 
       {!hasCover ? (
-        <button type="button" onClick={() => open(coverPage(meta), 0)} className="relative mb-5 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">
+        <button type="button" onClick={() => open(coverPage(meta), 0)} className="relative z-10 mb-1 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">
           {/* Размытый ботанический фон и стеклянная плашка поверх: так же, как у карточки бесплатного урока на «Главной». */}
           <img src={`${import.meta.env.BASE_URL}course/site/memoirs-book.jpg`} alt="" className="absolute inset-0 size-full scale-110 object-cover blur-md" draggable={false} />
           <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
