@@ -774,20 +774,20 @@ body {
 @media (prefers-reduced-motion: reduce) { .book-fly { animation: none; opacity: 0.8; } }
 
 /* Карусель шаблонов книги: диски дугой, центральный крупный, фон меняется плавно. Шрифты только проекта. */
-.tpo-stage { position: relative; height: clamp(580px, 80vh, 700px); margin: 0 -1.25rem 1.5rem; overflow: hidden; border-radius: 1.4rem; background: #1c1a16; touch-action: pan-y; user-select: none; -webkit-user-select: none; outline: none; }
+.tpo-stage { position: relative; height: clamp(620px, 84vh, 740px); margin: 0 -1.25rem 0.5rem; overflow: hidden; background: transparent; -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 11%, #000 90%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 11%, #000 90%, transparent 100%); touch-action: pan-y; user-select: none; -webkit-user-select: none; outline: none; }
 @media (min-width: 768px) { .tpo-stage { margin-inline: 0; } }
 .tpo-painting { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; transform-origin: center; will-change: opacity; }
-.tpo-vignette { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to top, rgba(18,15,11,0.82) 0%, rgba(18,15,11,0.34) 22%, rgba(18,15,11,0.06) 46%, rgba(18,15,11,0.2) 100%); }
+.tpo-vignette { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to top, rgba(18,15,11,0.78) 0%, rgba(18,15,11,0.32) 26%, rgba(18,15,11,0.04) 50%, rgba(18,15,11,0.16) 100%); }
 .tpo-ring { position: absolute; border-radius: 50%; pointer-events: none; z-index: 28; transform: translate(-50%, -50%); background: conic-gradient(from 110deg, #8c8678 0deg, #f3efe4 38deg, #b8b1a0 88deg, #fbf8ef 132deg, #6f6a5e 190deg, #d9d2c0 236deg, #9a937f 292deg, #f1ecdd 332deg, #8c8678 360deg); -webkit-mask: radial-gradient(circle, transparent 67%, #000 68.4%, #000 97%, transparent 100%); mask: radial-gradient(circle, transparent 67%, #000 68.4%, #000 97%, transparent 100%); animation: tpo-spin 46s linear infinite; }
 .tpo-disc { position: absolute; left: 0; top: 0; padding: 0; border: 0; border-radius: 50%; overflow: hidden; background: #26231d; box-shadow: 0 0 0 1px rgba(243,240,232,0.4), inset 0 0 0 3px rgba(0,0,0,0.4), 0 14px 26px rgba(0,0,0,0.38); }
 .tpo-disc img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 .tpo-lock { position: absolute; right: 12%; bottom: 12%; display: grid; place-items: center; width: 1.9rem; height: 1.9rem; border-radius: 50%; background: #3f4a22; color: #f3f0e8; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
-.tpo-caption { position: absolute; left: 0; right: 0; z-index: 32; bottom: 2.9rem; height: 6.2rem; pointer-events: none; }
+.tpo-caption { position: absolute; left: 0; right: 0; z-index: 32; bottom: 4.6rem; height: 6.2rem; pointer-events: none; }
 .tpo-caption-layer { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; padding-inline: 1.25rem; }
 .tpo-name { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(1.7rem, 8vw, 2.5rem); line-height: 1.04; color: #f3f0e8; text-shadow: 0 2px 14px rgba(0,0,0,0.6); text-wrap: balance; }
 .tpo-name span { color: #e5d3a4; }
 .tpo-note { margin: 0.5rem 0 0; font-family: var(--font-sans); font-weight: 500; font-size: 0.74rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(243,240,232,0.86); text-shadow: 0 1px 8px rgba(0,0,0,0.65); }
-.tpo-dots { position: absolute; z-index: 40; left: 0; right: 0; bottom: 1.05rem; display: flex; justify-content: center; gap: 0.2rem; }
+.tpo-dots { position: absolute; z-index: 40; left: 0; right: 0; bottom: 2.6rem; display: flex; justify-content: center; gap: 0.2rem; }
 .tpo-dot { position: relative; width: 1.5rem; height: 1.5rem; padding: 0; border: 0; background: transparent; }
 .tpo-dot::after { content: ""; position: absolute; left: 50%; top: 50%; width: 0.44rem; height: 0.44rem; margin: -0.22rem; border-radius: 50%; background: #f3f0e8; opacity: 0.4; }
 .tpo-dot[aria-current="true"]::after { opacity: 1; transform: scale(1.3); }

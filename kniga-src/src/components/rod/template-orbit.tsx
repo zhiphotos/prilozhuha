@@ -43,8 +43,8 @@ function wrapDelta(index: number, progress: number, count: number) {
 }
 
 function metrics(box: Box) {
-  const maxDisc = Math.min(box.w * 0.42, box.h * 0.3, 260);
-  return { maxDisc, rx: Math.min(box.w * 0.5, 460), ry: Math.min(box.h * 0.2, 200), hubX: box.w / 2, hubY: box.h * 0.36 };
+  const maxDisc = Math.min(box.w * 0.42, box.h * 0.28, 260);
+  return { maxDisc, rx: Math.min(box.w * 0.5, 460), ry: Math.min(box.h * 0.2, 200), hubX: box.w / 2, hubY: box.h * 0.39 };
 }
 
 function pose(index: number, progress: number, box: Box, count: number) {
