@@ -1,6 +1,6 @@
 import { needsMaidenName } from "@/lib/rod/person";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeftRight, BookOpen, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeftRight, BookOpen, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, ChevronDown, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, ScreenFrame, Sheet, TopBar, useNav } from "@/components/rod/chrome";
 import { PageSheet } from "@/components/rod/page-view";
@@ -16,10 +16,10 @@ import { WEDDING_EXTRA, WEDDING_EXTRA_PAGES, WEDDING_MODERN, WEDDING_MODERN_PAGE
 import { GrowingTree } from "@/components/rod/growing-tree";
 import { treeGrowth } from "@/lib/rod/book-tree";
 import { TemplateOrbit, type OrbitItem } from "@/components/rod/template-orbit";
-import { PreviewVideo, SLIDES } from "@/components/rod/unlock-carousel";
+import { COMING, PreviewVideo, SLIDES } from "@/components/rod/unlock-carousel";
 import { CommunityCard } from "@/components/rod/access";
 import { PaySheet } from "@/components/rod/lessons";
-import { AI_NOTE, PROGRAM_SOON } from "@/lib/rod/lesson-pitch";
+import { AI_NOTE } from "@/lib/rod/lesson-pitch";
 import { PROGRAM_PRICE } from "@/lib/rod/content";
 import { ReelButton } from "@/components/rod/reel-modal";
 import { Hint } from "@/components/rod/hint";
@@ -158,8 +158,8 @@ export function BookScreen() {
       ) : null}
 
       {/* Одна карусель шаблонов, под ней покупка и «Скоро в приложении» (у платных вместо них сообщество). */}
-      <h2 className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Шаблоны книги</h2>
-      <p className="mb-3 mt-1 text-sm text-muted">Листайте и нажмите на круг в центре: покажем, что внутри, и можно взять шаблон.</p>
+      {/* Заголовок «Шаблоны книги» только у тех, у кого доступ открыт: у остальных карусель сама начинается с рассказа о программе. */}
+      {data.programOpen ? <h2 className="mb-3 mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Шаблоны книги</h2> : null}
       <TemplateStage pages={pages} meta={meta} onUnlock={() => setPay(true)} />
       {data.programOpen ? <CommunityCard /> : <SoonBlock onBuy={() => setPay(true)} />}
 
@@ -893,6 +893,7 @@ const INFO_PICKS: { at: number; first: string; second: string; face?: string; fa
 
 /** Под каруселью у тех, у кого доступ не открыт: покупка и то, что скоро появится. */
 function SoonBlock({ onBuy }: { onBuy: () => void }) {
+  const [more, setMore] = useState(false);
   return (
     <section className="mb-6">
       <Button variant="primary" className="btn-glass-green h-auto min-h-12 w-full whitespace-normal py-3" onClick={onBuy}>
@@ -900,16 +901,29 @@ function SoonBlock({ onBuy }: { onBuy: () => void }) {
       </Button>
       <p className="mt-2 text-center text-xs text-muted">Один платёж, без подписки</p>
       <div className="mt-5 rounded-2xl bg-white/60 p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Скоро в приложении</p>
-        <ul className="mt-2 grid gap-1.5 text-sm text-ink/80">
-          {PROGRAM_SOON.map((item) => (
-            <li key={item} className="flex gap-3">
-              <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-current opacity-50" />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 text-xs font-semibold text-ink">{AI_NOTE}</p>
+        <button type="button" onClick={() => setMore((v) => !v)} aria-expanded={more} className="flex min-h-11 w-full items-center justify-between gap-3 text-left">
+          <span>
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Скоро в приложении</span>
+            <span className="mt-0.5 block text-sm text-ink/80">Запланировано функций: {COMING.length}</span>
+          </span>
+          <span className="flex shrink-0 items-center gap-1 text-sm font-semibold text-moss">
+            {more ? "Свернуть" : "Раскрыть"}
+            <ChevronDown className={cn("size-4 transition-transform", more && "rotate-180")} />
+          </span>
+        </button>
+        {more ? (
+          <>
+            <ul className="mt-3 grid gap-2 text-sm text-ink/80">
+              {COMING.map((item) => (
+                <li key={item} className="flex gap-3">
+                  <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-current opacity-50" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs font-semibold text-ink">{AI_NOTE}</p>
+          </>
+        ) : null}
       </div>
     </section>
   );
