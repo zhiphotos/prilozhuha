@@ -897,7 +897,7 @@ function SoonBlock({ onBuy }: { onBuy: () => void }) {
   return (
     <section className="mb-6">
       <Button variant="primary" className="btn-glass-green h-auto min-h-12 w-full whitespace-normal py-3" onClick={onBuy}>
-        Купить мини-уроки и полный доступ в приложение · {PROGRAM_PRICE}
+        <span className="text-center">Купить мини-уроки и полный доступ в приложение <span className="whitespace-nowrap">· {PROGRAM_PRICE}</span></span>
       </Button>
       <p className="mt-2 text-center text-xs text-muted">Один платёж, без подписки</p>
       <div className="mt-5 rounded-2xl bg-white/60 p-4">

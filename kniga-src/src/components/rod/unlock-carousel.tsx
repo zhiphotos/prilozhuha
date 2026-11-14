@@ -91,8 +91,8 @@ export const SLIDES: Slide[] = [
   },
   {
     kicker: "Цена",
-    title: "Уроки и приложение за 2 026 ₽",
-    text: "Единоразовая плата 2 026 ₽ вместо 4 000 ₽: платите один раз, и все функции приложения, какие есть сейчас, открываются сразу и остаются навсегда. Уроки открываются после оплаты, доступ к урокам на год. ИИ-помощники, когда появятся, входят в эту же цену: пользоваться ими можно бесплатно в пределах ежедневных и ежемесячных лимитов, которые обновляются сами. Остальные новые функции появятся позже: часть останется с вами навсегда, часть подключается по подписке.",
+    title: "Уроки и приложение за 2 026 ₽",
+    text: "Единоразовая плата 2 026 ₽ вместо 4 000 ₽: платите один раз, и все функции приложения, какие есть сейчас, открываются сразу и остаются навсегда. Уроки открываются после оплаты, доступ к урокам на год. ИИ-помощники, когда появятся, входят в эту же цену: пользоваться ими можно бесплатно в пределах ежедневных и ежемесячных лимитов, которые обновляются сами. Остальные новые функции появятся позже: часть останется с вами навсегда, часть подключается по подписке.",
     image: "course/site/memoirs-daria.jpg",
     pos: "50% 20%",
     price: true,
@@ -277,8 +277,8 @@ export function UnlockCarousel() {
               ) : null}
               {slide.price ? (
                 <span className="pointer-events-none absolute right-3 top-3 rounded-2xl bg-black/65 px-3 py-2 text-right ring-1 ring-[#c9ae74]/50 backdrop-blur-sm">
-                  <span className="block text-2xl font-semibold leading-none text-[#e6cf9c]">2 026 ₽</span>
-                  <span className="mt-1 block text-xs text-paper/60 line-through">4 000 ₽</span>
+                  <span className="block text-2xl font-semibold leading-none text-[#e6cf9c]">2 026 ₽</span>
+                  <span className="mt-1 block text-xs text-paper/60 line-through">4 000 ₽</span>
                 </span>
               ) : null}
             </div>

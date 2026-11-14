@@ -78,7 +78,7 @@ export function AccessSheet({ onClose, onBooks }: { onClose: () => void; onBooks
             </ul>
             <p className="mt-3 text-sm text-muted">Платёж один раз, без подписки.</p>
             <Button className="btn-glass-green mt-4 h-auto min-h-12 w-full whitespace-normal py-3" onClick={() => setPay("buy")}>
-              Открыть полный доступ · {PROGRAM_PRICE}
+              <span className="text-center">Открыть полный доступ <span className="whitespace-nowrap">· {PROGRAM_PRICE}</span></span>
             </Button>
           </div>
           <button type="button" className="mt-4 min-h-11 text-left text-sm font-semibold text-moss underline underline-offset-2" onClick={() => setPay("restore")}>

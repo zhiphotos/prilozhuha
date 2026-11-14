@@ -2,8 +2,8 @@ import { ALBUM_QUESTIONS, BONUS_PROMPTS, DAD_QUESTIONS, DINNER_QUESTIONS, FEAST_
 import { COURSE_LESSONS, type CourseBlock } from "@/lib/rod/course-lessons";
 import type { Audience, LessonLink } from "@/lib/rod/types";
 
-export const PROGRAM_PRICE = "2 026 ₽";
-export const PROGRAM_OLD_PRICE = "4 000 ₽";
+export const PROGRAM_PRICE = "2 026 ₽";
+export const PROGRAM_OLD_PRICE = "4 000 ₽";
 
 export const AUDIENCES: { id: Audience; title: string; text: string }[] = [
   { id: "self", title: "Для себя", text: "Чтобы не растерять то, что помню только я" },
