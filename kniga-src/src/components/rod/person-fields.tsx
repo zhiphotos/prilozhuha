@@ -143,11 +143,16 @@ export function PersonFields({ value, onChange, others, extraSiblings, onExtraSi
           </div>
         </Field>
       ) : null}
+      {maidenAllowed(value) ? (
+        <Field label="Девичья фамилия" hint="Если женщина меняла фамилию. Можно оставить пустой.">
+          <input className="field" value={value.maidenName} onChange={(event) => onChange({ maidenName: event.target.value })} placeholder="Если знаете" />
+        </Field>
+      ) : null}
       <Field label="Дата рождения" hint="Можно только год, 1948, или полную дату, 12.03.1948. Можно примерно.">
         <DateInput className="field" value={value.birthYear} onChange={(next) => onChange({ birthYear: next })} placeholder="1948" />
       </Field>
-      <details className="rounded-xl border border-ink/10 bg-white/40 px-3 py-1" open={Boolean(value.deathYear || value.birthPlace || value.maidenName)}>
-        <summary className="min-h-11 cursor-pointer py-2.5 text-sm font-semibold text-moss">Ещё: дата смерти, место, девичья фамилия</summary>
+      <details className="rounded-xl border border-ink/10 bg-white/40 px-3 py-1" open={Boolean(value.deathYear || value.birthPlace)}>
+        <summary className="min-h-11 cursor-pointer py-2.5 text-sm font-semibold text-moss">Ещё: дата смерти и место рождения</summary>
         <div className="grid gap-3 pb-3">
           <Field label="Дата смерти" hint="Если нужно. Год или полная дата.">
             <DateInput className="field" value={value.deathYear ?? ""} onChange={(next) => onChange({ deathYear: next })} />
@@ -155,11 +160,6 @@ export function PersonFields({ value, onChange, others, extraSiblings, onExtraSi
           <Field label="Место рождения" hint="Город, село или страна. Если знаете.">
             <input className="field" value={value.birthPlace ?? ""} onChange={(event) => onChange({ birthPlace: event.target.value })} placeholder="Например, Тбилиси" />
           </Field>
-          {maidenAllowed(value) ? (
-            <Field label="Девичья фамилия">
-              <input className="field" value={value.maidenName} onChange={(event) => onChange({ maidenName: event.target.value })} placeholder="Если знаете" />
-            </Field>
-          ) : null}
         </div>
       </details>
       {others.length ? <p className="-mb-1 mt-1 text-sm font-semibold text-ink">Как он связан с семьёй: без этого его не будет на древе</p> : null}
