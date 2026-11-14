@@ -32,6 +32,8 @@ export type OrbitItem = {
   info?: boolean;
   /** Короткая строка над кругами (для информационных кругов). */
   kicker?: string;
+  /** Крупная строка над кругами; если не задана, берётся заголовок. */
+  topTitle?: string;
   /** Короткий текст под названием, виден без нажатия. */
   teaser?: string;
   /** Картинки, которые открываются на весь экран по нажатию (отзывы, планы уроков). */
@@ -75,22 +77,31 @@ function metrics(box: Box) {
   return { maxDisc, rx: Math.min(box.w * 0.5, 460), ry: Math.min(box.h * 0.2, 200), hubX: box.w / 2, hubY: box.h * 0.43 };
 }
 
+/** Масштабы кругов по удалению от центра и зазор между ними: круги стоят рядом, не заходя друг на друга. */
+const SLOT_SCALE = [1, 0.58, 0.38, 0.26];
+const SLOT_GAP = 10;
+
+function slotOffsets(maxDisc: number) {
+  const offsets = [0];
+  for (let i = 1; i < SLOT_SCALE.length; i++) offsets[i] = offsets[i - 1] + 0.5 * maxDisc * (SLOT_SCALE[i - 1] + SLOT_SCALE[i]) + SLOT_GAP;
+  return offsets;
+}
+
+function interp(values: number[], at: number) {
+  const a = Math.min(at, values.length - 1);
+  const i = Math.floor(a);
+  const next = values[Math.min(i + 1, values.length - 1)];
+  return values[i] + (next - values[i]) * (a - i);
+}
+
 function pose(index: number, progress: number, box: Box, count: number) {
-  const { maxDisc, rx, ry, hubX, hubY } = metrics(box);
+  const { maxDisc, ry, hubX, hubY } = metrics(box);
   const delta = wrapDelta(index, progress, count);
-  const angle = -delta * ((Math.PI * 2) / count);
-  const cos = Math.cos(angle);
-  const sink = (1 - cos) / 2;
-  const depth = (cos + 1) / 2;
-  return {
-    x: hubX + Math.sin(angle) * rx * (0.8 + 0.28 * sink),
-    y: hubY + sink * ry * 1.7,
-    scale: 0.32 + 0.68 * Math.pow(depth, 2.8),
-    opacity: 0.4 + 0.6 * Math.pow(depth, 0.5),
-    z: Math.round(8 + depth * 52),
-    delta,
-    maxDisc,
-  };
+  const a = Math.abs(delta);
+  const x = hubX + Math.sign(delta || 1) * interp(slotOffsets(maxDisc), a);
+  const scale = interp(SLOT_SCALE, a);
+  const opacity = a <= 2 ? 1 - 0.18 * a : Math.max(0, (3 - a) * 0.64);
+  return { x, y: hubY + Math.min(a, 3) * ry * 0.3, scale, opacity, z: Math.round(60 - a * 10), delta, maxDisc };
 }
 
 const reduced = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -328,16 +339,14 @@ export function TemplateOrbit({
       })}
       <div className="tpo-wall" aria-hidden="true" />
       <div className="tpo-tone" aria-hidden="true" />
-      <div className="tpo-lift" aria-hidden="true" />
       <div className="tpo-vignette" />
       <div className="tpo-top" aria-hidden="true">
         {items.map((item, index) => {
-          if (!item.info) return null;
           const delta = Math.abs(wrapDelta(index, progress, count));
           return (
             <div key={item.id} className="tpo-top-layer" style={{ opacity: Math.max(0, 1 - delta * 1.4), transform: `translateY(${delta * -6}px)` }}>
               <p className="tpo-kicker">{item.kicker}</p>
-              <p className="tpo-top-title">{item.title}</p>
+              <p className="tpo-top-title">{item.topTitle ?? item.title}</p>
             </div>
           );
         })}

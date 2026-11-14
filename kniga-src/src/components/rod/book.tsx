@@ -825,6 +825,8 @@ function TemplateStage({ pages, meta, onUnlock }: { pages: BookPage[]; meta: { d
       first: pic.first,
       second: pic.second,
       note: `${tpl.total} страниц · ${pic.note}`,
+      kicker: "Шаблоны книги",
+      topTitle: "Возьми готовый шаблон",
       title: tpl.title,
       intro: tpl.intro,
       work: `${base}${pic.work}`,
@@ -866,7 +868,11 @@ function TemplateStage({ pages, meta, onUnlock }: { pages: BookPage[]; meta: { d
       info: true,
       images: pick.images?.map(asset),
       cta: slide.price ? `Открыть полный доступ · ${PROGRAM_PRICE}` : undefined,
-      extra: slide.video ? <PreviewVideo src={asset(slide.video.src)} poster={asset(slide.video.poster)} /> : undefined,
+      extra: slide.video ? (
+        <div className="aspect-video overflow-hidden rounded-xl bg-night">
+          <PreviewVideo src={slide.video.src} poster={slide.video.poster} />
+        </div>
+      ) : undefined,
     };
   });
   // Рекламные круги стоят первыми и только у тех, у кого доступ не открыт; шаблоны (закрытые) идут в конце.
@@ -876,7 +882,7 @@ function TemplateStage({ pages, meta, onUnlock }: { pages: BookPage[]; meta: { d
 const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
 /** Какие слайды рекламной карусели (SLIDES) показываем кругами в «Что входит в доступ» и как их коротко назвать. */
 const INFO_PICKS: { at: number; first: string; second: string; face?: string; faceFocus?: string; images?: string[] }[] = [
-  { at: 0, first: "Первый", second: "урок", face: "course/site/free.jpg", faceFocus: "50% 30%" },
+  { at: 0, first: "Первый", second: "урок", face: "course/site/lesson-preview.jpg", faceFocus: "50% 40%" },
   { at: 1, first: "Шесть", second: "уроков", face: "course/site/lesson1.jpg", images: [1, 2, 3, 4, 5, 6].map((n) => `course/site/lesson${n}.jpg`) },
   { at: 2, first: "ИИ", second: "помощник", face: "book-orbit/ai-head.webp", faceFocus: "50% 50%" },
   { at: 3, first: "Готовые", second: "материалы", face: "course/site/materials.jpg", images: ["course/site/materials.jpg"] },
