@@ -1,6 +1,6 @@
 import { needsMaidenName } from "@/lib/rod/person";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeftRight, BookOpen, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, ChevronDown, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, BookOpen, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, ChevronDown, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, ScreenFrame, Sheet, TopBar, useNav } from "@/components/rod/chrome";
 import { PageSheet } from "@/components/rod/page-view";
@@ -8,7 +8,7 @@ import { FULL_BOOK, FULL_BOOK_PAGES, fullBookPages, type Chapter } from "@/lib/r
 import { LOVE_BOOK, LOVE_BOOK_PAGES, loveBookPages } from "@/lib/rod/love-book";
 import { blankPage, coverPage, pageFromPhoto, pageFromPrompt, pageFromStory } from "@/lib/rod/layouts";
 import { PAGE_PROMPTS } from "@/lib/rod/pages";
-import { isBookReady, overallOf, partsOf, plural } from "@/lib/rod/progress";
+import { isBookReady, nextStep, overallOf, partsOf, plural } from "@/lib/rod/progress";
 import { CoverSetup } from "@/components/rod/cover-setup";
 import { PlanSheet } from "@/components/rod/plan-sheet";
 import { TextToPagesSheet } from "@/components/rod/text-to-pages";
@@ -23,7 +23,8 @@ import { AI_NOTE } from "@/lib/rod/lesson-pitch";
 import { PROGRAM_PRICE } from "@/lib/rod/content";
 import { ReelButton } from "@/components/rod/reel-modal";
 import { Hint } from "@/components/rod/hint";
-import { ContentsSheet } from "@/components/rod/contents-sheet";
+import { ContentsSheet, filledCount } from "@/components/rod/contents-sheet";
+import { Cut, packBg } from "@/components/rod/botanica";
 import { AllPagesColor } from "@/components/rod/all-pages-color";
 import { downloadFamilyBook, downloadPrintBlock, downloadPrintCover } from "@/lib/rod/print-book";
 import { useRod } from "@/lib/rod/store";
@@ -48,6 +49,7 @@ export function BookScreen() {
   const snapshot = { ...data, pages };
   const overall = overallOf(partsOf(snapshot));
   const ready = isBookReady(snapshot, overall) || pages.length >= 6;
+  const step = nextStep(snapshot, overall);
   const growth = treeGrowth(overall, pages.length);
   // Дерево по умолчанию выключено, пока его не включили («Показать картинку-дерево»). Выбор помнится на этом устройстве.
   // Картинка-дерево пока убрана совсем (заходило за кнопки и за край экрана). Вернуть: TREE_AVAILABLE = true.
@@ -84,6 +86,16 @@ export function BookScreen() {
   const photoOut = photos.filter((photo) => !usedSrc.has(photo.dataUrl));
   const noMaiden = people.filter(needsMaidenName);
   const hasCover = pages.some((page) => page.kind === "cover");
+  // Где остановились: последняя правленная страница, как на «Главной».
+  const worked = pages.filter((page) => page.kind !== "cover" && filledCount(page) > 0);
+  const last = worked.reduce<(typeof worked)[number] | undefined>((best, page) => (!best || (page.editedAt ?? 0) >= (best.editedAt ?? 0) ? page : best), undefined);
+  const hero = !hasCover
+    ? { label: "Начните отсюда", title: "Открыть обложку", detail: "Напишите, для кого эта книга.", button: "Открыть", go: () => open(coverPage(meta), 0) }
+    : last
+      ? { label: "Продолжить отсюда", title: last.title || "Страница", detail: "Вернуться туда, где остановились", button: "Открыть страницу", go: () => nav.go({ id: "editor", pageId: last.id }) }
+      : step
+        ? { label: "Следующий шаг", title: step.title, detail: step.detail, button: "Начать", go: () => nav.go(step.screen) }
+        : { label: "Продолжить отсюда", title: "Добавить страницу", detail: "Откройте библиотеку страниц и выберите, с чего продолжить.", button: "Выбрать", go: () => setLibrary(true) };
 
 
   const pageGrid = <PageGrid pages={pages} meta={meta} onOpen={(id) => nav.go({ id: "editor", pageId: id })} onAdd={() => setLibrary(true)} />;
@@ -137,25 +149,22 @@ export function BookScreen() {
         )}
       </div>
 
-      {!hasCover ? (
-        <button type="button" onClick={() => open(coverPage(meta), 0)} className="relative z-10 mb-1 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">
-          {/* Размытый ботанический фон и стеклянная плашка поверх: так же, как у карточки бесплатного урока на «Главной». */}
-          <img src={`${import.meta.env.BASE_URL}course/site/memoirs-book.jpg`} alt="" className="absolute inset-0 size-full scale-110 object-cover blur-md" draggable={false} />
-          <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
-          <span className="relative block p-4">
-            <span className="flex items-center gap-4 rounded-2xl border border-paper/25 bg-paper/15 p-4 backdrop-blur-xl">
-              <span className="block w-20 shrink-0 overflow-hidden rounded-md shadow-lg">
-                <PageSheet page={{ id: "c", ...coverPage(meta) }} meta={meta} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-paper/80">Начните отсюда</span>
-                <span className="mt-1 block text-xl font-semibold text-paper">Открыть обложку</span>
-                <span className="mt-1 block text-sm text-paper/80">Напишите, для кого эта книга.</span>
-              </span>
-            </span>
-          </span>
-        </button>
-      ) : null}
+      {/* Карточка есть всегда: пока нет обложки, зовёт её открыть; потом показывает, где остановились, или следующий шаг. */}
+      <button
+        type="button"
+        onClick={hero.go}
+        data-tour="book-hero"
+        className="forest relative z-10 mb-1 mt-2 block w-full rounded-2xl p-6 pb-24 text-left sm:pb-6 sm:pr-56"
+        style={{ ["--forest-img" as string]: packBg("bg_8154") }}
+      >
+        <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">{hero.label}</span>
+        <span className="mt-2 block max-w-[20ch] text-[1.75rem] font-semibold leading-[1.12] text-paper">{hero.title}</span>
+        <span className="mt-2 block max-w-[30ch] text-sm text-paper/75">{hero.detail}</span>
+        <span className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-paper px-5 text-sm font-semibold text-ink">
+          {hero.button} <ArrowRight className="size-4" />
+        </span>
+        <Cut id={hasCover ? "moss_book_open" : "moss_book_closed"} className="pointer-events-none absolute -bottom-3 -right-4 -z-10 w-40 rotate-[7deg] sm:w-52" />
+      </button>
 
       {/* Одна карусель шаблонов, под ней покупка и «Скоро в приложении» (у платных вместо них сообщество). */}
       {/* Заголовок «Шаблоны книги» только у тех, у кого доступ открыт: у остальных карусель сама начинается с рассказа о программе. */}
