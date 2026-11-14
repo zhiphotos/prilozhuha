@@ -4,6 +4,7 @@ import http from "node:http";
 
 const { ROUTES } = await import("./lib/routes/index.js");
 const { reconcilePending } = await import("./lib/pay-pending.js");
+const { checkLoad } = await import("./lib/load-alert.js");
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "127.0.0.1";
 const MAX_BODY = 3 * 1024 * 1024; // части книги до 700 тыс. знаков, с запасом
@@ -48,4 +49,7 @@ server.listen(PORT, HOST, () => console.log(`kniga-api: http://${HOST}:${PORT}`)
 const reconcile = () => void reconcilePending().then((n) => n && console.log(`[pay-reconcile] записано оплат: ${n}`)).catch((e) => console.error("[pay-reconcile]", e instanceof Error ? e.message : e));
 setTimeout(reconcile, 20_000);
 setInterval(reconcile, 60_000);
+const loadCheck = () => void checkLoad().then((k) => k.length && console.log(`[load-alert] письмо: ${k.join(", ")}`)).catch((e) => console.error("[load-alert]", e instanceof Error ? e.message : e));
+setTimeout(loadCheck, 120_000);
+setInterval(loadCheck, 3_600_000);
 for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => server.close(() => process.exit(0)));
