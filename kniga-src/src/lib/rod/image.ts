@@ -1,7 +1,7 @@
 import { resolveMedia, saveMedia } from "@/lib/rod/media";
 
-// Для печати 18×24 см при 300 dpi нужно ~2100 px по длинной стороне.
-const PRINT_MAX = 2100;
+// Для печати 18×24 см при 300 dpi нужно ~2850 px по длинной стороне: берём 3000.
+const PRINT_MAX = 3000; 
 
 function decode(blob: Blob): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -59,7 +59,7 @@ export async function importImage(source: Blob): Promise<string> {
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
   const png = /image\/(png|webp|gif)/.test(source.type) && hasAlpha(context, canvas.width, canvas.height);
   const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, png ? "image/png" : "image/jpeg", png ? undefined : 0.86),
+    canvas.toBlob(resolve, png ? "image/png" : "image/jpeg", png ? undefined : 0.9),
   );
   if (!blob) throw new Error("Не удалось сохранить снимок");
   return saveMedia(blob);
