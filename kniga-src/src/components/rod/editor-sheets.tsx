@@ -113,6 +113,8 @@ export type PackItem = {
   label: string;
   cat: string;
   file: string;
+  /** Лёгкая картинка для списка; на страницу кладётся полный файл. */
+  thumb?: string;
   kind: "sticker" | "background" | "texture";
   /** Текстуры: входят во вкладку «Текстуры», а не в «Футажи». */
   textures?: boolean;
@@ -205,7 +207,7 @@ export function StickersSheet({
                     .map((item) => (
                       <li key={item.id}>
                         <button type="button" title={item.label} onClick={() => onPack(item)} className="checker grid aspect-square w-full place-items-center overflow-hidden rounded-2xl p-1">
-                          <img src={item.file} alt={item.label} loading="lazy" className={item.kind === "background" ? "h-full w-full rounded-xl object-cover" : "max-h-full max-w-full object-contain"} />
+                          <img src={item.thumb ?? item.file} alt={item.label} loading="lazy" className={item.kind === "background" ? "h-full w-full rounded-xl object-cover" : "max-h-full max-w-full object-contain"} />
                         </button>
                       </li>
                     ))}
@@ -242,7 +244,7 @@ export function StickersSheet({
                 .map((item) => (
                   <li key={item.id}>
                     <button type="button" title={item.label} onClick={() => onPack(item)} className="checker grid aspect-[3/4] w-full place-items-center overflow-hidden rounded-xl">
-                      <img src={item.file} alt={item.label} loading="lazy" className="h-full w-full object-cover" />
+                      <img src={item.thumb ?? item.file} alt={item.label} loading="lazy" className="h-full w-full object-cover" />
                     </button>
                     <span className="mt-1 block text-center text-[11px] leading-tight text-ink">{item.label}</span>
                     <span className="block text-center text-[10px] text-muted">{item.mode}</span>
