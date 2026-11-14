@@ -24,6 +24,8 @@ export type RelationFromCenter = {
   paths: number;
   /** Данных не хватает: родство не придумываем. */
   undetermined: boolean;
+  /** Название взято из того, что записал человек, а не из связей в древе. */
+  declared?: boolean;
 };
 
 const isGhostId = (id: string) => id.startsWith("__") && id !== "__self";
@@ -63,7 +65,7 @@ export function relationsFrom(people: Person[], unions: Union[], centerId: strin
   const out = new Map<string, RelationFromCenter>();
   if (!people.some((p) => p.id === centerId)) return out;
   const index = buildKinIndex(people, unions);
-  for (const p of people) out.set(p.id, relationIn(index, centerId, p.id, homeId));
+  for (const p of people) out.set(p.id, withDeclared(relationIn(index, centerId, p.id, homeId), p, centerId, homeId));
   return out;
 }
 
@@ -72,7 +74,13 @@ export function relationOf(people: Person[], unions: Union[], centerId: string, 
   if (!people.some((x) => x.id === centerId) || !people.some((x) => x.id === personId)) {
     return { id: personId, title: UNDETERMINED, kind: "undetermined", degree: null, also: [], paths: 0, undetermined: true };
   }
-  return relationIn(buildKinIndex(people, unions), centerId, personId, homeId);
+  return withDeclared(relationIn(buildKinIndex(people, unions), centerId, personId, homeId), people.find((x) => x.id === personId), centerId, homeId);
+}
+
+/** Если по связям родство доказать не удалось, но человек сам записал «Кем приходится» (и центр это сам хозяин книги), показываем его слова. */
+function withDeclared(rel: RelationFromCenter, person: Person | undefined, centerId: string, homeId?: string): RelationFromCenter {
+  if (!rel.undetermined || !person?.declared || (homeId && centerId !== homeId)) return rel;
+  return { ...rel, title: person.declared, declared: true };
 }
 
 /** Подпись для карточки: «Двоюродный брат» или с пометкой «несколько путей». */
@@ -82,6 +90,7 @@ export function relationCard(rel: RelationFromCenter): string {
 
 /** Развёрнутая подпись для карточки человека: «Двоюродный брат. Также: Троюродный дядя». */
 export function relationNote(rel: RelationFromCenter): string {
+  if (rel.declared) return `Записано в карточке: ${rel.title}. Связей в древе пока не хватает, чтобы приложение подтвердило это само: добавьте общих предков.`;
   if (rel.undetermined) return `${UNDETERMINED}: в книге не хватает связей, чтобы назвать родство.`;
   const parts = [rel.title];
   if (rel.also.length) parts.push(`Также: ${rel.also.join("; ")}`);
