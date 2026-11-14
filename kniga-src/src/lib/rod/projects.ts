@@ -52,6 +52,14 @@ export function addProjectMeta(name: string): ProjectMeta {
   return meta;
 }
 
+/** Книга, найденная в облаке на другом устройстве: тот же номер, чтобы обе копии синхронизировались друг с другом. */
+export function addProjectWithId(id: string, name: string): ProjectMeta | null {
+  if (listProjects().some((item) => item.id === id)) return null;
+  const meta: ProjectMeta = { id, name: name.trim() || "Книга из облака", createdAt: new Date().toISOString() };
+  write(LIST_KEY, [...listProjects(), meta]);
+  return meta;
+}
+
 export function renameProjectMeta(id: string, name: string) {
   write(LIST_KEY, listProjects().map((item) => (item.id === id ? { ...item, name: name.trim() || item.name } : item)));
 }

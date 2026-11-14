@@ -5,6 +5,7 @@ import { Button, Sheet, useNav } from "@/components/rod/chrome";
 import { switchBook } from "@/lib/rod/boot";
 import { activeProjectId, addProjectMeta, listProjects, removeProjectMeta, renameProjectMeta } from "@/lib/rod/projects";
 import { dropProjectData } from "@/lib/rod/store";
+import { dropCloudBook, syncNow } from "@/lib/rod/sync";
 import { PaySheet } from "@/components/rod/lessons";
 import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
@@ -34,6 +35,7 @@ export function ProjectsSheet({ onClose }: { onClose: () => void }) {
     setBusy(true);
     try {
       await switchBook(id);
+      void syncNow("auto");
       refresh();
       nav.tab({ id: "home" });
       onClose();
@@ -49,10 +51,15 @@ export function ProjectsSheet({ onClose }: { onClose: () => void }) {
       setPay(true);
       return;
     }
+    if (list.length >= 3) {
+      toast("Можно до трёх книг. Чтобы создать новую, удалите ненужную.", { duration: 6000 });
+      return;
+    }
     const meta = addProjectMeta(name);
     setBusy(true);
     try {
       await switchBook(meta.id, { onboarded: true, audience: "family", dedicatee: dedicatee.trim(), collector: collector.trim() });
+      void syncNow("auto");
       refresh();
       nav.tab({ id: "home" });
       onClose();
@@ -102,6 +109,7 @@ export function ProjectsSheet({ onClose }: { onClose: () => void }) {
                 className="grid size-9 place-items-center rounded-full text-rose-deep"
                 onClick={() => {
                   if (!window.confirm(`Удалить книгу «${item.name}» со всеми страницами? Это нельзя вернуть.`)) return;
+                  void dropCloudBook(item.id).catch(() => undefined);
                   removeProjectMeta(item.id);
                   void dropProjectData(item.id).finally(refresh);
                 }}
