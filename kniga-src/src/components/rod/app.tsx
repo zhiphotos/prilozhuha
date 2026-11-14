@@ -92,7 +92,7 @@ function RodAppMain() {
     const onPop = (event: PopStateEvent) => {
       const state = event.state as HistoryState | null;
       if (state?.rod && Array.isArray(state.stack) && state.stack.length) setStack(state.stack);
-      else setStack([{ id: "home" }]);
+      else setStack(initialStack()); // ссылка-приглашение при уже открытом приложении меняет только «#»: читаем её заново, а не уходим на главную
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
