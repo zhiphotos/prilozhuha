@@ -294,10 +294,10 @@ function IncludesList({ dark = false }: { dark?: boolean }) {
   );
 }
 
-export function PaySheet({ onClose }: { onClose: () => void }) {
+export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void; initialMode?: "buy" | "restore" }) {
   const nav = useNav();
   const openProgram = useRod((state) => state.openProgram);
-  const [mode, setMode] = useState<"buy" | "restore">("buy");
+  const [mode, setMode] = useState<"buy" | "restore">(initialMode);
   // Откуда платит человек: из России (Альфа-Банк) или со всего мира (Tribute). Спрашиваем один раз.
   const [region, setRegion] = useState<"ru" | "world" | null>(() => (new URLSearchParams(window.location.search).get("pay") === "ru" ? "ru" : null));
   const [email, setEmail] = useState("");

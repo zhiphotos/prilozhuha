@@ -19,6 +19,8 @@ import { changedSinceBackup, exportBook, lastBackupAt } from "@/lib/rod/backup";
 import { ShareInvite } from "@/components/rod/share-invite";
 import { InstallBanner, InstallCard, InstallSheet } from "@/components/rod/install-hint";
 import { TransferCard } from "@/components/rod/transfer-card";
+import { AccessSheet, CommunityCard, ProfileButton, TariffCard } from "@/components/rod/access";
+import { PaySheet } from "@/components/rod/lessons";
 import { ProjectsSheet } from "@/components/rod/projects-sheet";
 import { activeProjectId, listProjects } from "@/lib/rod/projects";
 
@@ -83,6 +85,8 @@ export function HomeScreen() {
   const ready = isBookReady(snapshot, overall);
   const [profile, setProfile] = useState(false);
   const [projects, setProjects] = useState(false);
+  const [access, setAccess] = useState(false);
+  const [tariff, setTariff] = useState(false);
   const bookName = listProjects().length > 1 ? listProjects().find((item) => item.id === activeProjectId())?.name : null;
   const free = LESSONS.find((lesson) => lesson.free);
   const freeDone = free ? data.doneLessons.includes(free.id) : false;
@@ -123,9 +127,7 @@ export function HomeScreen() {
         </div>
         <div className="flex items-center gap-2">
           <ShareInvite />
-          <button type="button" onClick={() => setProjects(true)} className="glass grid size-11 place-items-center rounded-full text-ink" aria-label="Мои книги">
-            <BookCopy className="size-5" />
-          </button>
+          <ProfileButton onClick={() => setAccess(true)} />
           <button type="button" onClick={() => setProfile(true)} className="glass grid size-11 place-items-center rounded-full text-ink" aria-label="Настройки">
             <Settings2 className="size-5" />
           </button>
@@ -153,13 +155,23 @@ export function HomeScreen() {
         <Cut id={mode === "going" ? "moss_book_open" : "moss_book_closed"} className="pointer-events-none absolute -bottom-3 -right-4 -z-10 w-40 rotate-[7deg] sm:w-52" />
       </button>
 
-      {mode !== "new" ? (
+      {true ? (
         <section className="mt-9">
           <div className="flex items-baseline justify-between border-b border-ink/15 pb-2">
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Из чего складывается книга</h2>
             <span className="text-xs tabular-nums text-muted">{overall}%</span>
           </div>
           <ul>
+            <li className="border-b border-ink/10">
+              <button type="button" onClick={() => nav.go({ id: "archive", tab: "tree" })} className="flex min-h-14 w-full items-center gap-3 text-left active:bg-ink/5">
+                <svg viewBox="0 0 24 24" className="size-6 shrink-0 text-gold-ink" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2.2" /><circle cx="5.5" cy="18" r="2.2" /><circle cx="18.5" cy="18" r="2.2" /><path d="M12 7.2v4.3M12 11.5H5.5v4.3M12 11.5h6.5v4.3" /></svg>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-semibold text-ink">Семейное древо</span>
+                  <span className="block text-sm text-muted">Нарисуйте, кто кому кем приходится</span>
+                </span>
+                <ArrowRight className="size-4 shrink-0 text-muted" />
+              </button>
+            </li>
             {parts.map((part) => (
               <li key={part.key} className="border-b border-ink/10">
                 <button type="button" onClick={() => nav.go(partScreen(part.key))} className="flex min-h-14 w-full items-center gap-3 text-left active:bg-ink/5">
@@ -178,7 +190,10 @@ export function HomeScreen() {
         </section>
       ) : null}
 
-      {free && mode !== "going" ? (
+      {data.programOpen ? <CommunityCard /> : null}
+      {!data.programOpen ? <TariffCard onOpen={() => setTariff(true)} /> : null}
+
+      {free && mode !== "going" && !data.programOpen ? (
         <button type="button" onClick={() => nav.go({ id: "lesson", lessonId: free.id })} className="relative mt-9 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">
           <img src={`${import.meta.env.BASE_URL}course/site/free.jpg`} alt="" className="absolute inset-0 size-full scale-110 object-cover blur-md" draggable={false} />
           <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
@@ -233,7 +248,7 @@ export function HomeScreen() {
         <h2 className="border-b border-ink/15 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Ещё в мастерской</h2>
         <ul>
           <Row icon={PenLine} title="Расскажи историю" text="Первая любовь, дом детства, праздник: приложение задаёт вопросы и собирает черновик главы" onClick={() => nav.tab({ id: "stories" })} />
-          {free ? <Row icon={GraduationCap} title="Бесплатный урок" text={`«${free.title}»: ${free.minutes} минут`} onClick={() => nav.go({ id: "lesson", lessonId: free.id })} /> : null}
+          {free && !data.programOpen ? <Row icon={GraduationCap} title="Бесплатный урок" text={`«${free.title}»: ${free.minutes} минут`} onClick={() => nav.go({ id: "lesson", lessonId: free.id })} /> : null}
           <Row icon={Camera} title="Оцифровать фотографию" text="Кто, где, какой год" onClick={() => nav.go({ id: "photo-new" })} />
           <Row icon={Clock} title="Лента времени" text={counts.events ? plural(counts.events, "событие", "события", "событий") : "Годы рядом друг с другом"} onClick={() => nav.go({ id: "archive", tab: "time" })} />
           <Row icon={Users} title="Семейный архив" text={counts.people ? plural(counts.people, "человек", "человека", "человек") : "Люди, места, бумаги"} onClick={() => nav.go({ id: "archive", tab: "people" })} />
@@ -265,7 +280,9 @@ export function HomeScreen() {
       <p className="hand mt-12 text-center text-[1.9rem] text-gold-ink">с любовью к роду</p>
       <Botanica id="sprout" pal={PAL_LIGHT} className="mx-auto mt-1 h-14 opacity-80" />
 
-      {profile ? <ProfileSheet onClose={() => setProfile(false)} /> : null}
+      {profile ? <ProfileSheet onClose={() => setProfile(false)} onBooks={() => { setProfile(false); setProjects(true); }} /> : null}
+      {access ? <AccessSheet onClose={() => setAccess(false)} onBooks={() => setProjects(true)} /> : null}
+      {tariff ? <PaySheet onClose={() => setTariff(false)} /> : null}
       {projects ? <ProjectsSheet onClose={() => setProjects(false)} /> : null}
     </ScreenFrame>
   );
@@ -315,7 +332,7 @@ function Row({ icon: Icon, title, text, onClick }: { icon: typeof Search; title:
   );
 }
 
-function ProfileSheet({ onClose }: { onClose: () => void }) {
+function ProfileSheet({ onClose, onBooks }: { onClose: () => void; onBooks: () => void }) {
   const audience = useRod((state) => state.audience);
   const dedicatee = useRod((state) => state.dedicatee);
   const collector = useRod((state) => state.collector);
@@ -382,7 +399,10 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
             <OpenCopyButton onDone={onClose} />
           </div>
         </div>
-        <div className="mt-4">
+        <div className="mt-4 grid gap-2">
+          <Button variant="soft" onClick={onBooks}>
+            <BookCopy className="size-4" /> Мои книги (до трёх)
+          </Button>
           <Button variant="soft" onClick={() => setInstall(true)}>
             Значок на экране «Домой»
           </Button>
