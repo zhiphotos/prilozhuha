@@ -1,6 +1,6 @@
 import { needsMaidenName } from "@/lib/rod/person";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeftRight, BookOpen, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeftRight, BookOpen, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, ChevronDown, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, ScreenFrame, Sheet, TopBar, useNav } from "@/components/rod/chrome";
 import { PageSheet } from "@/components/rod/page-view";
@@ -15,7 +15,12 @@ import { TextToPagesSheet } from "@/components/rod/text-to-pages";
 import { WEDDING_EXTRA, WEDDING_EXTRA_PAGES, WEDDING_MODERN, WEDDING_MODERN_PAGES, WEDDING_TRADITIONAL, WEDDING_TRADITIONAL_PAGES, weddingExtraPages, weddingModernPages, weddingTraditionalPages } from "@/lib/rod/wedding-book";
 import { GrowingTree } from "@/components/rod/growing-tree";
 import { treeGrowth } from "@/lib/rod/book-tree";
-import { UnlockCarousel } from "@/components/rod/unlock-carousel";
+import { TemplateOrbit, type OrbitItem } from "@/components/rod/template-orbit";
+import { COMING, PreviewVideo, SLIDES } from "@/components/rod/unlock-carousel";
+import { CommunityCard } from "@/components/rod/access";
+import { PaySheet } from "@/components/rod/lessons";
+import { AI_NOTE } from "@/lib/rod/lesson-pitch";
+import { PROGRAM_PRICE } from "@/lib/rod/content";
 import { ReelButton } from "@/components/rod/reel-modal";
 import { Hint } from "@/components/rod/hint";
 import { ContentsSheet } from "@/components/rod/contents-sheet";
@@ -38,6 +43,7 @@ export function BookScreen() {
   const [planning, setPlanning] = useState(false);
   const [textToPages, setTextToPages] = useState(false);
   const [contents, setContents] = useState(false);
+  const [pay, setPay] = useState(false);
   const plan = useRod((state) => state.plan);
   const snapshot = { ...data, pages };
   const overall = overallOf(partsOf(snapshot));
@@ -132,7 +138,7 @@ export function BookScreen() {
       </div>
 
       {!hasCover ? (
-        <button type="button" onClick={() => open(coverPage(meta), 0)} className="relative mb-5 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">
+        <button type="button" onClick={() => open(coverPage(meta), 0)} className="relative z-10 mb-1 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">
           {/* Размытый ботанический фон и стеклянная плашка поверх: так же, как у карточки бесплатного урока на «Главной». */}
           <img src={`${import.meta.env.BASE_URL}course/site/memoirs-book.jpg`} alt="" className="absolute inset-0 size-full scale-110 object-cover blur-md" draggable={false} />
           <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
@@ -151,24 +157,11 @@ export function BookScreen() {
         </button>
       ) : null}
 
-      {/* Сначала карусель шаблонов (у платных) или рекламный блок (у остальных), потом страницы книги. */}
-      {data.programOpen ? (
-        // У платных готовые шаблоны листаются вбок и занимают одну строку, а не две длинные карточки друг под другом.
-        <div className="no-scrollbar -mx-1 mb-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2" role="group" aria-label="Готовые шаблоны книги">
-          <FullTemplate pages={pages} meta={meta} tpl={LOVE_SPEC} carousel />
-          <FullTemplate pages={pages} meta={meta} tpl={WEDDING_TRADITIONAL_SPEC} carousel />
-          <FullTemplate pages={pages} meta={meta} tpl={WEDDING_MODERN_SPEC} carousel />
-          <FullTemplate pages={pages} meta={meta} tpl={FULL_SPEC} carousel />
-          <FullTemplate pages={pages} meta={meta} tpl={WEDDING_EXTRA_SPEC} carousel />
-        </div>
-      ) : (
-        <>
-          <FullTemplate pages={pages} meta={meta} tpl={LOVE_SPEC} />
-          <FullTemplate pages={pages} meta={meta} tpl={WEDDING_TRADITIONAL_SPEC} />
-          <FullTemplate pages={pages} meta={meta} tpl={WEDDING_MODERN_SPEC} />
-          <FullTemplate pages={pages} meta={meta} tpl={FULL_SPEC} />
-        </>
-      )}
+      {/* Одна карусель шаблонов, под ней покупка и «Скоро в приложении» (у платных вместо них сообщество). */}
+      {/* Заголовок «Шаблоны книги» только у тех, у кого доступ открыт: у остальных карусель сама начинается с рассказа о программе. */}
+      {data.programOpen ? <h2 className="mb-3 mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Шаблоны книги</h2> : null}
+      <TemplateStage pages={pages} meta={meta} onUnlock={() => setPay(true)} />
+      {data.programOpen ? <CommunityCard /> : <SoonBlock onBuy={() => setPay(true)} />}
 
       {pageGrid}
 
@@ -262,6 +255,7 @@ export function BookScreen() {
         </section>
       ) : null}
 
+      {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
       {contents ? <ContentsSheet onClose={() => setContents(false)} onOpen={(pid) => { setContents(false); nav.go({ id: "editor", pageId: pid }); }} /> : null}
       {planning ? <PlanSheet onClose={() => setPlanning(false)} /> : null}
       {textToPages ? <TextToPagesSheet onClose={() => setTextToPages(false)} /> : null}
@@ -802,99 +796,135 @@ const WEDDING_EXTRA_SPEC: TemplateSpec = {
 };
 
 /** Готовый шаблон книги – только для тех, у кого открыта программа. */
-function FullTemplate({ pages, meta, tpl, carousel = false }: { pages: BookPage[]; meta: { dedicatee: string; collector: string }; tpl: TemplateSpec; carousel?: boolean }) {
-  const nav = useNav();
+const TEMPLATE_PICS: Record<string, { work: string; focus: string; face: string; faceFocus: string; first: string; second: string; note: string }> = {
+  love: { work: "stickers/pack/bg_8150.webp", focus: "50% 50%", face: "course/site/memoirs-daria.jpg", faceFocus: "50% 28%", first: "Мемуары", second: "любви", note: "история пары" },
+  wedtrad: { work: "stickers/pack/bg_8149.webp", focus: "50% 50%", face: "course/site/wedding-ussr.jpg", faceFocus: "50% 30%", first: "Свадьба", second: "традиционная", note: "с обрядами" },
+  wedmod: { work: "stickers/pack/bg_8153.webp", focus: "50% 50%", face: "course/site/wedding.jpg", faceFocus: "58% 22%", first: "Свадьба", second: "современная", note: "без обрядов" },
+  full: { work: "stickers/pack/bg_8146.webp", focus: "50% 50%", face: "course/site/extra1.jpg", faceFocus: "50% 50%", first: "Книга", second: "рода", note: "100 страниц, одна ветвь" },
+  wedextra: { work: "stickers/pack/bg_8152.webp", focus: "50% 50%", face: "course/site/extra2.jpg", faceFocus: "50% 52%", first: "Свадьба", second: "по желанию", note: "дополнительные страницы" },
+};
+
+/** Единственная карусель шаблонов на экране «Книга»: данные из спецификаций шаблонов, добавление как раньше. */
+function TemplateStage({ pages, meta, onUnlock }: { pages: BookPage[]; meta: { dedicatee: string; collector: string }; onUnlock: () => void }) {
   const open = useRod((state) => state.programOpen);
   const addPage = useRod((state) => state.addPage);
   const placePage = useRod((state) => state.placePage);
-  const [ask, setAsk] = useState(false);
-  const added = pages.some((page) => page.promptId?.startsWith(`${tpl.tag}:`));
-
-  const add = () => {
+  const specs = [LOVE_SPEC, WEDDING_TRADITIONAL_SPEC, WEDDING_MODERN_SPEC, FULL_SPEC, WEDDING_EXTRA_SPEC];
+  const base = import.meta.env.BASE_URL;
+  const items: OrbitItem[] = specs.map((tpl) => {
+    let start = 2;
+    const chapters = tpl.chapters.map((chapter) => {
+      const count = chapter.pages.reduce((sum, page) => sum + page.kinds.length, 0);
+      const range = `${start}–${start + count - 1}`;
+      start += count;
+      return { n: chapter.n, title: chapter.title, range };
+    });
+    const pic = TEMPLATE_PICS[tpl.tag];
+    return {
+      id: tpl.tag,
+      first: pic.first,
+      second: pic.second,
+      note: `${tpl.total} страниц · ${pic.note}`,
+      kicker: "Шаблоны книги",
+      topTitle: "Возьми готовый шаблон",
+      title: tpl.title,
+      intro: tpl.intro,
+      work: `${base}${pic.work}`,
+      focus: pic.focus,
+      face: `${base}${pic.face}`,
+      faceFocus: pic.faceFocus,
+      total: tpl.total,
+      chapters,
+      added: pages.some((page) => page.promptId?.startsWith(`${tpl.tag}:`)),
+      extra: tpl.tag === "love" ? <ReelButton className="w-full" /> : undefined,
+    };
+  });
+  const take = (id: string) => {
+    const tpl = specs.find((item) => item.tag === id);
+    if (!tpl) return;
     if (!pages.some((page) => page.kind === "cover")) placePage(addPage(coverPage(meta)), 0);
     tpl.build().forEach((page) => addPage(page));
-    setAsk(false);
     toast(`В книгу добавлено ${tpl.total} страниц по главам`);
   };
-
-  // Рекламная карусель одна на книгу: рисуем её только в первом шаблоне, во втором ничего.
-  if (!open) return tpl === LOVE_SPEC ? <UnlockCarousel /> : null;
-
-  let start = 2;
-  const chapters = tpl.chapters.map((chapter) => {
-    const count = chapter.pages.reduce((sum, page) => sum + page.kinds.length, 0);
-    const range = `${start}–${start + count - 1}`;
-    start += count;
-    return { ...chapter, range };
+  const infoItems: OrbitItem[] = INFO_PICKS.map((pick) => {
+    const slide = SLIDES[pick.at];
+    const face = pick.face ?? slide.image ?? "course/site/lesson1.jpg";
+    return {
+      id: `info-${pick.at}`,
+      first: pick.first,
+      second: pick.second,
+      note: slide.kicker,
+      kicker: slide.kicker,
+      teaser: slide.text.split(/(?<=[.!?])\s/)[0],
+      title: slide.title,
+      intro: slide.text,
+      work: asset("stickers/pack/bg_8154.webp"),
+      focus: "50% 70%",
+      face: asset(face),
+      faceFocus: pick.faceFocus ?? slide.pos ?? "50% 50%",
+      total: 0,
+      chapters: [],
+      added: false,
+      info: true,
+      images: pick.images?.map(asset),
+      cta: slide.price ? `Открыть полный доступ · ${PROGRAM_PRICE}` : undefined,
+      extra: slide.video ? (
+        <div className="aspect-video overflow-hidden rounded-xl bg-night">
+          <PreviewVideo src={slide.video.src} poster={slide.video.poster} />
+        </div>
+      ) : undefined,
+    };
   });
+  // Рекламные круги стоят первыми и только у тех, у кого доступ не открыт; шаблоны (закрытые) идут в конце.
+  return <TemplateOrbit items={open ? items : [...infoItems, ...items]} open={open} onTake={take} onUnlock={onUnlock} />;
+}
 
+const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
+/** Какие слайды рекламной карусели (SLIDES) показываем кругами в «Что входит в доступ» и как их коротко назвать. */
+const INFO_PICKS: { at: number; first: string; second: string; face?: string; faceFocus?: string; images?: string[] }[] = [
+  { at: 0, first: "Первый", second: "урок", face: "course/site/lesson-preview.jpg", faceFocus: "50% 40%" },
+  { at: 1, first: "Шесть", second: "уроков", face: "course/site/lesson1.jpg", images: [1, 2, 3, 4, 5, 6].map((n) => `course/site/lesson${n}.jpg`) },
+  { at: 2, first: "ИИ", second: "помощник", face: "book-orbit/ai-head.webp", faceFocus: "50% 50%" },
+  { at: 3, first: "Готовые", second: "материалы", face: "course/site/materials.jpg", images: ["course/site/materials.jpg"] },
+  { at: 9, first: "Свой", second: "темп", face: "course/site/lesson2.jpg", images: ["course/site/lesson2.jpg"] },
+  { at: 10, first: "Сообщество", second: "", face: "course/site/review1.jpg", images: ["course/site/review1.jpg", "course/site/review2.jpg", "course/site/review3.jpg"] },
+  { at: 12, first: "Один", second: "платёж", face: "course/site/memoirs-book.jpg", faceFocus: "50% 50%" },
+];
+
+/** Под каруселью у тех, у кого доступ не открыт: покупка и то, что скоро появится. */
+function SoonBlock({ onBuy }: { onBuy: () => void }) {
+  const [more, setMore] = useState(false);
   return (
-    <section className={cn("rounded-2xl p-5", open ? "aurora" : "glass", carousel ? "w-[86%] max-w-sm shrink-0 snap-center" : "mb-6")}>
-      {tpl.image ? (
-        <div className="-mx-5 -mt-5 mb-4 aspect-[4/3] overflow-hidden rounded-t-2xl">
-          <img src={`${import.meta.env.BASE_URL}${tpl.image}`} alt="" className="size-full object-cover" style={{ objectPosition: tpl.pos }} draggable={false} loading="lazy" />
-        </div>
-      ) : null}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/75">{tpl.label}</p>
-          <h2 className="mt-1 text-[1.3rem] font-semibold leading-tight text-ink">{tpl.title}</h2>
-        </div>
-        {!open ? (
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/80 text-rose-deep">
-            <Lock className="size-4" />
+    <section className="mb-6">
+      <Button variant="primary" className="btn-glass-green h-auto min-h-12 w-full whitespace-normal py-3" onClick={onBuy}>
+        <span className="text-center">Купить мини-уроки и полный доступ в приложение <span className="whitespace-nowrap">· {PROGRAM_PRICE}</span></span>
+      </Button>
+      <p className="mt-2 text-center text-xs text-muted">Один платёж, без подписки</p>
+      <div className="mt-5 rounded-2xl bg-white/60 p-4">
+        <button type="button" onClick={() => setMore((v) => !v)} aria-expanded={more} className="flex min-h-11 w-full items-center justify-between gap-3 text-left">
+          <span>
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Скоро в приложении</span>
+            <span className="mt-0.5 block text-sm text-ink/80">Запланировано функций: {COMING.length}</span>
           </span>
+          <span className="flex shrink-0 items-center gap-1 text-sm font-semibold text-moss">
+            {more ? "Свернуть" : "Раскрыть"}
+            <ChevronDown className={cn("size-4 transition-transform", more && "rotate-180")} />
+          </span>
+        </button>
+        {more ? (
+          <>
+            <ul className="mt-3 grid gap-2 text-sm text-ink/80">
+              {COMING.map((item) => (
+                <li key={item} className="flex gap-3">
+                  <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-current opacity-50" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs font-semibold text-ink">{AI_NOTE}</p>
+          </>
         ) : null}
       </div>
-      <p className="mt-2 text-sm text-ink/70">{tpl.intro}</p>
-      {tpl.tag === "love" ? <ReelButton className="mt-3 w-full max-w-[16rem]" /> : null}
-      {carousel ? (
-        <details className="mt-3 text-sm text-ink">
-          <summary className="cursor-pointer font-medium">Главы: {chapters.length}</summary>
-          <ol className="mt-2 grid gap-1">
-            {chapters.map((chapter) => (
-              <li key={chapter.n} className="flex gap-2">
-                <span className="w-14 shrink-0 tabular-nums text-ink/75">{chapter.range}</span>
-                <span>
-                  {chapter.n}. {chapter.title}
-                </span>
-              </li>
-            ))}
-          </ol>
-        </details>
-      ) : null}
-      {carousel ? null : (
-        <ol className="mt-3 grid gap-1 text-sm text-ink">
-          {chapters.map((chapter) => (
-            <li key={chapter.n} className="flex gap-2">
-              <span className="w-14 shrink-0 tabular-nums text-ink/75">{chapter.range}</span>
-              <span>
-                {chapter.n}. {chapter.title}
-              </span>
-            </li>
-          ))}
-        </ol>
-      )}
-      {open ? (
-        added ? (
-          <p className="mt-4 text-sm font-medium text-ink">Шаблон уже в книге – листайте и заполняйте страницы.</p>
-        ) : ask ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button onClick={add}>Да, добавить {tpl.total} страниц</Button>
-            <Button variant="white" onClick={() => setAsk(false)}>
-              Отмена
-            </Button>
-          </div>
-        ) : (
-          <Button className="mt-4" onClick={() => setAsk(true)}>
-            Добавить шаблон в мою книгу
-          </Button>
-        )
-      ) : (
-        <Button className="mt-4" onClick={() => nav.tab({ id: "lessons" })}>
-          <Lock className="size-4" /> Откроется с программой «Книга рода»
-        </Button>
-      )}
     </section>
   );
 }

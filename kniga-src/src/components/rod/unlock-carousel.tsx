@@ -7,9 +7,9 @@ import { ReelModal } from "@/components/rod/reel-modal";
 
 const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
 
-type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; video?: { src: string; poster: string }; price?: boolean; buy?: boolean; pos?: string; reviews?: boolean; square?: boolean; reel?: boolean };
+export type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; video?: { src: string; poster: string }; price?: boolean; buy?: boolean; pos?: string; reviews?: boolean; square?: boolean; reel?: boolean };
 
-const SLIDES: Slide[] = [
+export const SLIDES: Slide[] = [
   {
     kicker: "Первый урок",
     title: "Послушайте, как звучит программа",
@@ -91,8 +91,8 @@ const SLIDES: Slide[] = [
   },
   {
     kicker: "Цена",
-    title: "Уроки и приложение за 2 026 ₽",
-    text: "Единоразовая плата 2 026 ₽ вместо 4 000 ₽: платите один раз, и все функции приложения, какие есть сейчас, открываются сразу и остаются навсегда. Уроки открываются после оплаты, доступ к урокам на год. ИИ-помощники, когда появятся, входят в эту же цену: пользоваться ими можно бесплатно в пределах ежедневных и ежемесячных лимитов, которые обновляются сами. Остальные новые функции появятся позже: часть останется с вами навсегда, часть подключается по подписке.",
+    title: "Уроки и приложение за 2 026 ₽",
+    text: "Единоразовая плата 2 026 ₽ вместо 4 000 ₽: платите один раз, и все функции приложения, какие есть сейчас, открываются сразу и остаются навсегда. Уроки открываются после оплаты, доступ к урокам на год. ИИ-помощники, когда появятся, входят в эту же цену: пользоваться ими можно бесплатно в пределах ежедневных и ежемесячных лимитов, которые обновляются сами. Остальные новые функции появятся позже: часть останется с вами навсегда, часть подключается по подписке.",
     image: "course/site/memoirs-daria.jpg",
     pos: "50% 20%",
     price: true,
@@ -101,7 +101,7 @@ const SLIDES: Slide[] = [
 ];
 
 /** Что планируется: функции, которые позже могут стать платными. */
-const COMING = [
+export const COMING = [
   "Шаблоны для разных книг, в том числе свадебная книга для печати",
   "ИИ-генеалог прямо в приложении",
   "Расчёт по дате рождения и мандале, как в уроках",
@@ -118,7 +118,7 @@ const COMING = [
 ];
 
 /** Превью урока: нажали и играет сразу, без звука; повторное нажатие ставит на паузу, листание в сторону тоже. */
-function PreviewVideo({ src, poster }: { src: string; poster: string }) {
+export function PreviewVideo({ src, poster }: { src: string; poster: string }) {
   const video = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
 
@@ -277,8 +277,8 @@ export function UnlockCarousel() {
               ) : null}
               {slide.price ? (
                 <span className="pointer-events-none absolute right-3 top-3 rounded-2xl bg-black/65 px-3 py-2 text-right ring-1 ring-[#c9ae74]/50 backdrop-blur-sm">
-                  <span className="block text-2xl font-semibold leading-none text-[#e6cf9c]">2 026 ₽</span>
-                  <span className="mt-1 block text-xs text-paper/60 line-through">4 000 ₽</span>
+                  <span className="block text-2xl font-semibold leading-none text-[#e6cf9c]">2 026 ₽</span>
+                  <span className="mt-1 block text-xs text-paper/60 line-through">4 000 ₽</span>
                 </span>
               ) : null}
             </div>
