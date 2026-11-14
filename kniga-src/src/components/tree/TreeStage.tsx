@@ -1,3 +1,4 @@
+import { childTrunk } from "@/lib/tree/trunk";
 import { applyShifts } from "@/lib/tree/offsets";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cardLine, useCardFields } from "@/lib/tree/card-fields";
@@ -94,10 +95,16 @@ function busPath(bus: TreeLayout["buses"][number]): string {
   const min = bus.xs[0];
   const max = bus.xs[bus.xs.length - 1];
   const far = busIsFar(bus);
+  let trunked = false;
   if (!far && bus.fromX != null && bus.fromY != null && min != null && max != null) {
-    parts.push(`M ${bus.fromX} ${bus.fromY} V ${bus.busY}`);
-    if (bus.fromX < min - 1) parts.push(`M ${bus.fromX} ${bus.busY} H ${min}`);
-    else if (bus.fromX > max + 1) parts.push(`M ${bus.fromX} ${bus.busY} H ${max}`);
+    if (bus.partnerXs && bus.partnerTop != null && bus.bracketY !== undefined) {
+      parts.push(`M ${bus.fromX} ${bus.fromY} V ${bus.busY}`);
+      if (bus.fromX < min - 1) parts.push(`M ${bus.fromX} ${bus.busY} H ${min}`);
+      else if (bus.fromX > max + 1) parts.push(`M ${bus.fromX} ${bus.busY} H ${max}`);
+    } else {
+      parts.push(...childTrunk(bus.fromX, bus.fromY, bus.busY, bus.xs));
+      trunked = true;
+    }
   }
   if (bus.partnerXs && bus.partnerTop != null && bus.bracketY !== undefined) {
     // Брак между далёкими супругами: от каждого вниз и общая линия; от её середины вниз к детям, там разветвление.
@@ -106,7 +113,7 @@ function busPath(bus: TreeLayout["buses"][number]): string {
     const mid = bus.fromX ?? (bus.partnerXs[0]! + bus.partnerXs[1]!) / 2;
     parts.push(`M ${mid} ${bus.bracketY} V ${bus.busY}`);
     parts.push(`M ${Math.min(mid, ...bus.xs)} ${bus.busY} H ${Math.max(mid, ...bus.xs)}`);
-  } else if (min != null && max != null && bus.xs.length > 1) parts.push(`M ${min} ${bus.busY} H ${max}`);
+  } else if (!trunked && min != null && max != null && bus.xs.length > 1) parts.push(`M ${min} ${bus.busY} H ${max}`);
   bus.xs.forEach((x, i) => parts.push(`M ${x} ${bus.busY} V ${bus.childTops?.[i] ?? bus.childTop}`));
   return parts.join(" ");
 }

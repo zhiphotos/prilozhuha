@@ -1,3 +1,4 @@
+import { childTrunk } from "@/lib/tree/trunk";
 import { schemeAnchor, schemeLayout } from "@/lib/tree/scheme";
 import { useMemo } from "react";
 import { createPortal } from "react-dom";
@@ -87,12 +88,8 @@ function SchemaSvg({ data, layout }: { data: TreeData; layout: ReturnType<typeof
           const min = bus.xs[0];
           const max = bus.xs[bus.xs.length - 1];
           const parts: string[] = [];
-          if (bus.fromX != null && bus.fromY != null && min != null && max != null) {
-            parts.push(`M ${bus.fromX} ${bus.fromY} V ${bus.busY}`);
-            if (bus.fromX < min - 1) parts.push(`M ${bus.fromX} ${bus.busY} H ${min}`);
-            else if (bus.fromX > max + 1) parts.push(`M ${bus.fromX} ${bus.busY} H ${max}`);
-          }
-          if (min != null && max != null && bus.xs.length > 1) parts.push(`M ${min} ${bus.busY} H ${max}`);
+          if (bus.fromX != null && bus.fromY != null && min != null && max != null) parts.push(...childTrunk(bus.fromX, bus.fromY, bus.busY, bus.xs));
+          else if (min != null && max != null && bus.xs.length > 1) parts.push(`M ${min} ${bus.busY} H ${max}`);
           for (const x of bus.xs) parts.push(`M ${x} ${bus.busY} V ${bus.childTop}`);
           return <path key={bus.unionId} d={parts.join(" ")} />;
         })}
