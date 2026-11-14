@@ -92,10 +92,11 @@ export function AppTour() {
 
   // Первый вход: экскурсия сама, один раз.
   useEffect(() => {
-    if (seen()) return;
+    if (seen() || nav.screen.id === "join" || /^#\/join\//.test(window.location.hash)) return; // по ссылке-приглашению экскурсия не уводит человека на главную
     const timer = window.setTimeout(() => setRunning(true), 900);
     return () => window.clearTimeout(timer);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nav.screen.id]);
   useEffect(() => {
     const start = () => {
       setI(0);
