@@ -819,3 +819,22 @@ body {
 /* стекло: общий блик сверху, дуга-линза и светлый нижний край */
 .btn-glass-green::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: radial-gradient(130% 80% at 50% -30%, rgba(255,255,255,0.5), rgba(255,255,255,0) 60%), linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 40%), linear-gradient(0deg, rgba(255,255,255,0.16), rgba(255,255,255,0) 28%); pointer-events: none; }
 .btn-glass-green:active { filter: brightness(0.95); }
+
+/* Стена и тон поверх фона: ботаника становится тише, видна фактура, как у штукатурки. */
+.tpo-stage { isolation: isolate; }
+.tpo-wall { position: absolute; inset: 0; pointer-events: none; background: url("/stickers/pack/tex/paper-dark.webp") center / cover; mix-blend-mode: multiply; opacity: 0.75; }
+.tpo-tone { position: absolute; inset: 0; pointer-events: none; background: #8b806c; mix-blend-mode: color; opacity: 0.6; }
+.tpo-top { position: absolute; left: 0; right: 0; top: 4.4rem; height: 6rem; z-index: 33; pointer-events: none; }
+.tpo-top-layer { position: absolute; left: 0; right: 0; top: 0; padding-inline: 1.4rem; text-align: center; }
+.tpo-kicker { margin: 0; font-family: var(--font-sans); font-weight: 600; font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: #e5d3a4; text-shadow: 0 1px 8px rgba(0,0,0,0.7); }
+.tpo-top-title { margin: 0.4rem auto 0; max-width: 21rem; font-family: var(--font-sans); font-weight: 700; font-size: 1.12rem; line-height: 1.25; color: #f6f3ea; text-shadow: 0 2px 12px rgba(0,0,0,0.7); text-wrap: balance; }
+.tpo-teaser { margin: 0.55rem auto 0; max-width: 20rem; font-family: var(--font-sans); font-weight: 500; font-size: 0.86rem; line-height: 1.35; color: rgba(246,243,234,0.92); text-shadow: 0 1px 8px rgba(0,0,0,0.75); text-wrap: balance; }
+.tpo-thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; margin-top: 0.7rem; }
+.tpo-thumbs.one { grid-template-columns: 1fr; }
+.tpo-thumbs button { padding: 0; border: 0; border-radius: 0.6rem; overflow: hidden; background: #26231d; box-shadow: 0 0 0 1px rgba(243,240,232,0.25); }
+.tpo-thumbs img { display: block; width: 100%; height: auto; }
+.tpo-hint { margin: 0.4rem 0 0; font-size: 0.74rem; color: rgba(243,240,232,0.7); font-family: var(--font-sans); }
+.tpo-zoom { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 3.2rem 0.6rem 1rem; background: rgba(20,18,14,0.94); overflow: auto; }
+.tpo-zoom img { display: block; max-width: 100%; max-height: none; width: auto; height: auto; border-radius: 0.5rem; }
+.tpo-zoom-close { position: fixed; top: max(0.8rem, env(safe-area-inset-top)); right: 0.8rem; z-index: 121; display: grid; place-items: center; width: 2.8rem; height: 2.8rem; border: 0; border-radius: 50%; background: rgba(243,240,232,0.16); color: #f6f3ea; }
+.tpo-lift { position: absolute; inset: 0; pointer-events: none; background: url("/stickers/pack/tex/paper-dark.webp") center / cover, #b6a88f; background-blend-mode: soft-light, normal; mix-blend-mode: screen; opacity: 0.38; }

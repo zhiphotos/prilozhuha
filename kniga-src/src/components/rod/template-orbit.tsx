@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { Check, Lock } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Check, Lock, X } from "lucide-react";
 
 /**
  * Карусель шаблонов книги. Основа: компонент «Мастера» (atelier), переделанный под страницу:
@@ -29,9 +30,32 @@ export type OrbitItem = {
   extra?: ReactNode;
   /** Информационный диск («что входит в доступ»): без «Взять шаблон». */
   info?: boolean;
+  /** Короткая строка над кругами (для информационных кругов). */
+  kicker?: string;
+  /** Короткий текст под названием, виден без нажатия. */
+  teaser?: string;
+  /** Картинки, которые открываются на весь экран по нажатию (отзывы, планы уроков). */
+  images?: string[];
   /** Подпись кнопки открытия доступа у информационного диска (если задана). */
   cta?: string;
 };
+
+function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (event: globalThis.KeyboardEvent) => event.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return createPortal(
+    <div className="tpo-zoom" role="dialog" aria-modal="true" aria-label="Картинка крупно" onClick={onClose}>
+      <button type="button" className="tpo-zoom-close" onClick={onClose} aria-label="Закрыть">
+        <X size={22} />
+      </button>
+      <img src={src} alt="" onClick={(event) => event.stopPropagation()} />
+    </div>,
+    document.body,
+  );
+}
 
 const STIFF = 62;
 const DAMP = 16;
@@ -47,8 +71,8 @@ function wrapDelta(index: number, progress: number, count: number) {
 }
 
 function metrics(box: Box) {
-  const maxDisc = Math.min(box.w * 0.42, box.h * 0.28, 260);
-  return { maxDisc, rx: Math.min(box.w * 0.5, 460), ry: Math.min(box.h * 0.2, 200), hubX: box.w / 2, hubY: box.h * 0.39 };
+  const maxDisc = Math.min(box.w * 0.42, box.h * 0.26, 250);
+  return { maxDisc, rx: Math.min(box.w * 0.5, 460), ry: Math.min(box.h * 0.2, 200), hubX: box.w / 2, hubY: box.h * 0.43 };
 }
 
 function pose(index: number, progress: number, box: Box, count: number) {
@@ -89,6 +113,7 @@ export function TemplateOrbit({
   const [progress, setProgress] = useState(0);
   const [menu, setMenu] = useState(false);
   const [ask, setAsk] = useState(false);
+  const [zoom, setZoom] = useState<string | null>(null);
 
   const progressRef = useRef(0);
   const targetRef = useRef(0);
@@ -301,7 +326,22 @@ export function TemplateOrbit({
           />
         );
       })}
+      <div className="tpo-wall" aria-hidden="true" />
+      <div className="tpo-tone" aria-hidden="true" />
+      <div className="tpo-lift" aria-hidden="true" />
       <div className="tpo-vignette" />
+      <div className="tpo-top" aria-hidden="true">
+        {items.map((item, index) => {
+          if (!item.info) return null;
+          const delta = Math.abs(wrapDelta(index, progress, count));
+          return (
+            <div key={item.id} className="tpo-top-layer" style={{ opacity: Math.max(0, 1 - delta * 1.4), transform: `translateY(${delta * -6}px)` }}>
+              <p className="tpo-kicker">{item.kicker}</p>
+              <p className="tpo-top-title">{item.title}</p>
+            </div>
+          );
+        })}
+      </div>
       <div className="tpo-ring" style={{ width: scene.maxDisc * 1.2, height: scene.maxDisc * 1.2, left: scene.hubX, top: scene.hubY }} />
       {items.map((item, index) => {
         const place = pose(index, progress, box, count);
@@ -334,7 +374,7 @@ export function TemplateOrbit({
 
       <div className={menu ? "tpo-menu open" : "tpo-menu"} data-stop="true" role="dialog" aria-label={current.title} aria-hidden={!menu} inert={menu ? undefined : true} style={{ top: menuTop, maxHeight: menuMax }}>
         <div className="tpo-scroll">
-          <p className="tpo-menu-title">{current.title}</p>
+          {current.info ? null : <p className="tpo-menu-title">{current.title}</p>}
           {current.info ? null : <p className="tpo-menu-meta">Глав: {current.chapters.length}</p>}
           <p className="tpo-menu-body">{current.intro}</p>
           {current.info ? null : (
@@ -350,6 +390,16 @@ export function TemplateOrbit({
               </ol>
             </details>
           )}
+          {current.images?.length ? (
+            <div className={current.images.length > 1 ? "tpo-thumbs" : "tpo-thumbs one"}>
+              {current.images.map((src) => (
+                <button key={src} type="button" onClick={() => setZoom(src)} aria-label="Открыть крупно">
+                  <img src={src} alt="" loading="lazy" decoding="async" />
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {current.images?.length ? <p className="tpo-hint">Нажмите на картинку, чтобы открыть крупно</p> : null}
           {current.extra ? <div className="mt-3">{current.extra}</div> : null}
         </div>
         <div className="tpo-foot">
@@ -395,7 +445,7 @@ export function TemplateOrbit({
               <p className="tpo-name">
                 {item.first} <span>{item.second}</span>
               </p>
-              <p className="tpo-note">{item.note}</p>
+              {item.teaser ? <p className="tpo-teaser">{item.teaser}</p> : <p className="tpo-note">{item.note}</p>}
             </div>
           );
         })}
@@ -407,6 +457,7 @@ export function TemplateOrbit({
         ))}
       </div>
 
+      {zoom ? <Lightbox src={zoom} onClose={() => setZoom(null)} /> : null}
       <p className="tpo-live" aria-live="polite">
         {current.first} {current.second}
       </p>
