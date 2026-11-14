@@ -64,6 +64,9 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
         Расскажите то, что помните: случай из детства, как пахла бабушкина кухня, как познакомились родители. Можно прислать и старое фото. Достаточно пары слов. Ничего устанавливать и платить не нужно, чтобы помочь.
       </p>
 
+      <HelperJoin room={room} invite={invite} />
+      <p className="mt-6 text-sm font-semibold text-ink/70">Или просто расскажите воспоминание или пришлите фото:</p>
+
       {sent > 0 ? (
         <div className="wash-sage mt-6 rounded-2xl p-5">
           <p className="flex items-center gap-2 font-semibold text-ink">
@@ -150,7 +153,6 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
           .
         </p>
       </div>
-      <HelperJoin room={room} invite={invite} />
       <Promo />
     </div>
   );
