@@ -27,6 +27,10 @@ export type OrbitItem = {
   added: boolean;
   /** Дополнительный элемент в меню (например, кнопка с видео). */
   extra?: ReactNode;
+  /** Информационный диск («что входит в доступ»): без «Взять шаблон». */
+  info?: boolean;
+  /** Подпись кнопки открытия доступа у информационного диска (если задана). */
+  cta?: string;
 };
 
 const STIFF = 62;
@@ -319,7 +323,7 @@ export function TemplateOrbit({
             }}
           >
             <img src={item.face} alt="" draggable={false} decoding="async" style={{ objectPosition: item.faceFocus }} />
-            {!access ? (
+            {!access && !item.info ? (
               <span className="tpo-lock" aria-hidden="true">
                 <Lock size={14} strokeWidth={2.2} />
               </span>
@@ -331,23 +335,31 @@ export function TemplateOrbit({
       <div className={menu ? "tpo-menu open" : "tpo-menu"} data-stop="true" role="dialog" aria-label={current.title} aria-hidden={!menu} inert={menu ? undefined : true} style={{ top: menuTop, maxHeight: menuMax }}>
         <div className="tpo-scroll">
           <p className="tpo-menu-title">{current.title}</p>
-          <p className="tpo-menu-meta">Глав: {current.chapters.length}</p>
+          {current.info ? null : <p className="tpo-menu-meta">Глав: {current.chapters.length}</p>}
           <p className="tpo-menu-body">{current.intro}</p>
-          <details className="tpo-chapters">
-            <summary>Главы: {current.chapters.length}</summary>
-            <ol>
-              {current.chapters.map((chapter) => (
-                <li key={chapter.n}>
-                  <span>{chapter.range}</span>
-                  {chapter.n}. {chapter.title}
-                </li>
-              ))}
-            </ol>
-          </details>
+          {current.info ? null : (
+            <details className="tpo-chapters">
+              <summary>Главы: {current.chapters.length}</summary>
+              <ol>
+                {current.chapters.map((chapter) => (
+                  <li key={chapter.n}>
+                    <span>{chapter.range}</span>
+                    {chapter.n}. {chapter.title}
+                  </li>
+                ))}
+              </ol>
+            </details>
+          )}
           {current.extra ? <div className="mt-3">{current.extra}</div> : null}
         </div>
         <div className="tpo-foot">
-        {!access ? (
+        {current.info ? (
+          current.cta && !access ? (
+            <button type="button" className="tpo-take btn-glass-green" onClick={onUnlock}>
+              <Lock size={16} /> {current.cta}
+            </button>
+          ) : null
+        ) : !access ? (
           <button type="button" className="tpo-take btn-glass-green" onClick={onUnlock}>
             <Lock size={16} /> Открыть полный доступ
           </button>

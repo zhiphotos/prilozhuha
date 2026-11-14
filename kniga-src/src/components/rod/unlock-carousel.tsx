@@ -7,9 +7,9 @@ import { ReelModal } from "@/components/rod/reel-modal";
 
 const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
 
-type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; video?: { src: string; poster: string }; price?: boolean; buy?: boolean; pos?: string; reviews?: boolean; square?: boolean; reel?: boolean };
+export type Slide = { kicker: string; title: string; text: string; image?: string; grid?: string[]; video?: { src: string; poster: string }; price?: boolean; buy?: boolean; pos?: string; reviews?: boolean; square?: boolean; reel?: boolean };
 
-const SLIDES: Slide[] = [
+export const SLIDES: Slide[] = [
   {
     kicker: "Первый урок",
     title: "Послушайте, как звучит программа",
@@ -118,7 +118,7 @@ const COMING = [
 ];
 
 /** Превью урока: нажали и играет сразу, без звука; повторное нажатие ставит на паузу, листание в сторону тоже. */
-function PreviewVideo({ src, poster }: { src: string; poster: string }) {
+export function PreviewVideo({ src, poster }: { src: string; poster: string }) {
   const video = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
 

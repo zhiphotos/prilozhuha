@@ -16,6 +16,7 @@ import { WEDDING_EXTRA, WEDDING_EXTRA_PAGES, WEDDING_MODERN, WEDDING_MODERN_PAGE
 import { GrowingTree } from "@/components/rod/growing-tree";
 import { treeGrowth } from "@/lib/rod/book-tree";
 import { TemplateOrbit, type OrbitItem } from "@/components/rod/template-orbit";
+import { PreviewVideo, SLIDES } from "@/components/rod/unlock-carousel";
 import { CommunityCard } from "@/components/rod/access";
 import { PaySheet } from "@/components/rod/lessons";
 import { AI_NOTE, PROGRAM_SOON } from "@/lib/rod/lesson-pitch";
@@ -843,8 +844,57 @@ function TemplateStage({ pages, meta, onUnlock }: { pages: BookPage[]; meta: { d
     tpl.build().forEach((page) => addPage(page));
     toast(`В книгу добавлено ${tpl.total} страниц по главам`);
   };
-  return <TemplateOrbit items={items} open={open} onTake={take} onUnlock={onUnlock} />;
+  const [tab, setTab] = useState<"tpl" | "info">("tpl");
+  const infoItems: OrbitItem[] = INFO_PICKS.map((pick) => {
+    const slide = SLIDES[pick.at];
+    return {
+      id: `info-${pick.at}`,
+      first: pick.first,
+      second: pick.second,
+      note: slide.kicker,
+      title: slide.title,
+      intro: slide.text,
+      work: asset(slide.image ?? "course/site/lesson1.jpg"),
+      focus: slide.pos ?? "50% 50%",
+      face: asset(slide.image ?? slide.video?.poster ?? "course/site/lesson1.jpg"),
+      faceFocus: slide.pos ?? "50% 50%",
+      total: 0,
+      chapters: [],
+      added: false,
+      info: true,
+      cta: slide.price ? `Открыть полный доступ · ${PROGRAM_PRICE}` : undefined,
+      extra: slide.video ? <PreviewVideo src={asset(slide.video.src)} poster={asset(slide.video.poster)} /> : undefined,
+    };
+  });
+  return (
+    <>
+      {!open ? (
+        <div className="mb-3 flex gap-2" role="tablist" aria-label="Что показать">
+          {([["tpl", "Шаблоны"], ["info", "Что входит в доступ"]] as const).map(([id, label]) => (
+            <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={cn("min-h-11 rounded-full px-4 text-sm font-semibold transition", tab === id ? "bg-moss text-paper" : "bg-white/60 text-ink")}>
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <TemplateOrbit key={tab} items={tab === "info" && !open ? infoItems : items} open={open} onTake={take} onUnlock={onUnlock} />
+    </>
+  );
 }
+
+const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
+/** Какие слайды рекламной карусели (SLIDES) показываем кругами в «Что входит в доступ» и как их коротко назвать. */
+const INFO_PICKS: { at: number; first: string; second: string }[] = [
+  { at: 0, first: "Первый", second: "урок" },
+  { at: 1, first: "Шесть", second: "уроков" },
+  { at: 2, first: "ИИ", second: "помощник" },
+  { at: 3, first: "Готовые", second: "материалы" },
+  { at: 8, first: "Всё в", second: "приложении" },
+  { at: 9, first: "Свой", second: "темп" },
+  { at: 10, first: "Сообщество", second: "" },
+  { at: 11, first: "Книга", second: "в руках" },
+  { at: 12, first: "Один", second: "платёж" },
+];
 
 /** Под каруселью у тех, у кого доступ не открыт: покупка и то, что скоро появится. */
 function SoonBlock({ onBuy }: { onBuy: () => void }) {
