@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/rod/chrome";
-import { Cut, packBg } from "@/components/rod/botanica";
+import { packBg } from "@/components/rod/botanica";
 import { loginWithCode, requestLoginCode } from "@/lib/rod/pay";
 import { serverStatus } from "@/lib/rod/server";
 import { syncNow } from "@/lib/rod/sync";
@@ -59,59 +58,47 @@ export function LoginScreen({ onClose, onBuy }: { onClose: () => void; onBuy: ()
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[90] overflow-y-auto bg-paper" role="dialog" aria-modal="true" aria-label="Вход">
-      <main className="min-h-dvh">
-        <header className="forest relative rounded-none px-6 pb-14 pt-[max(2.5rem,env(safe-area-inset-top))]" style={{ ["--forest-img" as string]: packBg("bg_8154") }}>
-          <div className="mx-auto max-w-xl">
-            <button type="button" onClick={onClose} className="-ml-2 mb-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-sm text-paper/80">
-              <ChevronLeft className="size-5" /> Назад
-            </button>
-            <p className="hand text-[2.4rem] leading-none text-[#c9ae74]">Книга рода</p>
-            <h1 className="display-title mt-4 text-[2.2rem] leading-[1.1] text-paper">Вход</h1>
-            <p className="mt-3 max-w-[32ch] text-paper/75">Вход нужен тем, кто открыл полный доступ. С ним книга хранится в облаке и открывается на любом устройстве.</p>
-          </div>
-          <Cut id="moth" className="pointer-events-none absolute -right-8 top-16 w-44 rotate-[14deg] opacity-90" />
-        </header>
-        <div className="relative z-10 mx-auto -mt-6 w-full max-w-xl rounded-t-2xl bg-paper px-5 pb-12 pt-7 shadow-[var(--shadow-soft)] sm:rounded-2xl sm:px-8">
-          {live === false ? (
-            <p className="rounded-xl bg-blush/60 p-4 text-sm text-ink">Вход сейчас недоступен: сервер оплаты не отвечает. Книга при этом работает на этом устройстве, попробуйте войти чуть позже.</p>
-          ) : null}
-          <form
-            className="grid gap-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (sent) void enter();
-              else void send();
-            }}
-          >
-            <label className="block">
-              <span className="text-sm font-medium text-ink">Почта, которую вы указывали при оплате</span>
-              <input className="field mt-1.5" type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); setSent(false); }} placeholder="name@mail.ru" />
-            </label>
-            {sent ? (
-              <label className="block">
-                <span className="text-sm font-medium text-ink">Код из письма</span>
-                <input className="field mt-1.5 text-center text-2xl tracking-[0.3em]" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" />
-                <span className="mt-1.5 block text-xs text-muted">Если письма нет, загляните в папку «Спам».</span>
-              </label>
-            ) : null}
-            <Button type="submit" disabled={busy || (sent ? code.length !== 6 : !validEmail)} className="btn-glass-green h-auto min-h-12 w-full py-3">
-              {busy ? "Подождите…" : sent ? "Войти" : "Прислать код"}
-            </Button>
-            {sent ? (
-              <button type="button" className="min-h-11 text-left text-sm font-semibold text-moss underline underline-offset-2" disabled={busy} onClick={() => void send()}>
+    <div className="login-screen fixed inset-0 z-[90] overflow-y-auto" role="dialog" aria-modal="true" aria-label="Вход" style={{ ["--login-img" as string]: packBg("bg_8150") }}>
+      <div className="login-bg" aria-hidden="true" />
+      <div className="login-wall" aria-hidden="true" />
+      <main className="relative z-10 mx-auto flex min-h-dvh w-full max-w-xl flex-col px-7 pb-[max(1.6rem,env(safe-area-inset-bottom))] pt-[max(1.2rem,env(safe-area-inset-top))] text-paper">
+        <button type="button" onClick={onClose} className="-ml-2 inline-flex min-h-11 w-fit items-center gap-1 rounded-full px-2 text-sm text-paper/80">
+          <ChevronLeft className="size-5" /> Назад
+        </button>
+        <h1 className="display-title mt-10 text-[4.2rem] leading-[0.95] text-paper">Вход</h1>
+        <p className="mt-4 max-w-[30ch] text-[15px] leading-relaxed text-paper/80">Вход нужен тем, кто открыл полный доступ. С ним книга хранится в облаке и открывается на любом устройстве.</p>
+        {live === false ? <p className="mt-4 rounded-xl bg-black/40 p-3 text-sm text-paper/90">Вход сейчас недоступен: сервер оплаты не отвечает. Книга работает на этом устройстве, попробуйте чуть позже.</p> : null}
+        <form
+          className="mt-8 flex flex-1 flex-col"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (sent) void enter();
+            else void send();
+          }}
+        >
+          <input className="login-line" type="email" inputMode="email" autoComplete="email" aria-label="Почта, которую вы указывали при оплате" value={email} onChange={(event) => { setEmail(event.target.value); setSent(false); }} placeholder="Почта при оплате" />
+          {sent ? (
+            <>
+              <input className="login-line mt-3 tracking-[0.3em]" inputMode="numeric" autoComplete="one-time-code" maxLength={6} aria-label="Код из письма" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="Код из письма" />
+              <p className="mt-2 text-xs text-paper/70">Если письма нет, загляните в папку «Спам».</p>
+              <button type="button" className="mt-2 min-h-11 w-fit text-sm text-paper underline underline-offset-4" disabled={busy} onClick={() => void send()}>
                 Прислать код ещё раз
               </button>
-            ) : null}
-          </form>
-          <div className="mt-8 rounded-2xl bg-white/60 p-4 text-sm text-ink">
-            <p className="font-semibold">Ещё не открывали полный доступ?</p>
-            <p className="mt-1 text-muted">Входить не нужно: книга хранится только в этом телефоне или браузере. Платный доступ даёт вход, облако и до трёх книг.</p>
-            <button type="button" onClick={() => { onClose(); onBuy(); }} className="mt-2 min-h-11 font-semibold text-moss underline underline-offset-2">
-              Что даёт полный доступ
+            </>
+          ) : null}
+          <div className="mt-auto pt-10">
+            <button type="submit" disabled={busy || (sent ? code.length !== 6 : !validEmail)} className="login-btn">
+              {busy ? "Подождите…" : sent ? "Войти" : "Прислать код"}
             </button>
+            <p className="mt-4 text-center text-[12px] leading-relaxed text-paper/70">
+              Бесплатно входить не нужно: книга хранится в этом телефоне.
+              <br />
+              <button type="button" onClick={() => { onClose(); onBuy(); }} className="text-paper underline underline-offset-4">
+                Что даёт полный доступ
+              </button>
+            </p>
           </div>
-        </div>
+        </form>
       </main>
     </div>,
     document.body,
