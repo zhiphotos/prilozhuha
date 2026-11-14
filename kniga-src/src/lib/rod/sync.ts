@@ -4,6 +4,7 @@ import { API_BASE } from "@/lib/rod/config";
 import { DATA_KEYS, applyBookData, collectRefs } from "@/lib/rod/backup";
 import { hasMedia, mediaDataUrl, saveMediaAs } from "@/lib/rod/media";
 import { deviceId } from "@/lib/rod/pay";
+import { MAIN_ID, activeProjectId, addProjectWithId, listProjects } from "@/lib/rod/projects";
 import { fingerprint, splitParts } from "@/lib/rod/sync-logic";
 import { PART, afterOpenCopy, previewMerge, restoreLocalBackup, restorePreviousCloud, syncCore, type Deps, type Meta, type SyncMode, type SyncOutcome } from "@/lib/rod/sync-engine";
 import { readBackup, saveBackup } from "@/lib/rod/sync-backup";
@@ -13,6 +14,12 @@ import { flushBook, useRod } from "@/lib/rod/store";
 // Книга и фото хранятся в облаке; версия растёт на единицу при каждой загрузке. Если менялось и там, и здесь, решает человек.
 
 const META = "kniga-sync";
+/** У каждой книги своя отметка синхронизации: первая хранится под прежним ключом, остальные рядом. */
+const metaKey = () => {
+  const id = activeProjectId();
+  return id === MAIN_ID ? META : `${META}:${id}`;
+};
+const bookName = () => listProjects().find((item) => item.id === activeProjectId())?.name ?? "";
 
 
 export type SyncState = {
@@ -33,7 +40,7 @@ export const useSync = create<SyncState>((set) => ({
 
 function readMeta(): Meta {
   try {
-    const raw = JSON.parse(localStorage.getItem(META) ?? "null") as Partial<Meta> | null;
+    const raw = JSON.parse(localStorage.getItem(metaKey()) ?? "null") as Partial<Meta> | null;
     return { rev: Number(raw?.rev ?? 0), hash: String(raw?.hash ?? ""), at: String(raw?.at ?? ""), size: typeof raw?.size === "number" ? raw.size : undefined };
   } catch {
     return { rev: 0, hash: "", at: "" };
@@ -42,7 +49,7 @@ function readMeta(): Meta {
 
 function writeMeta(meta: Meta) {
   try {
-    localStorage.setItem(META, JSON.stringify(meta));
+    localStorage.setItem(metaKey(), JSON.stringify(meta));
   } catch {
     /* без отметки следующая синхронизация покажет конфликт, но ничего не потеряет */
   }
@@ -58,7 +65,7 @@ async function call<T>(body: Record<string, unknown>): Promise<{ status: number;
   for (let n = 0; n < attempts; n += 1) {
     if (n > 0) await new Promise((resolve) => setTimeout(resolve, 600 * n));
     try {
-      const response = await fetch(`${API_BASE}/api/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, deviceId: deviceId(), ...body }) });
+      const response = await fetch(`${API_BASE}/api/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, deviceId: deviceId(), slot: activeProjectId(), name: bookName(), ...body }) });
       const parsed = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
       if (parsed) return { status: response.status, data: parsed };
       last = { status: response.status, data: { error: `Облако не ответило (код ${response.status || "нет связи"}).` } as T & { error?: string } };
@@ -170,11 +177,28 @@ export async function previewMergeNow() {
   return previewMerge(makeDeps());
 }
 
+let adoptedAt = 0;
+/** Книги, созданные на другом устройстве, появляются в списке «Мои книги» (раз в пять минут). Пустые, содержимое подтянется при открытии. */
+async function adoptCloudBooks(): Promise<void> {
+  if (Date.now() - adoptedAt < 300_000) return;
+  adoptedAt = Date.now();
+  const { status, data } = await call<{ books?: { slot: string; name: string }[] }>({ op: "slots", slot: MAIN_ID });
+  if (status !== 200) return;
+  for (const book of data.books ?? []) addProjectWithId(book.slot, book.name);
+}
+
+/** Убрать книгу из облака (при удалении её на этом устройстве), чтобы освободить место из трёх. */
+export async function dropCloudBook(id: string): Promise<void> {
+  if (!API_BASE || !useRod.getState().access?.token || id === MAIN_ID) return;
+  await call({ op: "drop", slot: id });
+}
+
 /** Одна синхронизация. auto: только безопасные случаи, при конфликте ждёт выбора. mine/cloud: выбор человека при конфликте. */
 export async function syncNow(mode: SyncMode = "auto"): Promise<void> {
   const ui = useSync.getState();
   if (ui.busy || !API_BASE || !useRod.getState().access?.token) return;
   ui.setState({ busy: true, message: "Синхронизирую…" });
+  if (mode === "auto") await adoptCloudBooks().catch(() => undefined);
   report(await syncCore(makeDeps(), mode), mode);
 }
 
