@@ -1,6 +1,6 @@
 import { needsMaidenName } from "@/lib/rod/person";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeftRight, BookOpen, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, ChevronDown, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeftRight, BookOpen, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, ChevronDown, Download, FileText, ListChecks, Network, Palette, Plus, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, ScreenFrame, Sheet, TopBar, useNav } from "@/components/rod/chrome";
 import { PageSheet } from "@/components/rod/page-view";
@@ -44,6 +44,7 @@ export function BookScreen() {
   const [textToPages, setTextToPages] = useState(false);
   const [contents, setContents] = useState(false);
   const [pay, setPay] = useState(false);
+  const [menu, setMenu] = useState(false);
   const plan = useRod((state) => state.plan);
   const snapshot = { ...data, pages };
   const overall = overallOf(partsOf(snapshot));
@@ -104,53 +105,8 @@ export function BookScreen() {
     <ScreenFrame>
       <TopBar kicker="Моя книга" title={name ? `Книга рода · ${name}` : "Книга рода"} />
 
-      {/* Дерево растёт на фоне блока, кнопки лежат поверх него справа. */}
-      <div className={treeOn ? "relative mb-5 min-h-[27rem]" : "mb-5"}>
-        {treeOn ? <GrowingTree growth={growth} onHide={() => switchTree(false)} /> : null}
-      <div data-tour="book-actions" className={treeOn ? "relative z-10 ml-[44%] grid min-w-0 grid-cols-1 content-start gap-2" : "grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2"}>
-        <Hint id="book-print">
-          <Button variant="soft" className="min-h-12" onClick={() => (pages.length ? setPrinting(true) : toast("Сначала добавьте хотя бы одну страницу"))}>
-            <Printer className="size-4" /> Формат и печать
-          </Button>
-        </Hint>
-        <Hint id="book-plan">
-          <Button variant="soft" className="min-h-12" onClick={() => setPlanning(true)}>
-            <Sparkles className="size-4" /> Список страниц
-          </Button>
-        </Hint>
-        <Hint id="book-text-pages">
-          <Button variant="soft" className="min-h-12" onClick={() => setTextToPages(true)}>
-            <Sparkles className="size-4" /> Вставить длинный рассказ
-          </Button>
-          <p className="mt-1 rounded-xl bg-paper/75 px-2 py-1 text-xs text-muted backdrop-blur-sm">Длинную историю вставьте сюда, она сама разойдётся по страницам.</p>
-        </Hint>
-        <Button variant="soft" className="min-h-12" onClick={() => { toast("Откройте древо и выберите «Схема из выбранных»"); nav.go({ id: "archive", tab: "tree" }); }}>
-          <Sparkles className="size-4" /> Семейное дерево на страницу
-        </Button>
-        <Hint id="book-cover">
-          <Button variant="soft" className="min-h-12" onClick={() => setCoverSetup(true)}>
-            <Palette className="size-4" /> Обложка и корешок
-          </Button>
-        </Hint>
-        {/* Тёмные кнопки тяжелее по виду, поэтому стоят внизу списка. */}
-        <Button className="min-h-12" onClick={() => (pages.length ? nav.go({ id: "flip" }) : toast("Сначала добавьте хотя бы одну страницу"))}>
-          <BookOpen className="size-4" /> Листать книгу
-        </Button>
-        <Button className="min-h-12" onClick={() => setContents(true)}>
-          <BookOpen className="size-4" /> Содержание{plan.length ? ` · ${plan.filter((c) => c.done).length} из ${plan.length}` : ""}
-        </Button>
-      </div>
-        {treeOn || !TREE_AVAILABLE ? null : (
-          <div className="mt-2 flex justify-center">
-            <button type="button" className="min-h-9 text-xs font-semibold text-moss underline underline-offset-2" onClick={() => switchTree(true)}>
-              Показать картинку-дерево
-            </button>
-          </div>
-        )}
-      </div>
-
       {/* Прежняя карточка «Начните отсюда»: теперь она остаётся всегда и показывает, где остановились. */}
-      <button type="button" onClick={hero.go} data-tour="book-hero" className="relative z-10 mb-1 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">
+      <button type="button" onClick={hero.go} data-tour="book-hero" className="relative z-10 mt-1 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">
         {/* Размытый ботанический фон и стеклянная плашка поверх: так же, как у карточки бесплатного урока на «Главной». */}
         <img src={`${import.meta.env.BASE_URL}course/site/memoirs-book.jpg`} alt="" className="absolute inset-0 size-full scale-110 object-cover blur-md" draggable={false} />
         <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
@@ -167,6 +123,34 @@ export function BookScreen() {
           </span>
         </span>
       </button>
+
+      {/* Стол переплётчика: книга наверху, ляссе, ножницы с меню мастерской и конверт для печати. */}
+      <div data-tour="book-actions" className="mb-6 mt-4 grid min-w-0 gap-3">
+        <button type="button" onClick={() => setContents(true)} className="desk-lasse relative flex min-h-14 items-center justify-between rounded-2xl px-5 text-left">
+          <span className="text-[15px] font-semibold text-ink">Содержание{plan.length ? ` · ${plan.filter((c) => c.done).length} из ${plan.length}` : ""}</span>
+          <img src={`${import.meta.env.BASE_URL}tex/desk/ribbon.webp`} alt="" className="absolute right-5 -top-2 h-12 w-auto" draggable={false} />
+        </button>
+        <div className="grid grid-cols-2 gap-3">
+          <button type="button" onClick={() => setMenu(true)} className="desk-tile">
+            <img src={`${import.meta.env.BASE_URL}tex/desk/scissors.webp`} alt="" className="desk-obj w-28 -rotate-6" draggable={false} />
+            <span className="desk-name">Мастерская</span>
+            <span className="desk-sub">рассказ, дерево, обложка</span>
+          </button>
+          <Hint id="book-print">
+            <button type="button" onClick={() => (pages.length ? setPrinting(true) : toast("Сначала добавьте хотя бы одну страницу"))} className={cn("desk-tile w-full", !pages.length && "opacity-60")}>
+              <img src={`${import.meta.env.BASE_URL}tex/desk/envelope.webp`} alt="" className="desk-obj w-20 rotate-3" draggable={false} />
+              <span className="desk-name">В печать</span>
+              <span className="desk-sub">формат и печать</span>
+            </button>
+          </Hint>
+        </div>
+      </div>
+
+      <div className="-mt-3 mb-4 flex justify-center">
+        <button type="button" className="min-h-11 text-sm font-semibold text-moss underline underline-offset-4" onClick={() => (pages.length ? nav.go({ id: "flip" }) : toast("Сначала добавьте хотя бы одну страницу"))}>
+          Листать книгу
+        </button>
+      </div>
 
       {/* Одна карусель шаблонов, под ней покупка и «Скоро в приложении» (у платных вместо них сообщество). */}
       {/* Заголовок «Шаблоны книги» только у тех, у кого доступ открыт: у остальных карусель сама начинается с рассказа о программе. */}
@@ -266,6 +250,26 @@ export function BookScreen() {
         </section>
       ) : null}
 
+      {menu ? (
+        <Sheet title="Мастерская" onClose={() => setMenu(false)}>
+          <div className="grid gap-5 pb-2">
+            <MenuGroup title="Собрать">
+              <Hint id="book-text-pages">
+                <MenuRow icon={FileText} title="Вставить длинный рассказ" note="Она сама разойдётся по страницам." onClick={() => { setMenu(false); setTextToPages(true); }} />
+              </Hint>
+              <MenuRow icon={Network} title="Семейное дерево на страницу" note="В древе выберите «Схема из выбранных»." onClick={() => { setMenu(false); toast("Откройте древо и выберите «Схема из выбранных»"); nav.go({ id: "archive", tab: "tree" }); }} />
+              <Hint id="book-plan">
+                <MenuRow icon={ListChecks} title="Список страниц" note="Какие страницы нужны книге." onClick={() => { setMenu(false); setPlanning(true); }} />
+              </Hint>
+            </MenuGroup>
+            <MenuGroup title="Оформить">
+              <Hint id="book-cover">
+                <MenuRow icon={Palette} title="Обложка и корешок" note="Цвет, название, ткань." onClick={() => { setMenu(false); setCoverSetup(true); }} />
+              </Hint>
+            </MenuGroup>
+          </div>
+        </Sheet>
+      ) : null}
       {pay ? <PaySheet onClose={() => setPay(false)} /> : null}
       {contents ? <ContentsSheet onClose={() => setContents(false)} onOpen={(pid) => { setContents(false); nav.go({ id: "editor", pageId: pid }); }} /> : null}
       {planning ? <PlanSheet onClose={() => setPlanning(false)} /> : null}
@@ -937,5 +941,26 @@ function SoonBlock({ onBuy }: { onBuy: () => void }) {
         ) : null}
       </div>
     </section>
+  );
+}
+
+function MenuGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">{title}</h3>
+      <div className="grid gap-2">{children}</div>
+    </section>
+  );
+}
+
+function MenuRow({ icon: Icon, title, note, onClick }: { icon: typeof Palette; title: string; note: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="flex min-h-16 w-full items-center gap-3 rounded-2xl border border-ink/10 bg-paper/80 px-4 py-3 text-left">
+      <Icon className="size-5 shrink-0 text-moss" />
+      <span className="min-w-0">
+        <span className="block text-[15px] font-semibold text-ink">{title}</span>
+        <span className="mt-0.5 block text-sm text-muted">{note}</span>
+      </span>
+    </button>
   );
 }
