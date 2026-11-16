@@ -371,7 +371,10 @@ export function LayersSheet({
   onLock,
   onRemove,
   onClose,
+  shared = [],
 }: {
+  /** Картинки через разворот, которые лежат на соседней странице: здесь их не выбрать, но можно открыть, закрепить или убрать. */
+  shared?: { block: PageBlock; onOpen: () => void; onLock: () => void; onRemove: () => void }[];
   blocks: PageBlock[];
   selected: string | null;
   onSelect: (id: string) => void;
@@ -410,6 +413,30 @@ export function LayersSheet({
           </li>
         ))}
       </ul>
+      {shared.length ? (
+        <>
+          <p className="mb-2 mt-4 text-sm text-muted">Через разворот. Эти картинки лежат на соседней странице. Нажмите на строку, чтобы перейти туда и двигать их, как обычно.</p>
+          <ul className="grid gap-1.5">
+            {shared.map(({ block, onOpen, onLock, onRemove: remove }) => (
+              <li key={block.id} className="flex items-center gap-2 rounded-2xl bg-white/70 p-1.5">
+                <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={onOpen}>
+                  <LayerThumb block={block} />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-ink">{blockLabel(block)}</span>
+                    <span className="block text-xs text-muted">{block.locked ? "заблокирован · " : ""}на соседней странице, открыть</span>
+                  </span>
+                </button>
+                <button type="button" aria-label={block.locked ? "Разблокировать" : "Заблокировать"} className={cn("grid size-11 place-items-center rounded-full", block.locked && "bg-night text-paper")} onClick={onLock}>
+                  {block.locked ? <Lock className="size-4" /> : <Unlock className="size-4" />}
+                </button>
+                <button type="button" aria-label="Удалить" className="grid size-11 place-items-center rounded-full text-rose-deep" onClick={remove}>
+                  <Trash2 className="size-4" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
       <Button className="mt-3 w-full" onClick={onClose}>
         Готово
       </Button>

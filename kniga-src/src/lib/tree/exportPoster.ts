@@ -125,17 +125,25 @@ async function loadPosterFonts(): Promise<void> {
 }
 
 /** Картинка схемы в выбранном стиле без сохранения файла: для вставки на страницу книги. */
-export async function renderPosterCanvas(data: TreeData, style: TreeStyle = "work", banner = "", paper: "white" | "black" = "white", flow: "down" | "up" = "down"): Promise<HTMLCanvasElement> {
-  await loadPosterFonts();
-  const titleOf = (fallback: string) => banner.trim() || fallback;
-  if (style === "taiga") return renderTaiga(data, titleOf, flow);
-  if (style === "boheme") return renderBoheme(data, titleOf, flow);
-  if (style === "gzhel") return renderGzhel(data, titleOf, flow);
-  if (style === "cameo") return renderCameo(data, titleOf, flow);
-  if (style === "carved") return renderLiving(data, titleOf, flow);
-  const prep = await prepareWork(data, paper, flow);
-  if (prep.layout.width > 7000) return drawBandsPng(prep);
-  return renderWork(data, paper, flow);
+/** Рабочая схема без фона: прозрачный лист, без подписи внизу. Включается только на время одной отрисовки. */
+let CLEAR_SHEET = false;
+
+export async function renderPosterCanvas(data: TreeData, style: TreeStyle = "work", banner = "", paper: "white" | "black" = "white", flow: "down" | "up" = "down", clear = false): Promise<HTMLCanvasElement> {
+  CLEAR_SHEET = clear && style === "work";
+  try {
+    await loadPosterFonts();
+    const titleOf = (fallback: string) => banner.trim() || fallback;
+    if (style === "taiga") return await renderTaiga(data, titleOf, flow);
+    if (style === "boheme") return await renderBoheme(data, titleOf, flow);
+    if (style === "gzhel") return await renderGzhel(data, titleOf, flow);
+    if (style === "cameo") return await renderCameo(data, titleOf, flow);
+    if (style === "carved") return await renderLiving(data, titleOf, flow);
+    const prep = await prepareWork(data, paper, flow);
+    if (prep.layout.width > 7000) return drawBandsPng(prep);
+    return await renderWork(data, paper, flow);
+  } finally {
+    CLEAR_SHEET = false;
+  }
 }
 
 export async function exportPoster(data: TreeData, style: TreeStyle = "work", banner = "", paper: "white" | "black" = "white", flow: "down" | "up" = "down", format: "png" | "pdf" = "png", print: PrintOptions = DEFAULT_PRINT): Promise<void> {
@@ -214,8 +222,10 @@ async function prepareWork(data: TreeData, paper: "white" | "black", flow: "down
 /** Рисует древо в текущих координатах холста (масштаб и сдвиг уже заданы снаружи). */
 function drawWork(ctx: CanvasRenderingContext2D, prep: WorkPrep, sheetW: number, sheetH: number) {
   const { dark, tone, layout, data, people, photos } = prep;
-  ctx.fillStyle = tone.sheet;
-  ctx.fillRect(0, 0, sheetW, sheetH);
+  if (!CLEAR_SHEET) {
+    ctx.fillStyle = tone.sheet;
+    ctx.fillRect(0, 0, sheetW, sheetH);
+  }
   ctx.strokeStyle = tone.blood;
   ctx.lineWidth = 2.6;
   ctx.lineCap = "round";
@@ -334,7 +344,7 @@ function drawWork(ctx: CanvasRenderingContext2D, prep: WorkPrep, sheetW: number,
 async function renderWork(data: TreeData, paper: "white" | "black", flow: "down" | "up"): Promise<HTMLCanvasElement> {
   const prep = await prepareWork(data, paper, flow);
   const { layout, tone } = prep;
-  const footer = 120;
+  const footer = CLEAR_SHEET ? 0 : 120;
   const scale = fitScale(layout.width, layout.height + footer);
   const canvas = document.createElement("canvas");
   canvas.width = Math.ceil(layout.width * scale);
@@ -343,7 +353,7 @@ async function renderWork(data: TreeData, paper: "white" | "black", flow: "down"
   if (!ctx) throw new Error("canvas");
   ctx.scale(scale, scale);
   drawWork(ctx, prep, layout.width, layout.height + footer);
-  paintFooter(ctx, canvas, layout.height, scale, tone.footer);
+  if (!CLEAR_SHEET) paintFooter(ctx, canvas, layout.height, scale, tone.footer);
   return canvas;
 }
 
@@ -400,8 +410,10 @@ function drawBands(prep: WorkPrep, bands: number, bandX: [number, number], s: nu
   canvas.height = Math.ceil(top + bands * (bh * s + gap) + extraH);
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("canvas");
-  ctx.fillStyle = tone.sheet;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (!CLEAR_SHEET) {
+    ctx.fillStyle = tone.sheet;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
   const total = layout.width + Math.abs(left) + 2000;
   for (let i = 0; i < bands; i++) {
     const oy = top + i * (bh * s + gap);

@@ -80,7 +80,9 @@ async function call<T>(body: Record<string, unknown>): Promise<{ status: number;
 function snapshot() {
   flushBook();
   const state = useRod.getState();
-  const data = Object.fromEntries(DATA_KEYS.map((key) => [key, state[key]]));
+  const data: Record<string, unknown> = Object.fromEntries(DATA_KEYS.map((key) => [key, state[key]]));
+  // Ссылка «Семейной комнаты» (куда родные присылают правки) едет в облако вместе с книгой: иначе на другом устройстве их не видно.
+  if (state.room) data.room = state.room;
   const text = JSON.stringify(data);
   const refs = new Set<string>();
   collectRefs(data, refs);
