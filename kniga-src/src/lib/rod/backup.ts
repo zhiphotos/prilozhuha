@@ -120,6 +120,9 @@ export async function importBook(file: File): Promise<void> {
 export function applyBookData(data: Record<string, unknown>): void {
   const defaults: Record<string, unknown> = { back: null, spine: { text: "", font: "script", size: 0 }, fonts: [], userStickers: [], plan: [] };
   const clean = { ...defaults, ...Object.fromEntries(DATA_KEYS.filter((key) => key in data).map((key) => [key, data[key]])) };
+  // Комната родных: берём из облака, только если на этом устройстве её ещё нет (своя ссылка не перезаписывается).
+  const cloudRoom = data.room as { id?: string; ownerKey?: string; inviteKey?: string; name?: string } | undefined;
+  if (!useRod.getState().room && cloudRoom?.id && cloudRoom.ownerKey && cloudRoom.inviteKey) Object.assign(clean, { room: { id: cloudRoom.id, ownerKey: cloudRoom.ownerKey, inviteKey: cloudRoom.inviteKey, name: cloudRoom.name ?? "" } });
   useRod.setState(clean);
   afterHydrate();
   flushBook();
