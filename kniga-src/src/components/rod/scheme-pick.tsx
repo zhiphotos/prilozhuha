@@ -31,7 +31,12 @@ export function SchemePick({ people, unions, focusId, style, banner, flow, ids, 
   const real = useMemo(() => people.filter((p) => !p.id.startsWith("__")), [people]);
   const updatePage = useRod((s) => s.updatePage);
   // Куда поставить: новой страницей в конец или на уже готовую страницу книги.
-  const [target, setTarget] = useState<string>("new");
+  // По умолчанию: страница, которую правили последней. Так схема не улетает в конец книги.
+  const lastEdited = useMemo(() => pages.filter((pg) => pg.kind !== "cover").reduce<(typeof pages)[number] | undefined>((best, pg) => (!best || (pg.editedAt ?? 0) >= (best.editedAt ?? 0) ? pg : best), undefined), [pages]);
+  const [target, setTarget] = useState<string>(() => (lastEdited?.editedAt ? lastEdited.id : "new"));
+  const [pageNo, setPageNo] = useState("");
+  // Схема без фона: прозрачный лист, виден только рисунок (только у рабочего стиля).
+  const [clear, setClear] = useState(false);
   const [query, setQuery] = useState("");
   const [title, setTitle] = useState(banner);
   const [busy, setBusy] = useState(false);
@@ -52,7 +57,7 @@ export function SchemePick({ people, unions, focusId, style, banner, flow, ids, 
     const sub = pickSubset(real, unions, ids);
     // Центр схемы: выбранный центр древа, если он среди отмеченных, иначе самый старший из группы.
     const center = ids.has(focusId) ? focusId : [...sub.people].sort((a, b) => (a.birthYear || "9999").localeCompare(b.birthYear || "9999"))[0]!.id;
-    return renderPosterCanvas({ people: sub.people, unions: sub.unions, focusId: center }, style, title, "white", flow);
+    return renderPosterCanvas({ people: sub.people, unions: sub.unions, focusId: center }, style, title, "white", flow, clear && style === "work");
   };
 
   const toPage = async () => {
@@ -149,7 +154,7 @@ export function SchemePick({ people, unions, focusId, style, banner, flow, ids, 
           {ids.size > 0 && parts.length > 1 && <p className="text-sm text-muted">Выбранные люди не связаны друг с другом: схема будет из {parts.length} отдельных частей. Добавьте их общих родственников, и части соединятся.</p>}
           <label className="grid min-w-0 gap-1 text-xs tracking-widest text-muted uppercase">
             Куда поставить
-            <select className="min-h-11 w-full min-w-0 rounded-2xl border border-line bg-white px-3 text-base tracking-normal text-ink normal-case" value={target} onChange={(e) => setTarget(e.target.value)}>
+            <select className="min-h-11 w-full min-w-0 rounded-2xl border border-line bg-white px-3 text-base tracking-normal text-ink normal-case" value={target} onChange={(e) => { setTarget(e.target.value); setPageNo(""); }}>
               <option value="new">Новая страница в конце книги</option>
               {pages.map((pg, i) => (
                 <option key={pg.id} value={pg.id}>
@@ -159,6 +164,30 @@ export function SchemePick({ people, unions, focusId, style, banner, flow, ids, 
               ))}
             </select>
           </label>
+          <label className="flex min-w-0 items-center gap-2 text-sm text-ink">
+            Или номер страницы
+            <input
+              inputMode="numeric"
+              aria-label="Номер страницы"
+              className="min-h-11 w-24 rounded-2xl border border-line bg-white px-3 text-base"
+              value={pageNo}
+              placeholder="№"
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, "");
+                setPageNo(value);
+                const n = Number.parseInt(value, 10);
+                const offset = pages[0]?.kind === "cover" ? 0 : 1;
+                const page = Number.isFinite(n) ? pages[n - offset] : undefined;
+                if (page) setTarget(page.id);
+              }}
+            />
+          </label>
+          {style === "work" ? (
+            <label className="flex min-h-11 items-center gap-2 text-sm text-ink">
+              <input type="checkbox" className="size-5" checked={clear} onChange={(e) => setClear(e.target.checked)} />
+              Без фона (прозрачная схема)
+            </label>
+          ) : null}
           <input aria-label="Подпись на схеме" className="min-h-11 w-full min-w-0 rounded-2xl border border-line bg-white px-3 text-base" value={title} placeholder="Подпись на схеме, например: Род по маме" onChange={(e) => setTitle(e.target.value)} />
           <div className="flex min-w-0 gap-2">
             <button type="button" disabled={busy || ids.size === 0} className="min-h-12 min-w-0 flex-1 rounded-2xl bg-ink px-3 font-semibold whitespace-nowrap text-sheet disabled:opacity-40" onClick={() => void toPage()}>

@@ -68,6 +68,7 @@ import { BACK_ID, type BookPage, type BrushKind, type FontRef, type InkStroke, t
 import type { Recognized } from "@/lib/rod/ink";
 import { cn } from "@/lib/cn";
 import { applyEdge, edgesFor } from "@/lib/rod/edge-handles";
+import { lineBox, wrapLines } from "@/lib/rod/measure";
 import { planReflow } from "@/lib/rod/reflow";
 import { snapBox, type Guides, type SnapTarget } from "@/lib/rod/snap";
 
@@ -449,6 +450,50 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       }
     }
     commit((p) => ({ ...p, blocks: p.blocks.map((b) => (b.id === blockId ? ({ ...b, ...partial } as PageBlock) : b)) }), group);
+  };
+
+  /** Выделенный кусок текста становится отдельным блоком: у него свой шрифт, размер и место на странице. */
+  const splitText = (blockId: string, from: number, to: number) => {
+    const page0 = current();
+    const b = page0?.blocks.find((x) => x.id === blockId);
+    if (!b || b.type !== "text") return;
+    const before = b.text.slice(0, from).trimEnd();
+    const mid = b.text.slice(from, to).trim();
+    const after = b.text.slice(to).trimStart();
+    if (!mid) {
+      toast("Выделите слова в тексте, потом нажмите «Выделенное отдельно»");
+      return;
+    }
+    if (!before && !after) {
+      toast("Выделен весь текст: меняйте шрифт и размер у самого блока");
+      return;
+    }
+    const heightPct = (text: string) => {
+      const style = { font: b.font, size: b.size, px: b.px, look: b.look, wordGap: b.wordGap, w: b.w };
+      const { line, padY } = lineBox(style);
+      return ((wrapLines(text, style).length * line * (b.leadMul ?? 1) + padY * 2) / PAGE_H) * 100;
+    };
+    const pieces = [before, mid, after].map((text, i) => ({ text, mid: i === 1 })).filter((piece) => piece.text);
+    let y = b.y;
+    let midId = blockId;
+    let first = true;
+    const made: PageBlock[] = pieces.map((piece) => {
+      const nid = first ? blockId : id();
+      first = false;
+      if (piece.mid) midId = nid;
+      const out = { ...b, id: nid, text: piece.text, y: round(y), flow: undefined } as PageBlock;
+      y += heightPct(piece.text) + 1;
+      return out;
+    });
+    commit((p) => {
+      const at = p.blocks.findIndex((x) => x.id === blockId);
+      const blocks = p.blocks.slice();
+      blocks.splice(at, 1, ...made);
+      return { ...p, blocks };
+    });
+    setEditing(null);
+    setSelected(midId);
+    toast("Выделенное стало отдельным блоком: меняйте шрифт, размер и место");
   };
 
   /** Один цвет для всех выделенных текстов за один шаг: у плашек и карточек меняется фон, у остальных цвет букв. */
@@ -1711,6 +1756,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const ops: BlockOps | null = selectedBlock
     ? {
         patch: (partial, group) => patchBlock(selectedBlock.id, partial, group),
+        splitSelection: (from, to) => splitText(selectedBlock.id, from, to),
         remove: () => removeBlock(selectedBlock.id),
         copy: () => copyBlocks(),
         paste: pasteBlocks,
@@ -2193,7 +2239,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         <TextPanel
           key={editingBlock.id}
           block={editingBlock}
-          ops={{ ...ops, patch: (partial, group) => patchBlock(editingBlock.id, partial, group), centerH: () => patchBlock(editingBlock.id, { x: round((100 - editingBlock.w) / 2) } as Partial<PageBlock>), centerV: () => patchBlock(editingBlock.id, { y: round((100 - heightOf(editingBlock)) / 2) } as Partial<PageBlock>) }}
+          ops={{ ...ops, splitSelection: (from, to) => splitText(editingBlock.id, from, to), patch: (partial, group) => patchBlock(editingBlock.id, partial, group), centerH: () => patchBlock(editingBlock.id, { x: round((100 - editingBlock.w) / 2) } as Partial<PageBlock>), centerV: () => patchBlock(editingBlock.id, { y: round((100 - heightOf(editingBlock)) / 2) } as Partial<PageBlock>) }}
           onChange={(text) => patchBlock(editingBlock.id, { text } as Partial<PageBlock>, `text:${editingBlock.id}`)}
           onDone={() => setEditing(null)}
         />
@@ -2510,6 +2556,12 @@ export function EditorScreen({ pageId }: { pageId: string }) {
           }}
           onRemove={(blockId) => removeBlock(blockId)}
           onClose={() => setPanel(null)}
+          shared={partner ? partner.blocks.filter((b) => "spread" in b && b.spread && !b.clip).map((b) => ({
+            block: b,
+            onOpen: () => { setPanel(null); turnPage(); nav.replace({ id: "editor", pageId: partner.id }); },
+            onLock: () => updatePage(partner.id, (pg) => ({ ...pg, blocks: pg.blocks.map((x) => (x.id === b.id ? ({ ...x, locked: !x.locked } as PageBlock) : x)) })),
+            onRemove: () => updatePage(partner.id, (pg) => ({ ...pg, blocks: pg.blocks.filter((x) => x.id !== b.id) })),
+          })) : []}
         />
       ) : null}
 

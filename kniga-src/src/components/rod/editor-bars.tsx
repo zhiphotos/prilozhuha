@@ -61,6 +61,8 @@ export function spillsOut(block: PageBlock): boolean {
 
 export type BlockOps = {
   patch: (partial: Partial<PageBlock>, group?: string) => void;
+  /** Выделенное в окне текста уходит в отдельный блок со своим шрифтом, размером и местом. */
+  splitSelection: (from: number, to: number) => void;
   remove: () => void;
   duplicate: () => void;
   copy: () => void;
@@ -406,6 +408,16 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
             }}
           >
             <b>Ж</b> Жирный
+          </BarBtn>
+          <BarBtn
+            label="Выделенное отдельно: сначала выделите слова в окне текста, потом меняйте шрифт, размер и место этого куска"
+            onClick={() => {
+              const box = document.getElementById(`edit-${block.id}`) as HTMLTextAreaElement | null;
+              if (!box) return;
+              ops.splitSelection(box.selectionStart, box.selectionEnd);
+            }}
+          >
+            Выделенное отдельно
           </BarBtn>
           <BarBtn onClick={dictate} active={Boolean(mic)} label="Диктовать голосом">
             <Mic className="size-4" /> {mic ? "Стоп" : "Голос"}
