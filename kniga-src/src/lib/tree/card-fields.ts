@@ -3,10 +3,10 @@ import { useSyncExternalStore } from "react";
 import { ageText } from "../rod/age.ts";
 import type { Person } from "./types.ts";
 
-export type CardFields = { years: boolean; age: boolean; place: boolean };
+export type CardFields = { years: boolean; age: boolean; place: boolean; role: boolean; branches: boolean };
 
 const KEY = "kr-card-fields";
-const DEFAULTS: CardFields = { years: true, age: false, place: false };
+const DEFAULTS: CardFields = { years: true, age: false, place: false, role: true, branches: false };
 
 function load(): CardFields {
   try {

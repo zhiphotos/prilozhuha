@@ -2,7 +2,7 @@ import { childTrunk } from "@/lib/tree/trunk";
 import { reposition, type Spot } from "./anchor.ts";
 import { assignGenerations } from "./layout.ts";
 import { fullName, kinship, yearNum, yearsOf } from "./kinship.ts";
-import { cardLine } from "./card-fields.ts";
+import { cardLine, getCardFields } from "./card-fields.ts";
 import type { Person, Union } from "./types.ts";
 
 export type PosterNode = { id: string; x: number; y: number; gen: number; w: number };
@@ -62,7 +62,7 @@ function yFracFor(index: number, count: number): number {
 
 function cardWidthFor(person: Person, people: Person[], unions: Union[], focusId: string) {
   const name = fullName(person);
-  const role = kinship(people, unions, focusId, person.id).card;
+  const role = getCardFields().role ? kinship(people, unions, focusId, person.id).card : "";
   const years = cardLine(person, yearsOf(person));
   const longest = Math.max(name.length, role.length, years ? years.length + 2 : 0);
   return Math.min(320, Math.max(200, Math.round(longest * 7.8 + 68)));

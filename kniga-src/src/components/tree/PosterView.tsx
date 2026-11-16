@@ -1,5 +1,5 @@
 import { kinship, nameLines, yearsOf } from "@/lib/tree/kinship";
-import { cardLine } from "@/lib/tree/card-fields";
+import { cardLine, getCardFields } from "@/lib/tree/card-fields";
 import type { PosterSheet } from "@/lib/tree/poster";
 import type { Person, Union } from "@/lib/tree/types";
 
@@ -39,7 +39,7 @@ export function PosterView({ poster, people, unions, focusId, selectedId, marked
         if (!person) return null;
         const on = node.id === selectedId || node.id === focusId || !!marked?.has(node.id);
         const years = cardLine(person, yearsOf(person));
-        const role = kinship(people, unions, focusId, person.id).card;
+        const role = getCardFields().role ? kinship(people, unions, focusId, person.id).card : "";
         const lines = nameLines(person);
         const w = node.w;
         return (
