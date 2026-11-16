@@ -16,6 +16,7 @@ import { layoutTaiga } from "@/lib/tree/taiga.ts";
 import type { TreeStyle } from "@/lib/tree/styles.ts";
 import type { TreeData } from "@/lib/tree/types.ts";
 import { kinship, nameLines } from "@/lib/tree/kinship.ts";
+import { getCardFields } from "@/lib/tree/card-fields.ts";
 
 /**
  * Печать древа в PDF. Рисуем тот же векторный лист, что на экране (SVG/DOM, без растрового холста),
@@ -131,7 +132,7 @@ function SchemaSvg({ data, layout }: { data: TreeData; layout: ReturnType<typeof
         if (!person) return null;
         const lines = nameLines(person);
         const name = lines.top;
-        const role = kinship(data.people, data.unions, data.focusId, person.id).card;
+        const role = getCardFields().role ? kinship(data.people, data.unions, data.focusId, person.id).card : "";
         return (
           <g key={node.id}>
             <circle cx={node.x} cy={node.y} r={46} fill="#d7c3a4" />

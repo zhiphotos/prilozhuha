@@ -58,6 +58,9 @@ function DeathField({ value, onChange }: { value: string | undefined; onChange: 
   );
 }
 
+import { BRANCH_PALETTE, setBranchColor, useBranchColors } from "@/lib/tree/branch-colors";
+import { useCardFields } from "@/lib/tree/card-fields";
+
 export function PersonDrawer({ onNewBook }: { onNewBook: () => void }) {
   const selectedId = useTree((s) => s.selectedId);
   const unionId = useTree((s) => s.unionId);
@@ -115,6 +118,7 @@ function UnionEditor({ union, people }: { union: Union; people: Person[] }) {
 }
 
 function PersonBody({ person, people, unions, focusId, onNewBook }: { person: Person; people: Person[]; unions: Union[]; focusId: string; onNewBook: () => void }) {
+  const cardFields = useCardFields();
   const [mode, setMode] = useState<"view" | "edit" | "add">("view");
   const [intent, setIntent] = useState<Intent | null>(null);
   const [search, setSearch] = useState(false);
@@ -167,6 +171,8 @@ function PersonBody({ person, people, unions, focusId, onNewBook }: { person: Pe
         <p className="col-span-2 -mt-1 text-xs text-muted">Изменения записываются сразу, кнопка закрывает карточку.</p>
       </div>
       )}
+
+      {mode === "view" && cardFields.branches ? <BranchPicker personId={person.id} /> : null}
 
       {mode === "view" && <FamilySheet person={person} family={family} people={people} unions={unions} focusId={focusId} onEdit={() => setMode("edit")} onAdd={start} onNewBook={onNewBook} onSearch={() => setSearch(true)} />}
       {mode === "edit" && (
@@ -689,5 +695,24 @@ function Portrait({ person }: { person: Person }) {
         />
       ) : null}
     </>
+  );
+}
+
+function BranchPicker({ personId }: { personId: string }) {
+  const colors = useBranchColors();
+  const own = colors[personId];
+  return (
+    <div className="mt-3">
+      <p className="text-sm font-semibold">Цвет ветви</p>
+      <p className="text-xs text-muted">Цвет получат этот человек и все его потомки.</p>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {BRANCH_PALETTE.map((c) => (
+          <button key={c} type="button" aria-label={`Цвет ${c}`} aria-pressed={own === c} onClick={() => setBranchColor(personId, c)} className={`size-9 rounded-full border-2 ${own === c ? "border-ink" : "border-transparent"}`} style={{ background: c }} />
+        ))}
+        <button type="button" className="min-h-9 rounded-full px-3 text-xs font-semibold underline" onClick={() => setBranchColor(personId, null)}>
+          Без цвета
+        </button>
+      </div>
+    </div>
   );
 }

@@ -1,7 +1,8 @@
 import { schemeAnchor, schemeLayout } from "./scheme.ts";
 import { buildJpegPdf } from "../rod/pdf.ts";
 import { fullName, kinship, yearsOf } from "./kinship.ts";
-import { cardLine } from "./card-fields.ts";
+import { cardLine, getCardFields } from "./card-fields.ts";
+import { branchColorOf } from "./branch-colors.ts";
 import { layoutTree } from "./layout.ts";
 import { PLATE_GAP, PLATE_H, PLATE_W, PORTRAIT_R, ROW_H } from "./metrics.ts";
 import { layoutTaiga, TAIGA_FRAME, TAIGA_FRAMES } from "./taiga.ts";
@@ -297,8 +298,9 @@ function drawWork(ctx: CanvasRenderingContext2D, prep: WorkPrep, sheetW: number,
       ctx.fill();
     }
     ctx.restore();
-    ctx.strokeStyle = tone.ring;
-    ctx.lineWidth = 3;
+    const branch = getCardFields().branches ? branchColorOf(data.people, data.unions, node.id) : undefined;
+    ctx.strokeStyle = branch ?? tone.ring;
+    ctx.lineWidth = branch ? 5 : 3;
     ctx.beginPath();
     ctx.arc(node.x, node.y, PORTRAIT_R, 0, Math.PI * 2);
     ctx.stroke();
@@ -318,13 +320,18 @@ function drawWork(ctx: CanvasRenderingContext2D, prep: WorkPrep, sheetW: number,
     ctx.fillStyle = tone.plate;
     roundRect(ctx, node.x - PLATE_W / 2, top, PLATE_W, PLATE_H, 14);
     ctx.fill();
+    if (branch) {
+      ctx.strokeStyle = branch;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
     ctx.fillStyle = tone.ink;
     ctx.textAlign = "center";
     ctx.font = '700 18px "Cormorant Garamond", serif';
     ctx.fillText(fullName(person), node.x, top + 24, PLATE_W - 12);
     ctx.fillStyle = tone.role;
     ctx.font = "700 12px Manrope, sans-serif";
-    ctx.fillText(kinship(data.people, data.unions, data.focusId, person.id).card, node.x, top + 42, PLATE_W - 12);
+    if (getCardFields().role) ctx.fillText(kinship(data.people, data.unions, data.focusId, person.id).card, node.x, top + 42, PLATE_W - 12);
     ctx.fillStyle = tone.muted;
     ctx.font = "600 12px Manrope, sans-serif";
     ctx.fillText(cardLine(person, yearsOf(person)), node.x, top + 60, PLATE_W - 12);
@@ -708,7 +715,7 @@ async function renderFramed(
     ctx.restore();
     const frame = loaded[n];
     if (frame) ctx.drawImage(frame, node.x - size, node.y - size, size * 2, size * 2);
-    const role = kinship(data.people, data.unions, data.focusId, person.id).card;
+    const role = getCardFields().role ? kinship(data.people, data.unions, data.focusId, person.id).card : "";
     const years = cardLine(person, yearsOf(person));
     const top = node.y + size + 4;
     ctx.fillStyle = ink;

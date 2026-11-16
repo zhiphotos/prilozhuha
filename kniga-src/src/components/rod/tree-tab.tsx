@@ -455,7 +455,7 @@ function TreeScreen() {
                   <div className="mt-1 border-t border-chip-line px-3 pt-2 pb-1">
                     <p className="text-sm font-semibold text-chip-fg">Что показывать на карточке</p>
                     <div className="mt-1 flex gap-1">
-                      {([["years", "Годы"], ["age", "Возраст"], ["place", "Место рождения"]] as const).map(([key, label]) => (
+                      {([["years", "Годы"], ["age", "Возраст"], ["place", "Место рождения"], ["role", "Кем приходится"], ["branches", "Цвета ветвей"]] as const).map(([key, label]) => (
                         <button
                           key={key}
                           type="button"
