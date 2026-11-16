@@ -64,10 +64,11 @@ import { defaultShapeBox } from "@/lib/rod/shapes";
 import { scratch, stickSound, turnPage } from "@/lib/rod/sounds";
 import { partnerIndex, spreadGhosts } from "@/lib/rod/spread";
 import { backPage, flushBook, useRod } from "@/lib/rod/store";
-import { BACK_ID, type BookPage, type BrushKind, type InkStroke, type PageBlock, type PaperKind, type PhotoFrame, type ShapeKind, type StickerKind } from "@/lib/rod/types";
+import { BACK_ID, type BookPage, type BrushKind, type FontRef, type InkStroke, type PageBlock, type PaperKind, type PhotoFrame, type ShapeKind, type StickerKind } from "@/lib/rod/types";
 import type { Recognized } from "@/lib/rod/ink";
 import { cn } from "@/lib/cn";
 import { applyEdge, edgesFor } from "@/lib/rod/edge-handles";
+import { planReflow } from "@/lib/rod/reflow";
 import { snapBox, type Guides, type SnapTarget } from "@/lib/rod/snap";
 
 type Panel = "decor" | "layouts" | "card" | "contents" | "photo" | "pinterest" | "paste" | "stickers" | "help" | "menu" | "covers" | "layers" | "fonts" | "inspector" | "scan" | null;
@@ -433,8 +434,22 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const actions = useRef({ undo: doUndo, redo: doRedo });
   actions.current = { undo: doUndo, redo: doRedo };
 
-  const patchBlock = (blockId: string, partial: Partial<PageBlock>, group?: string) =>
+  const patchBlock = (blockId: string, partial: Partial<PageBlock>, group?: string) => {
+    // Сменили шрифт или размер у куска длинного рассказа: весь рассказ раскладывается заново, текст с соседних страниц подтягивается.
+    const touch = partial as { px?: number; font?: FontRef };
+    if (touch.px !== undefined || touch.font !== undefined) {
+      const target = current()?.blocks.find((b) => b.id === blockId);
+      if (target?.type === "text" && target.flow) {
+        const plan = planReflow(useRod.getState().pages, blockId, { px: touch.px, font: touch.font });
+        if (plan) {
+          useRod.getState().applyReflow(plan);
+          setTick((value) => value + 1);
+          return;
+        }
+      }
+    }
     commit((p) => ({ ...p, blocks: p.blocks.map((b) => (b.id === blockId ? ({ ...b, ...partial } as PageBlock) : b)) }), group);
+  };
 
   /** Один цвет для всех выделенных текстов за один шаг: у плашек и карточек меняется фон, у остальных цвет букв. */
   const colorGroupTexts = (ids: string[], c: string, groupKey?: string) =>

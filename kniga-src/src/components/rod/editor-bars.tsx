@@ -27,6 +27,8 @@ import {
   Type,
   Unlock,
   GripHorizontal,
+  ChevronsDownUp,
+  ChevronsUpDown,
   PaintBucket,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -147,6 +149,7 @@ export function FontChips({ value, onPick, onMore, sample }: { value: FontRef; o
 // ——— Панель ввода текста: двигается, ниже по умолчанию, пишет по всему экрану ———
 
 const PANEL_KEY = "kniga-textpanel-pos";
+const TALL_KEY = "kniga-textpanel-tall";
 
 function savedPos(): { dx: number; dy: number } {
   try {
@@ -180,6 +183,24 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
   const latest = useRef(block.text);
   const [colors, setColors] = useState<null | "fg" | "bg">(null);
   const [pos, setPos] = useState(savedPos);
+  // Окно можно сделать выше: поле набора раскрывается на много строк. Выбор помнится на устройстве.
+  const [tall, setTall] = useState(() => {
+    try {
+      return localStorage.getItem(TALL_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const switchTall = () => {
+    setTall((v) => {
+      try {
+        localStorage.setItem(TALL_KEY, v ? "0" : "1");
+      } catch {
+        /* без запоминания */
+      }
+      return !v;
+    });
+  };
   // Режим «пером где угодно» закрывает весь экран невидимым полем, поэтому его не запоминаем:
   // при каждом открытии текста он выключен, чтобы письмо стилусом не попадало в приложение целиком.
   const [whole, setWhole] = useState(false);
@@ -274,7 +295,7 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
         style={{ bottom: shownBottom, transform: `translateX(${shownPos.dx}px)`, maxHeight: panelMaxH, overflowY: "auto" }}
       >
         <div
-          className="-mt-1 mb-1 flex h-9 cursor-grab touch-none items-center justify-center text-ink/60 active:cursor-grabbing"
+          className="relative -mt-1 mb-1 flex h-9 cursor-grab touch-none items-center justify-center text-ink/60 active:cursor-grabbing"
           onPointerDown={(event) => {
             (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
             drag.current = { x: event.clientX, y: event.clientY, dx: shownPos.dx, dy: shownPos.dy, id: event.pointerId };
@@ -304,11 +325,14 @@ export function TextPanel({ block, ops, onChange, onDone }: { block: TextBlock; 
           aria-label="Потяните, чтобы переместить окно"
         >
           <GripHorizontal className="size-5" />
+          <button type="button" aria-label={tall ? "Сделать окно ниже" : "Сделать окно выше"} className="absolute right-1 flex size-9 items-center justify-center rounded-full bg-white/70 text-ink" onPointerDown={(event) => event.stopPropagation()} onClick={switchTall}>
+            {tall ? <ChevronsDownUp className="size-5" /> : <ChevronsUpDown className="size-5" />}
+          </button>
         </div>
         <textarea
           id={whole ? undefined : `edit-${block.id}`}
           value={value}
-          rows={2}
+          rows={tall ? 10 : 2}
           placeholder={block.placeholder || "Пишите здесь, текст сразу появится на странице"}
           onChange={(event) => setBoth(event.target.value)}
           className="block w-full resize-none rounded-2xl bg-white/80 p-3 text-[17px] leading-snug text-ink outline-none"

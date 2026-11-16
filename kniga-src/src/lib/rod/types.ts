@@ -225,6 +225,8 @@ export type PageBlock =
       /** Текст обтекает фото и стикеры на странице. */
       wrap?: boolean;
       placeholder?: string;
+      /** Кусок длинного текста, разложенного по страницам: цепочка, абзац и номер куска. По нему текст пересобирается при смене размера. */
+      flow?: { id: string; para: number; seg: number; kind: "heading" | "body" | "quote" };
     } & Placed)
   | ({ id: string; type: "slot"; x: number; y: number; w: number; h: number; label: string; frame: PhotoFrame; shape?: PhotoShape } & Placed)
   | ({

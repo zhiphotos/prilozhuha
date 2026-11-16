@@ -1,6 +1,6 @@
 import { applyPatch, onSiblingSet, syncRelations, withoutPerson } from "@/lib/tree/auto-links";
 import { toast } from "sonner";
-import { bumpUsage, searchesLeft, type SearchUsage } from "@/lib/rod/search-limit";
+import type { ReflowPlan } from "@/lib/rod/reflow";import { bumpUsage, searchesLeft, type SearchUsage } from "@/lib/rod/search-limit";
 import { create } from "zustand";
 import { freezeTextSizes } from "@/lib/rod/freeze-text";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
@@ -110,6 +110,8 @@ type RodState = {
   duplicatePage: (id: string) => string | null;
   removePage: (id: string) => void;
   removePages: (ids: string[]) => void;
+  /** Применяет пересборку длинного текста: обновляет страницы цепочки, вставляет новые и убирает лишние. */
+  applyReflow: (plan: ReflowPlan) => void;
   restorePage: (id: string) => void;
   purgeTrash: () => void;
   openProgram: () => void;
@@ -460,6 +462,24 @@ export const useRod = create<RodState>()(
             trash: [{ page, index, at: new Date().toISOString() }, ...state.trash].slice(0, 300),
           };
         }),
+      applyReflow: (plan) => {
+        noteEdit();
+        set((state) => {
+          const now = Date.now();
+          const gone = new Set(plan.drop);
+          const upd = new Map(plan.pages.filter((p) => p.id).map((p) => [p.id as string, p.page]));
+          const fresh = plan.pages.filter((p) => !p.id).map((p) => ({ ...p.page, id: uid(), editedAt: now }) as BookPage);
+          const pages: BookPage[] = [];
+          for (const page of state.pages) {
+            if (gone.has(page.id)) continue;
+            const next = upd.get(page.id);
+            pages.push(next ? ({ ...next, id: page.id, editedAt: now } as BookPage) : page);
+            if (page.id === plan.insertAfter) pages.push(...fresh);
+          }
+          const removed = state.pages.map((page, index) => ({ page, index, at: new Date().toISOString() })).filter((item) => gone.has(item.page.id));
+          return { pages, trash: [...removed.reverse(), ...state.trash].slice(0, 300) };
+        });
+      },
       removePages: (ids) =>
         set((state) => {
           const gone = new Set(ids);
