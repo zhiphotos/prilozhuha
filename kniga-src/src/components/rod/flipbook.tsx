@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import { ChevronLeft, ChevronRight, Download, ImagePlus, PenLine, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, ImageDown, ImagePlus, PenLine, X } from "lucide-react";
 import { toast } from "sonner";
 import { useNav } from "@/components/rod/chrome";
 import { FlipBookCss } from "@/components/rod/flipbook-css";
@@ -15,7 +15,7 @@ import stoneUrl from "@/assets/book/backgrounds/stone.jpg";
 import { BINDINGS, BOW_TILT, buildBowMesh, type BindingId } from "@/lib/page-curl/geometry";
 import { CurlRenderer } from "@/lib/page-curl/renderer";
 import { PAGE_RATIO } from "@/lib/rod/page-style";
-import { downloadFamilyBook, paintPage } from "@/lib/rod/print-book";
+import { downloadFamilyBook, downloadSpread, paintPage } from "@/lib/rod/print-book";
 import { saveMedia, resolveMedia } from "@/lib/rod/media";
 import { spreadGhosts } from "@/lib/rod/spread";
 import { turnPage } from "@/lib/rod/sounds";
@@ -524,6 +524,31 @@ function Stage({ pageId }: { pageId?: string }) {
       .finally(() => setSaving(null));
   };
 
+  /** Сохраняет разворот, на котором стоим: левая и правая страницы одной картинкой. */
+  const saveSpread = () => {
+    const at = indexRef.current;
+    const faceAt = (n: number) => facesRef.current[n];
+    const take = (face: Face | undefined) => (face && face.kind === "page" ? face.page : null);
+    const left = at < 0 ? null : take(faceAt(2 * at + 1));
+    const right = at < 0 ? take(faceAt(0)) : take(faceAt(2 * at + 2));
+    if (!left && !right) {
+      toast("На этом развороте нет страниц с содержимым");
+      return;
+    }
+    const num = (face: Face | undefined) => (face && face.kind === "page" ? face.number : null);
+    const a = at < 0 ? num(faceAt(0)) : num(faceAt(2 * at + 1));
+    const b = at < 0 ? null : num(faceAt(2 * at + 2));
+    const label = at < 0 ? "обложка" : `разворот ${[a, b].filter((n) => n !== null).join("-")}`;
+    setSaving("Готовлю разворот…");
+    void downloadSpread(pages, left, right, meta, label)
+      .then((mode) => {
+        if (mode === "shared") toast("Разворот готов: выберите «Сохранить в Файлы» или «Сохранить изображение»");
+        else if (mode === "downloaded") toast("Разворот сохранён картинкой в «Загрузки»");
+      })
+      .catch(() => toast("Разворот не собрался. Попробуйте ещё раз."))
+      .finally(() => setSaving(null));
+  };
+
   const pickBinding = (id: BindingId) => {
     if (liveRef.current?.active) return;
     setBinding(id);
@@ -567,6 +592,10 @@ function Stage({ pageId }: { pageId?: string }) {
         <button type="button" disabled={Boolean(saving) || pages.length === 0} onClick={printFile} className="flex h-11 items-center gap-2 rounded-full bg-black/35 px-4 text-sm font-semibold text-paper disabled:opacity-60">
           <Download className="size-4" />
           {saving ?? "PDF"}
+        </button>
+        <button type="button" disabled={Boolean(saving) || pages.length === 0} onClick={saveSpread} className="flex h-11 items-center gap-2 rounded-full bg-black/35 px-4 text-sm font-semibold text-paper disabled:opacity-60">
+          <ImageDown className="size-4" />
+          Разворот
         </button>
       </header>
 
