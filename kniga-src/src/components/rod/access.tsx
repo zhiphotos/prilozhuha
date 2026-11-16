@@ -3,6 +3,7 @@ import { BookCopy, Check, Cloud, MessageCircle, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { PaySheet } from "@/components/rod/lessons";
+import { LoginScreen } from "@/components/rod/login-screen";
 import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
 import { PROGRAM_PRICE } from "@/lib/rod/content";
 import { exportBook } from "@/lib/rod/backup";
@@ -30,12 +31,14 @@ export function ProfileButton({ onClick }: { onClick: () => void }) {
 /** «Мой доступ»: что у человека сейчас и зачем нужен вход. */
 export function AccessSheet({ onClose, onBooks }: { onClose: () => void; onBooks: () => void }) {
   const paid = useRod((state) => state.programOpen);
-  const [pay, setPay] = useState<null | "buy" | "restore">(null);
+  const [pay, setPay] = useState<null | "buy">(null);
+  const [login, setLogin] = useState(false);
   const copy = () =>
     void exportBook()
       .then((mode) => mode !== "cancelled" && toast(mode === "shared" ? "Копия готова: выберите «Сохранить в Файлы»" : "Копия сохранена в «Загрузки»"))
       .catch(() => toast("Копия не сохранилась"));
   if (pay) return <PaySheet initialMode={pay} onClose={() => setPay(null)} />;
+  if (login) return <LoginScreen onClose={() => setLogin(false)} onBuy={() => setPay("buy")} />;
   return (
     <Sheet title="Мой доступ" onClose={onClose}>
       {paid ? (
@@ -51,7 +54,7 @@ export function AccessSheet({ onClose, onBooks }: { onClose: () => void; onBooks
             <Button variant="soft" className="min-h-12" onClick={() => { onClose(); onBooks(); }}>
               <BookCopy className="size-4" /> Мои книги
             </Button>
-            <Button variant="soft" className="min-h-12" onClick={() => setPay("restore")}>
+            <Button variant="soft" className="min-h-12" onClick={() => setLogin(true)}>
               <Cloud className="size-4" /> Войти по почте на этом устройстве
             </Button>
             <a href={COURSE_COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-burgundy px-5 text-sm font-semibold text-paper no-underline">
@@ -81,7 +84,7 @@ export function AccessSheet({ onClose, onBooks }: { onClose: () => void; onBooks
               <span className="text-center">Открыть полный доступ <span className="whitespace-nowrap">· {PROGRAM_PRICE}</span></span>
             </Button>
           </div>
-          <button type="button" className="mt-4 min-h-11 text-left text-sm font-semibold text-moss underline underline-offset-2" onClick={() => setPay("restore")}>
+          <button type="button" className="mt-4 min-h-11 text-left text-sm font-semibold text-moss underline underline-offset-2" onClick={() => setLogin(true)}>
             Уже оплатили? Войти по почте
           </button>
         </>

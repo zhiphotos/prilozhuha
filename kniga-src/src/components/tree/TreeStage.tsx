@@ -1,6 +1,7 @@
 import { childTrunk } from "@/lib/tree/trunk";
 import { applyShifts } from "@/lib/tree/offsets";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { branchColorOf, useBranchColors } from "@/lib/tree/branch-colors";
 import { cardLine, useCardFields } from "@/lib/tree/card-fields";
 import { LocateFixed, Minus, Plus, Users } from "lucide-react";
 import { CameoView } from "@/components/tree/CameoView";
@@ -184,6 +185,7 @@ export function TreeStage(props: Props) {
   const lit = useMemo(() => (litId && people.some((person) => person.id === litId) ? lineageUnionIds(unions, litId) : null), [unions, litId, people]);
   const wrap = useRef<HTMLDivElement>(null);
   const cardFields = useCardFields();
+  const branchMap = useBranchColors();
   const [cam, setCam] = useState<Cam>({ x: 40, y: 40, k: 0.45 });
   const [gesturing, setGesturing] = useState(false);
   const [hint, setHint] = useState(true);
@@ -515,7 +517,8 @@ export function TreeStage(props: Props) {
               {layout.nodes.map((node) => {
                 const person = byId.get(node.id);
                 if (!person) return null;
-                const role = rels.get(person.id) ? relationCard(rels.get(person.id)!) : "";
+                const branch = cardFields.branches ? branchColorOf(people, unions, person.id, branchMap) : undefined;
+                const role = cardFields.role && rels.get(person.id) ? relationCard(rels.get(person.id)!) : "";
                 const top = node.y + PORTRAIT_R + PLATE_GAP;
                 const initials = `${person.firstName[0] ?? ""}${person.lastName[0] ?? ""}`.toUpperCase();
                 const roleSize = role.length > 26 ? 8.5 : role.length > 18 ? 9.5 : 11;
@@ -534,7 +537,7 @@ export function TreeStage(props: Props) {
                         {initials}
                       </text>
                     ) : null}
-                    <circle cx={node.x} cy={node.y} r={PORTRAIT_R} fill="none" stroke="var(--color-ring)" strokeWidth={3} opacity={isDeceased(person) ? 0.8 : 1} />
+                    <circle cx={node.x} cy={node.y} r={PORTRAIT_R} fill="none" stroke={branch ?? "var(--color-ring)"} strokeWidth={branch ? 5 : 3} opacity={isDeceased(person) ? 0.8 : 1} />
                     {homeId === person.id && (
                       <g transform={`translate(${node.x + 30} ${node.y - 32})`}>
                         <circle r={12} fill="var(--color-gold)" />
@@ -552,7 +555,7 @@ export function TreeStage(props: Props) {
                         </text>
                       </g>
                     )}
-                    <rect x={node.x - PLATE_W / 2} y={top} width={PLATE_W} height={PLATE_H} rx={14} fill="#f6f1e7" />
+                    <rect x={node.x - PLATE_W / 2} y={top} width={PLATE_W} height={PLATE_H} rx={14} fill="#f6f1e7" stroke={branch} strokeWidth={branch ? 3 : undefined} />
                     {(() => {
                       const lines = nameLines(person);
                       const a = fitText(lines.top, PLATE_W - 14, 15);

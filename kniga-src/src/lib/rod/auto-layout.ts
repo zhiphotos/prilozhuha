@@ -1,7 +1,7 @@
 // Текст целиком → страницы книги. Заголовки, абзацы и цитаты получают разное оформление, длинное делится по страницам.
 import { PAGE_H } from "@/lib/rod/ink";
 import { lineBox, wrapLines, type TextStyle } from "@/lib/rod/measure";
-import type { BookPage, PageBlock } from "@/lib/rod/types";
+import type { BookPage, FontRef, PageBlock } from "@/lib/rod/types";
 
 export type Item = { kind: "heading" | "body" | "quote"; text: string };
 
@@ -42,10 +42,14 @@ const STYLE: Record<Item["kind"], TextStyle & { x: number }> = {
   quote: { font: "script", size: "md", px: 38, look: "plain", w: 72, x: 14 },
 };
 
-type Run = { kind: Item["kind"]; text: string; x: number; y: number; w: number };
+type Run = { kind: Item["kind"]; text: string; x: number; y: number; w: number; para: number; seg: number };
+
+export type StyleOverride = Partial<Record<Item["kind"], { font?: FontRef; px?: number }>>;
 
 /** Раскладывает абзацы по страницам. Заголовок всегда начинает новую страницу. */
-export function layoutPages(items: Item[], opts: { paper?: BookPage["paper"] } = {}): Omit<BookPage, "id">[] {
+export function layoutPages(items: Item[], opts: { paper?: BookPage["paper"]; style?: StyleOverride; flowId?: string; reuse?: Map<string, string> } = {}): Omit<BookPage, "id">[] {
+  const flowId = opts.flowId ?? id();
+  const styleOf = (kind: Item["kind"]): TextStyle & { x: number } => ({ ...STYLE[kind], ...(opts.style?.[kind] ?? {}) });
   const pages: Omit<BookPage, "id">[] = [];
   let title = "";
   let runs: Run[] = [];
@@ -54,24 +58,26 @@ export function layoutPages(items: Item[], opts: { paper?: BookPage["paper"] } =
   const flush = () => {
     if (!runs.length) return;
     const blocks: PageBlock[] = runs.map((run) => ({
-      id: id(),
+      id: opts.reuse?.get(`${run.para}:${run.seg}`) ?? id(),
       type: "text",
       x: run.x,
       y: Math.round(((run.y / PAGE_H) * 100) * 100) / 100,
       w: run.w,
       text: run.text,
-      font: STYLE[run.kind].font,
-      size: STYLE[run.kind].size,
-      px: STYLE[run.kind].px,
+      font: styleOf(run.kind).font,
+      size: styleOf(run.kind).size,
+      px: styleOf(run.kind).px,
       look: "plain",
+      flow: { id: flowId, para: run.para, seg: run.seg, kind: run.kind },
     }));
     pages.push({ title: title || firstWords(runs[0].text), kind: "page", paper: opts.paper ?? "cream", strokes: [], blocks });
     runs = [];
     used = TOP;
   };
 
-  const put = (kind: Item["kind"], text: string) => {
-    const style = STYLE[kind];
+  const put = (kind: Item["kind"], text: string, para: number) => {
+    let seg = 0;
+    const style = styleOf(kind);
     const { line } = lineBox(style);
     let lines = wrapLines(text, style);
     while (lines.length) {
@@ -85,23 +91,23 @@ export function layoutPages(items: Item[], opts: { paper?: BookPage["paper"] } =
       // Не оставляем одну строку абзаца сиротой на следующей странице.
       const fit = lines.length - take === 1 && take > 2 ? take - 1 : take;
       const part = lines.slice(0, fit).join(kind === "quote" ? "\n" : " ");
-      runs.push({ kind, text: part, x: style.x, y: used, w: style.w });
+      runs.push({ kind, text: part, x: style.x, y: used, w: style.w, para, seg: seg++ });
       used += fit * line + GAP;
       lines = lines.slice(fit);
       if (lines.length) flush();
     }
   };
 
-  for (const item of items) {
+  items.forEach((item, para) => {
     if (item.kind === "heading") {
       flush();
       title = item.text;
-      put("heading", item.text);
+      put("heading", item.text, para);
       used += 1.5;
     } else {
-      put(item.kind, item.text);
+      put(item.kind, item.text, para);
     }
-  }
+  });
   flush();
   return pages;
 }

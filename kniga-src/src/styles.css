@@ -838,3 +838,15 @@ body {
 .tpo-zoom { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 3.2rem 0.6rem 1rem; background: rgba(20,18,14,0.94); overflow: auto; }
 .tpo-zoom img { display: block; max-width: 100%; max-height: none; width: auto; height: auto; border-radius: 0.5rem; }
 .tpo-zoom-close { position: fixed; top: max(0.8rem, env(safe-area-inset-top)); right: 0.8rem; z-index: 121; display: grid; place-items: center; width: 2.8rem; height: 2.8rem; border: 0; border-radius: 50%; background: rgba(243,240,232,0.16); color: #f6f3ea; }
+
+/* Экран входа: на весь экран ботаника под текстурой стены, крупный заголовок, поля-линии, кнопка-контур. */
+.login-screen { background: #1d1b16; }
+.login-bg { position: fixed; inset: 0; background: var(--login-img) center / cover no-repeat; }
+.login-wall { position: fixed; inset: 0; background: url("/stickers/pack/tex/paper-dark.webp") center / cover; mix-blend-mode: multiply; opacity: 0.7; }
+.login-wall::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20,18,13,0.2), rgba(20,18,13,0.62)); }
+.login-line { width: 100%; padding: 0.85rem 0; border: 0; border-bottom: 1px solid rgba(246,243,234,0.6); border-radius: 0; background: transparent; color: #f6f3ea; font-family: var(--font-sans); font-weight: 300; font-size: 1.4rem; outline: none; }
+.login-line::placeholder { color: rgba(246,243,234,0.62); }
+.login-line:focus { border-bottom-color: #e5d3a4; }
+.login-btn { width: 100%; min-height: 3.4rem; border: 1px solid rgba(246,243,234,0.9); border-radius: 0.8rem; background: rgba(246,243,234,0.06); color: #f6f3ea; font-family: var(--font-sans); font-weight: 400; font-size: 1.25rem; letter-spacing: 0.02em; backdrop-filter: blur(6px); transition: background 0.2s; }
+.login-btn:hover:not(:disabled), .login-btn:active:not(:disabled) { background: rgba(246,243,234,0.16); }
+.login-btn:disabled { opacity: 0.45; }
