@@ -777,3 +777,46 @@ export async function downloadPrintCover(pages: BookPage[], meta: CoverMeta, set
   const pdf = buildJpegPdf([{ ...sheet, pageW: canvas.width / PX_PER_MM * MM, pageH: canvas.height / PX_PER_MM * MM, bleed: setup.bleed * MM }]);
   save(pdf, `Книга рода – обложка ${setup.size}x${heightCm(setup)}, корешок ${setup.spine} мм.pdf`);
 }
+
+/** Один разворот картинкой (PNG): левая и правая страницы рядом. Пустая сторона остаётся чистой бумагой. На телефоне открывается «Поделиться» (там «Сохранить в Файлы»), на компьютере файл скачивается. */
+export async function downloadSpread(pages: BookPage[], left: BookPage | null, right: BookPage | null, meta: CoverMeta, label: string): Promise<"shared" | "downloaded" | "cancelled"> {
+  const sides = [left, right];
+  if (!sides.some(Boolean)) throw new Error("Нет страниц");
+  await fontsReady();
+  const setup = { size: 20, bleed: 0, spine: 0 };
+  const paper = (left ?? right)!.paper;
+  const painted: (HTMLCanvasElement | null)[] = [];
+  for (const side of sides) painted.push(side ? await paintPage(side, meta, setup, spreadGhosts(pages, side.id)) : null);
+  const ref = painted.find(Boolean)!;
+  const out = document.createElement("canvas");
+  out.width = ref.width * 2;
+  out.height = ref.height;
+  const ctx = out.getContext("2d");
+  if (!ctx) throw new Error("Не удалось собрать разворот");
+  ctx.fillStyle = PAPER_BG[paper];
+  ctx.fillRect(0, 0, out.width, out.height);
+  painted.forEach((canvas, i) => {
+    if (canvas) ctx.drawImage(canvas, i * ref.width, 0);
+  });
+  const blob = await new Promise<Blob | null>((resolve) => out.toBlob(resolve, "image/png"));
+  if (!blob) throw new Error("Разворот не записался");
+  const name = `Книга рода – ${label}.png`;
+  const file = new File([blob], name, { type: "image/png" });
+  if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: name });
+      return "shared";
+    } catch (error) {
+      if ((error as Error)?.name === "AbortError") return "cancelled";
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return "downloaded";
+}
