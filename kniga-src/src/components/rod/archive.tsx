@@ -4,7 +4,7 @@ import { serverStatus } from "@/lib/rod/server";
 import { fetchRoomStatus, type RoomStats } from "@/lib/rod/family";
 import { enablePush, pushPrefs, pushSupport } from "@/lib/rod/push";
 import { FamilySheet } from "@/components/rod/family-sheet";
-import { ChevronLeft, ChevronRight, Pencil, Plus, Search, X } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, Pencil, Plus, Search, X } from "lucide-react";
 import { PeoplePicker } from "@/components/rod/people-picker";
 import { photoCaption, photoLinkFields, photoPeopleIds } from "@/lib/rod/photo-people";
 import { filterPeople } from "@/lib/rod/people-filter";
@@ -112,36 +112,49 @@ function FamilyCard() {
   return (
     <>
       <section className={cn("story-card together rounded-3xl p-5", waiting > 0 && "ring-2 ring-moss/50")} aria-label="Родственники">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-ink">Вместе с родными</p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-ink">Вместе с родными</p>
+          {room && notify ? (
+            <span className="relative grid size-9 shrink-0 place-items-center rounded-full bg-moss text-paper shadow-md" title="Уведомления включены" aria-label="Уведомления включены">
+              <Bell className="size-4" />
+              <span className="absolute -right-0.5 -top-0.5 size-3 rounded-full bg-gold ring-2 ring-paper motion-safe:animate-pulse" />
+            </span>
+          ) : null}
+        </div>
         <div className="mt-1 flex items-start justify-between gap-3">
-          <h2 className="text-[1.25rem] font-semibold leading-tight text-ink">Пригласить родственников</h2>
+          <h2 className="text-[1.3rem] font-semibold leading-tight text-ink">{room ? "Пригласить ещё родственников" : "Пригласить родственников"}</h2>
           {waiting > 0 ? <span className="grid min-w-8 shrink-0 place-items-center rounded-full bg-moss px-2.5 py-1 text-sm font-semibold text-paper">{waiting}</span> : null}
         </div>
         <p className="mt-2 text-[15px] leading-snug text-ink/80">
-          {waiting > 0 ? `Родные прислали: ${waiting}. Загляните во «Входящие» и добавьте в книгу.` : room ? "Ссылка отправлена. Как только родные что-то пришлют, здесь появится число и придёт уведомление." : "Пусть расскажут свои истории и пришлют фото. Им покажем бесплатный урок."}
+          {waiting > 0 ? `Родные прислали: ${waiting}. Загляните во «Входящие» и добавьте в книгу.` : room ? "Ссылка отправлена. Как только родные что-то пришлют, здесь появится число." : "Пусть расскажут свои истории и пришлют фото. Им покажем бесплатный урок."}
         </p>
         {room ? (
-          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
-            <span className="rounded-full bg-moss/15 px-3 py-1 text-moss">Ответили: {stats.people.length}</span>
-            <span className="rounded-full bg-white/70 px-3 py-1 text-ink/70">Открыли приглашение: {stats.opens}</span>
-            {waiting > 0 ? <span className="rounded-full bg-moss px-3 py-1 text-paper">Новое: {waiting}</span> : null}
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="rounded-2xl bg-white/70 px-4 py-3 shadow-sm">
+              <p className="text-[1.6rem] font-semibold leading-none text-moss">{stats.people.length}</p>
+              <p className="mt-1 text-xs font-semibold text-ink/60">ответили</p>
+            </div>
+            <div className="rounded-2xl bg-white/70 px-4 py-3 shadow-sm">
+              <p className="text-[1.6rem] font-semibold leading-none text-ink">{stats.opens}</p>
+              <p className="mt-1 text-xs font-semibold text-ink/60">открыли приглашение</p>
+            </div>
           </div>
         ) : null}
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => (live ? setOpen(true) : toast("Семейный доступ появится, когда подключится сервер приложения."))}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-moss px-5 text-sm font-semibold text-paper"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-moss px-5 text-sm font-semibold text-paper shadow-md"
           >
             {waiting > 0 ? "Открыть входящие" : room ? "Пригласить ещё" : "Пригласить"}
           </button>
           {room && !notify ? (
             <button type="button" onClick={() => void turnOn()} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-moss/40 bg-white/60 px-4 text-sm font-semibold text-moss">
-              Уведомлять, когда пришлют
+              <Bell className="size-4" /> Уведомлять, когда пришлют
             </button>
           ) : null}
         </div>
-        {room && notify ? <p className="mt-3 text-xs text-ink/60">Уведомления включены: когда родственник что-то пришлёт, вам придёт сообщение.</p> : null}
+        {room && notify ? <p className="mt-3 text-xs text-ink/60">Уведомления включены: когда родственник что-то пришлёт, придёт сообщение.</p> : null}
       </section>
       {open ? <FamilySheet onClose={() => setOpen(false)} /> : null}
     </>
