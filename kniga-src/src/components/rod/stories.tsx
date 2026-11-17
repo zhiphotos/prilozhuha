@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 import { Fragment, useMemo, useState } from "react";
-import { Pencil } from "lucide-react";
+import { Mic, Pencil } from "lucide-react";
 import { Cut } from "@/components/rod/botanica";
 import { STORY_TEMPLATES, findTemplate } from "@/lib/rod/content";
 import { composeStory } from "@/lib/rod/narrative";
@@ -16,6 +16,21 @@ import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chr
 /** Вырезки из её библиотеки: разделяют группы историй. */
 const DIVIDERS = ["peony", "lily_valley", "rosebuds", "daffodil", "stick_rosehip", "driftwood"];
 
+/** Иллюстрация к теме по смыслу: вырезка из библиотеки приложения. */
+const TEMPLATE_CUT: Record<string, string> = {
+  "first-love": "rose",
+  "parents-met": "rosebuds",
+  "first-home": "wood_slice",
+  "hard-time": "stick_thorn",
+  happiest: "daffodil",
+  child: "lotus_pod",
+  wedding: "peony",
+  "little-money": "paper_two_scraps",
+  moving: "envelope_brown",
+  tradition: "stick_rosehip",
+  "one-photo": "frame_line_corners",
+};
+
 export function StoriesScreen() {
   const nav = useNav();
   const [transcribe, setTranscribe] = useState(false);
@@ -23,7 +38,6 @@ export function StoriesScreen() {
   const stories = useRod((state) => state.stories);
   const removeStory = useRod((state) => state.removeStory);
   const minutes = useMinutes();
-  const base = import.meta.env.BASE_URL;
   const dateOf = (iso: string) => {
     const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
@@ -31,90 +45,80 @@ export function StoriesScreen() {
 
   return (
     <ScreenFrame>
-      <TopBar
-        kicker="Семейные истории"
-        title="Расскажи историю"
-        action={
-          <button type="button" onClick={() => nav.go({ id: "free" })} className="story-pencil grid size-11 shrink-0 place-items-center rounded-full" aria-label="Написать свою историю без темы" title="Написать свою историю без темы">
-            <Pencil className="size-5" />
-          </button>
-        }
-      />
-      <p className="max-w-xl text-[15px] leading-relaxed text-muted">Выберите тему. Приложение задаст несколько вопросов и соберёт черновик. Его можно поправить, потом он станет страницей вашей книги.</p>
+      <TopBar kicker="Семейные истории" title="Расскажи историю" />
+      <p className="max-w-xl text-base leading-relaxed text-ink/75">Выберите, о чём рассказать, и ответьте на несколько вопросов. Из ответов получится страница вашей книги.</p>
       <button type="button" onClick={() => nav.go({ id: "free" })} className="story-main mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 text-base font-semibold">
         <Pencil className="size-5" /> Написать свою историю
       </button>
+      {programOpen ? (
+        <button type="button" onClick={() => setTranscribe(true)} className="story-glass mt-3 flex min-h-[4.5rem] w-full items-center gap-4 rounded-2xl py-3 pl-5 pr-14 text-left">
+          <span className="story-glass-icon" aria-hidden>
+            <Mic className="size-6" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-base font-semibold text-ink">Расшифровать интервью</span>
+            <span className="block text-[15px] leading-snug text-ink/80">Загрузите запись разговора, например рассказ бабушки, и получите текст</span>
+            <span className="mt-0.5 block text-sm font-semibold text-moss">{minutes ? minutesLine(minutes) : "Входит в программу: до 300 минут в месяц."}</span>
+          </span>
+          <span className="story-ai" aria-label="Работает на искусственном интеллекте" title="Работает на искусственном интеллекте">ИИ</span>
+        </button>
+      ) : null}
 
       <div className="story-table mt-6">
-        <div className="mb-2 flex items-end justify-between"><h2 className="story-group-label !mb-0">Выберите тему</h2><Cut id="lily_valley" className="-mb-1 w-16 shrink-0" style={{ transform: "rotate(6deg)" }} /></div>
         {stories.length > 0 ? (
-          <a href="#saved-stories" className="-mt-1 mb-3 inline-block min-h-9 text-sm font-semibold text-moss underline underline-offset-2">
-            К сохранённым историям ({stories.length}) ↓
-          </a>
+          <>
+            <h2 className="story-group-label">Ваши истории ({stories.length})</h2>
+            <ul className="mb-8 grid gap-3.5">
+              {stories.map((story) => (
+                <li key={story.id} className="story-saved">
+                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => nav.go({ id: "story", storyId: story.id })}>
+                    <span className="block text-sm font-semibold text-gold-ink">Ваша история{dateOf(story.createdAt) ? `, ${dateOf(story.createdAt)}` : ""}</span>
+                    <span className="story-sheet-title mt-0.5 block">{story.title}</span>
+                    <span className="story-sheet-lead line-clamp-2 block">{story.narrative}</span>
+                    {story.attachments?.length ? <span className="mt-1 block text-sm text-ink/70">Вложений: {story.attachments.length}</span> : null}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Удалить историю «${story.title}»`} className="grid min-h-11 min-w-11 shrink-0 place-items-center px-1 text-base text-ink/70 underline"
+                    onClick={() => {
+                      if (window.confirm(`Удалить историю «${story.title}»? Это нельзя отменить.`)) removeStory(story.id);
+                    }}
+                  >
+                    Удалить
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
         ) : null}
+
+        <h2 className="story-group-label">О чём расскажем?</h2>
         <ul data-tour="stories-list" className="grid gap-3.5">
           {STORY_TEMPLATES.map((template, index) => (
             <Fragment key={template.id}>
-              {index > 0 && index % 3 === 0 ? (
-                <li aria-hidden className="flex items-center gap-3 py-5">
+              {index > 0 && index % 4 === 0 ? (
+                <li aria-hidden className="flex items-center gap-3 py-4">
                   <span className="story-seam" />
-                  <Cut id={DIVIDERS[(index / 3 - 1) % DIVIDERS.length]} className="w-24 shrink-0" style={{ transform: `rotate(${index % 2 ? -6 : 6}deg)` }} />
+                  <Cut id={DIVIDERS[(index / 4 - 1) % DIVIDERS.length]} className="w-20 shrink-0" style={{ transform: `rotate(${index % 8 ? -6 : 6}deg)` }} />
                   <span className="story-seam" />
                 </li>
               ) : null}
-              <li className="relative">
-                {index % 3 === 0 ? <img src={`${base}tex/desk/tape.webp`} alt="" draggable={false} className="story-tape" /> : null}
+              <li>
                 <button type="button" onClick={() => nav.go({ id: "wizard", templateId: template.id })} data-tone={index % 3} className="story-sheet">
-                  <span className="story-count" aria-hidden>{template.questions.length}</span>
+                  <span className="story-cut" aria-hidden>
+                    <Cut id={TEMPLATE_CUT[template.id] ?? "branch"} className="max-h-14 max-w-14 object-contain" />
+                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="story-sheet-title block">{template.title}</span>
-                    <span className="story-sheet-lead line-clamp-2 block">{template.lead}</span>
-                    <span className="mt-1 block text-xs font-semibold text-moss">{plural(template.questions.length, "вопрос", "вопроса", "вопросов")}</span>
+                    <span className="story-sheet-lead line-clamp-3 block">{template.lead}</span>
+                    <span className="mt-1 block text-sm font-semibold text-moss">{plural(template.questions.length, "короткий вопрос", "коротких вопроса", "коротких вопросов")}</span>
                   </span>
-                  <span aria-hidden className="shrink-0 text-xl text-muted/60">›</span>
+                  <span aria-hidden className="shrink-0 text-2xl text-ink/60">›</span>
                 </button>
               </li>
             </Fragment>
           ))}
         </ul>
-
-        <h2 id="saved-stories" className="story-group-label scroll-mt-4" style={{ marginTop: 44 }}>Ваши сохранённые истории{stories.length ? ` (${stories.length})` : ""}</h2>
-        {stories.length > 0 ? (
-          <ul className="grid gap-3.5">
-            {stories.map((story) => (
-              <li key={story.id} className="story-saved">
-                <button type="button" className="min-w-0 flex-1 text-left" onClick={() => nav.go({ id: "story", storyId: story.id })}>
-                  <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-gold-ink">Сохранено{dateOf(story.createdAt) ? `, ${dateOf(story.createdAt)}` : ""}</span>
-                  <span className="story-sheet-title mt-0.5 block">{story.title}</span>
-                  <span className="story-sheet-lead line-clamp-2 block">{story.narrative}</span>
-                  {story.attachments?.length ? <span className="mt-1 block text-xs text-muted">Вложений: {story.attachments.length}</span> : null}
-                </button>
-                <button
-                  type="button"
-                  className="grid min-h-11 shrink-0 place-items-center px-1 text-sm text-muted underline"
-                  onClick={() => {
-                    if (window.confirm("Удалить историю? Это нельзя отменить.")) removeStory(story.id);
-                  }}
-                >
-                  Удалить
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="rounded-2xl border border-dashed border-ink/25 px-4 py-5 text-sm text-muted">Пока здесь пусто. Выберите тему выше, и первая история появится тут.</p>
-        )}
-
-        {programOpen ? (
-          <button type="button" onClick={() => setTranscribe(true)} className="story-kraft relative mt-8 flex min-h-16 w-full items-center gap-3 rounded-2xl px-5 py-3 text-left">
-            <img src={`${base}tex/desk/clip.webp`} alt="" draggable={false} className="story-clip" />
-            <span>
-              <span className="block text-[15px] font-semibold text-ink">Расшифровать интервью</span>
-              <span className="block text-sm text-ink/70">Запись разговора в текст, с отметками времени</span>
-              <span className="mt-1 block text-xs font-semibold text-ink/80">{minutes ? minutesLine(minutes) : "До 300 минут записи в месяц."}</span>
-            </span>
-          </button>
-        ) : null}
       </div>
       {transcribe ? <TranscribeSheet onClose={() => setTranscribe(false)} /> : null}
     </ScreenFrame>
@@ -182,7 +186,7 @@ export function WizardScreen({ templateId }: { templateId: string }) {
             </Button>
           </div>
           {!filled && step === template.questions.length - 1 ? (
-            <p className="mt-3 text-sm text-muted">Нужен хотя бы один ответ, нужен хотя бы один ответ, чтобы получилась история.</p>
+            <p className="mt-3 text-sm text-muted">Напишите хотя бы один ответ, чтобы получилась история.</p>
           ) : null}
         </div>
       ) : (
