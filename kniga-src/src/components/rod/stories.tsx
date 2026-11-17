@@ -10,6 +10,7 @@ import { pageFromStory, pagesFromStoryPhotos } from "@/lib/rod/layouts";
 import { Attachments } from "@/components/rod/attachments";
 import { TranscribeSheet, minutesLine, useMinutes } from "@/components/rod/transcribe-sheet";
 import { sendInterview } from "@/lib/rod/ask-relative";
+import { SendStoriesSheet } from "@/components/rod/send-interview";
 import type { Attachment } from "@/lib/rod/types";
 import { DictateButton } from "@/components/rod/dictate-button";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
@@ -35,6 +36,7 @@ const TEMPLATE_CUT: Record<string, string> = {
 export function StoriesScreen() {
   const nav = useNav();
   const [transcribe, setTranscribe] = useState(false);
+  const [askRelative, setAskRelative] = useState(false);
   const programOpen = useRod((state) => state.programOpen);
   const stories = useRod((state) => state.stories);
   const minutes = useMinutes();
@@ -59,6 +61,25 @@ export function StoriesScreen() {
           <span className="story-ai" aria-label="Работает на искусственном интеллекте" title="Работает на искусственном интеллекте">ИИ</span>
         </button>
       ) : null}
+
+      <button
+        type="button"
+        onClick={() => {
+          if (!programOpen) {
+            toast("Отправка вопросов родственникам доступна в платной программе.", { action: { label: "Что входит", onClick: () => nav.tab({ id: "home" }) }, duration: 8000 });
+            return;
+          }
+          setAskRelative(true);
+        }}
+        className="story-ask mt-3 flex min-h-[4.5rem] w-full items-center gap-4 rounded-2xl px-5 py-3 text-left"
+      >
+        <img src={`${import.meta.env.BASE_URL}stickers/pack/leaf_plane.webp`} alt="" draggable={false} className="pointer-events-none w-11 shrink-0 -rotate-6 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]" />
+        <span className="min-w-0">
+          <span className="block text-base font-semibold text-ink">Отправить вопросы родственнику</span>
+          <span className="block text-[15px] leading-snug text-ink/80">Вопросы из историй или своё интервью: родственник ответит голосом, а ответы придут вам</span>
+        </span>
+      </button>
+      {askRelative ? <SendStoriesSheet onClose={() => setAskRelative(false)} /> : null}
 
       <div className="story-table mt-6">
         <button type="button" onClick={() => nav.go({ id: "my-stories" })} className="story-folder mb-8 flex w-full items-center gap-4 text-left">

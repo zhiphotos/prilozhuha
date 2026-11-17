@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { MAX_INTERVIEW } from "@/lib/rod/ask-link";
 import { sendCustomInterview, sendInterview, sendQuestion } from "@/lib/rod/ask-relative";
-import type { Situation } from "@/lib/rod/content";
+import { STORY_TEMPLATES, type Situation } from "@/lib/rod/content";
 import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
 
@@ -143,6 +143,56 @@ export function CustomInterviewSheet({ onClose }: { onClose: () => void }) {
     <Sheet title="Своё интервью для родственника" onClose={onClose}>
       <p className="text-sm text-ink/75">Впишите свои вопросы. Родственник получит ссылку, ответит на них у себя, а готовые ответы придут к вам.</p>
       <CustomInterviewForm onDone={onClose} />
+    </Sheet>
+  );
+}
+
+/** С экрана «Истории»: отправить родственнику вопросы шаблона истории или составить своё интервью. */
+export function SendStoriesSheet({ onClose }: { onClose: () => void }) {
+  const [mode, setMode] = useState<"tpl" | "own">("tpl");
+  const [busy, setBusy] = useState(false);
+  const sendTpl = (id: string, title: string, count: number) => {
+    setBusy(true);
+    void sendInterview({ kind: "tpl", id, idx: [] }, title, count)
+      .then((m) => {
+        if (m === "shared") toast("Отправлено. Ответы придут к вам во входящие.");
+        else if (m === "copied") toast("Текст со ссылкой скопирован: вставьте его в сообщение родственнику.");
+        if (m !== "cancelled") onClose();
+      })
+      .catch((error) => toast(error instanceof Error ? error.message : "Не получилось отправить.", { duration: 6000 }))
+      .finally(() => setBusy(false));
+  };
+  const tab = (id: "tpl" | "own", label: string) => (
+    <button type="button" role="tab" aria-selected={mode === id} onClick={() => setMode(id)} className={cn("min-h-11 flex-1 rounded-full border px-3 text-sm font-semibold", mode === id ? "border-moss bg-moss text-paper" : "border-ink/20 text-ink")}>
+      {label}
+    </button>
+  );
+  return (
+    <Sheet title="Вопросы родственнику" onClose={onClose}>
+      <div className="flex gap-2" role="tablist">
+        {tab("tpl", "Из историй")}
+        {tab("own", "Своё интервью")}
+      </div>
+      {mode === "tpl" ? (
+        <div className="mt-4">
+          <p className="text-sm text-ink/75">Выберите тему: родственник получит все её вопросы карточками, ответит у себя, а ответы придут к вам.</p>
+          <ul className="mt-3 grid max-h-[50dvh] gap-2 overflow-y-auto pr-1">
+            {STORY_TEMPLATES.map((t) => (
+              <li key={t.id}>
+                <button type="button" disabled={busy} onClick={() => sendTpl(t.id, t.title, t.questions.length)} className="flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border border-ink/15 bg-white/60 px-4 py-2 text-left disabled:opacity-60">
+                  <span>
+                    <span className="block text-[15px] font-semibold text-ink">{t.title}</span>
+                    <span className="block text-sm text-ink/70">{t.questions.length} вопросов</span>
+                  </span>
+                  <img src={`${import.meta.env.BASE_URL}stickers/pack/leaf_plane.webp`} alt="" draggable={false} className="pointer-events-none w-8 shrink-0 -rotate-6" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <CustomInterviewForm onDone={onClose} />
+      )}
     </Sheet>
   );
 }
