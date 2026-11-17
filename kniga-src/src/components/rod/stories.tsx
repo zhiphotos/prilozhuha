@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Mic, Pencil } from "lucide-react";
 import { Cut } from "@/components/rod/botanica";
 import { STORY_TEMPLATES, findTemplate } from "@/lib/rod/content";
@@ -17,6 +17,22 @@ import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chr
 
 /** Вырезки из её библиотеки: разделяют группы историй. */
 const DIVIDERS = ["peony", "lily_valley", "rosebuds", "daffodil", "stick_rosehip", "driftwood"];
+
+const SEEN_KEY = "kr-mystories-seen";
+const readSeen = (): Set<string> => {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) ?? "[]") as string[]);
+  } catch {
+    return new Set();
+  }
+};
+const writeSeen = (ids: string[]) => {
+  try {
+    localStorage.setItem(SEEN_KEY, JSON.stringify(ids));
+  } catch {
+    /* без запоминания */
+  }
+};
 
 /** Иллюстрация к теме по смыслу: вырезка из библиотеки приложения. */
 const TEMPLATE_CUT: Record<string, string> = {
@@ -40,10 +56,29 @@ export function StoriesScreen() {
   const programOpen = useRod((state) => state.programOpen);
   const stories = useRod((state) => state.stories);
   const minutes = useMinutes();
+  // Новое в папке: истории, которых ещё не видели на экране «Мои истории».
+  useEffect(() => {
+    // Первый заход: уже сохранённое не считаем новым.
+    if (!readSeen().size && stories.length) writeSeen(stories.map((story) => story.id));
+  }, [stories]);
+  const fresh = (() => {
+    const seen = readSeen();
+    if (!seen.size && stories.length) return 0; // первый заход: старые истории не считаем новыми
+    return stories.filter((story) => !seen.has(story.id)).length;
+  })();
 
   return (
     <ScreenFrame>
-      <TopBar kicker="Семейные истории" title="Расскажи историю" />
+      <TopBar
+        kicker="Семейные истории"
+        title="Расскажи историю"
+        action={
+          <button type="button" onClick={() => nav.go({ id: "my-stories" })} className="story-folder-btn relative shrink-0" aria-label={`Мои истории: сохранено ${stories.length}${fresh ? `, новых ${fresh}` : ""}`} title="Мои истории">
+            <Cut id="moss_folder" className="h-full w-full object-contain" />
+            {fresh ? <span className="story-folder-badge">+{fresh}</span> : null}
+          </button>
+        }
+      />
       <p className="max-w-xl text-base leading-relaxed text-ink/75">Выберите, о чём рассказать, и ответьте на несколько вопросов. Из ответов получится страница вашей книги.</p>
       <button type="button" onClick={() => nav.go({ id: "free" })} className="story-main mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 text-base font-semibold">
         <Pencil className="size-5" /> Написать свою историю
@@ -79,16 +114,6 @@ export function StoriesScreen() {
       {askRelative ? <SendStoriesSheet onClose={() => setAskRelative(false)} /> : null}
 
       <div className="story-table mt-6">
-        <button type="button" onClick={() => nav.go({ id: "my-stories" })} className="story-folder mb-8 flex w-full items-center gap-4 text-left">
-          <Cut id="moss_folder" className="story-folder-img" />
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-gold-ink">Папка</span>
-            <span className="story-sheet-title block">Мои истории</span>
-            <span className="story-sheet-lead block">{stories.length ? `Сохранено: ${stories.length}` : "Пока пусто. Первая история появится здесь."}</span>
-          </span>
-          <span aria-hidden className="shrink-0 text-2xl text-ink/60">›</span>
-        </button>
-
         <h2 className="story-group-label">О чём расскажем?</h2>
         <ul data-tour="stories-list" className="grid gap-3.5">
           {STORY_TEMPLATES.map((template, index) => (
@@ -126,6 +151,9 @@ export function StoriesScreen() {
 export function MyStoriesScreen() {
   const nav = useNav();
   const stories = useRod((state) => state.stories);
+  useEffect(() => {
+    writeSeen(stories.map((story) => story.id));
+  }, [stories]);
   const removeStory = useRod((state) => state.removeStory);
   const dateOf = (iso: string) => {
     const d = new Date(iso);
