@@ -55,6 +55,7 @@ export function StoriesScreen() {
   const [askRelative, setAskRelative] = useState(false);
   const programOpen = useRod((state) => state.programOpen);
   const stories = useRod((state) => state.stories);
+  const interviews = useRod((state) => state.interviews);
   const minutes = useMinutes();
   // Новое в папке: истории, которых ещё не видели на экране «Мои истории».
   useEffect(() => {
@@ -90,6 +91,14 @@ export function StoriesScreen() {
             <span className="story-row-title">Расшифровать интервью</span>
             <span className="story-row-meta">{minutes ? minutesLine(minutes) : MINUTES_DEFAULT}</span>
             <span className="story-ai" aria-label="Работает на искусственном интеллекте" title="Работает на искусственном интеллекте">ИИ</span>
+          </button>
+        ) : null}
+        {programOpen || interviews.length ? (
+          <button type="button" onClick={() => nav.go({ id: "interviews" })} className="story-row">
+            <Cut id="moss_folder" className="story-row-sticker" />
+            <span className="story-row-title">Папка интервью</span>
+            <span className="story-row-meta">{interviews.length ? `Расшифровок: ${interviews.length}` : "Люди, места и даты из интервью"}</span>
+            <span aria-hidden className="story-row-chev">›</span>
           </button>
         ) : null}
         <button

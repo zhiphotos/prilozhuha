@@ -1,5 +1,6 @@
 import { PROVIDERS, QuotaError } from "./providers.js";
 import { aiEnabled } from "./limits.js";
+import { FACTS_SYSTEM, MAX_TEXT, parseModelJson, sanitizeFacts } from "./facts.js";
 import { downUntil, firstTime, markDown, reserve } from "./quota.js";
 
 const GENEALOGY = `Ты помощник по семейной истории в приложении «Книга рода». Тебе дают данные семейной книги (контекст) и вопрос.
@@ -54,5 +55,35 @@ export async function runTranscribe({ owner, audio, seconds, language, prompt, r
     if (error instanceof QuotaError) return { status: 429, body: { error: "Бесплатная квота расшифровки на сегодня закончилась.", code: "provider_quota", resetAt: await markDown(provider.name, now) } };
     console.error("[ai-transcribe]", error instanceof Error ? error.message : error);
     return { status: 502, body: { error: "Расшифровка сейчас не отвечает. Минуты не потрачены." } };
+  }
+}
+
+/** Факты из куска расшифровки интервью. Клиент режет текст на куски до 9000 знаков; каждый вызов = 1 единица счётчика «facts» (отдельно от минут расшифровки).
+ * Ответ модели не принимается на веру: JSON разбирается здесь, каждая цитата сверяется с входным текстом, выдумки выбрасываются. */
+export async function runFacts({ owner, text, requestId, env = process.env, now = Date.now() }) {
+  const input = String(text ?? "").trim();
+  if (input.length < 40 || input.length > MAX_TEXT + 500) return { status: 400, body: { error: "Некорректный кусок текста." } };
+  if (!aiEnabled(env)) return { status: 503, body: { error: "ИИ пока выключен.", code: "disabled" } };
+  const provider = PROVIDERS.facts;
+  if (!provider || !provider.configured(env)) return { status: 503, body: { error: "Поиск главного в интервью ещё не подключён.", code: "not_configured" } };
+  const down = await downUntil(provider.name);
+  if (down) return { status: 429, body: { error: "Бесплатная квота ИИ на сегодня закончилась.", code: "provider_quota", resetAt: down } };
+  if (!(await firstTime(owner, requestId))) return { status: 409, body: { error: "Этот кусок уже разбирается.", code: "duplicate" } };
+  const got = await reserve(owner, "facts", 1, now, env);
+  if (!got.ok) return { status: 429, body: { error: got.scope === "global" ? "Общий дневной запас ИИ закончился." : "Ваш лимит поиска по интервью закончился.", code: `${got.scope}_quota`, resetAt: got.resetAt } };
+  try {
+    const out = await provider.run({ system: FACTS_SYSTEM, user: `Расшифровка:\n"""\n${input}\n"""\nВыпиши факты строго JSON.`, maxTokens: 1800 }, env);
+    const parsed = parseModelJson(out.text);
+    if (!parsed) {
+      await got.release();
+      return { status: 502, body: { error: "ИИ ответил непонятно. Попробуйте ещё раз: лимит не потрачен.", code: "bad_json" } };
+    }
+    const { facts, dropped } = sanitizeFacts(parsed, input);
+    return { status: 200, body: { facts, dropped, left: got.left, resetAt: got.resetAt } };
+  } catch (error) {
+    await got.release();
+    if (error instanceof QuotaError) return { status: 429, body: { error: "Бесплатная квота ИИ на сегодня закончилась.", code: "provider_quota", resetAt: await markDown(provider.name, now) } };
+    console.error("[ai-facts]", error instanceof Error ? error.message : error);
+    return { status: 502, body: { error: "ИИ сейчас не отвечает. Лимит не потрачен." } };
   }
 }
