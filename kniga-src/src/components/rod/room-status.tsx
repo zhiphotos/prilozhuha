@@ -54,17 +54,17 @@ export function RoomBell() {
   );
 }
 
-/** Две плитки: сколько родных ответили и сколько раз открывали приглашение. */
+/** Две компактные плитки в одну строку: сколько родных ответили и сколько раз открывали приглашение. */
 export function RoomTiles({ stats }: { stats: RoomStats }) {
   return (
-    <div className="mt-4 grid grid-cols-2 gap-3">
-      <div className="rounded-2xl bg-white/70 px-4 py-3 shadow-sm">
-        <p className="text-[1.6rem] font-semibold leading-none text-moss">{stats.people.length}</p>
-        <p className="mt-1 text-xs font-semibold text-ink/60">ответили</p>
+    <div className="mt-3 flex flex-wrap gap-2">
+      <div className="flex items-baseline gap-1.5 rounded-xl bg-white/70 px-3 py-1.5 shadow-sm">
+        <span className="text-lg font-semibold leading-none text-moss">{stats.people.length}</span>
+        <span className="text-xs font-semibold text-ink/60">ответили</span>
       </div>
-      <div className="rounded-2xl bg-white/70 px-4 py-3 shadow-sm">
-        <p className="text-[1.6rem] font-semibold leading-none text-ink">{stats.opens}</p>
-        <p className="mt-1 text-xs font-semibold text-ink/60">открыли приглашение</p>
+      <div className="flex items-baseline gap-1.5 rounded-xl bg-white/70 px-3 py-1.5 shadow-sm">
+        <span className="text-lg font-semibold leading-none text-ink">{stats.opens}</span>
+        <span className="text-xs font-semibold text-ink/60">открыли приглашение</span>
       </div>
     </div>
   );

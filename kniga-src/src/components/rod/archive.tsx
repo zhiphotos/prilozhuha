@@ -78,34 +78,35 @@ function FamilyCard() {
   const { room, waiting, stats, live, notify, turnOn } = useRoomStatus(open);
   return (
     <>
-      <section className={cn("story-card together rounded-3xl p-5", waiting > 0 && "ring-2 ring-moss/50")} aria-label="Родственники">
+      <section className={cn("story-card together rounded-3xl px-4 py-3.5", waiting > 0 && "ring-2 ring-moss/50")} aria-label="Родственники">
         <div className="flex items-start justify-between gap-3">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-ink">Вместе с родными</p>
           {room && notify ? <RoomBell /> : null}
         </div>
         <div className="mt-1 flex items-start justify-between gap-3">
-          <h2 className="text-[1.3rem] font-semibold leading-tight text-ink">{room ? "Пригласить ещё родственников" : "Пригласить родственников"}</h2>
+          <h2 className="text-[1.15rem] font-semibold leading-tight text-ink">{room ? "Пригласить ещё родственников" : "Пригласить родственников"}</h2>
           {waiting > 0 ? <span className="grid min-w-8 shrink-0 place-items-center rounded-full bg-moss px-2.5 py-1 text-sm font-semibold text-paper">{waiting}</span> : null}
         </div>
-        <p className="mt-2 text-[15px] leading-snug text-ink/80">
-          {waiting > 0 ? `Родные прислали: ${waiting}. Загляните во «Входящие» и добавьте в книгу.` : room ? "Ссылка отправлена. Как только родные что-то пришлют, здесь появится число." : "Пусть расскажут свои истории и пришлют фото. Им покажем бесплатный урок."}
-        </p>
+        {waiting > 0 || !room ? (
+          <p className="mt-1.5 text-sm leading-snug text-ink/80">
+            {waiting > 0 ? `Родные прислали: ${waiting}. Загляните во «Входящие».` : "Пусть расскажут свои истории и пришлют фото. Им покажем бесплатный урок."}
+          </p>
+        ) : null}
         {room ? <RoomTiles stats={stats} /> : null}
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => (live ? setOpen(true) : toast("Семейный доступ появится, когда подключится сервер приложения."))}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-moss px-5 text-sm font-semibold text-paper shadow-md"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full bg-moss px-4 text-sm font-semibold text-paper shadow-md"
           >
             {waiting > 0 ? "Открыть входящие" : room ? "Пригласить ещё" : "Пригласить"}
           </button>
           {room && !notify ? (
-            <button type="button" onClick={() => void turnOn()} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-moss/40 bg-white/60 px-4 text-sm font-semibold text-moss">
-              <Bell className="size-4" /> Уведомлять, когда пришлют
+            <button type="button" onClick={() => void turnOn()} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-moss/40 bg-white/60 px-3 text-sm font-semibold text-moss">
+              <Bell className="size-4" /> Уведомлять
             </button>
           ) : null}
         </div>
-        {room && notify ? <p className="mt-3 text-xs text-ink/60">Уведомления включены: когда родственник что-то пришлёт, придёт сообщение.</p> : null}
       </section>
       {open ? <FamilySheet onClose={() => setOpen(false)} /> : null}
     </>
