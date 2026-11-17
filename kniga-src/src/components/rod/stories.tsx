@@ -20,17 +20,17 @@ const DIVIDERS = ["peony", "lily_valley", "rosebuds", "daffodil", "stick_rosehip
 
 /** Иллюстрация к теме по смыслу: вырезка из библиотеки приложения. */
 const TEMPLATE_CUT: Record<string, string> = {
-  "first-love": "lace/lace_06_t", // сердце
-  "parents-met": "lace/lace_14_t", // сердце-подушечка
-  "first-home": "lace/lace_19_t", // круглая салфетка
-  "hard-time": "lace/lace_04_t", // луна
-  happiest: "lace/lace_05_t", // цветок
-  child: "lace/lace_18_t", // бабочка
-  wedding: "lace/lace_36_t", // белый бант
-  "little-money": "lace/lace_41_t", // простое льняное полотенце
-  moving: "lace/lace_31_t", // брошь-камея с бантом
-  tradition: "lace/lace_02_t", // кружевное дерево
-  "one-photo": "lace/lace_03_t", // овальная рамка
+  "first-love": "rose",
+  "parents-met": "lily_valley",
+  "first-home": "wood_slice",
+  "hard-time": "driftwood",
+  happiest: "daffodil",
+  child: "shell",
+  wedding: "peony",
+  "little-money": "paper_two_scraps",
+  moving: "envelope_brown",
+  tradition: "branch",
+  "one-photo": "old_notebook",
 };
 
 export function StoriesScreen() {
