@@ -32,3 +32,27 @@ export async function runTask({ owner, task, input, requestId, env = process.env
     return { status: 502, body: { error: "ИИ сейчас не отвечает. Лимит не потрачен." } };
   }
 }
+
+/** Расшифровка одного куска звука. Расход считается в минутах (округление вверх); при сбое возвращается. Клиент режет запись на куски и присылает по одному. */
+export async function runTranscribe({ owner, audio, seconds, language, prompt, requestId, env = process.env, now = Date.now() }) {
+  const secs = Number(seconds);
+  const b64 = String(audio ?? "");
+  if (!b64 || b64.length > 3_800_000 || !Number.isFinite(secs) || secs < 1 || secs > 90) return { status: 400, body: { error: "Некорректный кусок записи." } };
+  if (!aiEnabled(env)) return { status: 503, body: { error: "ИИ пока выключен.", code: "disabled" } };
+  const provider = PROVIDERS.audio_min;
+  if (!provider || !provider.configured(env)) return { status: 503, body: { error: "Расшифровка ещё не подключена.", code: "not_configured" } };
+  const down = await downUntil(provider.name);
+  if (down) return { status: 429, body: { error: "Бесплатная квота расшифровки на сегодня закончилась.", code: "provider_quota", resetAt: down } };
+  if (!(await firstTime(owner, requestId))) return { status: 409, body: { error: "Этот кусок уже расшифровывается.", code: "duplicate" } };
+  const got = await reserve(owner, "audio_min", Math.ceil(secs / 60), now, env);
+  if (!got.ok) return { status: 429, body: { error: got.scope === "global" ? "Общий дневной запас расшифровки закончился." : "Ваш лимит минут закончился.", code: `${got.scope}_quota`, resetAt: got.resetAt } };
+  try {
+    const out = await provider.run({ audio: b64, language: language === "ru" || language === "en" ? language : "ru", prompt }, env);
+    return { status: 200, body: { text: out.text, segments: out.segments, left: got.left, resetAt: got.resetAt } };
+  } catch (error) {
+    await got.release();
+    if (error instanceof QuotaError) return { status: 429, body: { error: "Бесплатная квота расшифровки на сегодня закончилась.", code: "provider_quota", resetAt: await markDown(provider.name, now) } };
+    console.error("[ai-transcribe]", error instanceof Error ? error.message : error);
+    return { status: 502, body: { error: "Расшифровка сейчас не отвечает. Минуты не потрачены." } };
+  }
+}
