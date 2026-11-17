@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { serverStatus } from "@/lib/rod/server";
-import { fetchRoomStatus, type RoomStats } from "@/lib/rod/family";
-import { enablePush, pushPrefs, pushSupport } from "@/lib/rod/push";
+import { RoomBell, RoomTiles, useRoomStatus } from "@/components/rod/room-status";
 import { FamilySheet } from "@/components/rod/family-sheet";
 import { Bell, ChevronLeft, ChevronRight, Pencil, Plus, Search, X } from "lucide-react";
 import { PeoplePicker } from "@/components/rod/people-picker";
@@ -75,51 +74,14 @@ export function ArchiveScreen({ tab }: { tab: ArchiveTab }) {
 }
 
 function FamilyCard() {
-  const room = useRod((state) => state.room);
   const [open, setOpen] = useState(false);
-  const [waiting, setWaiting] = useState(0);
-  const [stats, setStats] = useState<RoomStats>({ people: [], opens: 0 });
-  const [live, setLive] = useState(false);
-  const [notify, setNotify] = useState(() => pushPrefs().on);
-  useEffect(() => {
-    void serverStatus().then((status) => setLive(status.rooms));
-  }, []);
-  // Карточка сама обновляется: при открытии, когда возвращаешься в приложение и раз в минуту.
-  useEffect(() => {
-    if (!room || !live) return;
-    const load = () => void fetchRoomStatus().then((r) => { setWaiting(r.items.length); setStats(r.stats); }).catch(() => undefined);
-    load();
-    const onShow = () => document.visibilityState === "visible" && load();
-    document.addEventListener("visibilitychange", onShow);
-    const timer = window.setInterval(onShow, 60_000);
-    return () => {
-      document.removeEventListener("visibilitychange", onShow);
-      window.clearInterval(timer);
-    };
-  }, [room, open, live]);
-  const turnOn = async () => {
-    const support = pushSupport();
-    if (support === "need-install") return toast("Чтобы приходили уведомления, поставьте книгу на экран «Домой» и откройте её оттуда.");
-    if (support !== "ok") return toast("На этом устройстве уведомления недоступны.");
-    try {
-      await enablePush(pushPrefs().hour, pushPrefs().days, pushPrefs().bday);
-      setNotify(true);
-      toast("Готово: когда родственник что-то пришлёт, придёт уведомление.");
-    } catch (error) {
-      toast(error instanceof Error ? error.message : "Не получилось включить уведомления.");
-    }
-  };
+  const { room, waiting, stats, live, notify, turnOn } = useRoomStatus(open);
   return (
     <>
       <section className={cn("story-card together rounded-3xl p-5", waiting > 0 && "ring-2 ring-moss/50")} aria-label="Родственники">
         <div className="flex items-start justify-between gap-3">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-ink">Вместе с родными</p>
-          {room && notify ? (
-            <span className="relative grid size-9 shrink-0 place-items-center rounded-full bg-moss text-paper shadow-md" title="Уведомления включены" aria-label="Уведомления включены">
-              <Bell className="size-4" />
-              <span className="absolute -right-0.5 -top-0.5 size-3 rounded-full bg-gold ring-2 ring-paper motion-safe:animate-pulse" />
-            </span>
-          ) : null}
+          {room && notify ? <RoomBell /> : null}
         </div>
         <div className="mt-1 flex items-start justify-between gap-3">
           <h2 className="text-[1.3rem] font-semibold leading-tight text-ink">{room ? "Пригласить ещё родственников" : "Пригласить родственников"}</h2>
@@ -128,18 +90,7 @@ function FamilyCard() {
         <p className="mt-2 text-[15px] leading-snug text-ink/80">
           {waiting > 0 ? `Родные прислали: ${waiting}. Загляните во «Входящие» и добавьте в книгу.` : room ? "Ссылка отправлена. Как только родные что-то пришлют, здесь появится число." : "Пусть расскажут свои истории и пришлют фото. Им покажем бесплатный урок."}
         </p>
-        {room ? (
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-white/70 px-4 py-3 shadow-sm">
-              <p className="text-[1.6rem] font-semibold leading-none text-moss">{stats.people.length}</p>
-              <p className="mt-1 text-xs font-semibold text-ink/60">ответили</p>
-            </div>
-            <div className="rounded-2xl bg-white/70 px-4 py-3 shadow-sm">
-              <p className="text-[1.6rem] font-semibold leading-none text-ink">{stats.opens}</p>
-              <p className="mt-1 text-xs font-semibold text-ink/60">открыли приглашение</p>
-            </div>
-          </div>
-        ) : null}
+        {room ? <RoomTiles stats={stats} /> : null}
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
             type="button"
