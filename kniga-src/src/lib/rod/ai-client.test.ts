@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { askGenealogist, aiStatus, quotaLine, type AiDeps } from "./ai-client.ts";
+import { askGenealogist, aiStatus, extractFactsChunk, quotaLine, type AiDeps } from "./ai-client.ts";
 
 const deps = (reply: { status: number; body: unknown } | "throw"): AiDeps => ({
   apiBase: "https://api.example", token: "t", deviceId: "d",
@@ -38,4 +38,10 @@ test("строка остатка с датой обновления", () => {
   const line = quotaLine({ per: "month", limit: 10, used: 4, left: 6, resetAt: "2026-12-31T21:00:00Z" }, new Date("2026-11-15T12:00:00Z"));
   assert.match(line, /Осталось 6 из 10/);
   assert.match(line, /1 января/);
+});
+
+test("факты из интервью: уходят на ai-facts с текстом и requestId", async () => {
+  const r = await extractFactsChunk(deps({ status: 200, body: { facts: [], dropped: 0, left: 5, resetAt: "x" } }), "текст интервью", "q1");
+  assert.equal(r.ok, true);
+  assert.deepEqual([deps.last.text, deps.last.requestId], ["текст интервью", "q1"]);
 });

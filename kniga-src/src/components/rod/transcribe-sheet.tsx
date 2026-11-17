@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button, Sheet } from "@/components/rod/chrome";
+import { Button, Sheet, useNav } from "@/components/rod/chrome";
+import { FactsRunner } from "@/components/rod/facts-runner";
+import { stripMarks } from "@/lib/rod/interview-facts";
 import { aiStatus, quotaLine, transcribeChunk, type AiDeps, type AiQuota } from "@/lib/rod/ai-client";
 import { CHUNK_SEC, RATE, clock, decodeMono16k, encodeWav, findCuts, shiftSegments, toBase64, type Seg } from "@/lib/rod/audio-chunks";
 import { API_BASE } from "@/lib/rod/config";
@@ -33,7 +35,10 @@ type Phase = "idle" | "reading" | "ready" | "working" | "paused" | "done";
 
 /** Расшифровка интервью: файл режется на куски по минуте, куски расшифровываются по очереди, готовый текст можно поправить и сохранить историей. */
 export function TranscribeSheet({ onClose }: { onClose: () => void }) {
+  const nav = useNav();
   const addStory = useRod((s) => s.addStory);
+  const addInterview = useRod((s) => s.addInterview);
+  const updateInterview = useRod((s) => s.updateInterview);
   const access = useRod((s) => s.access);
   const [phase, setPhase] = useState<Phase>("idle");
   const [name, setName] = useState("");
@@ -46,16 +51,18 @@ export function TranscribeSheet({ onClose }: { onClose: () => void }) {
   const [withTime, setWithTime] = useState(true);
   const audio = useRef<{ samples: Float32Array; cuts: number[] } | null>(null);
   const stop = useRef(false);
+  const [interviewId, setInterviewId] = useState<string | null>(null);
   const minutes = useMinutes();
   const shownQuota = quota ?? minutes;
   const deps = (): AiDeps => ({ apiBase: API_BASE, token: access?.token ?? "", deviceId: deviceId() });
 
-  const pick = async (file: File) => {
+  const pick = async (f: File) => {
+    setInterviewId(null);
     setPhase("reading");
-    setName(file.name.replace(/\.[^.]+$/, ""));
+    setName(f.name.replace(/\.[^.]+$/, ""));
     setNote("Читаю запись…");
     try {
-      const samples = await decodeMono16k(file);
+      const samples = await decodeMono16k(f);
       audio.current = { samples, cuts: findCuts(samples) };
       setTotal(audio.current.cuts.length);
       setDone(0);
@@ -108,7 +115,11 @@ export function TranscribeSheet({ onClose }: { onClose: () => void }) {
       setQuota((q) => (q ? { ...q, left: answer.data.left } : q));
     }
     setPhase("done");
-    setNote("Готово. Прочитайте и поправьте текст: имена и названия мест ИИ мог написать не так.");
+    // Расшифровка сразу ложится в папку «Интервью»: текст, отметки времени и (если хватило места) сама запись, только на этом устройстве.
+    const plain = all.map((s) => s.text).join(" ");
+    const id = addInterview({ title: name || "Интервью", text: plain, segments: plain.length > 400_000 ? [] : all, duration: Math.round(data.samples.length / RATE) });
+    setInterviewId(id);
+    setNote("Готово. Расшифровка лежит в папке «Интервью». Прочитайте и поправьте текст: имена и названия мест ИИ мог написать не так.");
   };
 
   const joined = (marks: boolean) => segs.map((s) => (marks ? `[${clock(s.start)}] ${s.text}` : s.text)).join(marks ? "\n" : " ");
@@ -117,7 +128,7 @@ export function TranscribeSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Расшифровать интервью" onClose={onClose}>
       <div className="grid gap-3 pb-2">
-        <p className="text-sm text-muted">Выберите запись разговора (аудио или видео). Я перепишу её в текст с отметками времени. Запись остаётся у вас, в облако уходят только небольшие куски звука для расшифровки.</p>
+        <p className="text-sm text-muted">Выберите запись разговора (аудио или видео). Я перепишу её в текст с отметками времени. Запись на телефоне не сохраняется, в облако уходят только небольшие куски звука для расшифровки.</p>
         {phase === "idle" || phase === "reading" ? (
           <label className="flex min-h-12 cursor-pointer items-center justify-center rounded-2xl bg-moss px-4 font-semibold text-paper">
             {phase === "reading" ? "Читаю…" : "Выбрать запись"}
@@ -144,8 +155,14 @@ export function TranscribeSheet({ onClose }: { onClose: () => void }) {
               <input type="checkbox" className="size-5" checked={withTime} onChange={(e) => { setWithTime(e.target.checked); setText(""); }} />
               С отметками времени
             </label>
-            <textarea className="field min-h-64 w-full text-[15px] leading-snug" value={shown} onChange={(e) => setText(e.target.value)} aria-label="Расшифровка" />
+            <textarea className="field min-h-64 w-full text-[15px] leading-snug" value={shown} onChange={(e) => setText(e.target.value)} onBlur={() => { if (interviewId && text) updateInterview(interviewId, { text: stripMarks(text) }); }} aria-label="Расшифровка" />
             <div className="grid gap-2">
+              {interviewId && phase === "done" ? (
+                <>
+                  <FactsRunner interviewId={interviewId} />
+                  <Button variant="soft" onClick={() => { onClose(); nav.go({ id: "interview", interviewId }); }}>Открыть в папке «Интервью»</Button>
+                </>
+              ) : null}
               <Button
                 disabled={phase === "working"}
                 onClick={() => {

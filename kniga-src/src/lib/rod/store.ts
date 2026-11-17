@@ -21,6 +21,8 @@ import {
   type CustomFontEntry,
   type FamilyDoc,
   type FamilyPhoto,
+  type Interview,
+  type InterviewFact,
   type Person,
   type Place,
   type SpineSetup,
@@ -39,6 +41,8 @@ type RodState = {
   places: Place[];
   photos: FamilyPhoto[];
   stories: Story[];
+  /** Интервью: расшифровки с найденными фактами. */
+  interviews: Interview[];
   events: TimelineEvent[];
   documents: FamilyDoc[];
   notes: CardNote[];
@@ -93,6 +97,10 @@ type RodState = {
   updatePhoto: (id: string, patch: Partial<Omit<FamilyPhoto, "id" | "dataUrl">>) => void;
   addStory: (input: Omit<Story, "id" | "createdAt">) => string;
   removeStory: (id: string) => void;
+  addInterview: (input: Omit<Interview, "id" | "createdAt" | "facts" | "factsDone" | "factsTotal" | "dropped"> & Partial<Pick<Interview, "facts" | "factsDone" | "factsTotal" | "dropped">>) => string;
+  updateInterview: (id: string, patch: Partial<Omit<Interview, "id">>) => void;
+  removeInterview: (id: string) => void;
+  patchFact: (interviewId: string, factId: string, patch: Partial<Omit<InterviewFact, "id">>) => void;
   updateStory: (id: string, patch: Partial<Pick<Story, "title" | "narrative" | "attachments">>) => void;
   addEvent: (input: Omit<TimelineEvent, "id">) => void;
   removeEvent: (id: string) => void;
@@ -135,6 +143,7 @@ const empty = {
   places: [] as Place[],
   photos: [] as FamilyPhoto[],
   stories: [] as Story[],
+  interviews: [] as Interview[],
   events: [] as TimelineEvent[],
   documents: [] as FamilyDoc[],
   notes: [] as CardNote[],
@@ -333,6 +342,15 @@ export const useRod = create<RodState>()(
         }));
         return id;
       },
+      addInterview: (input) => {
+        const id = uid();
+        set((state) => ({ interviews: [{ facts: [], factsDone: 0, factsTotal: 0, dropped: 0, ...input, id, createdAt: new Date().toISOString() }, ...state.interviews] }));
+        return id;
+      },
+      updateInterview: (id, patch) => set((state) => ({ interviews: state.interviews.map((item) => (item.id === id ? { ...item, ...patch } : item)) })),
+      removeInterview: (id) => set((state) => ({ interviews: state.interviews.filter((item) => item.id !== id) })),
+      patchFact: (interviewId, factId, patch) =>
+        set((state) => ({ interviews: state.interviews.map((item) => (item.id === interviewId ? { ...item, facts: item.facts.map((fact) => (fact.id === factId ? { ...fact, ...patch } : fact)) } : item)) })),
       removeStory: (id) => set((state) => ({ stories: state.stories.filter((story) => story.id !== id) })),
       updateStory: (id, patch) => set((state) => ({ stories: state.stories.map((story) => (story.id === id ? { ...story, ...patch } : story)) })),
       addEvent: (input) => set((state) => ({ events: [{ ...input, id: uid() }, ...state.events] })),
