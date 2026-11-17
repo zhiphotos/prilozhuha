@@ -93,7 +93,7 @@ const TABS: { id: string; label: string; icon: typeof BookOpen; screen: Screen }
 
 export function tabKey(screen: Screen): string {
   if (screen.id === "lessons" || screen.id === "lesson") return "lessons";
-  if (screen.id === "ai" || screen.id === "ai-genealogist") return "ai";
+  if (screen.id === "ai" || screen.id === "ai-genealogist" || screen.id === "ai-chapter") return "ai";
   if (screen.id === "cards" || screen.id === "deck" || screen.id === "answers") return "cards";
   if (screen.id === "stories" || screen.id === "my-stories" || screen.id === "interviews" || screen.id === "interview" || screen.id === "wizard" || screen.id === "story" || screen.id === "free") return "stories";
   if (screen.id === "book" || screen.id === "editor" || screen.id === "flip") return "book";

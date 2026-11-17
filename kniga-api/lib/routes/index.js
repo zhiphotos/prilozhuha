@@ -1,6 +1,8 @@
 // Все адреса сервера в одном месте: на бесплатном Vercel можно не больше 12 функций, поэтому они собраны в одну (api/[...path].js).
 import aiFacts from "./ai-facts.js";
 import aiChat from "./ai-chat.js";
+import aiSeek from "./ai-seek.js";
+import aiChapter from "./ai-chapter.js";
 import aiRun from "./ai-run.js";
 import aiStatus from "./ai-status.js";
 import aiTranscribe from "./ai-transcribe.js";
@@ -38,6 +40,8 @@ import verify from "./verify.js";
 
 export const ROUTES = {
   "ai-facts": aiFacts,
+  "ai-seek": aiSeek,
+  "ai-chapter": aiChapter,
   "ai-chat": aiChat,
   "ai-run": aiRun,
   "ai-status": aiStatus,

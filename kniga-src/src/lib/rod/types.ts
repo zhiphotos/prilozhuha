@@ -339,6 +339,7 @@ export type Screen =
   | { id: "lessons" }
   | { id: "ai" }
   | { id: "ai-genealogist" }
+  | { id: "ai-chapter" }
   | { id: "lesson"; lessonId: string }
   | { id: "cards" }
   | { id: "deck"; situationId: string }

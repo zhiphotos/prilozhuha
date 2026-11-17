@@ -4,6 +4,10 @@ import { Copy, ExternalLink, X } from "lucide-react";
 import { buildCase, type Lead, type Seek } from "@/lib/tree/ancestorSearch";
 import { displayName } from "@/lib/tree/kinship";
 import { SEARCH_LIMIT } from "@/lib/rod/search-limit";
+import { seekArchives, type AiDeps } from "@/lib/rod/ai-client";
+import { API_BASE } from "@/lib/rod/config";
+import { deviceId } from "@/lib/rod/pay";
+import { useRod } from "@/lib/rod/store";
 import type { Person } from "@/lib/tree/types";
 
 const SEEKS: { id: Seek; label: string }[] = [
@@ -34,6 +38,8 @@ export function AncestorSearch({ person, left, onSpend, onPlant, onClose }: { pe
   const [copied, setCopied] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState("");
+  const [tips, setTips] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
   const [leads, setLeads] = useState<Lead[] | null>(null);
   const plan = useMemo(
     () =>
@@ -62,17 +68,32 @@ export function AncestorSearch({ person, left, onSpend, onPlant, onClose }: { pe
     }
     const first = plan.leads[0];
     const second = plan.leads[1];
+    const local = [
+      plan.question,
+      first ? `Сначала «${first.title}»: вставьте «${first.query}».` : "",
+      second ? `Дальше то же имя в «${second.title}».` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    // Список показываем сразу, без ожидания; ИИ потом уточняет порядок, запросы и добавляет советы по методике.
     setError(null);
     setLeads(plan.leads);
-    setSummary(
-      [
-        plan.question,
-        first ? `Сначала «${first.title}»: вставьте «${first.query}».` : "",
-        second ? `Дальше то же имя в «${second.title}».` : "",
-      ]
-        .filter(Boolean)
-        .join(" "),
-    );
+    setSummary(local);
+    setTips([]);
+    if (busy) return;
+    setBusy(true);
+    const deps: AiDeps = { apiBase: API_BASE, token: useRod.getState().access?.token ?? "", deviceId: deviceId() };
+    void seekArchives(deps, { question: plan.question, variants: plan.variants, place, seek, leads: plan.leads }, crypto.randomUUID())
+      .then((res) => {
+        if (res.ok) {
+          setSummary(res.data.summary || local);
+          setLeads(res.data.leads);
+          setTips(res.data.tips ?? []);
+        } else if (res.code === "user_quota" || res.code === "global_quota" || res.code === "provider_quota") {
+          setError(res.message);
+        }
+      })
+      .finally(() => setBusy(false));
   };
 
   const copy = async (text: string, id: string) => {
@@ -140,7 +161,7 @@ export function AncestorSearch({ person, left, onSpend, onPlant, onClose }: { pe
               search();
             }}
           >
-            Найти наводки
+            {busy ? "ИИ уточняет…" : "Найти наводки"}
             <span className="ml-2 rounded-full bg-sheet px-2 py-0.5 text-sm text-ink">осталось {left} из {SEARCH_LIMIT}</span>
           </button>
           <p className="text-sm text-muted">Каждое нажатие «Найти наводки» считается за один поиск. В месяц доступно {SEARCH_LIMIT}.</p>
@@ -148,6 +169,13 @@ export function AncestorSearch({ person, left, onSpend, onPlant, onClose }: { pe
           <section className="flex flex-col gap-2">
             <p className="text-xs tracking-widest text-muted uppercase">Наводки</p>
             <p className="text-base leading-relaxed">{summary}</p>
+            {tips.length > 0 && (
+              <ul className="list-disc space-y-1 pl-5 text-sm leading-relaxed text-muted">
+                {tips.map((tip) => (
+                  <li key={tip}>{tip}</li>
+                ))}
+              </ul>
+            )}
             {shown.map((link, index) => (
               <article key={link.id} className="rounded-3xl border border-line bg-white p-4">
                 <div className="flex items-baseline justify-between gap-3">

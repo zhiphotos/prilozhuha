@@ -99,4 +99,4 @@ export const chatProvider = {
 };
 
 /** Реестр: вид работы → адаптер. Whisper, OCR и diarization появятся на своих этапах; пока честно «не подключено». */
-export const PROVIDERS = { text: cloudflareText, facts: cloudflareText, audio_min: cloudflareWhisper, ocr_pages: null, archive: null, chat: chatProvider };
+export const PROVIDERS = { text: cloudflareText, facts: cloudflareText, audio_min: cloudflareWhisper, ocr_pages: null, archive: cloudflareText, chat: chatProvider, chapter: chatProvider };
