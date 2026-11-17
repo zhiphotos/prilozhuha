@@ -51,7 +51,7 @@ export function StoriesScreen() {
         <Pencil className="size-5" /> Написать свою историю
       </button>
       {programOpen ? (
-        <button type="button" onClick={() => setTranscribe(true)} className="story-glass mt-3 flex min-h-[4.5rem] w-full items-center gap-4 rounded-2xl py-3 pl-5 pr-14 text-left">
+        <button type="button" onClick={() => setTranscribe(true)} className="story-glass mt-3 flex min-h-[4.5rem] w-full items-center gap-4 rounded-2xl px-5 py-3 text-left">
           <span className="story-glass-icon" aria-hidden>
             <Mic className="size-6" />
           </span>
