@@ -30,8 +30,8 @@ export const transcribeChunk = (deps: AiDeps, audio: string, seconds: number, re
 
 /** Факты из куска расшифровки интервью (до ~9000 знаков). Сервер сам проверяет цитаты и отбрасывает выдуманное; считается отдельным счётчиком, минуты расшифровки не тратятся. */
 export type RawFact = { kind: string; title: string; detail?: string; relation?: string; years?: string; place?: string; quote: string; certainty?: string; note?: string };
-export const extractFactsChunk = (deps: AiDeps, text: string, requestId: string) =>
-  post<{ facts: RawFact[]; dropped: number; left: number; resetAt: string }>(deps, "ai-facts", { text, requestId });
+export const extractFactsChunk = (deps: AiDeps, text: string, requestId: string, context?: string) =>
+  post<{ facts: RawFact[]; dropped: number; left: number; resetAt: string }>(deps, "ai-facts", { text, requestId, context: context?.trim() || undefined });
 
 /** «Осталось 12 из 20 до 4 ноября». */
 export function quotaLine(quota: AiQuota, now = new Date()): string {

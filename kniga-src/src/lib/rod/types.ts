@@ -120,6 +120,8 @@ export type Interview = {
   text: string;
   segments: { start: number; end: number; text: string }[];
   duration: number;
+  /** Подсказка ИИ, о чём запись: кто говорит и что искать (по желанию). */
+  context?: string;
   facts: InterviewFact[];
   /** Сколько кусков текста уже разобрано и сколько всего (для продолжения после сбоя). */
   factsDone: number;

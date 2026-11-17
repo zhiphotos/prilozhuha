@@ -91,6 +91,28 @@ function fuzzyQuote(quote, text) {
   return words.slice(bestAt, bestAt + Math.min(win, Math.ceil(qw.length * 1.3) + 2)).join(" ");
 }
 
+/** Модель часто не пишет цитату. Тогда сервер сам ищет в тексте место, где сказано про этот факт (по словам названия и пересказа), и берёт настоящие слова оттуда. Нет такого места в тексте: факт выдуман, отбрасываем. */
+function locateQuote(f, text, kind) {
+  const need = loose(str(f.title, 120)).split(" ").filter((w) => w.length >= 3).map((w) => w.slice(0, 5));
+  const extra = loose(str(f.detail, 400)).split(" ").filter((w) => w.length >= 5).map((w) => w.slice(0, 5));
+  if (!need.length) return null;
+  const words = String(text).match(/\S+/g) ?? [];
+  const stems = words.map((w) => loose(w).slice(0, 5));
+  const win = 28;
+  const nameKinds = kind === "people" || kind === "places" || kind === "surnames";
+  let best = -1, bestAt = -1;
+  for (let i = 0; i < stems.length; i++) {
+    if (!need.includes(stems[i])) continue;
+    const slice = new Set(stems.slice(Math.max(0, i - 6), i + win));
+    const hit = need.filter((w) => slice.has(w)).length;
+    if (nameKinds ? hit < need.length && hit < 1 : hit < Math.min(2, need.length)) continue;
+    const score = hit * 3 + extra.filter((w) => slice.has(w)).length;
+    if (score > best) { best = score; bestAt = i; }
+  }
+  if (bestAt < 0) return null;
+  return words.slice(Math.max(0, bestAt - 6), bestAt + win).join(" ");
+}
+
 /** Проверка и очистка фактов. Возвращает { facts, dropped }. */
 export function sanitizeFacts(rawFacts, text) {
   const textNorm = norm(text), textLoose = loose(text);
@@ -101,12 +123,12 @@ export function sanitizeFacts(rawFacts, text) {
     const kind = FACT_KINDS.includes(f.kind) ? f.kind : null;
     const title = str(f.title, 120);
     const quote = cleanQuote(str(f.quote, 400));
-    if (!kind || !title || norm(quote).length < MIN_QUOTE) { dropped += 1; continue; }
+    if (!kind || !title) { dropped += 1; continue; }
     let certainty = CERTAINTY.includes(f.certainty) ? f.certainty : "ясно";
     let note = str(f.note, 240);
-    let found = textNorm.includes(norm(quote));
+    let found = norm(quote).length >= MIN_QUOTE && textNorm.includes(norm(quote));
     if (!found) {
-      if (loose(quote).length >= MIN_QUOTE && textLoose.includes(loose(quote))) {
+      if (norm(quote).length >= MIN_QUOTE && loose(quote).length >= MIN_QUOTE && textLoose.includes(loose(quote))) {
         found = true;
         if (certainty === "ясно") certainty = "проверить";
         note = note || "Цитата совпала не буква в букву: послушайте момент.";
@@ -114,7 +136,7 @@ export function sanitizeFacts(rawFacts, text) {
     }
     let quoteOut = quote;
     if (!found) {
-      const fz = fuzzyQuote(quote, text);
+      const fz = (norm(quote).length >= MIN_QUOTE ? fuzzyQuote(quote, text) : null) ?? locateQuote(f, text, kind);
       if (fz) { found = true; quoteOut = fz; if (certainty === "ясно") certainty = "проверить"; note = note || "Слова в записи чуть отличаются: послушайте момент."; }
     }
     if (!found) { dropped += 1; continue; }

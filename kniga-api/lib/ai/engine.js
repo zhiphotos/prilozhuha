@@ -60,7 +60,7 @@ export async function runTranscribe({ owner, audio, seconds, language, prompt, r
 
 /** Факты из куска расшифровки интервью. Клиент режет текст на куски до 9000 знаков; каждый вызов = 1 единица счётчика «facts» (отдельно от минут расшифровки).
  * Ответ модели не принимается на веру: JSON разбирается здесь, каждая цитата сверяется с входным текстом, выдумки выбрасываются. */
-export async function runFacts({ owner, text, requestId, env = process.env, now = Date.now() }) {
+export async function runFacts({ owner, text, context, requestId, env = process.env, now = Date.now() }) {
   const input = String(text ?? "").trim();
   if (input.length < 40 || input.length > MAX_TEXT + 500) return { status: 400, body: { error: "Некорректный кусок текста." } };
   if (!aiEnabled(env)) return { status: 503, body: { error: "ИИ пока выключен.", code: "disabled" } };
@@ -74,7 +74,7 @@ export async function runFacts({ owner, text, requestId, env = process.env, now 
   try {
     let parsed = null;
     for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
-      const out = await provider.run({ system: FACTS_SYSTEM, user: `Расшифровка:\n"""\n${input}\n"""\nВыпиши факты строго JSON.`, maxTokens: 2400 }, env);
+      const out = await provider.run({ system: FACTS_SYSTEM, user: `${context ? `О записи (от пользователя): ${String(context).slice(0, 400)}\n` : ""}Расшифровка:\n"""\n${input}\n"""\nВыпиши факты строго JSON.`, maxTokens: 2400 }, env);
       parsed = parseModelJson(out.text);
     }
     if (!parsed) {

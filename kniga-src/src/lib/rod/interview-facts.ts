@@ -200,7 +200,7 @@ export function foundLine(facts: InterviewFact[]): string {
 }
 
 export type RunDeps = {
-  call: (text: string, requestId: string) => Promise<AiResult<{ facts: RawFact[]; dropped: number }>>;
+  call: (text: string, requestId: string, context?: string) => Promise<AiResult<{ facts: RawFact[]; dropped: number }>>;
   makeId: () => string;
   /** Вызывается после каждого куска: накопленные факты, сколько кусков готово. */
   onProgress?: (state: { facts: InterviewFact[]; done: number; total: number; dropped: number }) => void;
@@ -211,7 +211,7 @@ export type RunDeps = {
 export type RunResult = { facts: InterviewFact[]; done: number; total: number; dropped: number; error?: { message: string; code: string; resetAt?: string }; paused?: boolean };
 
 /** Разбор интервью по кускам с позиции `from` (продолжение после сбоя). Уже найденное сохраняется, при отказе сервера возвращается честная причина. */
-export async function runExtraction(interview: Pick<Interview, "id" | "text" | "segments" | "facts" | "dropped">, deps: RunDeps, from = 0): Promise<RunResult> {
+export async function runExtraction(interview: Pick<Interview, "id" | "text" | "segments" | "facts" | "dropped"> & { context?: string }, deps: RunDeps, from = 0): Promise<RunResult> {
   const text = stripMarks(interview.text);
   const chunks = chunkText(text);
   let facts = interview.facts;
@@ -220,8 +220,8 @@ export async function runExtraction(interview: Pick<Interview, "id" | "text" | "
   for (; done < chunks.length; done += 1) {
     if (deps.stopped?.()) return { facts, done, total: chunks.length, dropped, paused: true };
     const id = `${interview.id}:f${done}:${deps.nonce ? deps.nonce() : Date.now().toString(36)}`;
-    let answer = await deps.call(chunks[done]!, id);
-    if (!answer.ok && answer.code === "network") answer = await deps.call(chunks[done]!, `${id}:r`);
+    let answer = await deps.call(chunks[done]!, id, interview.context);
+    if (!answer.ok && answer.code === "network") answer = await deps.call(chunks[done]!, `${id}:r`, interview.context);
     if (!answer.ok) return { facts, done, total: chunks.length, dropped, error: { message: answer.message, code: answer.code, resetAt: answer.resetAt } };
     const got = acceptFacts(answer.data.facts ?? [], text, interview.segments, deps.makeId);
     facts = mergeFacts(facts, got.facts);
