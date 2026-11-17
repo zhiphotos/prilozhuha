@@ -65,6 +65,21 @@ export async function accept(item: Incoming): Promise<void> {
   }
 }
 
+/** Своё интервью: вопросы хранятся на сервере, ссылка короткая. Возвращает номер интервью. */
+export async function createInterview(title: string, questions: string[]): Promise<string> {
+  const room = useRod.getState().room;
+  if (!room) throw new Error("Сначала создайте ссылку для родных.");
+  const answer = await post<{ id?: string }>("/api/room-interview", { room: room.id, ownerKey: room.ownerKey, title, questions });
+  if (!answer.id) throw new Error(answer.error || "Не получилось создать интервью.");
+  return answer.id;
+}
+
+/** Родственник: вопросы своего интервью по номеру. */
+export async function loadInterview(room: string, invite: string, id: string): Promise<{ title: string; questions: string[] } | null> {
+  const answer = await post<{ title?: string; questions?: string[] }>("/api/room-interview", { room, invite, id });
+  return answer.questions?.length ? { title: answer.title ?? "Интервью", questions: answer.questions } : null;
+}
+
 /** Родственник: что за приглашение. */
 export async function roomInfo(room: string, invite: string): Promise<{ ok: boolean; name?: string; error?: string }> {
   return await post("/api/room-info", { room, invite });

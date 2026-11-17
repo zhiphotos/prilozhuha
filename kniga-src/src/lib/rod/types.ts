@@ -303,6 +303,7 @@ export type Screen =
   | { id: "deck"; situationId: string }
   | { id: "answers" }
   | { id: "stories" }
+  | { id: "my-stories" }
   | { id: "wizard"; templateId: string }
   | { id: "story"; storyId: string }
   | { id: "free" }

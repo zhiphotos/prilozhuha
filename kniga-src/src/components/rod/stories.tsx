@@ -1,13 +1,16 @@
 import { toast } from "sonner";
 import { Fragment, useMemo, useState } from "react";
-import { Pencil } from "lucide-react";
+import { Mic, Pencil } from "lucide-react";
 import { Cut } from "@/components/rod/botanica";
 import { STORY_TEMPLATES, findTemplate } from "@/lib/rod/content";
 import { composeStory } from "@/lib/rod/narrative";
 import { useRod } from "@/lib/rod/store";
+import { plural } from "@/lib/rod/progress";
 import { pageFromStory, pagesFromStoryPhotos } from "@/lib/rod/layouts";
 import { Attachments } from "@/components/rod/attachments";
-import { TranscribeSheet } from "@/components/rod/transcribe-sheet";
+import { TranscribeSheet, minutesLine, useMinutes } from "@/components/rod/transcribe-sheet";
+import { sendInterview } from "@/lib/rod/ask-relative";
+import { SendStoriesSheet } from "@/components/rod/send-interview";
 import type { Attachment } from "@/lib/rod/types";
 import { DictateButton } from "@/components/rod/dictate-button";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
@@ -15,78 +18,157 @@ import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chr
 /** Вырезки из её библиотеки: разделяют группы историй. */
 const DIVIDERS = ["peony", "lily_valley", "rosebuds", "daffodil", "stick_rosehip", "driftwood"];
 
+/** Иллюстрация к теме по смыслу: вырезка из библиотеки приложения. */
+const TEMPLATE_CUT: Record<string, string> = {
+  "first-love": "rose",
+  "parents-met": "lace/lace_14_t",
+  "first-home": "wood_slice",
+  "hard-time": "lace/lace_04_t",
+  happiest: "daffodil",
+  child: "lace/lace_18_t",
+  wedding: "peony",
+  "little-money": "paper_two_scraps",
+  moving: "envelope_brown",
+  tradition: "lace/lace_19_t",
+  "one-photo": "frame_line_corners",
+};
+
 export function StoriesScreen() {
   const nav = useNav();
   const [transcribe, setTranscribe] = useState(false);
+  const [askRelative, setAskRelative] = useState(false);
   const programOpen = useRod((state) => state.programOpen);
   const stories = useRod((state) => state.stories);
-  const removeStory = useRod((state) => state.removeStory);
+  const minutes = useMinutes();
 
   return (
     <ScreenFrame>
-      <TopBar
-        kicker="Семейные истории"
-        title="Расскажи историю"
-        action={
-          <button type="button" onClick={() => nav.go({ id: "free" })} className="glass grid size-11 shrink-0 place-items-center rounded-full text-ink" aria-label="Написать свою историю без темы" title="Написать свою историю без темы">
-            <Pencil className="size-5" />
-          </button>
-        }
-      />
-      <p className="max-w-xl text-muted">
-        Нажмите шаблон. Приложение задаст несколько вопросов и соберёт черновик. Его можно поправить перед сохранением – это уже готовая страница вашей книги. Карандашом вверху можно написать свою историю без темы и вопросов, с фото.
-      </p>
+      <TopBar kicker="Семейные истории" title="Расскажи историю" />
+      <p className="max-w-xl text-base leading-relaxed text-ink/75">Выберите, о чём рассказать, и ответьте на несколько вопросов. Из ответов получится страница вашей книги.</p>
+      <button type="button" onClick={() => nav.go({ id: "free" })} className="story-main mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 text-base font-semibold">
+        <Pencil className="size-5" /> Написать свою историю
+      </button>
       {programOpen ? (
-        <button type="button" onClick={() => setTranscribe(true)} className="glass mt-4 flex min-h-14 w-full items-center justify-between rounded-3xl px-5 py-3 text-left">
-          <span>
-            <span className="block font-semibold text-ink">Расшифровать интервью</span>
-            <span className="block text-sm text-muted">Запись разговора в текст, с отметками времени</span>
+        <button type="button" onClick={() => setTranscribe(true)} className="story-glass mt-3 flex min-h-[4.5rem] w-full items-center gap-4 rounded-2xl px-5 py-3 text-left">
+          <span className="story-glass-icon" aria-hidden>
+            <Mic className="size-6" />
           </span>
+          <span className="min-w-0">
+            <span className="block text-base font-semibold text-ink">Расшифровать интервью</span>
+            <span className="block text-[15px] leading-snug text-ink/80">Загрузите запись разговора, например рассказ бабушки, и получите текст</span>
+            <span className="mt-0.5 block text-sm font-semibold text-moss">{minutes ? minutesLine(minutes) : "Входит в программу: до 300 минут в месяц."}</span>
+          </span>
+          <span className="story-ai" aria-label="Работает на искусственном интеллекте" title="Работает на искусственном интеллекте">ИИ</span>
         </button>
       ) : null}
+
+      <button
+        type="button"
+        onClick={() => {
+          if (!programOpen) {
+            toast("Отправка вопросов родственникам доступна в платной программе.", { action: { label: "Что входит", onClick: () => nav.tab({ id: "home" }) }, duration: 8000 });
+            return;
+          }
+          setAskRelative(true);
+        }}
+        className="story-ask mt-3 flex min-h-[4.5rem] w-full items-center gap-4 rounded-2xl px-5 py-3 text-left"
+      >
+        <img src={`${import.meta.env.BASE_URL}stickers/pack/leaf_plane.webp`} alt="" draggable={false} className="pointer-events-none w-11 shrink-0 -rotate-6 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]" />
+        <span className="min-w-0">
+          <span className="block text-base font-semibold text-ink">Отправить вопросы родственнику</span>
+          <span className="block text-[15px] leading-snug text-ink/80">Вопросы из историй или своё интервью: родственник ответит голосом, а ответы придут вам</span>
+        </span>
+      </button>
+      {askRelative ? <SendStoriesSheet onClose={() => setAskRelative(false)} /> : null}
+
+      <div className="story-table mt-6">
+        <button type="button" onClick={() => nav.go({ id: "my-stories" })} className="story-folder mb-8 flex w-full items-center gap-4 text-left">
+          <Cut id="moss_folder" className="story-folder-img" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-gold-ink">Папка</span>
+            <span className="story-sheet-title block">Мои истории</span>
+            <span className="story-sheet-lead block">{stories.length ? `Сохранено: ${stories.length}` : "Пока пусто. Первая история появится здесь."}</span>
+          </span>
+          <span aria-hidden className="shrink-0 text-2xl text-ink/60">›</span>
+        </button>
+
+        <h2 className="story-group-label">О чём расскажем?</h2>
+        <ul data-tour="stories-list" className="grid gap-3.5">
+          {STORY_TEMPLATES.map((template, index) => (
+            <Fragment key={template.id}>
+              {index > 0 && index % 4 === 0 ? (
+                <li aria-hidden className="flex items-center gap-3 py-4">
+                  <span className="story-seam" />
+                  <Cut id={DIVIDERS[(index / 4 - 1) % DIVIDERS.length]} className="w-20 shrink-0" style={{ transform: `rotate(${index % 8 ? -6 : 6}deg)` }} />
+                  <span className="story-seam" />
+                </li>
+              ) : null}
+              <li>
+                <button type="button" onClick={() => nav.go({ id: "wizard", templateId: template.id })} data-tone={index % 3} className="story-sheet">
+                  <span className="story-cut" aria-hidden>
+                    <Cut id={TEMPLATE_CUT[template.id] ?? "branch"} className="max-h-14 max-w-14 object-contain" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="story-sheet-title block">{template.title}</span>
+                    <span className="story-sheet-lead line-clamp-3 block">{template.lead}</span>
+                    <span className="mt-1 block text-sm font-semibold text-moss">{plural(template.questions.length, "короткий вопрос", "коротких вопроса", "коротких вопросов")}</span>
+                  </span>
+                  <span aria-hidden className="shrink-0 text-2xl text-ink/60">›</span>
+                </button>
+              </li>
+            </Fragment>
+          ))}
+        </ul>
+      </div>
       {transcribe ? <TranscribeSheet onClose={() => setTranscribe(false)} /> : null}
-      {stories.length > 0 ? (
-        <ul className="mt-5 grid gap-2">
+    </ScreenFrame>
+  );
+}
+
+/** Папка «Мои истории»: все сохранённые истории аккаунта. */
+export function MyStoriesScreen() {
+  const nav = useNav();
+  const stories = useRod((state) => state.stories);
+  const removeStory = useRod((state) => state.removeStory);
+  const dateOf = (iso: string) => {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+  };
+  return (
+    <ScreenFrame>
+      <TopBar kicker="Архив семьи" title="Мои истории" onBack={() => nav.go({ id: "stories" })} />
+      <div className="story-folder-head mb-5 flex items-center gap-4">
+        <Cut id="moss_folder" className="story-folder-img" />
+        <p className="text-base leading-snug text-ink/80">{stories.length ? `Здесь лежат все ваши истории: ${stories.length}. Нажмите на историю, чтобы открыть, поправить или добавить на страницу книги.` : "Здесь будут лежать все ваши истории. Расскажите первую, и она появится в этой папке."}</p>
+      </div>
+      {stories.length === 0 ? (
+        <button type="button" onClick={() => nav.go({ id: "stories" })} className="story-main flex min-h-14 w-full items-center justify-center rounded-2xl px-5 text-base font-semibold">
+          Выбрать тему
+        </button>
+      ) : (
+        <ul className="grid gap-3.5">
           {stories.map((story) => (
-            <li key={story.id} className="glass flex items-start justify-between gap-3 rounded-3xl p-4">
-              <button type="button" className="min-w-0 text-left" onClick={() => nav.go({ id: "story", storyId: story.id })}>
-                <p className="font-sans text-lg font-semibold text-ink">{story.title}</p>
-                <p className="mt-1 line-clamp-2 text-sm text-muted">{story.narrative}</p>
-                {story.attachments?.length ? <p className="mt-1 text-xs text-muted">Вложений: {story.attachments.length}</p> : null}
+            <li key={story.id} className="story-saved">
+              <button type="button" className="min-w-0 flex-1 text-left" onClick={() => nav.go({ id: "story", storyId: story.id })}>
+                <span className="block text-sm font-semibold text-gold-ink">Ваша история{dateOf(story.createdAt) ? `, ${dateOf(story.createdAt)}` : ""}</span>
+                <span className="story-sheet-title mt-0.5 block">{story.title}</span>
+                <span className="story-sheet-lead line-clamp-3 block">{story.narrative}</span>
+                {story.attachments?.length ? <span className="mt-1 block text-sm text-ink/70">Вложений: {story.attachments.length}</span> : null}
               </button>
-              <button type="button" className="shrink-0 text-sm text-muted underline" onClick={() => removeStory(story.id)}>
+              <button
+                type="button"
+                aria-label={`Удалить историю «${story.title}»`}
+                className="grid min-h-11 min-w-11 shrink-0 place-items-center px-1 text-base text-ink/70 underline"
+                onClick={() => {
+                  if (window.confirm(`Удалить историю «${story.title}»? Это нельзя отменить.`)) removeStory(story.id);
+                }}
+              >
                 Удалить
               </button>
             </li>
           ))}
         </ul>
-      ) : null}
-      <ul className="mt-5 grid gap-2">
-        {STORY_TEMPLATES.map((template, index) => (
-          <Fragment key={template.id}>
-            {index > 0 && index % 3 === 0 ? (
-              <li aria-hidden className="flex items-center gap-3 py-3">
-                <span className="h-px flex-1 bg-ink/15" />
-                <Cut id={DIVIDERS[(index / 3 - 1) % DIVIDERS.length]} className="w-24 shrink-0" style={{ transform: `rotate(${index % 2 ? -6 : 6}deg)` }} />
-                <span className="h-px flex-1 bg-ink/15" />
-              </li>
-            ) : null}
-            <li data-tour={index === 0 ? "stories-list" : undefined}>
-              <button
-                type="button"
-                onClick={() => nav.go({ id: "wizard", templateId: template.id })}
-                className="glass flex w-full items-center justify-between gap-3 rounded-3xl px-4 py-4 text-left"
-              >
-                <span>
-                  <span className="block font-medium text-ink">{template.title}</span>
-                  <span className="block text-sm text-muted">{template.lead}</span>
-                </span>
-                <span className="shrink-0 text-sm text-rose-deep">{template.questions.length}</span>
-              </button>
-            </li>
-          </Fragment>
-        ))}
-      </ul>
+      )}
     </ScreenFrame>
   );
 }
@@ -129,6 +211,27 @@ export function WizardScreen({ templateId }: { templateId: string }) {
           else setStep((value) => value - 1);
         }}
       />
+      {!review && step === 0 ? (
+        <button
+          type="button"
+          onClick={() => {
+            if (!useRod.getState().programOpen) {
+              toast("Отправка вопросов родственникам доступна в платной программе.");
+              return;
+            }
+            void sendInterview({ kind: "tpl", id: template.id, idx: [] }, template.title, template.questions.length)
+              .then((mode) => {
+                if (mode === "shared") toast("Отправлено. Ответы придут к вам во входящие.");
+                else if (mode === "copied") toast("Текст со ссылкой скопирован: вставьте его в сообщение родственнику.");
+              })
+              .catch((error) => toast(error instanceof Error ? error.message : "Не получилось отправить.", { duration: 6000 }));
+          }}
+          className="mb-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-moss/40 bg-white/60 px-4 text-sm font-semibold text-moss"
+        >
+          <img src={`${import.meta.env.BASE_URL}stickers/pack/leaf_plane.webp`} alt="" draggable={false} className="pointer-events-none w-7 -rotate-6" />
+          Отправить эти вопросы родственнику
+        </button>
+      ) : null}
       {!review && question ? (
         <div className="glass rounded-4xl p-5 sm:p-6">
           <h2 className="font-sans text-2xl font-semibold leading-snug text-ink">{question.text}</h2>
@@ -152,7 +255,7 @@ export function WizardScreen({ templateId }: { templateId: string }) {
             </Button>
           </div>
           {!filled && step === template.questions.length - 1 ? (
-            <p className="mt-3 text-sm text-muted">Нужен хотя бы один ответ, нужен хотя бы один ответ, чтобы получилась история.</p>
+            <p className="mt-3 text-sm text-muted">Напишите хотя бы один ответ, чтобы получилась история.</p>
           ) : null}
         </div>
       ) : (

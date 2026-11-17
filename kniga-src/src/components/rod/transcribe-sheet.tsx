@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { aiStatus, quotaLine, transcribeChunk, type AiDeps, type AiQuota } from "@/lib/rod/ai-client";
@@ -6,6 +6,26 @@ import { CHUNK_SEC, RATE, clock, decodeMono16k, encodeWav, findCuts, shiftSegmen
 import { API_BASE } from "@/lib/rod/config";
 import { deviceId } from "@/lib/rod/pay";
 import { useRod } from "@/lib/rod/store";
+
+/** Остаток минут расшифровки для человека: null, пока не узнали или если расшифровка не подключена. */
+export function useMinutes(): AiQuota | null {
+  const access = useRod((s) => s.access);
+  const [quota, setQuota] = useState<AiQuota | null>(null);
+  useEffect(() => {
+    if (!access?.token || !API_BASE) return;
+    let live = true;
+    void aiStatus({ apiBase: API_BASE, token: access.token, deviceId: deviceId() }).then((status) => {
+      if (live && status.ok && status.data.enabled && status.data.available.audio_min) setQuota(status.data.usage.audio_min);
+    });
+    return () => {
+      live = false;
+    };
+  }, [access?.token]);
+  return quota;
+}
+
+/** «Осталось 240 из 300 минут. Обновится 1 декабря.» */
+export const minutesLine = (quota: AiQuota) => quotaLine(quota).replace(/^Осталось (\d+) из (\d+)\./, (_m, left, limit) => `Осталось ${left} из ${limit} минут в этом месяце.`);
 
 type Phase = "idle" | "reading" | "ready" | "working" | "paused" | "done";
 
@@ -24,6 +44,8 @@ export function TranscribeSheet({ onClose }: { onClose: () => void }) {
   const [withTime, setWithTime] = useState(true);
   const audio = useRef<{ samples: Float32Array; cuts: number[] } | null>(null);
   const stop = useRef(false);
+  const minutes = useMinutes();
+  const shownQuota = quota ?? minutes;
   const deps = (): AiDeps => ({ apiBase: API_BASE, token: access?.token ?? "", deviceId: deviceId() });
 
   const pick = async (file: File) => {
@@ -100,7 +122,9 @@ export function TranscribeSheet({ onClose }: { onClose: () => void }) {
             <input type="file" accept="audio/*,video/*" className="sr-only" disabled={phase === "reading"} onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); }} />
           </label>
         ) : null}
-        {quota ? <p className="text-xs text-muted">Минут расшифровки: {quotaLine(quota)}</p> : null}
+        <p className="rounded-2xl bg-ink/5 px-3 py-2 text-sm text-ink">
+          Расшифровка входит в программу: до 300 минут записи в месяц на человека. {shownQuota ? minutesLine(shownQuota) : ""}
+        </p>
         {note ? <p role="status" className="text-sm text-ink">{note}</p> : null}
         {phase === "ready" || phase === "paused" ? (
           <Button onClick={() => void run()}>{phase === "paused" ? "Продолжить" : "Расшифровать"}</Button>
