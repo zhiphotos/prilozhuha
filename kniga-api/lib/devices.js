@@ -1,4 +1,5 @@
 import { redis, redisConfigured } from "./redis.js";
+import { firstLoginEvent } from "./owner-notify.js";
 
 /** Один оплаченный доступ работает не больше чем на 3 устройствах (решение Дарины 2026-10-26: лимит 3 и синхронизация). Бесконечность отключает лимит. */
 export const DEVICE_LIMIT = 3;
@@ -22,6 +23,7 @@ export async function claimDevice(identity, deviceId) {
   }
   if (!(id in known) && Object.keys(known).length >= DEVICE_LIMIT) return false;
   await redis("HSET", key(identity), id, String(now));
+  if (!Object.keys(known).length) void firstLoginEvent(identity);
   return true;
 }
 
