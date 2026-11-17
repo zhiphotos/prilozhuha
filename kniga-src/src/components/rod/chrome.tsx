@@ -100,35 +100,60 @@ export function tabKey(screen: Screen): string {
   return "home";
 }
 
+/** Цвет круга под активным разделом: тот же язык, что у цветных папок во вкладке ИИ. */
+const TAB_TONE: Record<string, { bg: string; ink: string }> = {
+  home: { bg: "#4b5a30", ink: "#f2efe3" },
+  book: { bg: "#c9ae74", ink: "#241a07" },
+  cards: { bg: "#6a2234", ink: "#f6ecea" },
+  stories: { bg: "#d9cdb2", ink: "#3a3426" },
+  lessons: { bg: "#8e9188", ink: "#14160f" },
+  ai: { bg: "#5d6f3a", ink: "#f2efe3" },
+};
+
 export function Dock() {
   const nav = useNav();
   const current = tabKey(nav.screen);
-  // Плашка приклеена к низу и идёт от края до края экрана; активный раздел отмечен тёмной полоской сверху и тёмным значком.
+  const index = Math.max(0, TABS.findIndex((item) => item.id === current));
+  const tone = TAB_TONE[TABS[index]?.id ?? "home"];
+  // Плашка приклеена к низу, от края до края, с круглыми верхними углами. Над активным разделом вырастает «холм» с цветным кругом,
+  // при переключении он плавно переезжает на новое место и меняет цвет.
   return (
-    <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 border-t border-ink/15 bg-[#f6f2e9] shadow-[0_-10px_26px_-18px_rgba(30,24,18,0.55)] lg:hidden">
-      <ul data-tour="nav" className="grid w-full grid-cols-6 px-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
-        {TABS.map((item) => {
-          const Icon = item.icon;
-          const active = current === item.id;
-          return (
-            <li key={item.id} className="relative">
-              {active ? <span aria-hidden="true" className="absolute inset-x-3 top-0 h-[3px] rounded-b-full bg-night" /> : null}
-              <button
-                type="button"
-                onClick={() => nav.tab(item.screen)}
-                className={cn(
-                  "flex min-h-[3.9rem] w-full flex-col items-center justify-center gap-1 whitespace-nowrap px-0 pt-1 text-[12px] leading-none transition [@media(max-height:480px)]:min-h-11",
-                  active ? "font-bold text-night" : "font-medium text-ink/70",
-                )}
-                aria-current={active ? "page" : undefined}
-              >
-                <Icon className="size-[1.55rem]" strokeWidth={active ? 2.3 : 1.7} />
-                {item.label}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+    <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 lg:hidden" style={{ ["--i" as string]: index }}>
+      <div className="relative rounded-t-[1.75rem] bg-night shadow-[0_-12px_30px_-14px_rgba(10,12,8,0.7)]">
+        <div aria-hidden="true" className="dock-hill pointer-events-none absolute bottom-full left-0 h-[1.6rem] w-1/3">
+          <svg viewBox="0 0 96 26" preserveAspectRatio="none" className="size-full" fill="currentColor">
+            <path d="M0 26 C18 26 24 0 48 0 C72 0 78 26 96 26 Z" />
+          </svg>
+        </div>
+        <div aria-hidden="true" className="dock-dot pointer-events-none absolute left-0 top-0 flex w-1/6 justify-center">
+          <span className="dock-circle -mt-[1.55rem] grid size-[3.1rem] place-items-center rounded-full shadow-[0_6px_14px_-4px_rgba(0,0,0,0.55)]" style={{ background: tone.bg }} />
+        </div>
+        <ul data-tour="nav" className="relative grid w-full grid-cols-6 px-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+          {TABS.map((item) => {
+            const Icon = item.icon;
+            const active = current === item.id;
+            return (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => nav.tab(item.screen)}
+                  className={cn(
+                    "flex min-h-[3.9rem] w-full flex-col items-center justify-end gap-1 whitespace-nowrap px-0 pb-2.5 text-[12px] leading-none transition-colors [@media(max-height:480px)]:min-h-11",
+                    active ? "font-bold text-paper" : "font-medium text-paper/70",
+                  )}
+                  aria-current={active ? "page" : undefined}
+                >
+                  <span className={cn("dock-ico grid size-7 place-items-center transition-transform duration-300", active && "-translate-y-[1.05rem]")} style={active ? { color: tone.ink } : undefined}>
+                    <Icon className="size-[1.5rem]" strokeWidth={active ? 2.2 : 1.7} />
+                  </span>
+                  {item.label}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <div aria-hidden="true" className="h-[env(safe-area-inset-bottom)]" />
+      </div>
     </nav>
   );
 }
