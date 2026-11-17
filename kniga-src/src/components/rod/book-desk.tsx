@@ -27,7 +27,7 @@ export function BookDesk(p: Props) {
     { id: "cover", label: "Обложка и корешок", tone: "moss", hint: "book-cover", go: p.onCover },
     { id: "print", label: "Формат и печать", tone: "cream", hint: "book-print", go: p.onPrint },
     { id: "flip", label: "Листать книгу", tone: "bordo", go: p.onFlip },
-    { id: "toc", label: p.planTotal ? `Содержание книги рода · ${p.planDone} из ${p.planTotal}` : "Содержание книги рода", tone: "moss", go: p.onContents },
+    { id: "toc", label: p.planTotal ? `Содержание книги · ${p.planDone} из ${p.planTotal}` : "Содержание книги", tone: "moss", go: p.onContents, note: "Создайте содержание книги рода: главы создаются автоматически, это удобный план для её создания.", cta: "Открыть содержание" },
   ];
 
   const press = (id: string, go: () => void) => {
@@ -58,7 +58,7 @@ export function BookDesk(p: Props) {
           </button>
         );
         return (
-          <section key={f.id} className="kr-f" data-tone={f.tone} data-up={up === f.id} data-open={on} style={{ "--o": i % 5, "--lift": `${on ? lift : 0}px`, zIndex: i + 1 } as CSSProperties}>
+          <section key={f.id} className="kr-f" data-tone={f.tone} data-up={up === f.id} data-open={on} style={{ "--o": i % 5, "--bh": `${82 + Math.ceil((f.note?.length ?? 0) / 38) * 18}px`, zIndex: on ? 50 : i + 1 } as CSSProperties}>
             {f.hint ? <Hint id={f.hint}>{tab}</Hint> : tab}
             {on && f.note ? (
               <div className="kr-fnote">
