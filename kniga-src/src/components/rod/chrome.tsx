@@ -224,7 +224,7 @@ export function Sheet({
       }}
     >
       <div ref={box} tabIndex={-1} className={cn("glass-strong sheet-in pointer-events-auto max-h-[min(86svh,calc(100dvh-1rem))] w-full max-w-lg overflow-auto overscroll-contain rounded-2xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] outline-none", !dim && "!bg-paper shadow-2xl ring-1 ring-ink/10", className)}>
-        <div className={cn("sticky -top-5 z-10 -mx-1 mb-3 flex items-start justify-between gap-3", !dim && "-mt-1 bg-paper pb-2 pt-1")}>
+        <div className={cn("sticky -top-5 z-10 -mx-1 mb-3 flex items-start justify-between gap-3 bg-[rgba(246,242,233,0.97)] px-1 py-1.5", !dim && "-mt-1 bg-paper pb-2 pt-1")}>
           {title ? <h2 className={cn("leading-tight text-ink", title.length <= 16 ? "display-title text-[1.15rem]" : "text-[1.25rem] font-semibold")}>{title}</h2> : <span />}
           <button type="button" className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-ink" onClick={onClose} aria-label="Закрыть">
             <X className="size-4" />

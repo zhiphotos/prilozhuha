@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowRight, Check, ChevronLeft, ExternalLink, FileText, Lock, Play, Sparkles, X } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, ExternalLink, FileText, Library, Lock, Network, Play, ShoppingBag, Sparkles, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson, type Lesson } from "@/lib/rod/content";
 import { FAQ } from "@/lib/rod/faq";
@@ -266,12 +266,12 @@ function LessonVideo({ lessonId, flat = false }: { lessonId: string; flat?: bool
 }
 
 /** Что откроется после покупки: список по пунктам, как страница Кики+. */
-function IncludesList({ dark = false }: { dark?: boolean }) {
+function IncludesList({ dark = false, bare = false }: { dark?: boolean; bare?: boolean }) {
   const strong = dark ? "text-paper" : "text-ink";
   const soft = dark ? "text-paper/75" : "text-muted";
   return (
-    <div className={dark ? "mt-4" : "mt-4 rounded-2xl bg-white/60 p-4"}>
-      <p className={cn("text-[11px] font-semibold uppercase tracking-[0.16em]", dark ? "text-[#c9ae74]" : "text-muted")}>Что откроется после покупки</p>
+    <div className={dark || bare ? "mt-2 pb-3" : "mt-4 rounded-2xl bg-white/60 p-4"}>
+      {bare ? null : <p className={cn("text-[11px] font-semibold uppercase tracking-[0.16em]", dark ? "text-[#c9ae74]" : "text-muted")}>Что откроется после покупки</p>}
       <ul className="mt-3 grid gap-2.5">
         {PROGRAM_PERKS.map((perk) => (
           <li key={perk.title} className="flex gap-3 text-sm">
@@ -366,12 +366,12 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
 
   return (
     <Sheet title={mode === "restore" ? "Вход по почте" : "Программа «Книга рода»"} onClose={onClose}>
-      {mode === "buy" ? <PriceTag /> : null}
-      {mode === "buy" ? <p className="mt-2 text-sm text-muted">Шесть уроков с видео, ИИ-помощник и шаблоны, полный шаблон книги на 100 страниц, материалы для печати. Платите один раз: единоразовая плата, приложение остаётся с вами навсегда, без автоматических списаний.</p> : null}
+      {mode === "buy" && !started ? <PayPitch onBuy={() => setStarted(true)} /> : null}
+      {mode === "buy" && started ? <PriceTag /> : null}
 
       {mode === "buy" && !started ? (
         <div className="mt-4 grid gap-3">
-          <Button className="h-auto min-h-12 w-full py-3" onClick={() => setStarted(true)}>Оплатить · {PROGRAM_PRICE}</Button>
+          <Button className="h-auto min-h-14 w-full py-3 text-base" onClick={() => setStarted(true)}><ShoppingBag className="size-5" /> Купить за {PROGRAM_PRICE} · единоразово</Button>
           {live ? <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("restore")}>Уже оплатили? Войти по почте</button> : null}
           <button type="button" className="text-left text-sm text-muted underline" onClick={() => setMore((v) => !v)}>{more ? "Скрыть" : "Другие способы войти"}</button>
           {more ? (
@@ -573,13 +573,71 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
         )
       ) : null}
 
-      {mode === "buy" ? <IncludesList /> : null}
+      {mode === "buy" && !started ? (
+        <details className="mt-4 rounded-2xl bg-white/50 px-4 py-1">
+          <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-ink">Полный список: что откроется</summary>
+          <IncludesList bare />
+        </details>
+      ) : null}
     </Sheet>
   );
 }
 
 /** Файлы курса лежат в public/course: путь считаем от адреса приложения. */
 const asset = (url: string) => (/^(https?:)?\/\//.test(url) ? url : `${import.meta.env.BASE_URL}${url}`);
+
+/** Первый экран окна оплаты: обещание, цена, что человек получает (с запасами ИИ). Сами шаги оплаты ниже не менялись. */
+function PayPitch({ onBuy }: { onBuy: () => void }) {
+  const card = "flex gap-3 rounded-2xl bg-white/75 p-3.5 shadow-[0_6px_16px_-12px_rgba(30,24,18,0.5)]";
+  const icon = "grid size-10 shrink-0 place-items-center rounded-full bg-moss text-paper";
+  return (
+    <div>
+      <div className="rounded-2xl bg-night p-4 text-paper" style={{ background: "linear-gradient(160deg,#1d3024 0%,#2c4030 100%)" }}>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">Единоразовая плата</p>
+        <p className="mt-2 font-serif text-[1.6rem] leading-[1.15]">Книга о вашей семье: от первого вопроса до печати</p>
+        <p className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className="text-[2.4rem] font-semibold leading-none text-[#e6cf9c]">{PROGRAM_PRICE}</span>
+          <span className="text-lg text-paper/60 line-through">{PROGRAM_OLD_PRICE}</span>
+          <span className="rounded-full bg-[#c9ae74] px-2.5 py-0.5 text-xs font-bold text-[#241a07]">скидка 49%</span>
+        </p>
+        <p className="mt-3 text-sm leading-snug text-paper/80">Платите один раз. Приложение и ваши книги остаются с вами навсегда, без подписки и автоматических списаний.</p>
+      </div>
+      <Button className="mt-3 h-auto min-h-14 w-full py-3 text-base" onClick={onBuy}><ShoppingBag className="size-5" /> Купить за {PROGRAM_PRICE} · единоразово</Button>
+      <p className="mb-2 mt-5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Что вы получите</p>
+      <ul className="grid gap-2.5">
+        <li className={card}>
+          <span className={icon}><Play className="size-[18px]" /></span>
+          <div className="text-sm leading-snug"><b className="block text-[15px] text-ink">Шесть уроков с видео</b><span className="text-muted">От первого вопроса до печати книги. Смотреть можно с телефона, доступ на год.</span></div>
+        </li>
+        <li className={card}>
+          <span className={icon}><Sparkles className="size-[18px]" /></span>
+          <div className="text-sm leading-snug">
+            <b className="block text-[15px] text-ink">ИИ-помощники внутри приложения</b>
+            <ul className="mt-1.5 grid gap-1 text-muted">
+              <li><b className="text-ink">Генеалог:</b> 3 вопроса в день</li>
+              <li><b className="text-ink">Поиск по архивам:</b> 10 поисков в месяц</li>
+              <li><b className="text-ink">Голос в текст:</b> до 300 минут записи в месяц</li>
+              <li><b className="text-ink">Глава книги:</b> 3 в день, людей и места выписывает отдельно</li>
+            </ul>
+          </div>
+        </li>
+        <li className={card}>
+          <span className={icon}><Network className="size-[18px]" /></span>
+          <div className="text-sm leading-snug"><b className="block text-[15px] text-ink">Древо и страницы книги</b><span className="text-muted">Пять оформлений древа, PDF для печати, шаблон книги на 100 страниц, «Мемуары любви» и свадебная фотокнига.</span></div>
+        </li>
+        <li className={card}>
+          <span className={icon}><Library className="size-[18px]" /></span>
+          <div className="text-sm leading-snug"><b className="block text-[15px] text-ink">Материалы, которые экономят недели</b><span className="text-muted">150 готовых промптов, тетрадь на 300 вопросов для родных, архивные базы для поиска предков.</span></div>
+        </li>
+        <li className={card}>
+          <span className={icon}><Users className="size-[18px]" /></span>
+          <div className="text-sm leading-snug"><b className="block text-[15px] text-ink">Чат, обновления и три устройства</b><span className="text-muted">Сообщество с Дариной, обновления, на которые вы влияете, книга в облаке на телефоне и компьютере.</span></div>
+        </li>
+      </ul>
+      <p className="mt-3 text-xs leading-snug text-muted">ИИ пока работает на бесплатных мощностях, у каждого свой запас, он обновляется сам. Скоро: старые фото и вёрстка страниц с ИИ.</p>
+    </div>
+  );
+}
 
 function PriceTag({ big = false }: { big?: boolean }) {
   return (
