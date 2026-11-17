@@ -939,8 +939,8 @@ body {
 .kr-desk+.kr-stage-wrap .tpo-stage::before{content:"Шаблоны книги";position:absolute;top:2px;left:17%;width:57%;height:34px;display:block;z-index:40;text-align:center;font:700 13px/38px Manrope,sans-serif;color:rgba(243,236,218,.82);text-shadow:0 -1px 0 rgba(0,0,0,.5),0 1px 0 rgba(255,255,255,.2);pointer-events:none}
 .kr-stage-wrap{position:relative;z-index:4;filter:drop-shadow(0 -6px 10px rgba(30,24,18,.5)) drop-shadow(0 -1px 3px rgba(30,24,18,.45))}
 /* Папка с пояснением раскрывается: что делает кнопка и кнопка продолжить */
-.kr-f[data-open="true"]{margin-bottom:calc(48px - var(--lift));transform:translateY(calc(var(--lift) * -1))}
-.kr-f[data-open="true"] .kr-fbody{height:calc(var(--lift) + 124px)}
+.kr-f[data-open="true"]{margin-bottom:calc(-26px - var(--lift));transform:translateY(calc(var(--lift) * -1))}
+.kr-f[data-open="true"] .kr-fbody{height:calc(var(--lift) + 150px)}
 .kr-fnote{position:absolute;left:16px;right:16px;top:52px;display:grid;gap:8px;animation:kr-rise .28s cubic-bezier(.2,.8,.2,1)}
 .kr-fnote p{margin:0;font:600 13px/1.35 Manrope,sans-serif;color:rgba(243,236,218,.9);text-shadow:0 -1px 0 rgba(0,0,0,.4)}
 .kr-f[data-tone="cream"] .kr-fnote p{color:rgba(60,52,38,.9);text-shadow:0 1px 0 rgba(255,255,255,.8)}
