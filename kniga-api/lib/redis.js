@@ -20,6 +20,7 @@ function memory(args) {
     case "EXISTS": return mem.kv.has(key) ? 1 : 0;
     case "HGET": return h().get(rest[0]) ?? null;
     case "HDEL": return h().delete(rest[0]) ? 1 : 0;
+    case "HINCRBY": { const n = Number(h().get(rest[0]) ?? 0) + Number(rest[1]); h().set(rest[0], String(n)); return n; }
     case "HLEN": return h().size;
     case "HGETALL": return [...h().entries()].flat();
     case "HKEYS": return [...h().keys()];

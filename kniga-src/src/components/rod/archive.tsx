@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { serverStatus } from "@/lib/rod/server";
-import { fetchInbox } from "@/lib/rod/family";
+import { fetchRoomStatus, type RoomStats } from "@/lib/rod/family";
 import { enablePush, pushPrefs, pushSupport } from "@/lib/rod/push";
 import { FamilySheet } from "@/components/rod/family-sheet";
 import { ChevronLeft, ChevronRight, Pencil, Plus, Search, X } from "lucide-react";
@@ -78,14 +78,24 @@ function FamilyCard() {
   const room = useRod((state) => state.room);
   const [open, setOpen] = useState(false);
   const [waiting, setWaiting] = useState(0);
+  const [stats, setStats] = useState<RoomStats>({ people: [], opens: 0 });
   const [live, setLive] = useState(false);
   const [notify, setNotify] = useState(() => pushPrefs().on);
   useEffect(() => {
     void serverStatus().then((status) => setLive(status.rooms));
   }, []);
+  // Карточка сама обновляется: при открытии, когда возвращаешься в приложение и раз в минуту.
   useEffect(() => {
     if (!room || !live) return;
-    void fetchInbox().then((items) => setWaiting(items.length)).catch(() => undefined);
+    const load = () => void fetchRoomStatus().then((r) => { setWaiting(r.items.length); setStats(r.stats); }).catch(() => undefined);
+    load();
+    const onShow = () => document.visibilityState === "visible" && load();
+    document.addEventListener("visibilitychange", onShow);
+    const timer = window.setInterval(onShow, 60_000);
+    return () => {
+      document.removeEventListener("visibilitychange", onShow);
+      window.clearInterval(timer);
+    };
   }, [room, open, live]);
   const turnOn = async () => {
     const support = pushSupport();
@@ -108,15 +118,22 @@ function FamilyCard() {
           {waiting > 0 ? <span className="grid min-w-8 shrink-0 place-items-center rounded-full bg-moss px-2.5 py-1 text-sm font-semibold text-paper">{waiting}</span> : null}
         </div>
         <p className="mt-2 text-[15px] leading-snug text-ink/80">
-          {waiting > 0 ? `Родные прислали: ${waiting}. Загляните во «Входящие» и добавьте в книгу.` : "Пусть расскажут свои истории и пришлют фото. Им покажем бесплатный урок."}
+          {waiting > 0 ? `Родные прислали: ${waiting}. Загляните во «Входящие» и добавьте в книгу.` : room ? "Ссылка отправлена. Как только родные что-то пришлют, здесь появится число и придёт уведомление." : "Пусть расскажут свои истории и пришлют фото. Им покажем бесплатный урок."}
         </p>
+        {room ? (
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+            <span className="rounded-full bg-moss/15 px-3 py-1 text-moss">Ответили: {stats.people.length}</span>
+            <span className="rounded-full bg-white/70 px-3 py-1 text-ink/70">Открыли приглашение: {stats.opens}</span>
+            {waiting > 0 ? <span className="rounded-full bg-moss px-3 py-1 text-paper">Новое: {waiting}</span> : null}
+          </div>
+        ) : null}
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => (live ? setOpen(true) : toast("Семейный доступ появится, когда подключится сервер приложения."))}
             className="inline-flex min-h-11 items-center gap-2 rounded-full bg-moss px-5 text-sm font-semibold text-paper"
           >
-            {waiting > 0 ? "Открыть входящие" : "Пригласить"}
+            {waiting > 0 ? "Открыть входящие" : room ? "Пригласить ещё" : "Пригласить"}
           </button>
           {room && !notify ? (
             <button type="button" onClick={() => void turnOn()} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-moss/40 bg-white/60 px-4 text-sm font-semibold text-moss">

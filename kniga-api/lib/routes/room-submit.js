@@ -45,6 +45,7 @@ export default async function handler(req, res) {
   const key = `kr:inbox:${body.room}`;
   if (Number(await redis("HLEN", key)) >= 200) return json(res, 429, { error: "Входящие переполнены. Попросите владельца книги разобрать их." });
   await redis("HSET", key, item.id, JSON.stringify(item));
+  await rememberSender(body.room, item).catch(() => undefined); // сколько родственников ответили: для карточки владельца
   await notifyOwner(body.room, item).catch(() => undefined); // уведомление владельцу: без него присылка всё равно сохранена
   return json(res, 200, { ok: true });
 }
@@ -75,4 +76,12 @@ async function notifyOwner(room, item) {
       }
     }
   }
+}
+
+/** Кто из родных уже что-то прислал: по имени (без учёта регистра), с числом присылок и временем последней. */
+async function rememberSender(room, item) {
+  const name = item.from?.name || "Родственник";
+  const key = name.toLowerCase();
+  const old = await redis("HGET", `kr:roomfrom:${room}`, key).then((raw) => (raw ? JSON.parse(raw) : null)).catch(() => null);
+  await redis("HSET", `kr:roomfrom:${room}`, key, JSON.stringify({ name, relation: item.from?.relation || old?.relation || "", count: (old?.count ?? 0) + 1, last: item.at }));
 }

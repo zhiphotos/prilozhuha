@@ -1,5 +1,5 @@
 import { bodyOf, cors, json } from "../config.js";
-import { redisConfigured } from "../redis.js";
+import { redis, redisConfigured } from "../redis.js";
 import { getRoom, isInvited } from "../room.js";
 
 // POST /api/room-info { room, invite }  – кто приглашает (для страницы приглашения)
@@ -9,5 +9,6 @@ export default async function handler(req, res) {
   const { room, invite } = bodyOf(req);
   const record = await getRoom(room);
   if (!isInvited(record, invite)) return json(res, 404, { ok: false, error: "Приглашение не найдено или больше не действует." });
+  await redis("HINCRBY", `kr:roomstat:${room}`, "opens", 1).catch(() => undefined); // сколько раз открывали приглашение
   return json(res, 200, { ok: true, name: record.name });
 }
