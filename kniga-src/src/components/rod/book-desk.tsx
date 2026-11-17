@@ -26,6 +26,7 @@ export function BookDesk(p: Props) {
     { id: "print", label: "Формат и печать", tone: "cream", hint: "book-print", go: p.onPrint },
     { id: "flip", label: "Листать книгу", tone: "bordo", go: p.onFlip },
     { id: "toc", label: p.planTotal ? `Содержание · ${p.planDone} из ${p.planTotal}` : "Содержание", tone: "moss", go: p.onContents },
+    { id: "tpl", label: "Шаблоны книги", tone: "bordo", go: () => document.querySelector(".tpo-stage")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
   ];
 
   const press = (id: string, go: () => void) => {

@@ -930,3 +930,5 @@ body {
 /* Убраны стыки: язычок на 3px заходит на тело, светлая линия кромки не проходит под плечами */
 .kr-ft{z-index:1;height:43px;margin-bottom:-3px;padding-bottom:3px;box-sizing:border-box}
 .kr-fbody{box-shadow:inset 0 -1px 0 rgba(0,0,0,.12)}
+/* «Шаблоны книги» теперь папка в стопке: её название на язычке, дубль внутри блока убран */
+.kr-desk+.tpo-stage .tpo-kicker{display:none}
