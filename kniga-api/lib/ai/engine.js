@@ -113,7 +113,7 @@ export async function runChat({ owner, messages, requestId, env = process.env, n
   if (down) return { status: 429, body: { error: "Бесплатная квота ИИ на сегодня закончилась.", code: "provider_quota", resetAt: down } };
   if (!(await firstTime(owner, requestId))) return { status: 409, body: { error: "Этот вопрос уже обрабатывается.", code: "duplicate" } };
   const got = await reserve(owner, "chat", 1, now, env);
-  if (!got.ok) return { status: 429, body: { error: got.scope === "global" ? "Общий дневной запас ИИ закончился." : "Ваш месячный запас вопросов генеалогу закончился.", code: `${got.scope}_quota`, resetAt: got.resetAt } };
+  if (!got.ok) return { status: 429, body: { error: got.scope === "global" ? "Общий дневной запас ИИ закончился." : "На сегодня ваши вопросы генеалогу закончились, завтра будут новые.", code: `${got.scope}_quota`, resetAt: got.resetAt } };
   try {
     const last = history[history.length - 1].text;
     const { context, sources } = searchKnowledge(history.slice(-3).map((m) => m.text).join(" "));

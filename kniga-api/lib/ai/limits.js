@@ -8,7 +8,8 @@ export const DEFAULT_LIMITS = {
   audio_min: { per: "month", user: 300, global: 20000 },
   ocr_pages: { per: "month", user: 100, global: 3000 },
   archive: { per: "month", user: 10, global: 3000 },
-  chat: { per: "month", user: 60, global: 3000 },
+  // Генеалог на бесплатном запасе Cloudflare (около 200 единиц за вопрос на большой модели, всего 10 000 в сутки на всё): 3 вопроса в день на человека, общий потолок 40. При подключении оплаты поднять через AI_LIMITS.
+  chat: { per: "day", user: 3, global: 40 },
 };
 
 export const KINDS = Object.keys(DEFAULT_LIMITS);

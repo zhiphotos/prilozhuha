@@ -72,6 +72,7 @@ export function GenealogistScreen() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
+  const [left, setLeft] = useState<number | null>(null);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { try { localStorage.setItem(KEY, JSON.stringify(turns.slice(-30))); } catch { /* память переполнена */ } end.current?.scrollIntoView({ block: "end" }); }, [turns]);
 
@@ -86,7 +87,7 @@ export function GenealogistScreen() {
     const deps: AiDeps = { apiBase: API_BASE, token: access?.token ?? "", deviceId: deviceId() };
     const res = await chatGenealogist(deps, next.map(({ role, text: t }) => ({ role, text: t })), crypto.randomUUID());
     setBusy(false);
-    if (res.ok) setTurns([...next, { role: "assistant", text: res.data.reply, sources: res.data.sources }]);
+    if (res.ok) { setTurns([...next, { role: "assistant", text: res.data.reply, sources: res.data.sources }]); setLeft(res.data.left); }
     else { setTurns(turns); setText(q); setNote(res.message); toast(res.message); }
   };
 
@@ -120,7 +121,7 @@ export function GenealogistScreen() {
           {busy ? <li className="mr-4 rounded-2xl bg-white/80 px-4 py-3 text-base text-muted">Думаю…</li> : null}
         </ul>
       )}
-      {note ? <p role="status" className="mb-2 text-sm text-ink">{note}</p> : null}
+      {note ? <p role="status" className="mb-2 text-sm text-ink">{note}</p> : left !== null ? <p className="mb-2 text-sm text-muted">Вопросов сегодня осталось: {left}</p> : null}
       <div className="sticky bottom-24 z-10 mt-4 grid gap-2 rounded-2xl bg-paper/95 p-2 backdrop-blur">
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} maxLength={2000} placeholder="Ваш вопрос генеалогу" className="w-full rounded-xl border border-ink/20 bg-paper p-3 text-base" />
         <div className="flex gap-2">

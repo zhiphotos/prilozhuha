@@ -1,6 +1,6 @@
 // Проверка чата-генеалога на памяти и поддельных Cloudflare/Gemini: `node test-ai-chat.mjs`
 process.env.MEMORY_STORE = "1"; process.env.APP_ORIGINS = "https://app.example"; process.env.ACCESS_SECRET = "s".repeat(40);
-process.env.AI_ENABLED = "1"; process.env.CF_ACCOUNT_ID = "acc"; process.env.CF_API_TOKEN = "tok";
+process.env.AI_LIMITS = JSON.stringify({ chat: { per: "day", user: 50, global: 500 } }); process.env.AI_ENABLED = "1"; process.env.CF_ACCOUNT_ID = "acc"; process.env.CF_API_TOKEN = "tok";
 const ok = (name, cond) => { console.log(cond ? "ok  " : "FAIL", name); if (!cond) process.exitCode = 1; };
 const run = (handler, body) => new Promise((resolve) => {
   const res = { statusCode: 200, setHeader() {}, end(t) { resolve({ status: this.statusCode, json: t ? JSON.parse(t) : null }); } };
@@ -38,4 +38,7 @@ ok("квота провайдера: 429 с датой", r.status === 429 && r.j
 r = await ask("Ещё вопрос про фамилии");
 ok("после остановки провайдер не вызывается", r.status === 429 && calls > 0);
 mode = "ok";
+process.env.AI_LIMITS = "";
+const { limits } = await import("./lib/ai/limits.js");
+ok("по умолчанию: 3 вопроса в день на человека, 40 на всех", limits({}).chat.user === 3 && limits({}).chat.per === "day" && limits({}).chat.global === 40);
 console.log(process.exitCode ? "ЕСТЬ ОШИБКИ" : "ВСЁ ПРОШЛО");
