@@ -36,12 +36,7 @@ export function StoriesScreen() {
   const [transcribe, setTranscribe] = useState(false);
   const programOpen = useRod((state) => state.programOpen);
   const stories = useRod((state) => state.stories);
-  const removeStory = useRod((state) => state.removeStory);
   const minutes = useMinutes();
-  const dateOf = (iso: string) => {
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
-  };
 
   return (
     <ScreenFrame>
@@ -65,32 +60,15 @@ export function StoriesScreen() {
       ) : null}
 
       <div className="story-table mt-6">
-        {stories.length > 0 ? (
-          <>
-            <h2 className="story-group-label">Ваши истории ({stories.length})</h2>
-            <ul className="mb-8 grid gap-3.5">
-              {stories.map((story) => (
-                <li key={story.id} className="story-saved">
-                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => nav.go({ id: "story", storyId: story.id })}>
-                    <span className="block text-sm font-semibold text-gold-ink">Ваша история{dateOf(story.createdAt) ? `, ${dateOf(story.createdAt)}` : ""}</span>
-                    <span className="story-sheet-title mt-0.5 block">{story.title}</span>
-                    <span className="story-sheet-lead line-clamp-2 block">{story.narrative}</span>
-                    {story.attachments?.length ? <span className="mt-1 block text-sm text-ink/70">Вложений: {story.attachments.length}</span> : null}
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Удалить историю «${story.title}»`} className="grid min-h-11 min-w-11 shrink-0 place-items-center px-1 text-base text-ink/70 underline"
-                    onClick={() => {
-                      if (window.confirm(`Удалить историю «${story.title}»? Это нельзя отменить.`)) removeStory(story.id);
-                    }}
-                  >
-                    Удалить
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : null}
+        <button type="button" onClick={() => nav.go({ id: "my-stories" })} className="story-folder mb-8 flex w-full items-center gap-4 text-left">
+          <Cut id="moss_folder" className="story-folder-img" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-gold-ink">Папка</span>
+            <span className="story-sheet-title block">Мои истории</span>
+            <span className="story-sheet-lead block">{stories.length ? `Сохранено: ${stories.length}` : "Пока пусто. Первая история появится здесь."}</span>
+          </span>
+          <span aria-hidden className="shrink-0 text-2xl text-ink/60">›</span>
+        </button>
 
         <h2 className="story-group-label">О чём расскажем?</h2>
         <ul data-tour="stories-list" className="grid gap-3.5">
@@ -121,6 +99,54 @@ export function StoriesScreen() {
         </ul>
       </div>
       {transcribe ? <TranscribeSheet onClose={() => setTranscribe(false)} /> : null}
+    </ScreenFrame>
+  );
+}
+
+/** Папка «Мои истории»: все сохранённые истории аккаунта. */
+export function MyStoriesScreen() {
+  const nav = useNav();
+  const stories = useRod((state) => state.stories);
+  const removeStory = useRod((state) => state.removeStory);
+  const dateOf = (iso: string) => {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+  };
+  return (
+    <ScreenFrame>
+      <TopBar kicker="Архив семьи" title="Мои истории" onBack={() => nav.go({ id: "stories" })} />
+      <div className="story-folder-head mb-5 flex items-center gap-4">
+        <Cut id="moss_folder" className="story-folder-img" />
+        <p className="text-base leading-snug text-ink/80">{stories.length ? `Здесь лежат все ваши истории: ${stories.length}. Нажмите на историю, чтобы открыть, поправить или добавить на страницу книги.` : "Здесь будут лежать все ваши истории. Расскажите первую, и она появится в этой папке."}</p>
+      </div>
+      {stories.length === 0 ? (
+        <button type="button" onClick={() => nav.go({ id: "stories" })} className="story-main flex min-h-14 w-full items-center justify-center rounded-2xl px-5 text-base font-semibold">
+          Выбрать тему
+        </button>
+      ) : (
+        <ul className="grid gap-3.5">
+          {stories.map((story) => (
+            <li key={story.id} className="story-saved">
+              <button type="button" className="min-w-0 flex-1 text-left" onClick={() => nav.go({ id: "story", storyId: story.id })}>
+                <span className="block text-sm font-semibold text-gold-ink">Ваша история{dateOf(story.createdAt) ? `, ${dateOf(story.createdAt)}` : ""}</span>
+                <span className="story-sheet-title mt-0.5 block">{story.title}</span>
+                <span className="story-sheet-lead line-clamp-3 block">{story.narrative}</span>
+                {story.attachments?.length ? <span className="mt-1 block text-sm text-ink/70">Вложений: {story.attachments.length}</span> : null}
+              </button>
+              <button
+                type="button"
+                aria-label={`Удалить историю «${story.title}»`}
+                className="grid min-h-11 min-w-11 shrink-0 place-items-center px-1 text-base text-ink/70 underline"
+                onClick={() => {
+                  if (window.confirm(`Удалить историю «${story.title}»? Это нельзя отменить.`)) removeStory(story.id);
+                }}
+              >
+                Удалить
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </ScreenFrame>
   );
 }

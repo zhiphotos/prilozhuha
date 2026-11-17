@@ -20,7 +20,7 @@ import { LessonScreen, LessonsScreen, PaySheet } from "@/components/rod/lessons"
 import { AppTour } from "@/components/rod/tour";
 import { Onboarding } from "@/components/rod/onboarding";
 import { PhotoNewScreen } from "@/components/rod/photo";
-import { FreeStoryScreen, StoriesScreen, StoryScreen, WizardScreen } from "@/components/rod/stories";
+import { FreeStoryScreen, MyStoriesScreen, StoriesScreen, StoryScreen, WizardScreen } from "@/components/rod/stories";
 import { SurnameScreen } from "@/components/rod/surname";
 import { afterHydrate } from "@/lib/rod/boot";
 import { useRod } from "@/lib/rod/store";
@@ -203,6 +203,8 @@ function ScreenView({ screen }: { screen: Screen }) {
       return <DeckScreen situationId={screen.situationId} />;
     case "stories":
       return <StoriesScreen />;
+    case "my-stories":
+      return <MyStoriesScreen />;
     case "wizard":
       return <WizardScreen templateId={screen.templateId} />;
     case "story":
