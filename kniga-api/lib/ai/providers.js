@@ -10,8 +10,9 @@ export const cloudflareText = {
   name: "cloudflare-text",
   kinds: ["text", "facts"],
   configured: (env = process.env) => Boolean(env.CF_ACCOUNT_ID && env.CF_API_TOKEN),
-  async run({ system, user, maxTokens }, env = process.env) {
-    const model = env.CF_TEXT_MODEL || "@cf/meta/llama-3.1-8b-instruct";
+  async run(task, env = process.env) {
+    const { system, user, maxTokens } = task;
+    const model = (task.kind === "facts" && env.CF_FACTS_MODEL) || env.CF_TEXT_MODEL || "@cf/meta/llama-3.1-8b-instruct";
     const r = await fetch(`${CF}/${env.CF_ACCOUNT_ID}/ai/run/${model}`, {
       method: "POST",
       headers: { Authorization: `Bearer ${env.CF_API_TOKEN}`, "Content-Type": "application/json" },
@@ -22,7 +23,9 @@ export const cloudflareText = {
     // 4006: дневная бесплатная квота Neurons закончилась; 429: слишком часто. И то и другое: остановиться, не платить.
     if (r.status === 429 || (data.errors ?? []).some((e) => e.code === 4006)) throw new QuotaError("provider quota");
     if (!r.ok || !data.success) throw new Error(`provider ${r.status}`);
-    return { text: String(data.result?.response ?? "").trim() };
+    // Большие модели иногда отдают JSON уже разобранным объектом: превращаем обратно в текст, дальше его разбирает сервер.
+    const resp = data.result?.response;
+    return { text: (resp !== null && typeof resp === "object" ? JSON.stringify(resp) : String(resp ?? "")).trim() };
   },
 };
 
