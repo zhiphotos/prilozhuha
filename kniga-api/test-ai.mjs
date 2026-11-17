@@ -41,7 +41,7 @@ process.env.CF_ACCOUNT_ID = "acc"; process.env.CF_API_TOKEN = "tok";
 r = await ask(A);
 ok("ответ получен, остаток 19", r.status === 200 && r.json.text.includes("нет данных") && r.json.left === 19 && r.json.resetAt);
 let st = await run(ROUTES["ai-status"], { token: A, deviceId: "d1" });
-ok("статус показывает остаток и дату", st.json.enabled && st.json.usage.text.left === 19 && st.json.usage.text.resetAt && st.json.available.text === true && st.json.available.audio_min === false);
+ok("статус показывает остаток и дату", st.json.enabled && st.json.usage.text.left === 19 && st.json.usage.text.resetAt && st.json.available.text === true && st.json.available.audio_min === true);
 ok("другой владелец не видит чужой расход", (await run(ROUTES["ai-status"], { token: B, deviceId: "d1" })).json.usage.text.used === 0);
 
 // повтор и клиентский ввод

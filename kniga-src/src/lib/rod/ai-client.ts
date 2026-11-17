@@ -24,6 +24,10 @@ export const aiStatus = (deps: AiDeps) => post<AiStatus>(deps, "ai-status", {});
 /** Вопрос ИИ-генеалогу. context – краткое описание дерева (собирается из книги), ответ сервер строит только по нему. */
 export const askGenealogist = (deps: AiDeps, question: string, context: string, requestId: string) => post<{ text: string; left: number; resetAt: string }>(deps, "ai-run", { task: "genealogy_ask", requestId, input: { question, context } });
 
+/** Расшифровка одного куска записи (WAV, base64, до 90 секунд). Сервер сам считает минуты и возвращает их при сбое. */
+export const transcribeChunk = (deps: AiDeps, audio: string, seconds: number, requestId: string, prompt?: string) =>
+  post<{ text: string; segments: { start: number; end: number; text: string }[]; left: number; resetAt: string }>(deps, "ai-transcribe", { audio, seconds, requestId, language: "ru", prompt });
+
 /** «Осталось 12 из 20 до 4 ноября». */
 export function quotaLine(quota: AiQuota, now = new Date()): string {
   const reset = new Date(quota.resetAt);

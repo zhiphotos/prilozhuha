@@ -7,6 +7,7 @@ import { composeStory } from "@/lib/rod/narrative";
 import { useRod } from "@/lib/rod/store";
 import { pageFromStory, pagesFromStoryPhotos } from "@/lib/rod/layouts";
 import { Attachments } from "@/components/rod/attachments";
+import { TranscribeSheet } from "@/components/rod/transcribe-sheet";
 import type { Attachment } from "@/lib/rod/types";
 import { DictateButton } from "@/components/rod/dictate-button";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
@@ -16,6 +17,8 @@ const DIVIDERS = ["peony", "lily_valley", "rosebuds", "daffodil", "stick_rosehip
 
 export function StoriesScreen() {
   const nav = useNav();
+  const [transcribe, setTranscribe] = useState(false);
+  const programOpen = useRod((state) => state.programOpen);
   const stories = useRod((state) => state.stories);
   const removeStory = useRod((state) => state.removeStory);
 
@@ -33,6 +36,15 @@ export function StoriesScreen() {
       <p className="max-w-xl text-muted">
         Нажмите шаблон. Приложение задаст несколько вопросов и соберёт черновик. Его можно поправить перед сохранением – это уже готовая страница вашей книги. Карандашом вверху можно написать свою историю без темы и вопросов, с фото.
       </p>
+      {programOpen ? (
+        <button type="button" onClick={() => setTranscribe(true)} className="glass mt-4 flex min-h-14 w-full items-center justify-between rounded-3xl px-5 py-3 text-left">
+          <span>
+            <span className="block font-semibold text-ink">Расшифровать интервью</span>
+            <span className="block text-sm text-muted">Запись разговора в текст, с отметками времени</span>
+          </span>
+        </button>
+      ) : null}
+      {transcribe ? <TranscribeSheet onClose={() => setTranscribe(false)} /> : null}
       {stories.length > 0 ? (
         <ul className="mt-5 grid gap-2">
           {stories.map((story) => (
