@@ -17,7 +17,6 @@ import { GrowingTree } from "@/components/rod/growing-tree";
 import { treeGrowth } from "@/lib/rod/book-tree";
 import { TemplateOrbit, type OrbitItem } from "@/components/rod/template-orbit";
 import { COMING, PreviewVideo, SLIDES } from "@/components/rod/unlock-carousel";
-import { CommunityCard } from "@/components/rod/access";
 import { PaySheet } from "@/components/rod/lessons";
 import { AI_NOTE } from "@/lib/rod/lesson-pitch";
 import { PROGRAM_PRICE } from "@/lib/rod/content";
@@ -149,7 +148,7 @@ export function BookScreen() {
       {/* Одна карусель шаблонов, под ней покупка и «Скоро в приложении» (у платных вместо них сообщество). */}
       {/* Заголовок «Шаблоны книги» только у тех, у кого доступ открыт: у остальных карусель сама начинается с рассказа о программе. */}
       <div className="kr-stage-wrap"><TemplateStage pages={pages} meta={meta} onUnlock={() => setPay(true)} /></div>
-      {data.programOpen ? <CommunityCard /> : <SoonBlock onBuy={() => setPay(true)} />}
+      {data.programOpen ? null : <SoonBlock onBuy={() => setPay(true)} />}
 
       {pageGrid}
 
