@@ -148,7 +148,7 @@ export function BookScreen() {
 
       {/* Одна карусель шаблонов, под ней покупка и «Скоро в приложении» (у платных вместо них сообщество). */}
       {/* Заголовок «Шаблоны книги» только у тех, у кого доступ открыт: у остальных карусель сама начинается с рассказа о программе. */}
-      <TemplateStage pages={pages} meta={meta} onUnlock={() => setPay(true)} />
+      <div className="kr-stage-wrap"><TemplateStage pages={pages} meta={meta} onUnlock={() => setPay(true)} /></div>
       {data.programOpen ? <CommunityCard /> : <SoonBlock onBuy={() => setPay(true)} />}
 
       {pageGrid}
