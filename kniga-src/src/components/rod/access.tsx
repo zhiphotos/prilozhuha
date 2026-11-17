@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { BookCopy, Check, Cloud, MessageCircle, UserRound } from "lucide-react";
+import { BookCopy, Check, Cloud, MessageCircle, Send, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button, Sheet } from "@/components/rod/chrome";
+import { MediaImg } from "@/components/rod/media-img";
 import { PaySheet } from "@/components/rod/lessons";
 import { LoginScreen } from "@/components/rod/login-screen";
 import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
@@ -110,13 +111,63 @@ export function TariffCard({ onOpen }: { onOpen: () => void }) {
 /** У оплативших вместо бесплатного урока: вход в сообщество. */
 export function CommunityCard() {
   return (
-    <section className="mt-9 overflow-hidden rounded-3xl p-5" style={{ background: "linear-gradient(180deg,#7a2a3d,#5d1c2d)", boxShadow: "0 18px 30px -22px rgb(60 14 28 / 0.8)" }}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#e8c9a0]">Для тех, кто с нами</p>
-      <h2 className="mt-1 text-[1.35rem] font-semibold leading-tight text-paper">Сообщество «Книги рода»</h2>
-      <p className="mt-2 max-w-[32ch] text-sm text-paper/80">Здесь делятся находками, отвечают на вопросы и показывают свои книги.</p>
-      <a href={COURSE_COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-paper px-5 text-sm font-semibold text-ink no-underline">
+    <section className="story-card mt-9 rounded-3xl p-5">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-ink">Для тех, кто с нами</p>
+      <h2 className="mt-1 text-[1.35rem] font-semibold leading-tight text-ink">Сообщество «Книги рода»</h2>
+      <p className="mt-2 max-w-[34ch] text-[15px] text-ink/80">Здесь делятся находками, отвечают на вопросы и показывают свои книги.</p>
+      <a href={COURSE_COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-moss px-5 text-sm font-semibold text-paper no-underline">
         <MessageCircle className="size-4" /> Вступить в сообщество
       </a>
+    </section>
+  );
+}
+
+/** «Собирайте книгу вместе с родственниками»: на «Главной» на месте сообщества. Фото родных, приглашение, вопросы и их ответы. Платным открывает приглашение, остальным рассказывает, что входит. */
+export function TogetherCard({ onOpenFamily, onOpenTariff }: { onOpenFamily: () => void; onOpenTariff: () => void }) {
+  const paid = useRod((state) => state.programOpen);
+  const photos = useRod((state) => state.photos);
+  // Фото людей: по одному на человека, самые свежие.
+  const faces: typeof photos = [];
+  const seen = new Set<string>();
+  for (const photo of [...photos].reverse()) {
+    const key = photo.personId || photo.id;
+    if (seen.has(key) || !photo.dataUrl) continue;
+    seen.add(key);
+    faces.push(photo);
+    if (faces.length >= 4) break;
+  }
+  return (
+    <section className="story-card together mt-9 rounded-3xl p-5" aria-label="Собирать книгу вместе с родственниками">
+      <div className="together-faces" aria-hidden>
+        {faces.map((photo) => (
+          <span key={photo.id} className="together-face">
+            <MediaImg src={photo.dataUrl} alt="" className="size-full object-cover" />
+          </span>
+        ))}
+        {Array.from({ length: Math.max(1, 4 - faces.length) }).map((_, i) => (
+          <span key={`ghost-${i}`} className="together-face together-ghost">
+            <img src={`${import.meta.env.BASE_URL}stickers/pack/lace/${["lace_03_t", "lace_08_t", "lace_09_t", "lace_28_t"][i % 4]}.webp`} alt="" draggable={false} className="size-full object-contain p-0.5" />
+            {i === 0 ? <span className="together-plus">+</span> : null}
+          </span>
+        ))}
+      </div>
+      <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-gold-ink">Вместе с родными</p>
+      <h2 className="mt-1 text-[1.35rem] font-semibold leading-tight text-ink">Собирайте книгу вместе с родственниками</h2>
+      <p className="mt-2 max-w-[36ch] text-[15px] leading-snug text-ink/80">
+        Отправьте родственнику вопрос или ссылку: он ответит у себя, добавит фото и рассказ, а всё пришлёт вам готовым.
+      </p>
+      {paid ? (
+        <button type="button" onClick={onOpenFamily} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-moss px-5 text-sm font-semibold text-paper">
+          <Send className="size-4" /> Пригласить родственника
+        </button>
+      ) : (
+        <>
+          <p className="mt-3 text-sm font-semibold text-ink/70">Входит в полный доступ.</p>
+          <button type="button" onClick={onOpenTariff} className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-full bg-moss px-5 text-sm font-semibold text-paper">
+            Что входит
+          </button>
+        </>
+      )}
     </section>
   );
 }

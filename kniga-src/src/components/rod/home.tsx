@@ -19,7 +19,8 @@ import { changedSinceBackup, exportBook, lastBackupAt } from "@/lib/rod/backup";
 import { ShareInvite } from "@/components/rod/share-invite";
 import { InstallBanner, InstallCard, InstallSheet } from "@/components/rod/install-hint";
 import { TransferCard } from "@/components/rod/transfer-card";
-import { AccessSheet, CloudNote, CommunityCard, ProfileButton, TariffCard } from "@/components/rod/access";
+import { AccessSheet, CloudNote, ProfileButton, TariffCard, TogetherCard } from "@/components/rod/access";
+import { FamilySheet } from "@/components/rod/family-sheet";
 import { PaySheet } from "@/components/rod/lessons";
 import { ProjectsSheet } from "@/components/rod/projects-sheet";
 import { activeProjectId, listProjects } from "@/lib/rod/projects";
@@ -87,6 +88,7 @@ export function HomeScreen() {
   const [projects, setProjects] = useState(false);
   const [access, setAccess] = useState(false);
   const [tariff, setTariff] = useState(false);
+  const [family, setFamily] = useState(false);
   const bookName = listProjects().length > 1 ? listProjects().find((item) => item.id === activeProjectId())?.name : null;
   const free = LESSONS.find((lesson) => lesson.free);
   const freeDone = free ? data.doneLessons.includes(free.id) : false;
@@ -190,7 +192,8 @@ export function HomeScreen() {
         </section>
       ) : null}
 
-      {data.programOpen ? <CommunityCard /> : null}
+      <TogetherCard onOpenFamily={() => setFamily(true)} onOpenTariff={() => setTariff(true)} />
+      {family ? <FamilySheet onClose={() => setFamily(false)} /> : null}
       {free && mode !== "going" && !data.programOpen ? (
         <button type="button" onClick={() => nav.go({ id: "lesson", lessonId: free.id })} className="relative mt-9 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">
           <img src={`${import.meta.env.BASE_URL}course/site/free.jpg`} alt="" className="absolute inset-0 size-full scale-110 object-cover blur-md" draggable={false} />

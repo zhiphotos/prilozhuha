@@ -3,6 +3,7 @@ import { Camera, Check } from "lucide-react";
 import { toast } from "sonner";
 import { RELATIONS, SITUATIONS } from "@/lib/rod/content";
 import { compressPhoto, roomInfo, sendToRoom } from "@/lib/rod/family";
+import { questionFromHash } from "@/lib/rod/ask-link";
 import { useRod } from "@/lib/rod/store";
 import { Button, Field, useNav } from "@/components/rod/chrome";
 import { HelperJoin } from "@/components/rod/helper-ui";
@@ -15,11 +16,13 @@ type Mode = "story" | "answer" | "photo";
 export function JoinScreen({ room, invite }: { room: string; invite: string }) {
   const nav = useNav();
   const [info, setInfo] = useState<{ ok: boolean; name?: string; error?: string } | null>(null);
-  const [mode, setMode] = useState<Mode>("story");
+  // Вопрос мог прийти прямо в ссылке: тогда открываем сразу ответ на него.
+  const sentQuestion = typeof window !== "undefined" ? questionFromHash(window.location.hash) : "";
+  const [mode, setMode] = useState<Mode>(sentQuestion ? "answer" : "story");
   const [name, setName] = useState("");
   const [relation, setRelation] = useState("");
   const [title, setTitle] = useState("");
-  const [question, setQuestion] = useState(QUESTIONS[0] ?? "");
+  const [question, setQuestion] = useState(sentQuestion || (QUESTIONS[0] ?? ""));
   const [text, setText] = useState("");
   const [photo, setPhoto] = useState("");
   const [busy, setBusy] = useState(false);
@@ -110,7 +113,13 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
             <input className="field" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Например, Дом на Еловой" />
           </Field>
         ) : null}
-        {mode === "answer" ? (
+        {mode === "answer" && sentQuestion ? (
+          <div className="rounded-2xl border border-gold/50 bg-paper/70 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gold-ink">Вам прислали вопрос</p>
+            <p className="mt-1 text-lg font-semibold leading-snug text-ink">{sentQuestion}</p>
+          </div>
+        ) : null}
+        {mode === "answer" && !sentQuestion ? (
           <Field label="Вопрос">
             <select className="field" value={question} onChange={(event) => setQuestion(event.target.value)}>
               {QUESTIONS.map((item) => (
