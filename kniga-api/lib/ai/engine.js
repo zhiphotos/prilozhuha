@@ -72,8 +72,11 @@ export async function runFacts({ owner, text, requestId, env = process.env, now 
   const got = await reserve(owner, "facts", 1, now, env);
   if (!got.ok) return { status: 429, body: { error: got.scope === "global" ? "Общий дневной запас ИИ закончился." : "Ваш лимит поиска по интервью закончился.", code: `${got.scope}_quota`, resetAt: got.resetAt } };
   try {
-    const out = await provider.run({ system: FACTS_SYSTEM, user: `Расшифровка:\n"""\n${input}\n"""\nВыпиши факты строго JSON.`, maxTokens: 1800 }, env);
-    const parsed = parseModelJson(out.text);
+    let parsed = null;
+    for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
+      const out = await provider.run({ system: FACTS_SYSTEM, user: `Расшифровка:\n"""\n${input}\n"""\nВыпиши факты строго JSON.`, maxTokens: 1800 }, env);
+      parsed = parseModelJson(out.text);
+    }
     if (!parsed) {
       await got.release();
       return { status: 502, body: { error: "ИИ ответил непонятно. Попробуйте ещё раз: лимит не потрачен.", code: "bad_json" } };

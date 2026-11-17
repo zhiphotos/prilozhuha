@@ -93,7 +93,13 @@ export function sanitizeFacts(rawFacts, text) {
       note = note || "Такого слова нет в тексте дословно: возможно, расслышано неточно.";
     }
     if (kind === "unclear" && certainty === "ясно") certainty = "неясно";
-    const fact = { kind, title, detail: str(f.detail, 400), relation: kind === "people" ? str(f.relation, 120) : "", years: kind === "people" ? str(f.years, 60) : "", place: kind === "people" ? str(f.place, 120) : "", quote, certainty, note };
+    // Родство берём, только если слово родства реально есть в цитате (иначе ИИ его придумал).
+    let rel = kind === "people" ? str(f.relation, 120) : "";
+    if (rel) {
+      const stem = loose(rel).split(" ")[0].slice(0, 4);
+      if (stem.length >= 3 && !loose(quote).includes(stem)) rel = "";
+    }
+    const fact = { kind, title, detail: str(f.detail, 400), relation: rel, years: kind === "people" ? str(f.years, 60) : "", place: kind === "people" ? str(f.place, 120) : "", quote, certainty, note };
     const key = `${kind}|${loose(title)}|${loose(quote)}`;
     if (seen.has(key)) continue;
     seen.add(key);
