@@ -91,6 +91,43 @@ export type Story = {
   createdAt: string;
 };
 
+export type FactKind = "people" | "places" | "events" | "dates" | "objects" | "occupations" | "surnames" | "traditions" | "quotes" | "unclear";
+
+/** Один факт из интервью. Каждый обязан иметь дословную цитату; `at` – секунда в записи, где она прозвучала (если есть отметки времени). */
+export type InterviewFact = {
+  id: string;
+  kind: FactKind;
+  title: string;
+  detail: string;
+  relation: string;
+  years: string;
+  place: string;
+  quote: string;
+  certainty: "ясно" | "неясно" | "проверить";
+  note: string;
+  at?: number;
+  /** Решение Дарины: подтверждено, неверно (скрыто) или ещё не смотрела. */
+  review: "new" | "confirmed" | "wrong";
+  /** Уже добавлено в книгу: человек или место. */
+  added?: "person" | "place";
+};
+
+/** «Папка, прикреплённая к расшифровке»: текст интервью, отметки времени и найденные факты. Звук хранится только на этом устройстве. */
+export type Interview = {
+  id: string;
+  title: string;
+  createdAt: string;
+  text: string;
+  segments: { start: number; end: number; text: string }[];
+  duration: number;
+  facts: InterviewFact[];
+  /** Сколько кусков текста уже разобрано и сколько всего (для продолжения после сбоя). */
+  factsDone: number;
+  factsTotal: number;
+  /** Сколько фактов сервер отбросил, потому что цитаты в тексте не нашлось. */
+  dropped: number;
+};
+
 export type TimelineEvent = {
   id: string;
   year: string;
@@ -304,6 +341,8 @@ export type Screen =
   | { id: "answers" }
   | { id: "stories" }
   | { id: "my-stories" }
+  | { id: "interviews" }
+  | { id: "interview"; interviewId: string }
   | { id: "wizard"; templateId: string }
   | { id: "story"; storyId: string }
   | { id: "free" }

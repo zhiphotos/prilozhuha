@@ -1,7 +1,7 @@
 // Клиент ИИ-слоя. Все лимиты и проверки доступа выполняет сервер (kniga-api/lib/ai); здесь только вызовы и понятные тексты.
 // Зависимости (адрес, токен, устройство, fetch) передаются снаружи: так модуль проверяется тестами без браузера.
 
-export type AiKind = "text" | "audio_min" | "ocr_pages" | "archive";
+export type AiKind = "text" | "facts" | "audio_min" | "ocr_pages" | "archive";
 export type AiQuota = { per: "day" | "month"; limit: number; used: number; left: number; resetAt: string };
 export type AiStatus = { enabled: boolean; available: Record<AiKind, boolean>; usage: Record<AiKind, AiQuota> };
 export type AiDeps = { apiBase: string; token: string; deviceId: string; fetch?: typeof fetch };
@@ -27,6 +27,11 @@ export const askGenealogist = (deps: AiDeps, question: string, context: string, 
 /** Расшифровка одного куска записи (WAV, base64, до 90 секунд). Сервер сам считает минуты и возвращает их при сбое. */
 export const transcribeChunk = (deps: AiDeps, audio: string, seconds: number, requestId: string, prompt?: string) =>
   post<{ text: string; segments: { start: number; end: number; text: string }[]; left: number; resetAt: string }>(deps, "ai-transcribe", { audio, seconds, requestId, language: "ru", prompt });
+
+/** Факты из куска расшифровки интервью (до ~9000 знаков). Сервер сам проверяет цитаты и отбрасывает выдуманное; считается отдельным счётчиком, минуты расшифровки не тратятся. */
+export type RawFact = { kind: string; title: string; detail?: string; relation?: string; years?: string; place?: string; quote: string; certainty?: string; note?: string };
+export const extractFactsChunk = (deps: AiDeps, text: string, requestId: string) =>
+  post<{ facts: RawFact[]; dropped: number; left: number; resetAt: string }>(deps, "ai-facts", { text, requestId });
 
 /** «Осталось 12 из 20 до 4 ноября». */
 export function quotaLine(quota: AiQuota, now = new Date()): string {

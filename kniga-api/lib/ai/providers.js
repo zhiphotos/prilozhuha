@@ -8,14 +8,14 @@ const CF = "https://api.cloudflare.com/client/v4/accounts";
 
 export const cloudflareText = {
   name: "cloudflare-text",
-  kinds: ["text"],
+  kinds: ["text", "facts"],
   configured: (env = process.env) => Boolean(env.CF_ACCOUNT_ID && env.CF_API_TOKEN),
-  async run({ system, user }, env = process.env) {
+  async run({ system, user, maxTokens }, env = process.env) {
     const model = env.CF_TEXT_MODEL || "@cf/meta/llama-3.1-8b-instruct";
     const r = await fetch(`${CF}/${env.CF_ACCOUNT_ID}/ai/run/${model}`, {
       method: "POST",
       headers: { Authorization: `Bearer ${env.CF_API_TOKEN}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: [{ role: "system", content: system }, { role: "user", content: user }], max_tokens: 700 }),
+      body: JSON.stringify({ messages: [{ role: "system", content: system }, { role: "user", content: user }], max_tokens: maxTokens || 700, temperature: maxTokens ? 0.1 : undefined }),
       signal: AbortSignal.timeout(40000),
     });
     const data = await r.json().catch(() => ({}));
@@ -49,4 +49,4 @@ export const cloudflareWhisper = {
 };
 
 /** Реестр: вид работы → адаптер. Whisper, OCR и diarization появятся на своих этапах; пока честно «не подключено». */
-export const PROVIDERS = { text: cloudflareText, audio_min: cloudflareWhisper, ocr_pages: null, archive: null };
+export const PROVIDERS = { text: cloudflareText, facts: cloudflareText, audio_min: cloudflareWhisper, ocr_pages: null, archive: null };
