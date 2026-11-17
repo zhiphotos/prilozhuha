@@ -104,8 +104,8 @@ export function Dock() {
   const nav = useNav();
   const current = tabKey(nav.screen);
   return (
-    <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 px-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] lg:hidden">
-      <ul data-tour="nav" className="glass-strong mx-auto grid max-w-md grid-cols-6 rounded-2xl p-1.5">
+    <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 px-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] lg:hidden">
+      <ul data-tour="nav" className="glass-strong mx-auto grid max-w-md grid-cols-6 gap-1 rounded-3xl p-1.5">
         {TABS.map((item) => {
           const Icon = item.icon;
           const active = current === item.id;
@@ -115,12 +115,14 @@ export function Dock() {
                 type="button"
                 onClick={() => nav.tab(item.screen)}
                 className={cn(
-                  "flex min-h-14 w-full flex-col items-center justify-center gap-0.5 rounded-[1.2rem] text-xs font-medium transition [@media(max-height:480px)]:min-h-10",
-                  active ? "bg-night text-paper" : "text-ink/70",
+                  "flex min-h-[3.75rem] w-full flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-2xl px-0 text-[10.5px] leading-none transition [@media(max-height:480px)]:min-h-10",
+                  active ? "font-semibold text-night" : "font-medium text-ink/70",
                 )}
                 aria-current={active ? "page" : undefined}
               >
-                <Icon className="size-[1.15rem]" strokeWidth={active ? 2.2 : 1.7} />
+                <span className={cn("grid size-9 place-items-center rounded-full transition [@media(max-height:480px)]:size-7", active ? "bg-night text-paper" : "")}>
+                  <Icon className="size-[1.2rem]" strokeWidth={active ? 2.2 : 1.7} />
+                </span>
                 {item.label}
               </button>
             </li>
