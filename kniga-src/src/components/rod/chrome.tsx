@@ -119,14 +119,16 @@ export function Dock() {
   // при переключении он плавно переезжает на новое место и меняет цвет.
   return (
     <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 lg:hidden" style={{ ["--i" as string]: index }}>
-      <div className="relative rounded-t-[1.75rem] bg-night shadow-[0_-12px_30px_-14px_rgba(10,12,8,0.7)]">
-        <div aria-hidden="true" className="dock-hill pointer-events-none absolute bottom-full left-0 h-[1.6rem] w-1/3">
-          <svg viewBox="0 0 96 26" preserveAspectRatio="none" className="size-full" fill="currentColor">
-            <path d="M0 26 C18 26 24 0 48 0 C72 0 78 26 96 26 Z" />
-          </svg>
+      <div className="relative rounded-t-[1.5rem] bg-night shadow-[0_-12px_30px_-14px_rgba(10,12,8,0.7)]">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-full h-[1.1rem] overflow-hidden">
+          <div className="dock-hill h-full w-1/3">
+            <svg viewBox="0 0 96 26" preserveAspectRatio="none" className="size-full" fill="currentColor">
+              <path d="M0 26 C18 26 24 0 48 0 C72 0 78 26 96 26 Z" />
+            </svg>
+          </div>
         </div>
         <div aria-hidden="true" className="dock-dot pointer-events-none absolute left-0 top-0 flex w-1/6 justify-center">
-          <span className="dock-circle -mt-[1.55rem] grid size-[3.1rem] place-items-center rounded-full shadow-[0_6px_14px_-4px_rgba(0,0,0,0.55)]" style={{ background: tone.bg }} />
+          <span className="dock-circle -mt-[1.2rem] grid size-[2.6rem] place-items-center rounded-full shadow-[0_6px_14px_-4px_rgba(0,0,0,0.55)]" style={{ background: tone.bg }} />
         </div>
         <ul data-tour="nav" className="relative grid w-full grid-cols-6 px-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
           {TABS.map((item) => {
@@ -137,16 +139,17 @@ export function Dock() {
                 <button
                   type="button"
                   onClick={() => nav.tab(item.screen)}
+                  aria-label={item.label}
                   className={cn(
-                    "flex min-h-[3.9rem] w-full flex-col items-center justify-end gap-1 whitespace-nowrap px-0 pb-2.5 text-[12px] leading-none transition-colors [@media(max-height:480px)]:min-h-11",
+                    "flex min-h-[3.3rem] w-full flex-col items-center justify-end gap-0.5 whitespace-nowrap px-0 pb-1.5 text-[11px] leading-none transition-colors [@media(max-height:480px)]:min-h-11",
                     active ? "font-bold text-paper" : "font-medium text-paper/70",
                   )}
                   aria-current={active ? "page" : undefined}
                 >
-                  <span className={cn("dock-ico grid size-7 place-items-center transition-transform duration-300", active && "-translate-y-[1.05rem]")} style={active ? { color: tone.ink } : undefined}>
-                    <Icon className="size-[1.5rem]" strokeWidth={active ? 2.2 : 1.7} />
+                  <span className={cn("dock-ico grid size-7 place-items-center transition-transform duration-300", active ? "-translate-y-[0.7rem]" : "-translate-y-[0.1rem]")} style={active ? { color: tone.ink } : undefined}>
+                    <Icon className="size-[1.4rem]" strokeWidth={active ? 2.2 : 1.7} />
                   </span>
-                  {item.label}
+                  <span className={active ? "" : "hidden"}>{item.label}</span>
                 </button>
               </li>
             );
