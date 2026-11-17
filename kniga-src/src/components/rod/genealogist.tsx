@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Archive, Compass, Mic, ScrollText } from "lucide-react";
+import { Archive, Compass, Image as ImageIcon, LayoutTemplate, Mic, ScrollText } from "lucide-react";
 import { toast } from "sonner";
 import { Button, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
 import { chatGenealogist, type AiDeps, type ChatMsg } from "@/lib/rod/ai-client";
@@ -18,8 +18,10 @@ export function AiHubScreen() {
   const list: { id: string; label: string; sub: string; tone: string; icon: ReactNode; go?: () => void }[] = [
     { id: "gen", label: "Генеалог", sub: "Ответы по справочникам", tone: "moss", icon: <Compass />, go: () => nav.go({ id: "ai-genealogist" }) },
     { id: "iv", label: "Интервью", sub: "Главное из записи", tone: "bordo", icon: <Mic />, go: () => nav.go({ id: "interviews" }) },
-    { id: "doc", label: "Старые документы", sub: "Скоро", tone: "sand", icon: <ScrollText /> },
-    { id: "arc", label: "Поиск в архивах", sub: "Скоро", tone: "stone", icon: <Archive /> },
+    { id: "photo", label: "Старые фото", sub: "Восстановление, скоро", tone: "sand", icon: <ImageIcon /> },
+    { id: "lay", label: "Вёрстка страниц", sub: "С ИИ, скоро", tone: "stone", icon: <LayoutTemplate /> },
+    { id: "doc", label: "Старые документы", sub: "Скоро", tone: "moss", icon: <ScrollText /> },
+    { id: "arc", label: "Поиск в архивах", sub: "Скоро", tone: "bordo", icon: <Archive /> },
   ];
   return (
     <ScreenFrame>
