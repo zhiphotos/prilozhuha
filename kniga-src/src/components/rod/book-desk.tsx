@@ -25,7 +25,7 @@ export function BookDesk(p: Props) {
     { id: "cover", label: "Обложка и корешок", tone: "moss", hint: "book-cover", go: p.onCover },
     { id: "print", label: "Формат и печать", tone: "cream", hint: "book-print", go: p.onPrint },
     { id: "flip", label: "Листать книгу", tone: "bordo", go: p.onFlip },
-    { id: "toc", label: p.planTotal ? `Содержание · ${p.planDone} из ${p.planTotal}` : "Содержание", tone: "moss", go: p.onContents },
+    { id: "toc", label: p.planTotal ? `Содержание книги рода · ${p.planDone} из ${p.planTotal}` : "Содержание книги рода", tone: "moss", go: p.onContents },
   ];
 
   const press = (id: string, go: () => void) => {
