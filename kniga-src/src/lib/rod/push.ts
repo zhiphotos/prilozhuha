@@ -75,6 +75,20 @@ export async function enablePush(hour: number, days: number[], bday = false): Pr
   const answer = await post<{ ok?: boolean }>("/api/push-subscribe", { subscription: subscription.toJSON(), hour, days, offsetMin: -new Date().getTimezoneOffset(), app: appAddress(), stats: stats(), birthdays: birthdaysFor(bday) });
   if (!answer.ok) throw new Error(answer.error || "Не получилось включить напоминания.");
   save({ on: true, hour, days, bday });
+  void linkRoomPush();
+}
+
+/** Привязывает уведомления этого устройства к «Семейной комнате»: когда родственник что-то пришлёт, придёт пуш. Нужна включённая подписка и созданная комната. */
+export async function linkRoomPush(): Promise<void> {
+  const room = useRod.getState().room;
+  if (!API_BASE || !room?.id || !room.ownerKey || !pushPrefs().on || !("serviceWorker" in navigator)) return;
+  try {
+    const registration = await navigator.serviceWorker.getRegistration(`${import.meta.env.BASE_URL}push-sw.js`);
+    const subscription = await registration?.pushManager.getSubscription();
+    if (subscription) await post("/api/push-room", { endpoint: subscription.endpoint, room: room.id, ownerKey: room.ownerKey });
+  } catch {
+    /* без связи не страшно: привяжется при следующем запуске */
+  }
 }
 
 export async function disablePush(): Promise<void> {
@@ -97,6 +111,7 @@ export async function pingPush(): Promise<void> {
     const registration = await navigator.serviceWorker.getRegistration(`${import.meta.env.BASE_URL}push-sw.js`);
     const subscription = await registration?.pushManager.getSubscription();
     if (subscription) await post("/api/push-ping", { endpoint: subscription.endpoint, stats: stats(), birthdays: birthdaysFor(pushPrefs().bday) });
+    void linkRoomPush();
   } catch {
     /* без связи не страшно */
   }

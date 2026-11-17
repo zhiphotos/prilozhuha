@@ -14,6 +14,7 @@ import platformLogin from "./platform-login.js";
 import pushBroadcast from "./push-broadcast.js";
 import pushConfig from "./push-config.js";
 import pushPing from "./push-ping.js";
+import pushRoom from "./push-room.js";
 import pushSubscribe from "./push-subscribe.js";
 import pushTick from "./push-tick.js";
 import pushUnsubscribe from "./push-unsubscribe.js";
@@ -49,6 +50,7 @@ export const ROUTES = {
   "push-broadcast": pushBroadcast,
   "push-config": pushConfig,
   "push-ping": pushPing,
+  "push-room": pushRoom,
   "push-subscribe": pushSubscribe,
   "push-tick": pushTick,
   "push-unsubscribe": pushUnsubscribe,

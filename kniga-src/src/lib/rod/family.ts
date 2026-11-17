@@ -28,6 +28,7 @@ export async function createRoom(name: string): Promise<void> {
   const answer = await post<{ room?: string; ownerKey?: string; inviteKey?: string }>("/api/room-create", { name, token });
   if (!answer.room || !answer.ownerKey || !answer.inviteKey) throw new Error(answer.error || "Не получилось создать ссылку.");
   useRod.getState().setRoom({ id: answer.room, ownerKey: answer.ownerKey, inviteKey: answer.inviteKey, name });
+  void import("@/lib/rod/push").then((m) => m.linkRoomPush()).catch(() => undefined); // если уведомления уже включены, привязываем их к новой комнате
 }
 
 export async function fetchInbox(): Promise<Incoming[]> {

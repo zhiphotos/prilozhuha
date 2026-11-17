@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { serverStatus } from "@/lib/rod/server";
 import { fetchInbox } from "@/lib/rod/family";
+import { enablePush, pushPrefs, pushSupport } from "@/lib/rod/push";
 import { FamilySheet } from "@/components/rod/family-sheet";
 import { ChevronLeft, ChevronRight, Pencil, Plus, Search, X } from "lucide-react";
 import { PeoplePicker } from "@/components/rod/people-picker";
@@ -78,6 +79,7 @@ function FamilyCard() {
   const [open, setOpen] = useState(false);
   const [waiting, setWaiting] = useState(0);
   const [live, setLive] = useState(false);
+  const [notify, setNotify] = useState(() => pushPrefs().on);
   useEffect(() => {
     void serverStatus().then((status) => setLive(status.rooms));
   }, []);
@@ -85,19 +87,45 @@ function FamilyCard() {
     if (!room || !live) return;
     void fetchInbox().then((items) => setWaiting(items.length)).catch(() => undefined);
   }, [room, open, live]);
+  const turnOn = async () => {
+    const support = pushSupport();
+    if (support === "need-install") return toast("Чтобы приходили уведомления, поставьте книгу на экран «Домой» и откройте её оттуда.");
+    if (support !== "ok") return toast("На этом устройстве уведомления недоступны.");
+    try {
+      await enablePush(pushPrefs().hour, pushPrefs().days, pushPrefs().bday);
+      setNotify(true);
+      toast("Готово: когда родственник что-то пришлёт, придёт уведомление.");
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Не получилось включить уведомления.");
+    }
+  };
   return (
     <>
-      <button
-        type="button"
-        onClick={() => (live ? setOpen(true) : toast("Семейный доступ появится, когда подключится сервер приложения."))}
-        className="glass flex min-h-16 w-full items-center gap-3 rounded-2xl px-4 py-3 text-left"
-      >
-        <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-semibold text-ink">Пригласить родственников</span>
-          <span className="block text-sm text-muted">Пусть расскажут свои истории и пришлют фото. Им покажем бесплатный урок.</span>
-        </span>
-        {waiting > 0 ? <span className="grid min-w-7 place-items-center rounded-full bg-rose-deep px-2 py-1 text-xs font-semibold text-paper">{waiting}</span> : null}
-      </button>
+      <section className={cn("story-card together rounded-3xl p-5", waiting > 0 && "ring-2 ring-moss/50")} aria-label="Родственники">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-ink">Вместе с родными</p>
+        <div className="mt-1 flex items-start justify-between gap-3">
+          <h2 className="text-[1.25rem] font-semibold leading-tight text-ink">Пригласить родственников</h2>
+          {waiting > 0 ? <span className="grid min-w-8 shrink-0 place-items-center rounded-full bg-moss px-2.5 py-1 text-sm font-semibold text-paper">{waiting}</span> : null}
+        </div>
+        <p className="mt-2 text-[15px] leading-snug text-ink/80">
+          {waiting > 0 ? `Родные прислали: ${waiting}. Загляните во «Входящие» и добавьте в книгу.` : "Пусть расскажут свои истории и пришлют фото. Им покажем бесплатный урок."}
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => (live ? setOpen(true) : toast("Семейный доступ появится, когда подключится сервер приложения."))}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-moss px-5 text-sm font-semibold text-paper"
+          >
+            {waiting > 0 ? "Открыть входящие" : "Пригласить"}
+          </button>
+          {room && !notify ? (
+            <button type="button" onClick={() => void turnOn()} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-moss/40 bg-white/60 px-4 text-sm font-semibold text-moss">
+              Уведомлять, когда пришлют
+            </button>
+          ) : null}
+        </div>
+        {room && notify ? <p className="mt-3 text-xs text-ink/60">Уведомления включены: когда родственник что-то пришлёт, вам придёт сообщение.</p> : null}
+      </section>
       {open ? <FamilySheet onClose={() => setOpen(false)} /> : null}
     </>
   );
