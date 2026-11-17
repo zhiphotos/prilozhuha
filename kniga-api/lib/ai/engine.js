@@ -2,6 +2,7 @@ import { PROVIDERS, QuotaError } from "./providers.js";
 import { aiEnabled } from "./limits.js";
 import { FACTS_SYSTEM, MAX_TEXT, parseModelJson, sanitizeFacts } from "./facts.js";
 import { downUntil, firstTime, markDown, reserve } from "./quota.js";
+import { searchKnowledge } from "./knowledge.js";
 
 const GENEALOGY = `Ты помощник по семейной истории в приложении «Книга рода». Тебе дают данные семейной книги (контекст) и вопрос.
 Правила: отвечай по-русски, простыми тёплыми предложениями. Опирайся ТОЛЬКО на контекст. Различай: «подтверждено в книге» и «предположение». Если данных не хватает, прямо скажи, чего не хватает. Не придумывай людей, даты, места, документы и ссылки. Ничего не меняй в книге: только предлагай, что можно уточнить.`;
@@ -88,5 +89,46 @@ export async function runFacts({ owner, text, context, requestId, env = process.
     if (error instanceof QuotaError) return { status: 429, body: { error: "Бесплатная квота ИИ на сегодня закончилась.", code: "provider_quota", resetAt: await markDown(provider.name, now) } };
     console.error("[ai-facts]", error instanceof Error ? error.message : error);
     return { status: 502, body: { error: "ИИ сейчас не отвечает. Лимит не потрачен." } };
+  }
+}
+
+export const GENEALOGIST_SYSTEM = `Ты опытный генеалог и историк-исследователь, специализирующийся на поиске предков на территории Российской империи, СССР, России, Молдовы и других стран мира. Ты помогаешь пользователям восстанавливать историю семьи, искать архивные источники, расшифровывать старые документы и строить родословные деревья. Отвечай на языке пользователя (русский, румынский/молдавский, английский и др.). Тон тёплый, терпеливый, профессиональный.
+Умеешь: объяснять работу архивов России (РГАДА, ГАРФ, региональные) и Молдовы, составлять архивные запросы, объяснять работу сайтов Ancestry, FamilySearch, MyHeritage и др., объяснять исторические административные границы, помогать структурировать данные и строить текстовые схемы дерева, объяснять GEDCOM и стандарты нумерации, расшифровывать дореволюционные документы, переводить старые тексты, объяснять старые термины.
+Правила: в первую очередь опирайся на «Материалы базы знаний», если они даны, и в конце ответа в строке «Источник:» назови, какие использованы (название и раздел). Если в материалах ответа нет, прямо скажи: «Это из общих знаний, проверьте по документам». Ничего не выдумывай: имена, даты, номера фондов и ссылки без уверенности не называй. При недостатке данных сначала уточни регион, период, вероисповедание и известные факты. Структурируй ответ заголовками и шагами. Если пользователь описывает фото или текст документа, помоги прочитать имена, даты, места. Не давай юридических консультаций по наследству и гражданству.`;
+
+const clean = (messages) => {
+  if (!Array.isArray(messages)) return null;
+  const out = messages.slice(-12).map((m) => ({ role: m?.role === "assistant" ? "assistant" : "user", text: String(m?.text ?? "").trim().slice(0, 2000) })).filter((m) => m.text);
+  return out.length && out[out.length - 1].role === "user" ? out : null;
+};
+
+/** Один ход чата с ИИ-генеалогом: база знаний + инструкция на сервере. Расход 1 единица «chat», возвращается при сбое. */
+export async function runChat({ owner, messages, requestId, env = process.env, now = Date.now() }) {
+  const history = clean(messages);
+  if (!history) return { status: 400, body: { error: "Напишите вопрос." } };
+  if (!aiEnabled(env)) return { status: 503, body: { error: "ИИ пока выключен.", code: "disabled" } };
+  const provider = PROVIDERS.chat;
+  if (!provider || !provider.configured(env)) return { status: 503, body: { error: "Генеалог ещё не подключён.", code: "not_configured" } };
+  const down = await downUntil(provider.name);
+  if (down) return { status: 429, body: { error: "Бесплатная квота ИИ на сегодня закончилась.", code: "provider_quota", resetAt: down } };
+  if (!(await firstTime(owner, requestId))) return { status: 409, body: { error: "Этот вопрос уже обрабатывается.", code: "duplicate" } };
+  const got = await reserve(owner, "chat", 1, now, env);
+  if (!got.ok) return { status: 429, body: { error: got.scope === "global" ? "Общий дневной запас ИИ закончился." : "На сегодня ваши вопросы генеалогу закончились, завтра будут новые.", code: `${got.scope}_quota`, resetAt: got.resetAt } };
+  try {
+    const last = history[history.length - 1].text;
+    const { context, sources } = searchKnowledge(history.slice(-3).map((m) => m.text).join(" "));
+    const system = context ? `${GENEALOGIST_SYSTEM}\n\nМатериалы базы знаний:\n${context}` : GENEALOGIST_SYSTEM;
+    const out = await provider.run({ system, messages: history, maxTokens: 1500 }, env);
+    if (!out.text) {
+      await got.release();
+      return { status: 502, body: { error: "ИИ не ответил. Попробуйте ещё раз: запрос не потрачен." } };
+    }
+    void last;
+    return { status: 200, body: { reply: out.text, sources, left: got.left, resetAt: got.resetAt } };
+  } catch (error) {
+    await got.release();
+    if (error instanceof QuotaError) return { status: 429, body: { error: "Бесплатная квота ИИ на сегодня закончилась.", code: "provider_quota", resetAt: await markDown(provider.name, now) } };
+    console.error("[ai-chat]", error instanceof Error ? error.message : error);
+    return { status: 502, body: { error: "ИИ сейчас не отвечает. Запрос не потрачен." } };
   }
 }

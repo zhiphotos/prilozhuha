@@ -1,7 +1,7 @@
 // Клиент ИИ-слоя. Все лимиты и проверки доступа выполняет сервер (kniga-api/lib/ai); здесь только вызовы и понятные тексты.
 // Зависимости (адрес, токен, устройство, fetch) передаются снаружи: так модуль проверяется тестами без браузера.
 
-export type AiKind = "text" | "facts" | "audio_min" | "ocr_pages" | "archive";
+export type AiKind = "text" | "facts" | "audio_min" | "ocr_pages" | "archive" | "chat";
 export type AiQuota = { per: "day" | "month"; limit: number; used: number; left: number; resetAt: string };
 export type AiStatus = { enabled: boolean; available: Record<AiKind, boolean>; usage: Record<AiKind, AiQuota> };
 export type AiDeps = { apiBase: string; token: string; deviceId: string; fetch?: typeof fetch };
@@ -32,6 +32,10 @@ export const transcribeChunk = (deps: AiDeps, audio: string, seconds: number, re
 export type RawFact = { kind: string; title: string; detail?: string; relation?: string; years?: string; place?: string; quote: string; certainty?: string; note?: string };
 export const extractFactsChunk = (deps: AiDeps, text: string, requestId: string, context?: string) =>
   post<{ facts: RawFact[]; dropped: number; left: number; resetAt: string }>(deps, "ai-facts", { text, requestId, context: context?.trim() || undefined });
+
+/** Чат с ИИ-генеалогом: история диалога и вопрос; сервер добавляет инструкцию и базу знаний. */
+export type ChatMsg = { role: "user" | "assistant"; text: string };
+export const chatGenealogist = (deps: AiDeps, messages: ChatMsg[], requestId: string) => post<{ reply: string; sources: string[]; left: number; resetAt: string }>(deps, "ai-chat", { messages, requestId });
 
 /** «Осталось 12 из 20 до 4 ноября». */
 export function quotaLine(quota: AiQuota, now = new Date()): string {
