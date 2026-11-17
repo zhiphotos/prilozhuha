@@ -19,15 +19,15 @@ const DIVIDERS = ["peony", "lily_valley", "rosebuds", "daffodil", "stick_rosehip
 /** Иллюстрация к теме по смыслу: вырезка из библиотеки приложения. */
 const TEMPLATE_CUT: Record<string, string> = {
   "first-love": "rose",
-  "parents-met": "rosebuds",
+  "parents-met": "lace/lace_14_t",
   "first-home": "wood_slice",
-  "hard-time": "stick_thorn",
+  "hard-time": "lace/lace_04_t",
   happiest: "daffodil",
-  child: "lotus_pod",
+  child: "lace/lace_18_t",
   wedding: "peony",
   "little-money": "paper_two_scraps",
   moving: "envelope_brown",
-  tradition: "stick_rosehip",
+  tradition: "lace/lace_19_t",
   "one-photo": "frame_line_corners",
 };
 
