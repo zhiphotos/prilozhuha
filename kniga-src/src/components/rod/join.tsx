@@ -8,6 +8,7 @@ import { interviewQuestions } from "@/lib/rod/interview";
 import { useRod } from "@/lib/rod/store";
 import { Button, Field, useNav } from "@/components/rod/chrome";
 import { HelperJoin } from "@/components/rod/helper-ui";
+import { InterviewCards } from "@/components/rod/interview-cards";
 import { cn } from "@/lib/cn";
 
 const QUESTIONS = SITUATIONS.find((item) => item.id === "kin")?.questions.slice(0, 10) ?? [];
@@ -26,7 +27,6 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
     void loadInterview(room, invite, iv.id).then((r) => r && setRemote({ title: r.title, questions: r.questions.map((text, i) => ({ key: `c${i}`, text })) })).catch(() => undefined);
   }, [room, invite, iv?.kind, iv?.id]);
   const interview = iv ? (iv.kind === "custom" ? remote : interviewQuestions(iv)) : null;
-  const [ivAnswers, setIvAnswers] = useState<Record<string, string>>({});
   const [mode, setMode] = useState<Mode>(sentQuestion || iv ? "answer" : "story");
   const [name, setName] = useState("");
   const [relation, setRelation] = useState("");
@@ -42,14 +42,13 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
     void roomInfo(room, invite).then(setInfo).catch(() => setInfo({ ok: false, error: "Нет связи. Попробуйте позже." }));
   }, [room, invite]);
 
-  const ivFilled = interview ? interview.questions.filter((q) => (ivAnswers[q.key] ?? "").trim().length > 1) : [];
-  const sendInterview = async () => {
-    if (!interview || !name.trim() || !ivFilled.length) return;
+  const sendInterview = async (all: Record<string, string>) => {
+    const filled = interview ? interview.questions.filter((q) => (all[q.key] ?? "").trim().length > 1) : [];
+    if (!interview || !name.trim() || !filled.length) return;
     setBusy(true);
     try {
-      for (const q of ivFilled) await sendToRoom(room, invite, { kind: "answer", from: { name: name.trim(), relation }, title: "", question: q.text, text: ivAnswers[q.key]!.trim() });
-      setSent((value) => value + ivFilled.length);
-      setIvAnswers({});
+      for (const q of filled) await sendToRoom(room, invite, { kind: "answer", from: { name: name.trim(), relation }, title: "", question: q.text, text: all[q.key]!.trim() });
+      setSent((value) => value + filled.length);
     } catch (error) {
       toast(error instanceof Error ? error.message : "Не получилось отправить.", { duration: 6000 });
     } finally {
@@ -130,20 +129,15 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
 
         {interview ? (
           <>
-            <div className="rounded-2xl border border-gold/50 bg-paper/70 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gold-ink">Вам прислали интервью</p>
-              <p className="mt-1 text-lg font-semibold leading-snug text-ink">{interview.title}</p>
-              <p className="mt-1 text-sm text-ink/75">Вопросов: {interview.questions.length}. Отвечайте на те, на которые хочется, можно по частям.</p>
-            </div>
-            {interview.questions.map((q, i) => (
-              <Field key={q.key} label={`${i + 1}. ${q.text}`}>
-                <textarea className="field min-h-24" value={ivAnswers[q.key] ?? ""} onChange={(event) => setIvAnswers((cur) => ({ ...cur, [q.key]: event.target.value }))} placeholder={q.hint || "Пишите, как помните"} />
-              </Field>
-            ))}
-            <Button disabled={busy || !name.trim() || !ivFilled.length} onClick={() => void sendInterview()} className="w-full">
-              {busy ? "Отправляю…" : ivFilled.length ? `Отправить ответы (${ivFilled.length})` : "Отправить ответы"}
-            </Button>
-            {!name.trim() ? <p className="text-sm text-ink/70">Впишите выше своё имя, чтобы отправить.</p> : null}
+            {!name.trim() ? <p className="rounded-2xl bg-ink/5 p-4 text-sm text-ink/80">Впишите выше своё имя, и покажу вопросы: {interview.questions.length}. Отвечать можно голосом.</p> : null}
+            {name.trim() ? (
+              <InterviewCards
+                title={interview.title}
+                questions={interview.questions}
+                busy={busy}
+                onSend={(all) => void sendInterview(all)}
+              />
+            ) : null}
           </>
         ) : (
           <>
