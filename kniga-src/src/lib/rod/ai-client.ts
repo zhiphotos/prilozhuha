@@ -38,7 +38,7 @@ export type ChatMsg = { role: "user" | "assistant"; text: string };
 export const chatGenealogist = (deps: AiDeps, messages: ChatMsg[], requestId: string) => post<{ reply: string; sources: string[]; left: number; resetAt: string }>(deps, "ai-chat", { messages, requestId });
 
 /** Художественная глава по присланному рассказу: стиль выбирает человек, инструкции живут на сервере. */
-export type ChapterStyle = "family" | "classic" | "memoir" | "essay" | "skaz";
+export type ChapterStyle = "family" | "classic" | "memoir" | "essay" | "skaz" | "interview";
 export const writeChapter = (deps: AiDeps, input: { text: string; style: ChapterStyle; wish: string }, requestId: string) => post<{ chapter: string; left: number; resetAt: string }>(deps, "ai-chapter", { ...input, requestId });
 
 /** Поиск по архивам с ИИ: сервер выбирает и расставляет архивы из присланного списка и добавляет советы по методике. */

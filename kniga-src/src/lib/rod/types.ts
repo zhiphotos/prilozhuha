@@ -128,6 +128,9 @@ export type Interview = {
   factsTotal: number;
   /** Сколько фактов сервер отбросил, потому что цитаты в тексте не нашлось. */
   dropped: number;
+  /** Глава по интервью, которую написал ИИ, и фрагменты, на которые она ссылается как на [1], [2]. */
+  chapter?: string;
+  chapterSources?: { n: number; label: string; quote: string }[];
 };
 
 export type TimelineEvent = {

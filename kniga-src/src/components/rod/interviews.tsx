@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button, ScreenFrame, Sheet, TopBar, useNav } from "@/components/rod/chrome";
+import { InterviewChapter } from "@/components/rod/interview-chapter";
 import { TranscribeSheet } from "@/components/rod/transcribe-sheet";
 import { FactsRunner } from "@/components/rod/facts-runner";
 import { clock } from "@/lib/rod/audio-chunks";
@@ -161,6 +162,7 @@ export function InterviewScreen({ interviewId }: { interviewId: string }) {
       <p className="mb-3 rounded-2xl bg-ink/5 px-3 py-2 text-sm text-ink">{interview.facts.length ? foundLine(interview.facts) : "Главное в этом интервью ещё не искала."}</p>
       <p className="mb-3 text-sm text-muted">Саму запись приложение не хранит. У каждого факта указано время в вашем файле: откройте запись и послушайте это место.</p>
       <div className="mb-4"><FactsRunner interviewId={interview.id} /></div>
+      {interview.facts.length ? <InterviewChapter interview={interview} /> : null}
       {sections.map(({ kind, list }) => {
         const shown = list.filter((f) => showHidden || f.review !== "wrong");
         if (!shown.length) return null;

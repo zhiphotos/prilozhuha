@@ -98,5 +98,36 @@ export const chatProvider = {
   run: (task, env = process.env) => (geminiChat.configured(env) ? geminiChat : cloudflareChat).run(task, env),
 };
 
+// Несколько аккаунтов Cloudflare: когда у основного кончилась суточная бесплатная квота, берётся следующий.
+// Основной: CF_ACCOUNT_ID и CF_API_TOKEN. Запасные: CF_EXTRA_ACCOUNTS, JSON вида [{"id":"...","token":"..."}]. Без запасных ничего не меняется.
+// Квота Cloudflare обновляется в 00:00 по Гринвичу, до этого момента аккаунт с исчерпанной квотой не пробуем.
+const spent = new Map();
+const untilMidnightUtc = (now = Date.now()) => { const d = new Date(now); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1); };
+export function cfAccounts(env = process.env) {
+  let extra = [];
+  try { extra = JSON.parse(env.CF_EXTRA_ACCOUNTS || "[]"); } catch { extra = []; }
+  return [{ id: env.CF_ACCOUNT_ID, token: env.CF_API_TOKEN }, ...(Array.isArray(extra) ? extra : [])].filter((a) => a && a.id && a.token);
+}
+export async function rotate(env, run, now = Date.now()) {
+  let quota = null;
+  const all = cfAccounts(env);
+  for (const a of all) {
+    if (all.length > 1 && (spent.get(a.id) ?? 0) > now) continue;
+    try {
+      return await run({ ...env, CF_ACCOUNT_ID: a.id, CF_API_TOKEN: a.token });
+    } catch (error) {
+      if (!(error instanceof QuotaError)) throw error;
+      if (all.length > 1) spent.set(a.id, untilMidnightUtc(now));
+      quota = error;
+    }
+  }
+  throw quota ?? new QuotaError("provider quota");
+}
+export const resetSpentAccounts = () => spent.clear();
+for (const p of [cloudflareText, cloudflareWhisper, cloudflareChat]) {
+  const one = p.run.bind(p);
+  p.run = (task, env = process.env) => rotate(env, (e) => one(task, e));
+}
+
 /** Реестр: вид работы → адаптер. Whisper, OCR и diarization появятся на своих этапах; пока честно «не подключено». */
 export const PROVIDERS = { text: cloudflareText, facts: cloudflareText, audio_min: cloudflareWhisper, ocr_pages: null, archive: cloudflareText, chat: chatProvider, chapter: chatProvider };
