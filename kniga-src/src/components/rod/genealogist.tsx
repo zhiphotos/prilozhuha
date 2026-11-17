@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Archive, Compass, PenLine, Image as ImageIcon, LayoutTemplate, Mic, ScrollText } from "lucide-react";
 import { toast } from "sonner";
 import { Button, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
-import { aiStatus, chatGenealogist, type AiDeps, type AiKind, type AiQuota, type ChatMsg } from "@/lib/rod/ai-client";
+import { chatGenealogist, type AiDeps, type ChatMsg } from "@/lib/rod/ai-client";
+import { AI_DEMOS, AiDemoSheet } from "@/components/rod/ai-demo";
 import { API_BASE } from "@/lib/rod/config";
 import { deviceId } from "@/lib/rod/pay";
 import { useRod } from "@/lib/rod/store";
@@ -15,22 +16,15 @@ type Turn = ChatMsg & { sources?: string[] };
 export function AiHubScreen() {
   const nav = useNav();
   const programOpen = useRod((s) => s.programOpen);
-  const access = useRod((s) => s.access);
-  const [usage, setUsage] = useState<Partial<Record<AiKind, AiQuota>>>({});
-  useEffect(() => {
-    if (!programOpen || !access?.token) return;
-    let live = true;
-    void aiStatus({ apiBase: API_BASE, token: access.token, deviceId: deviceId() }).then((res) => { if (live && res.ok) setUsage(res.data.usage); });
-    return () => { live = false; };
-  }, [programOpen, access?.token]);
+  const [demo, setDemo] = useState<string | null>(null);
   const list: { id: string; label: string; sub: string; tone: string; icon: ReactNode; go?: () => void }[] = [
-    { id: "gen", label: "Генеалог", sub: "Ответы по справочникам", tone: "moss", icon: <Compass />, go: () => nav.go({ id: "ai-genealogist" }) },
-    { id: "ch", label: "Глава", sub: "Рассказ в стиле книги", tone: "sand", icon: <PenLine />, go: () => nav.go({ id: "ai-chapter" }) },
-    { id: "iv", label: "Интервью", sub: "Запись в текст", tone: "bordo", icon: <Mic />, go: () => nav.go({ id: "interviews" }) },
-    { id: "photo", label: "Старые фото", sub: "Восстановление, скоро", tone: "sand", icon: <ImageIcon /> },
-    { id: "lay", label: "Вёрстка страниц", sub: "С ИИ, скоро", tone: "stone", icon: <LayoutTemplate /> },
-    { id: "doc", label: "Старые документы", sub: "Скоро", tone: "moss", icon: <ScrollText /> },
-    { id: "arc", label: "Поиск в архивах", sub: "В карточке человека", tone: "bordo", icon: <Archive />, go: () => nav.go({ id: "archive", tab: "tree" }) },
+    { id: "gen", label: "Генеалог", sub: "Ответы по справочникам", tone: "moss", icon: <Compass />, go: () => (programOpen ? nav.go({ id: "ai-genealogist" }) : setDemo("gen")) },
+    { id: "ch", label: "Глава", sub: "Рассказ в стиле книги", tone: "sand", icon: <PenLine />, go: () => (programOpen ? nav.go({ id: "ai-chapter" }) : setDemo("ch")) },
+    { id: "iv", label: "Интервью", sub: "Запись в текст", tone: "bordo", icon: <Mic />, go: () => (programOpen ? nav.go({ id: "interviews" }) : setDemo("iv")) },
+    { id: "photo", label: "Старые фото", sub: "Скоро", tone: "sand", icon: <ImageIcon />, go: () => setDemo("photo") },
+    { id: "lay", label: "Вёрстка страниц", sub: "Скоро", tone: "stone", icon: <LayoutTemplate />, go: () => setDemo("lay") },
+    { id: "doc", label: "Старые документы", sub: "Скоро", tone: "moss", icon: <ScrollText />, go: () => setDemo("doc") },
+    { id: "arc", label: "Поиск в архивах", sub: "В карточке человека", tone: "bordo", icon: <Archive />, go: () => (programOpen ? nav.go({ id: "archive", tab: "tree" }) : setDemo("arc")) },
   ];
   return (
     <ScreenFrame>
@@ -49,41 +43,10 @@ export function AiHubScreen() {
           </button>
         ))}
       </div>
-      <p className="mb-2 mt-5 text-xs tracking-widest text-muted uppercase">Что умеет ИИ и сколько его</p>
-      <ul className="grid gap-2.5">
-        {INFO.map((it) => {
-          const q = it.kind ? usage[it.kind] : undefined;
-          return (
-            <li key={it.title} className="rounded-2xl border border-line bg-white/70 px-3.5 py-3">
-              <div className="flex items-baseline justify-between gap-3">
-                <b className="text-[17px] text-ink">{it.title}</b>
-                {it.soon ? <span className="rounded-full bg-ink/10 px-2 py-0.5 text-xs font-semibold text-ink">скоро</span> : null}
-              </div>
-              <p className="mt-1 text-sm leading-snug text-muted">{it.text}</p>
-              {it.limit ? (
-                <p className="mt-2 border-l-[3px] border-gold-ink pl-2.5 text-sm font-semibold text-ink">
-                  {it.limit}
-                  {q ? <span className="font-normal text-muted"> · осталось {q.left} из {q.limit}</span> : null}
-                </p>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
-      <p className="mb-24 mt-3 text-xs leading-snug text-muted">Сейчас ИИ работает на бесплатных мощностях, поэтому у каждого свой запас. Он обновляется сам, со временем будет расти. ИИ может ошибаться: важное проверяйте по документам.</p>
+      {demo && AI_DEMOS[demo] ? <AiDemoSheet demo={AI_DEMOS[demo]} onClose={() => setDemo(null)} /> : null}
     </ScreenFrame>
   );
 }
-
-const INFO: { title: string; text: string; limit?: string; kind?: AiKind; soon?: boolean }[] = [
-  { title: "Генеалог", text: "Отвечает по справочникам и называет источник. Помогает составить запрос в архив и прочитать старую запись.", limit: "3 вопроса в день", kind: "chat" },
-  { title: "Интервью", text: "Запись разговора становится текстом. ИИ находит в нём людей, места, события и увлечения и собирает из них главу, а людей можно добавить в древо.", limit: "до 300 минут записи в месяц", kind: "audio_min" },
-  { title: "Глава", text: "Ваш рассказ или интервью становится главой книги в одном из пяти стилей. Факты остаются вашими. Глава по интервью считается за две.", limit: "3 главы в день", kind: "chapter" },
-  { title: "Поиск в архивах", text: "Кнопка «Найти наводки» в карточке человека: ИИ подбирает архивы, пишет запрос и подсказывает, как проверить находку.", limit: "10 поисков в месяц", kind: "archive" },
-  { title: "Старые фото", text: "Восстановление старых снимков с ИИ.", soon: true },
-  { title: "Вёрстка страниц", text: "Подбор вёрстки страниц книги с ИИ.", soon: true },
-  { title: "Старые документы", text: "Расшифровка рукописных страниц по фото.", soon: true },
-];
 
 const read = (): Turn[] => {
   try { const v = JSON.parse(localStorage.getItem(KEY) ?? "[]"); return Array.isArray(v) ? v.slice(-30) : []; } catch { return []; }
