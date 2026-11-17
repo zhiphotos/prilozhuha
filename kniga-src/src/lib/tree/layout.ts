@@ -1185,11 +1185,11 @@ function layoutCore(people: Person[], unions: Union[], focusId: string, flow: "d
       .map((id) => at.get(id))
       .filter((n): n is NonNullable<typeof n> => {
         if (!n) return false;
-        // Супруг из другой семьи, его родители далеко: линию не тянем через схему, у карточки значок. Остальные дети всегда соединены с родителями.
+        // Супруг из другой семьи, его родители далеко: связь рисуется бледным пунктиром, у карточки значок. Остальные дети всегда соединены с родителями.
         const reach = Math.max(FAR_DROP, (union.childIds.length * (PLATE_W + H_GAP)) / 2 + 3 * (PLATE_W + H_GAP));
         if (!pedigreeMode && detached.has(n.id) && parentMid !== null && Math.abs(n.x - parentMid) > reach) {
+          // Линию не прячем: связь с родителями супруга всегда нарисована (далёкая, бледным пунктиром), значок «↑» остаётся подсказкой.
           hiddenLinks.add(n.id);
-          return false;
         }
         return true;
       });
