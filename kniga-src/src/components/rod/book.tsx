@@ -140,7 +140,7 @@ export function BookScreen() {
         onPrint={() => (pages.length ? setPrinting(true) : toast("Сначала добавьте хотя бы одну страницу"))}
         onPlan={() => setPlanning(true)}
         onTextToPages={() => setTextToPages(true)}
-        onTree={() => { toast("Откройте древо и выберите «Схема из выбранных»"); nav.go({ id: "archive", tab: "tree" }); }}
+        onTree={() => { try { sessionStorage.setItem("kr-tree-pick", "1"); } catch { /* без флага */ } toast("Отметьте людей, которых нужно поместить на страницу"); nav.go({ id: "archive", tab: "tree" }); }}
         onCover={() => setCoverSetup(true)}
         onFlip={() => (pages.length ? nav.go({ id: "flip" }) : toast("Сначала добавьте хотя бы одну страницу"))}
         onContents={() => setContents(true)}

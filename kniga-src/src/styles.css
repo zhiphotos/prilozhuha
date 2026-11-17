@@ -938,3 +938,10 @@ body {
 .kr-desk+.kr-stage-wrap .tpo-stage{margin-top:-46px;z-index:4;height:clamp(540px,calc(100svh - 200px),700px);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 408 52' preserveAspectRatio='none'%3E%3Cpath d='M0 52V50Q0 36 14 36H70C84 36 86 2 102 2H300C316 2 318 36 332 36H394Q408 36 408 50V52Z'/%3E%3C/svg%3E") 0 0/100% 52px no-repeat,linear-gradient(#000,#000) 0 51px/100% calc(100% - 51px) no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 408 52' preserveAspectRatio='none'%3E%3Cpath d='M0 52V50Q0 36 14 36H70C84 36 86 2 102 2H300C316 2 318 36 332 36H394Q408 36 408 50V52Z'/%3E%3C/svg%3E") 0 0/100% 52px no-repeat,linear-gradient(#000,#000) 0 51px/100% calc(100% - 51px) no-repeat}
 .kr-desk+.kr-stage-wrap .tpo-stage::before{content:"Шаблоны книги";position:absolute;top:2px;left:17%;width:57%;height:34px;display:block;z-index:40;text-align:center;font:700 13px/38px Manrope,sans-serif;color:rgba(243,236,218,.82);text-shadow:0 -1px 0 rgba(0,0,0,.5),0 1px 0 rgba(255,255,255,.2);pointer-events:none}
 .kr-stage-wrap{position:relative;z-index:4;filter:drop-shadow(0 -6px 10px rgba(30,24,18,.5)) drop-shadow(0 -1px 3px rgba(30,24,18,.45))}
+/* Папка с пояснением раскрывается: что делает кнопка и кнопка продолжить */
+.kr-f[data-open="true"]{margin-bottom:calc(48px - var(--lift));transform:translateY(calc(var(--lift) * -1))}
+.kr-f[data-open="true"] .kr-fbody{height:calc(var(--lift) + 124px)}
+.kr-fnote{position:absolute;left:16px;right:16px;top:52px;display:grid;gap:8px;animation:kr-rise .28s cubic-bezier(.2,.8,.2,1)}
+.kr-fnote p{margin:0;font:600 13px/1.35 Manrope,sans-serif;color:rgba(243,236,218,.9);text-shadow:0 -1px 0 rgba(0,0,0,.4)}
+.kr-f[data-tone="cream"] .kr-fnote p{color:rgba(60,52,38,.9);text-shadow:0 1px 0 rgba(255,255,255,.8)}
+.kr-fgo{min-height:44px;border-radius:12px;background:#f1ead9;color:#2a2420;font:700 14px Manrope,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.25)}
