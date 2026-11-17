@@ -924,3 +924,6 @@ body {
 .kr-note{margin:4px 2px 0;font-size:12px}
 @keyframes kr-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.kr-fb{animation:none}}
+/* Надпись вдавлена в бумагу (тиснение): тёмная кромка сверху внутри, светлая снизу */
+.kr-ft{color:rgba(243,236,218,.82);letter-spacing:.01em;text-shadow:0 -1px 0 rgba(0,0,0,.5),0 1px 0 rgba(255,255,255,.2)}
+.kr-f[data-tone="cream"] .kr-ft{color:rgba(60,52,38,.8);text-shadow:0 1px 0 rgba(255,255,255,.85),0 -1px 0 rgba(0,0,0,.2)}
