@@ -4,7 +4,7 @@ import { plural } from "@/lib/rod/progress";
 import type { FactKind, Interview, InterviewFact } from "@/lib/rod/types";
 import type { AiResult, RawFact } from "@/lib/rod/ai-client";
 
-export const CHUNK_MAX = 8500;
+export const CHUNK_MAX = 3200;
 export const CHUNK_OVERLAP = 500;
 
 export const KIND_ORDER: FactKind[] = ["people", "places", "dates", "events", "objects", "occupations", "surnames", "traditions", "quotes", "unclear"];

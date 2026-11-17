@@ -74,7 +74,7 @@ export async function runFacts({ owner, text, requestId, env = process.env, now 
   try {
     let parsed = null;
     for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
-      const out = await provider.run({ system: FACTS_SYSTEM, user: `Расшифровка:\n"""\n${input}\n"""\nВыпиши факты строго JSON.`, maxTokens: 1800 }, env);
+      const out = await provider.run({ system: FACTS_SYSTEM, user: `Расшифровка:\n"""\n${input}\n"""\nВыпиши факты строго JSON.`, maxTokens: 2400 }, env);
       parsed = parseModelJson(out.text);
     }
     if (!parsed) {
