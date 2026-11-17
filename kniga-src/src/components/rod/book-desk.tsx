@@ -58,7 +58,7 @@ export function BookDesk(p: Props) {
           </button>
         );
         return (
-          <section key={f.id} className="kr-f" data-tone={f.tone} data-up={up === f.id} data-open={on} style={{ "--o": i % 5, "--bh": `${82 + Math.ceil((f.note?.length ?? 0) / 38) * 18}px`, zIndex: on ? 50 : i + 1 } as CSSProperties}>
+          <section key={f.id} className="kr-f" data-tone={f.tone} data-up={up === f.id} data-open={on} style={{ "--o": i % 5, "--bh": `${82 + Math.ceil((f.note?.length ?? 0) / 38) * 18}px`, "--tx": `${(i * 211 + 37) % 600}px`, "--ty": `${(i * 137 + 91) % 420}px`, "--ts": `${440 + ((i * 83) % 240)}px`, zIndex: on ? 50 : i + 1 } as CSSProperties}>
             {f.hint ? <Hint id={f.hint}>{tab}</Hint> : tab}
             {on && f.note ? (
               <div className="kr-fnote">
