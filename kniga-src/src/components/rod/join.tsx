@@ -88,7 +88,7 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
         <>
           <h1 className="display-title mt-2 text-[2rem] leading-[1.1] text-ink">{info.name} прислала вам вопросы</h1>
           <p className="mt-3 text-base leading-relaxed text-ink/80">
-            Ответьте на те, на которые захочется, можно по частям и коротко. Ничего устанавливать и платить не нужно.
+            Отвечайте так, как чувствуете, не думая о запятых и о том, как правильно. Что первым пришло в голову, то и пишите или говорите. Можно коротко и по частям, ничего устанавливать и платить не нужно.
           </p>
         </>
       ) : (

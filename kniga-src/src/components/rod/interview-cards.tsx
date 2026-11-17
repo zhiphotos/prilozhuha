@@ -1,10 +1,20 @@
 import { useRef, useState } from "react";
 import { Lightbulb, Mic, SkipForward } from "lucide-react";
 import { toast } from "sonner";
+import { Cut } from "@/components/rod/botanica";
 import { Button } from "@/components/rod/chrome";
 import { recognition, type SpeechRec } from "@/lib/rod/speech";
 import { turnPage } from "@/lib/rod/sounds";
 import { cn } from "@/lib/cn";
+
+/** Картинки для карточек: каждый вопрос получает свою из набора, угол и наклон меняются. Выглядит случайно, но на одном вопросе всегда одинаково. */
+const DECOR = ["peony", "lily_valley", "rosebuds", "daffodil", "rose", "moth", "branch", "shell", "stick_green", "lotus_pod", "wood_slice", "engraving_circle", "stick_rosehip", "lace/lace_18_t", "lace/lace_14_t", "lace/lace_33_t"];
+const decorOf = (i: number) => {
+  const id = DECOR[(i * 7 + 3) % DECOR.length]!;
+  const tilt = ((i * 37) % 41) - 20;
+  const size = ["w-24", "w-28", "w-32"][i % 3]!;
+  return { id, tilt, size };
+};
 
 export type InterviewQuestion = { key: string; text: string; hint?: string };
 
@@ -79,14 +89,15 @@ export function InterviewCards({ title, questions, busy, onSend }: { title: stri
         <div className="card-back pointer-events-none absolute inset-x-8 top-6 bottom-0 scale-90 rounded-2xl opacity-50" />
         <div className="card-back pointer-events-none absolute inset-x-4 top-3 bottom-0 scale-95 rounded-2xl opacity-80" />
         <article className="card-face absolute inset-0 flex flex-col overflow-hidden rounded-2xl p-5 shadow-[var(--shadow-soft)] ring-1 ring-ink/10">
-          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-ink">
+          <Cut id={decorOf(index).id} className={cn("pointer-events-none absolute -right-7 -top-6 opacity-90", decorOf(index).size)} style={{ transform: `rotate(${decorOf(index).tilt}deg)` }} />
+          <div className="relative flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-ink">
             <span className="tabular-nums">{index + 1} / {total}</span>
             <span className="h-px w-5 bg-gold" />
             <span className="max-w-[24ch] truncate">{title}</span>
           </div>
-          <h2 className="mt-3 text-[1.6rem] font-semibold leading-[1.15] text-ink">{q?.text}</h2>
+          <h2 className="relative mt-3 pr-14 text-[1.6rem] font-semibold leading-[1.15] text-ink">{q?.text}</h2>
           <div className="mt-auto">
-            <p className="hand mb-1 text-[1.25rem] leading-none text-gold-ink">скажите или запишите, как помните</p>
+            <p className="hand mb-1 text-[1.25rem] leading-tight text-gold-ink">что первое пришло в голову, то и скажите</p>
             <textarea value={text} onChange={(event) => setText(event.target.value)} placeholder={q?.hint || "Скажите в микрофон или впишите"} className="field min-h-16 resize-none text-base" />
           </div>
         </article>
