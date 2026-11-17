@@ -8,7 +8,7 @@ import { useRod } from "@/lib/rod/store";
 import { plural } from "@/lib/rod/progress";
 import { pageFromStory, pagesFromStoryPhotos } from "@/lib/rod/layouts";
 import { Attachments } from "@/components/rod/attachments";
-import { TranscribeSheet, minutesLine, useMinutes } from "@/components/rod/transcribe-sheet";
+import { MINUTES_DEFAULT, TranscribeSheet, minutesLine, useMinutes } from "@/components/rod/transcribe-sheet";
 import { sendInterview } from "@/lib/rod/ask-relative";
 import { SendStoriesSheet } from "@/components/rod/send-interview";
 import type { Attachment } from "@/lib/rod/types";
@@ -90,8 +90,7 @@ export function StoriesScreen() {
           </span>
           <span className="min-w-0">
             <span className="block text-base font-semibold text-ink">Расшифровать интервью</span>
-            <span className="block text-[15px] leading-snug text-ink/80">Загрузите запись разговора, например рассказ бабушки, и получите текст</span>
-            <span className="mt-0.5 block text-sm font-semibold text-moss">{minutes ? minutesLine(minutes) : "Входит в программу: до 300 минут в месяц."}</span>
+            <span className="mt-0.5 block text-[15px] font-semibold text-moss">{minutes ? minutesLine(minutes) : MINUTES_DEFAULT}</span>
           </span>
           <span className="story-ai" aria-label="Работает на искусственном интеллекте" title="Работает на искусственном интеллекте">ИИ</span>
         </button>

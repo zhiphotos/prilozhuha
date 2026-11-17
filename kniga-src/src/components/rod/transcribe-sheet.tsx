@@ -5,6 +5,7 @@ import { aiStatus, quotaLine, transcribeChunk, type AiDeps, type AiQuota } from 
 import { CHUNK_SEC, RATE, clock, decodeMono16k, encodeWav, findCuts, shiftSegments, toBase64, type Seg } from "@/lib/rod/audio-chunks";
 import { API_BASE } from "@/lib/rod/config";
 import { deviceId } from "@/lib/rod/pay";
+import { plural } from "@/lib/rod/progress";
 import { useRod } from "@/lib/rod/store";
 
 /** Остаток минут расшифровки для человека: null, пока не узнали или если расшифровка не подключена. */
@@ -24,8 +25,9 @@ export function useMinutes(): AiQuota | null {
   return quota;
 }
 
-/** «Осталось 240 из 300 минут. Обновится 1 декабря.» */
-export const minutesLine = (quota: AiQuota) => quotaLine(quota).replace(/^Осталось (\d+) из (\d+)\./, (_m, left, limit) => `Осталось ${left} из ${limit} минут в этом месяце.`);
+/** «Доступно 213 минут в этом месяце» (по мере расходов число уменьшается). */
+export const minutesLine = (quota: AiQuota) => `Доступно ${plural(quota.left, "минута", "минуты", "минут")} в этом месяце`;
+export const MINUTES_DEFAULT = "Доступно 300 минут в этом месяце";
 
 type Phase = "idle" | "reading" | "ready" | "working" | "paused" | "done";
 
@@ -123,7 +125,7 @@ export function TranscribeSheet({ onClose }: { onClose: () => void }) {
           </label>
         ) : null}
         <p className="rounded-2xl bg-ink/5 px-3 py-2 text-sm text-ink">
-          Расшифровка входит в программу: до 300 минут записи в месяц на человека. {shownQuota ? minutesLine(shownQuota) : ""}
+          {shownQuota ? minutesLine(shownQuota) : MINUTES_DEFAULT}. Обновляется каждый месяц.
         </p>
         {note ? <p role="status" className="text-sm text-ink">{note}</p> : null}
         {phase === "ready" || phase === "paused" ? (
