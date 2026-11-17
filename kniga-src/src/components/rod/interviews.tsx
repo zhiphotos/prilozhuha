@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Button, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
+import { Button, ScreenFrame, Sheet, TopBar, useNav } from "@/components/rod/chrome";
 import { TranscribeSheet } from "@/components/rod/transcribe-sheet";
 import { FactsRunner } from "@/components/rod/facts-runner";
 import { clock } from "@/lib/rod/audio-chunks";
@@ -20,6 +20,7 @@ export function InterviewsScreen() {
   const interviews = useRod((s) => s.interviews);
   const programOpen = useRod((s) => s.programOpen);
   const [transcribe, setTranscribe] = useState(false);
+  const [adding, setAdding] = useState(false);
   return (
     <ScreenFrame>
       <TopBar kicker="Архив семьи" title="Интервью" onBack={() => nav.go({ id: "stories" })} />
@@ -27,6 +28,7 @@ export function InterviewsScreen() {
         {interviews.length ? "Каждая расшифровка лежит здесь со своими людьми, местами, датами и историями. К каждому факту приложены слова из записи." : "Здесь будут лежать расшифровки интервью. После расшифровки я найду в них людей, места, даты и истории и приложу слова из записи, чтобы можно было проверить."}
       </p>
       {programOpen ? <Button className="mb-4 w-full" onClick={() => setTranscribe(true)}>Расшифровать интервью</Button> : null}
+      <Button variant="ghost" className="mb-4 w-full" onClick={() => setAdding(true)}>Добавить прежнюю расшифровку</Button>
       <ul className="grid gap-3">
         {interviews.map((iv) => (
           <li key={iv.id}>
@@ -42,6 +44,7 @@ export function InterviewsScreen() {
         ))}
       </ul>
       {transcribe ? <TranscribeSheet onClose={() => setTranscribe(false)} /> : null}
+      {adding ? <AddOldSheet onClose={() => setAdding(false)} /> : null}
     </ScreenFrame>
   );
 }
@@ -198,5 +201,45 @@ export function InterviewScreen({ interviewId }: { interviewId: string }) {
         Удалить интервью
       </button>
     </ScreenFrame>
+  );
+}
+
+/** Расшифровки, сделанные до появления папки: берём из «Историй» или вставляем текст. Таймкодов у них нет, цитаты всё равно сверяются с текстом. */
+function AddOldSheet({ onClose }: { onClose: () => void }) {
+  const nav = useNav();
+  const stories = useRod((s) => s.stories);
+  const interviews = useRod((s) => s.interviews);
+  const addInterview = useRod((s) => s.addInterview);
+  const [text, setText] = useState("");
+  const old = useMemo(() => stories.filter((st) => st.templateId === "free" && st.narrative.trim().length >= 200 && !interviews.some((iv) => iv.text === st.narrative.trim())), [stories, interviews]);
+  const create = (title: string, body: string) => {
+    const plain = body.trim();
+    if (plain.length < 200) return toast.error("Текст слишком короткий: нужно хотя бы несколько предложений.");
+    const id = addInterview({ title: title || "Интервью", text: plain, segments: [], duration: 0 });
+    onClose();
+    nav.go({ id: "interview", interviewId: id });
+  };
+  return (
+    <Sheet title="Прежняя расшифровка" onClose={onClose}>
+      <p className="mb-3 text-base leading-snug text-ink/80">Выберите расшифровку, которая уже лежит у вас в «Историях», или вставьте текст. Потом нажмите «Найти главное в интервью». Времени в записи тут не будет, но слова из текста я приложу.</p>
+      {old.length ? (
+        <ul className="mb-4 grid gap-2">
+          {old.map((st) => (
+            <li key={st.id}>
+              <button type="button" onClick={() => create(st.title, st.narrative)} className="story-saved w-full text-left">
+                <span className="min-w-0 flex-1">
+                  <span className="story-sheet-title block">{st.title}</span>
+                  <span className="story-sheet-lead block">{st.narrative.trim().slice(0, 90)}…</span>
+                </span>
+                <span aria-hidden className="shrink-0 text-2xl text-ink/60">›</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <label className="mb-1 block text-sm font-semibold">Или вставьте текст</label>
+      <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} className="mb-3 w-full rounded-xl border border-ink/20 bg-paper p-3 text-base" placeholder="Вставьте расшифровку сюда" />
+      <Button className="w-full" onClick={() => create("Интервью", text)}>Добавить в папку</Button>
+    </Sheet>
   );
 }
