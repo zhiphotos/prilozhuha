@@ -70,7 +70,6 @@ export function StoriesScreen() {
   return (
     <ScreenFrame>
       <TopBar
-        kicker="Семейные истории"
         title="Расскажи историю"
         action={
           <button type="button" onClick={() => nav.go({ id: "my-stories" })} className="story-folder-btn relative shrink-0" aria-label={`Мои истории: сохранено ${stories.length}${fresh ? `, новых ${fresh}` : ""}`} title="Мои истории">
@@ -79,41 +78,40 @@ export function StoriesScreen() {
           </button>
         }
       />
-      <p className="max-w-xl text-base leading-relaxed text-ink/75">Выберите, о чём рассказать, и ответьте на несколько вопросов. Из ответов получится страница вашей книги.</p>
-      <button type="button" onClick={() => nav.go({ id: "free" })} className="story-main mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 text-base font-semibold">
-        <Pencil className="size-5" /> Написать свою историю
-      </button>
-      {programOpen ? (
-        <button type="button" onClick={() => setTranscribe(true)} className="story-glass mt-3 flex min-h-[4.5rem] w-full items-center gap-4 rounded-2xl px-5 py-3 text-left">
-          <span className="story-glass-icon" aria-hidden>
-            <Mic className="size-6" />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-base font-semibold text-ink">Расшифровать интервью</span>
-            <span className="mt-0.5 block text-[15px] font-semibold text-moss">{minutes ? minutesLine(minutes) : MINUTES_DEFAULT}</span>
-          </span>
-          <span className="story-ai" aria-label="Работает на искусственном интеллекте" title="Работает на искусственном интеллекте">ИИ</span>
+      <section className="story-desk" aria-label="Действия с историей">
+        <button type="button" onClick={() => nav.go({ id: "free" })} className="story-main flex min-h-[3.75rem] w-full items-center justify-center gap-2 rounded-2xl px-5 text-[17px] font-semibold">
+          <Pencil className="size-5" /> Написать свою историю
         </button>
-      ) : null}
-
-      <button
-        type="button"
-        onClick={() => {
-          if (!programOpen) {
-            toast("Отправка вопросов родственникам доступна в платной программе.", { action: { label: "Что входит", onClick: () => nav.tab({ id: "home" }) }, duration: 8000 });
-            return;
-          }
-          setAskRelative(true);
-        }}
-        className="story-ask mt-3 flex min-h-14 w-full items-center gap-3 rounded-2xl px-5 py-2 text-left"
-      >
-        <img src={`${import.meta.env.BASE_URL}stickers/pack/leaf_plane.webp`} alt="" draggable={false} className="pointer-events-none w-10 shrink-0 -rotate-6 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]" />
-        <span className="text-base font-semibold text-ink">Отправить вопросы родственнику</span>
-      </button>
+        {programOpen ? (
+          <button type="button" onClick={() => setTranscribe(true)} className="story-row story-row-ai">
+            <span className="story-glass-icon story-row-icon" aria-hidden>
+              <Mic className="size-5" />
+            </span>
+            <span className="story-row-title">Расшифровать интервью</span>
+            <span className="story-row-meta">{minutes ? minutesLine(minutes) : MINUTES_DEFAULT}</span>
+            <span className="story-ai" aria-label="Работает на искусственном интеллекте" title="Работает на искусственном интеллекте">ИИ</span>
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            if (!programOpen) {
+              toast("Отправка вопросов родственникам доступна в платной программе.", { action: { label: "Что входит", onClick: () => nav.tab({ id: "home" }) }, duration: 8000 });
+              return;
+            }
+            setAskRelative(true);
+          }}
+          className="story-row"
+        >
+          <img src={`${import.meta.env.BASE_URL}stickers/pack/leaf_plane.webp`} alt="" draggable={false} className="story-row-sticker" />
+          <span className="story-row-title">Отправить вопросы родственнику</span>
+          <span aria-hidden className="story-row-chev">›</span>
+        </button>
+      </section>
       {askRelative ? <SendStoriesSheet onClose={() => setAskRelative(false)} /> : null}
 
       <div className="story-table mt-6">
-        <h2 className="story-group-label">О чём расскажем?</h2>
+        <h2 className="story-hand">О чём расскажем?</h2>
         <ul data-tour="stories-list" className="grid gap-3.5">
           {STORY_TEMPLATES.map((template, index) => (
             <Fragment key={template.id}>
