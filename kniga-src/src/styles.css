@@ -927,3 +927,6 @@ body {
 /* Надпись вдавлена в бумагу (тиснение): тёмная кромка сверху внутри, светлая снизу */
 .kr-ft{color:rgba(243,236,218,.82);letter-spacing:.01em;text-shadow:0 -1px 0 rgba(0,0,0,.5),0 1px 0 rgba(255,255,255,.2)}
 .kr-f[data-tone="cream"] .kr-ft{color:rgba(60,52,38,.8);text-shadow:0 1px 0 rgba(255,255,255,.85),0 -1px 0 rgba(0,0,0,.2)}
+/* Убраны стыки: язычок на 3px заходит на тело, светлая линия кромки не проходит под плечами */
+.kr-ft{z-index:1;height:43px;margin-bottom:-3px;padding-bottom:3px;box-sizing:border-box}
+.kr-fbody{box-shadow:inset 0 -1px 0 rgba(0,0,0,.12)}
