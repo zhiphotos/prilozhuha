@@ -127,6 +127,11 @@ export function PersonFields({ value, onChange, others, extraSiblings, onExtraSi
           </div>
         </Field>
       </div>
+      {others.length && onParentOf && !(value as Person).id && ["mother", "father", "grand", "greatgrand", "uncle"].includes(roleOf(value.relation)) ? (
+        <Field label="Чей это родитель" hint="Если это мама или папа не ваши, а мужа, жены, ребёнка или другого родственника, выберите его здесь. Тогда карточка встанет над ним, а не сбоку. Не выбрали: считается, что это ваш родитель.">
+          <SearchSelect label="Чей это родитель" value={parentOf ?? ""} onChange={(next) => onParentOf(next)} empty="Мой (по умолчанию)" options={others.map((item) => ({ value: item.id, label: `${item.name} (${item.relation})` }))} />
+        </Field>
+      ) : null}
       {["grand", "greatgrand", "uncle"].includes(roleOf(value.relation)) ? (
         <Field label="С какой стороны" hint="Нужно для древа: чьи это родители, мамины или папины.">
           <div className="flex gap-2">
@@ -229,7 +234,7 @@ export function PersonFields({ value, onChange, others, extraSiblings, onExtraSi
           </div>
         </Field>
       ) : null}
-      {others.length && onParentOf && !(value as Person).id ? (
+      {others.length && onParentOf && !(value as Person).id && !["mother", "father", "grand", "greatgrand", "uncle"].includes(roleOf(value.relation)) ? (
         <Field label="Чей родитель" hint="Если вы добавляете маму, папу, дедушку или бабушку: выберите того, чей он родитель. Родитель встанет над ним в древе.">
           <SearchSelect label="Чей родитель" value={parentOf ?? ""} onChange={(next) => onParentOf(next)} empty="Не выбрано" options={others.map((item) => ({ value: item.id, label: `${item.name} (${item.relation})` }))} />
         </Field>

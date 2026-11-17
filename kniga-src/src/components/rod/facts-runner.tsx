@@ -34,7 +34,7 @@ export function FactsRunner({ interviewId }: { interviewId: string }) {
     const result = await runExtraction(
       start,
       {
-        call: (text, requestId) => extractFactsChunk(deps(), text, requestId),
+        call: (text, requestId, context) => extractFactsChunk(deps(), text, requestId, context),
         makeId: uid,
         stopped: () => stop.current,
         onProgress: (p) => {
@@ -56,6 +56,19 @@ export function FactsRunner({ interviewId }: { interviewId: string }) {
 
   return (
     <div className="grid gap-2">
+      {!working ? (
+        <label className="grid gap-1">
+          <span className="text-sm font-semibold">О чём эта запись (подскажите ИИ)</span>
+          <textarea
+            rows={3}
+            maxLength={400}
+            value={interview.context ?? ""}
+            onChange={(e) => update(interviewId, { context: e.target.value })}
+            placeholder="Например: я разговариваю с бабушкой. Бабушка рассказывает истории о детстве, семье, работе, увлечениях. Нужны все её рассказы, места и занятия."
+            className="w-full rounded-xl border border-ink/20 bg-paper p-3 text-base"
+          />
+        </label>
+      ) : null}
       {working ? (
         <>
           <div className="h-2 overflow-hidden rounded-full bg-ink/10"><div className="h-full bg-moss transition-all" style={{ width: `${interview.factsTotal ? (interview.factsDone / interview.factsTotal) * 100 : 0}%` }} /></div>

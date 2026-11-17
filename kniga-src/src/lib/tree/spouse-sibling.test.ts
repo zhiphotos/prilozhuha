@@ -25,3 +25,17 @@ test("брат, у которого по ошибке выбран родите�
   const t = treeFromPeople(people as never);
   assert.equal(kinship(t.people, t.unions, t.focusId, "s").card, "Брат");
 });
+
+test("родители мужа по слову «мама мужа», «свёкор», «папа Ивана» встают над ним", () => {
+  const people = [mk("me", "Анна", "я"), mk("h", "Иван", "муж"), mk("m", "Ольга", "мама мужа"), mk("f", "Пётр", "папа Ивана")];
+  const t = treeFromPeople(people as never);
+  const u = t.unions.find((x) => x.childIds.includes("h"));
+  assert.ok(u, "у мужа есть родительский союз");
+  assert.deepEqual([...u!.partnerIds].sort(), ["f", "m"]);
+});
+
+test("свекровь без отца: одна мама над мужем", () => {
+  const people = [mk("me", "Анна", "я"), mk("h", "Иван", "муж"), mk("m", "Ольга", "свекровь")];
+  const t = treeFromPeople(people as never);
+  assert.ok(t.unions.find((x) => x.childIds.includes("h") && x.partnerIds.includes("m")));
+});

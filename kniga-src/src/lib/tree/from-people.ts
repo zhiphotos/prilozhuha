@@ -221,6 +221,28 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     }
   }
   for (const p of people) if (roleOf(p.relation) === "grand" || roleOf(p.relation) === "uncle") void lineGrandUnion(p.line);
+  // Родители супруга или другого человека по слову в «кем приходится»: «мама мужа», «свёкор», «тёща», «папа Димы». Без этого карточка оставалась сбоку и ни к кому не привязывалась.
+  {
+    const mate = people.find((p) => !p.fromFile && roleOf(p.relation) === "spouse");
+    const inLawTarget = (p: RodPerson): string | undefined => {
+      const r = p.relation.trim().toLowerCase();
+      if (/^(свёкор|свекор|свекровь|тесть|тёща|теща)/.test(r)) return mate?.id;
+      const m = r.match(/^(?:мам|мат|мать|отец|отц|пап)\S*\s+(.+)$/);
+      if (!m) return undefined;
+      const who = m[1]!.trim();
+      if (/^(мужа|жены|супруг)/.test(who)) return mate?.id;
+      const stem = who.split(/\s+/)[0]!.replace(/[аяуюеиыйь]+$/, "");
+      if (stem.length < 3) return undefined;
+      return people.find((q) => q.id !== p.id && q.name.trim().toLowerCase().startsWith(stem))?.id;
+    };
+    const byTarget = new Map<string, string[]>();
+    for (const p of people) {
+      if (p.fromFile || (p.parents ?? []).length || p.siblingOf || (claimedBy.get(p.id) ?? []).length) continue;
+      const t = inLawTarget(p);
+      if (t) byTarget.set(t, [...(byTarget.get(t) ?? []), p.id]);
+    }
+    for (const [target, ids] of byTarget) addChild(ids.slice(0, 2), target);
+  }
   // Братья и сёстры супруга: встают в ветку мужа или жены, рядом с ним (у супруга при необходимости появляются «Мама» и «Папа»).
   const mateOfSelf = people.find((p) => !p.fromFile && roleOf(p.relation) === "spouse");
   if (mateOfSelf) {
