@@ -103,26 +103,26 @@ export function tabKey(screen: Screen): string {
 export function Dock() {
   const nav = useNav();
   const current = tabKey(nav.screen);
+  // Плашка приклеена к низу и идёт от края до края экрана; активный раздел отмечен тёмной полоской сверху и тёмным значком.
   return (
-    <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 px-[max(0.375rem,env(safe-area-inset-left))] pr-[max(0.375rem,env(safe-area-inset-right))] lg:hidden">
-      <ul data-tour="nav" className="glass-strong mx-auto grid max-w-md grid-cols-6 gap-0 rounded-3xl p-1">
+    <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 border-t border-ink/15 bg-[#f6f2e9] shadow-[0_-10px_26px_-18px_rgba(30,24,18,0.55)] lg:hidden">
+      <ul data-tour="nav" className="grid w-full grid-cols-6 px-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
         {TABS.map((item) => {
           const Icon = item.icon;
           const active = current === item.id;
           return (
-            <li key={item.id}>
+            <li key={item.id} className="relative">
+              {active ? <span aria-hidden="true" className="absolute inset-x-3 top-0 h-[3px] rounded-b-full bg-night" /> : null}
               <button
                 type="button"
                 onClick={() => nav.tab(item.screen)}
                 className={cn(
-                  "flex min-h-[4.25rem] w-full flex-col items-center justify-center gap-1.5 whitespace-nowrap rounded-[1.15rem] px-0 text-[12px] leading-none transition [@media(max-height:480px)]:min-h-11",
-                  active ? "bg-night font-semibold text-paper" : "font-medium text-ink/80",
+                  "flex min-h-[3.9rem] w-full flex-col items-center justify-center gap-1 whitespace-nowrap px-0 pt-1 text-[12px] leading-none transition [@media(max-height:480px)]:min-h-11",
+                  active ? "font-bold text-night" : "font-medium text-ink/70",
                 )}
                 aria-current={active ? "page" : undefined}
               >
-                <span className="grid size-7 place-items-center [@media(max-height:480px)]:size-6">
-                  <Icon className="size-[1.55rem]" strokeWidth={active ? 2.2 : 1.7} />
-                </span>
+                <Icon className="size-[1.55rem]" strokeWidth={active ? 2.3 : 1.7} />
                 {item.label}
               </button>
             </li>

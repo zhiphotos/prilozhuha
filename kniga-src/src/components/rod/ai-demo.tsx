@@ -4,12 +4,13 @@ import { Button, Sheet } from "@/components/rod/chrome";
 import { PaySheet } from "@/components/rod/lessons";
 
 type Bubble = { who: "me" | "ai" | "done"; text: string };
-export type AiDemo = { id: string; kicker: string; title: string; text: string; limit?: string; soon?: boolean; chat: Bubble[] };
+export type AiDemo = { id: string; tone: "moss" | "bordo" | "sand" | "stone"; kicker: string; title: string; text: string; limit?: string; soon?: boolean; chat: Bubble[] };
 
 /** Что показываем тем, у кого программа ещё не открыта: как работает каждая ИИ-папка, с живой перепиской и лимитом. */
 export const AI_DEMOS: Record<string, AiDemo> = {
   gen: {
     id: "gen",
+    tone: "moss",
     kicker: "ИИ-генеалог",
     title: "Спросите про любую семейную загадку",
     text: "Где искать метрики, как читать старую запись, с чего начать поиск. Отвечает по справочникам и называет источник.",
@@ -23,6 +24,7 @@ export const AI_DEMOS: Record<string, AiDemo> = {
   },
   iv: {
     id: "iv",
+    tone: "bordo",
     kicker: "Интервью",
     title: "Голос бабушки становится текстом",
     text: "Запишите разговор и получите расшифровку. ИИ найдёт в ней людей, места, события, увлечения и традиции, ничего не придумывая.",
@@ -36,6 +38,7 @@ export const AI_DEMOS: Record<string, AiDemo> = {
   },
   ch: {
     id: "ch",
+    tone: "sand",
     kicker: "Глава",
     title: "Из записи получается глава книги",
     text: "Рассказ по темам с цитатами и вопросами, что уточнить. Отдельно выписаны люди для древа и места для изучения. Можно прислать и свой текст: пять стилей, от тёплого семейного до сказа.",
@@ -49,6 +52,7 @@ export const AI_DEMOS: Record<string, AiDemo> = {
   },
   arc: {
     id: "arc",
+    tone: "bordo",
     kicker: "Поиск в архивах",
     title: "ИИ подберёт архивы под вашего предка",
     text: "Составит запрос с вариантами написания фамилии и подскажет, как понять, что нашёлся тот самый человек. Кнопка «Найти наводки» живёт в карточке человека в древе.",
@@ -62,6 +66,7 @@ export const AI_DEMOS: Record<string, AiDemo> = {
   },
   photo: {
     id: "photo",
+    tone: "sand",
     kicker: "Скоро",
     title: "Старые фото станут чётче",
     text: "Восстановление старых снимков с ИИ: лица, царапины, потёртости. Появится в приложении следующим.",
@@ -74,6 +79,7 @@ export const AI_DEMOS: Record<string, AiDemo> = {
   },
   lay: {
     id: "lay",
+    tone: "stone",
     kicker: "Скоро",
     title: "Вёрстка страниц с ИИ",
     text: "ИИ подберёт, как разместить фотографии и текст на странице книги. Появится в приложении после старых фото.",
@@ -86,6 +92,7 @@ export const AI_DEMOS: Record<string, AiDemo> = {
   },
   doc: {
     id: "doc",
+    tone: "moss",
     kicker: "Скоро",
     title: "Рукописные страницы в текст",
     text: "Расшифровка старых писем и записей по фото страницы. Появится позже.",
@@ -103,7 +110,7 @@ export function AiDemoSheet({ demo, onClose }: { demo: AiDemo; onClose: () => vo
   if (pay) return <PaySheet onClose={() => setPay(false)} />;
   return (
     <Sheet title={demo.kicker} onClose={onClose}>
-      <div className="ai-demo" aria-hidden="true">
+      <div className="ai-demo" data-tone={demo.tone} aria-hidden="true">
         {demo.chat.map((b, i) => (
           <p key={`${demo.id}-${i}`} className={`ai-demo-msg ai-demo-${b.who}`} style={{ animationDelay: `${0.25 + i * 0.95}s` }}>{b.text}</p>
         ))}
