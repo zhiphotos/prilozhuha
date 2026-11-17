@@ -29,7 +29,7 @@ test("два крыла: родители супруга стоят прямо �
   );
   assert.ok(Math.abs(mid(x("hp"), x("hm")) - x("h")) < 1, "родители мужа над ним");
   assert.ok(Math.abs(mid(x("dad"), x("mom")) - x("me")) < 1, "мои родители надо мной");
-  assert.equal(L.detached.length, 0, "ни одна связь с родителями не спрятана");
+  assert.equal((L.detached ?? []).length, 0, "ни одна связь с родителями не спрятана");
   const lo = Math.min(x("me"), x("h"));
   const hi = Math.max(x("me"), x("h"));
   assert.ok(x("kid") > lo && x("kid") < hi, "ребёнок между крыльями");
