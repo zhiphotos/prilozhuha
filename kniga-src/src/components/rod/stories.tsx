@@ -9,6 +9,7 @@ import { plural } from "@/lib/rod/progress";
 import { pageFromStory, pagesFromStoryPhotos } from "@/lib/rod/layouts";
 import { Attachments } from "@/components/rod/attachments";
 import { TranscribeSheet, minutesLine, useMinutes } from "@/components/rod/transcribe-sheet";
+import { sendInterview } from "@/lib/rod/ask-relative";
 import type { Attachment } from "@/lib/rod/types";
 import { DictateButton } from "@/components/rod/dictate-button";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
@@ -189,6 +190,27 @@ export function WizardScreen({ templateId }: { templateId: string }) {
           else setStep((value) => value - 1);
         }}
       />
+      {!review && step === 0 ? (
+        <button
+          type="button"
+          onClick={() => {
+            if (!useRod.getState().programOpen) {
+              toast("Отправка вопросов родственникам доступна в платной программе.");
+              return;
+            }
+            void sendInterview({ kind: "tpl", id: template.id, idx: [] }, template.title, template.questions.length)
+              .then((mode) => {
+                if (mode === "shared") toast("Отправлено. Ответы придут к вам во входящие.");
+                else if (mode === "copied") toast("Текст со ссылкой скопирован: вставьте его в сообщение родственнику.");
+              })
+              .catch((error) => toast(error instanceof Error ? error.message : "Не получилось отправить.", { duration: 6000 }));
+          }}
+          className="mb-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-moss/40 bg-white/60 px-4 text-sm font-semibold text-moss"
+        >
+          <img src={`${import.meta.env.BASE_URL}stickers/pack/leaf_plane.webp`} alt="" draggable={false} className="pointer-events-none w-7 -rotate-6" />
+          Отправить эти вопросы родственнику
+        </button>
+      ) : null}
       {!review && question ? (
         <div className="glass rounded-4xl p-5 sm:p-6">
           <h2 className="font-sans text-2xl font-semibold leading-snug text-ink">{question.text}</h2>
