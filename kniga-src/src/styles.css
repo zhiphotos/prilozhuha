@@ -978,3 +978,6 @@ body {
 .story-row-ai{grid-template-columns:36px 1fr;}
 .story-row-ai .story-ai{position:absolute;right:4px;top:8px;translate:none;width:32px;height:32px;rotate:-6deg;}
 .story-hand{margin:26px 0 12px 4px;font-family:"kr-babushka","Manrope Variable",cursive;font-size:26px;font-weight:400;line-height:1.1;color:var(--color-gold-ink);}
+
+/* Длинная книга: страницы за экраном не рисуются, пока до них не докрутили (быстрее открывается вкладка «Книга») */
+.kr-lazy-li{content-visibility:auto;contain-intrinsic-size:auto 280px}

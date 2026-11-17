@@ -632,7 +632,7 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
               key={page.id}
               data-idx={index}
               data-drag={dragging ? "1" : undefined}
-              className={cn("relative", arrange && "select-none", dragging && "z-30")}
+              className={cn("relative", arrange ? "select-none" : "kr-lazy-li", dragging && "z-30")}
               style={dragging ? { transform: `translate(${drag.dx}px, ${drag.dy}px) scale(1.06)`, pointerEvents: "none" } : undefined}
               onPointerMove={onMove}
               onPointerUp={onUp}
