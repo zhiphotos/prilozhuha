@@ -20,17 +20,17 @@ const DIVIDERS = ["peony", "lily_valley", "rosebuds", "daffodil", "stick_rosehip
 
 /** Иллюстрация к теме по смыслу: вырезка из библиотеки приложения. */
 const TEMPLATE_CUT: Record<string, string> = {
-  "first-love": "rose",
-  "parents-met": "lace/lace_14_t",
-  "first-home": "wood_slice",
-  "hard-time": "lace/lace_04_t",
-  happiest: "daffodil",
-  child: "lace/lace_18_t",
-  wedding: "peony",
-  "little-money": "paper_two_scraps",
-  moving: "envelope_brown",
-  tradition: "lace/lace_19_t",
-  "one-photo": "frame_line_corners",
+  "first-love": "lace/lace_06_t", // сердце
+  "parents-met": "lace/lace_14_t", // сердце-подушечка
+  "first-home": "lace/lace_19_t", // круглая салфетка
+  "hard-time": "lace/lace_04_t", // луна
+  happiest: "lace/lace_05_t", // цветок
+  child: "lace/lace_18_t", // бабочка
+  wedding: "lace/lace_36_t", // белый бант
+  "little-money": "lace/lace_41_t", // простое льняное полотенце
+  moving: "lace/lace_31_t", // брошь-камея с бантом
+  tradition: "lace/lace_02_t", // кружевное дерево
+  "one-photo": "lace/lace_03_t", // овальная рамка
 };
 
 export function StoriesScreen() {
@@ -71,13 +71,10 @@ export function StoriesScreen() {
           }
           setAskRelative(true);
         }}
-        className="story-ask mt-3 flex min-h-[4.5rem] w-full items-center gap-4 rounded-2xl px-5 py-3 text-left"
+        className="story-ask mt-3 flex min-h-14 w-full items-center gap-3 rounded-2xl px-5 py-2 text-left"
       >
-        <img src={`${import.meta.env.BASE_URL}stickers/pack/leaf_plane.webp`} alt="" draggable={false} className="pointer-events-none w-11 shrink-0 -rotate-6 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]" />
-        <span className="min-w-0">
-          <span className="block text-base font-semibold text-ink">Отправить вопросы родственнику</span>
-          <span className="block text-[15px] leading-snug text-ink/80">Вопросы из историй или своё интервью: родственник ответит голосом, а ответы придут вам</span>
-        </span>
+        <img src={`${import.meta.env.BASE_URL}stickers/pack/leaf_plane.webp`} alt="" draggable={false} className="pointer-events-none w-10 shrink-0 -rotate-6 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]" />
+        <span className="text-base font-semibold text-ink">Отправить вопросы родственнику</span>
       </button>
       {askRelative ? <SendStoriesSheet onClose={() => setAskRelative(false)} /> : null}
 
