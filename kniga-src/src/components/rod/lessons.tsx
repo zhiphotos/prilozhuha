@@ -42,7 +42,7 @@ export function LessonsScreen() {
       <p className="max-w-xl text-paper/70">
         {programOpen ? "Вся программа открыта. Проходите уроки по порядку, любой можно смотреть снова." : "Начните с бесплатного урока. Если зацепит, дальше целая программа: видео, ИИ-помощник и материалы для печати."}
       </p>
-      {LESSONS.filter((lesson) => lesson.free).map((lesson) => {
+      {(programOpen ? [] : LESSONS.filter((lesson) => lesson.free)).map((lesson) => {
         const passed = done.includes(lesson.id);
         return (
           <button key={lesson.id} type="button" onClick={() => nav.go({ id: "lesson", lessonId: lesson.id })} className="relative mt-5 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">

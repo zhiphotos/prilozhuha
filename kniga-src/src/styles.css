@@ -948,3 +948,6 @@ body {
 
 /* Акварельная бумага видна на всех папках: светлые волокна и крапинки сверху */
 .kr-ft,.kr-fbody{background-image:url(/tex/paper-light.webp),radial-gradient(130% 120% at 50% 35%,transparent 55%,rgba(40,28,16,.22) 100%),url(/tex/paper.webp),linear-gradient(var(--c),var(--c));background-size:192px,auto,192px,auto;background-blend-mode:normal,normal,multiply,normal}
+
+/* Текстура папок: царапины и зерно как на присланном образце (светлые следы поверх цвета) */
+.kr-ft,.kr-fbody{background-image:url(/tex/scratch.webp),radial-gradient(130% 120% at 50% 35%,transparent 55%,rgba(40,28,16,.22) 100%),linear-gradient(var(--c),var(--c));background-size:520px auto,auto,auto;background-blend-mode:normal,normal,normal}
