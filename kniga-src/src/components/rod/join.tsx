@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, Check } from "lucide-react";
 import { toast } from "sonner";
 import { RELATIONS, SITUATIONS } from "@/lib/rod/content";
-import { compressPhoto, roomInfo, sendToRoom } from "@/lib/rod/family";
-import { questionFromHash } from "@/lib/rod/ask-link";
+import { compressPhoto, loadInterview, roomInfo, sendToRoom } from "@/lib/rod/family";
+import { interviewFromHash, questionFromHash } from "@/lib/rod/ask-link";
+import { interviewQuestions } from "@/lib/rod/interview";
 import { useRod } from "@/lib/rod/store";
 import { Button, Field, useNav } from "@/components/rod/chrome";
 import { HelperJoin } from "@/components/rod/helper-ui";
@@ -18,7 +19,15 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
   const [info, setInfo] = useState<{ ok: boolean; name?: string; error?: string } | null>(null);
   // Вопрос мог прийти прямо в ссылке: тогда открываем сразу ответ на него.
   const sentQuestion = typeof window !== "undefined" ? questionFromHash(window.location.hash) : "";
-  const [mode, setMode] = useState<Mode>(sentQuestion ? "answer" : "story");
+  const iv = typeof window !== "undefined" ? interviewFromHash(window.location.hash) : null;
+  const [remote, setRemote] = useState<{ title: string; questions: { key: string; text: string; hint?: string }[] } | null>(null);
+  useEffect(() => {
+    if (iv?.kind !== "custom") return;
+    void loadInterview(room, invite, iv.id).then((r) => r && setRemote({ title: r.title, questions: r.questions.map((text, i) => ({ key: `c${i}`, text })) })).catch(() => undefined);
+  }, [room, invite, iv?.kind, iv?.id]);
+  const interview = iv ? (iv.kind === "custom" ? remote : interviewQuestions(iv)) : null;
+  const [ivAnswers, setIvAnswers] = useState<Record<string, string>>({});
+  const [mode, setMode] = useState<Mode>(sentQuestion || iv ? "answer" : "story");
   const [name, setName] = useState("");
   const [relation, setRelation] = useState("");
   const [title, setTitle] = useState("");
@@ -33,6 +42,20 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
     void roomInfo(room, invite).then(setInfo).catch(() => setInfo({ ok: false, error: "Нет связи. Попробуйте позже." }));
   }, [room, invite]);
 
+  const ivFilled = interview ? interview.questions.filter((q) => (ivAnswers[q.key] ?? "").trim().length > 1) : [];
+  const sendInterview = async () => {
+    if (!interview || !name.trim() || !ivFilled.length) return;
+    setBusy(true);
+    try {
+      for (const q of ivFilled) await sendToRoom(room, invite, { kind: "answer", from: { name: name.trim(), relation }, title: "", question: q.text, text: ivAnswers[q.key]!.trim() });
+      setSent((value) => value + ivFilled.length);
+      setIvAnswers({});
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Не получилось отправить.", { duration: 6000 });
+    } finally {
+      setBusy(false);
+    }
+  };
   const ready = name.trim() && (mode === "photo" ? photo : text.trim().length > 2);
   const send = async () => {
     setBusy(true);
@@ -62,13 +85,24 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
   return (
     <div className={box}>
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-ink">Книга рода</p>
-      <h1 className="display-title mt-2 text-[2rem] leading-[1.1] text-ink">{info.name} приглашает вас помочь с семейной книгой</h1>
-      <p className="mt-3 text-base leading-relaxed text-ink/80">
-        Расскажите то, что помните: случай из детства, как пахла бабушкина кухня, как познакомились родители. Можно прислать и старое фото. Достаточно пары слов. Ничего устанавливать и платить не нужно, чтобы помочь.
-      </p>
+      {iv ? (
+        <>
+          <h1 className="display-title mt-2 text-[2rem] leading-[1.1] text-ink">{info.name} прислала вам вопросы</h1>
+          <p className="mt-3 text-base leading-relaxed text-ink/80">
+            Ответьте на те, на которые захочется, можно по частям и коротко. Ничего устанавливать и платить не нужно.
+          </p>
+        </>
+      ) : (
+        <>
+          <h1 className="display-title mt-2 text-[2rem] leading-[1.1] text-ink">{info.name} приглашает вас помочь с семейной книгой</h1>
+          <p className="mt-3 text-base leading-relaxed text-ink/80">
+            Расскажите то, что помните: случай из детства, как пахла бабушкина кухня, как познакомились родители. Можно прислать и старое фото. Достаточно пары слов. Ничего устанавливать и платить не нужно, чтобы помочь.
+          </p>
 
-      <HelperJoin room={room} invite={invite} />
-      <p className="mt-6 text-sm font-semibold text-ink/70">Или просто расскажите воспоминание или пришлите фото:</p>
+          <HelperJoin room={room} invite={invite} />
+          <p className="mt-6 text-sm font-semibold text-ink/70">Или просто расскажите воспоминание или пришлите фото:</p>
+        </>
+      )}
 
       {sent > 0 ? (
         <div className="wash-sage mt-6 rounded-2xl p-5">
@@ -94,6 +128,25 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
           </Field>
         </div>
 
+        {interview ? (
+          <>
+            <div className="rounded-2xl border border-gold/50 bg-paper/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gold-ink">Вам прислали интервью</p>
+              <p className="mt-1 text-lg font-semibold leading-snug text-ink">{interview.title}</p>
+              <p className="mt-1 text-sm text-ink/75">Вопросов: {interview.questions.length}. Отвечайте на те, на которые хочется, можно по частям.</p>
+            </div>
+            {interview.questions.map((q, i) => (
+              <Field key={q.key} label={`${i + 1}. ${q.text}`}>
+                <textarea className="field min-h-24" value={ivAnswers[q.key] ?? ""} onChange={(event) => setIvAnswers((cur) => ({ ...cur, [q.key]: event.target.value }))} placeholder={q.hint || "Пишите, как помните"} />
+              </Field>
+            ))}
+            <Button disabled={busy || !name.trim() || !ivFilled.length} onClick={() => void sendInterview()} className="w-full">
+              {busy ? "Отправляю…" : ivFilled.length ? `Отправить ответы (${ivFilled.length})` : "Отправить ответы"}
+            </Button>
+            {!name.trim() ? <p className="text-sm text-ink/70">Впишите выше своё имя, чтобы отправить.</p> : null}
+          </>
+        ) : (
+          <>
         <div className="flex gap-2" role="tablist">
           {(
             [
@@ -154,6 +207,8 @@ export function JoinScreen({ room, invite }: { room: string; invite: string }) {
         <Button disabled={busy || !ready} onClick={() => void send()} className="w-full">
           {busy ? "Отправляю…" : "Отправить в книгу"}
         </Button>
+          </>
+        )}
         <p className="text-xs leading-snug text-muted">
           Ваше имя и то, что вы отправите, увидит только хозяйка книги. Отправляя, вы соглашаетесь с{" "}
           <button type="button" className="underline" onClick={() => nav.go({ id: "legal", doc: "privacy" })}>

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { BookCopy, Check, Cloud, MessageCircle, Send, UserRound } from "lucide-react";
+import { BookCopy, Check, Cloud, Lock, MessageCircle, Send, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { MediaImg } from "@/components/rod/media-img";
+import { CustomInterviewSheet } from "@/components/rod/send-interview";
 import { PaySheet } from "@/components/rod/lessons";
 import { LoginScreen } from "@/components/rod/login-screen";
 import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
@@ -125,6 +126,8 @@ export function CommunityCard() {
 /** «Собирайте книгу вместе с родственниками»: на «Главной» на месте сообщества. Фото родных, приглашение, вопросы и их ответы. Платным открывает приглашение, остальным рассказывает, что входит. */
 export function TogetherCard({ onOpenFamily, onOpenTariff }: { onOpenFamily: () => void; onOpenTariff: () => void }) {
   const paid = useRod((state) => state.programOpen);
+  const [locked, setLocked] = useState(false);
+  const [custom, setCustom] = useState(false);
   const photos = useRod((state) => state.photos);
   // Фото людей: по одному на человека, самые свежие.
   const faces: typeof photos = [];
@@ -156,18 +159,40 @@ export function TogetherCard({ onOpenFamily, onOpenTariff }: { onOpenFamily: () 
       <p className="mt-2 max-w-[36ch] text-[15px] leading-snug text-ink/80">
         Отправьте родственнику вопрос или ссылку: он ответит у себя, добавит фото и рассказ, а всё пришлёт вам готовым.
       </p>
+      <button
+        type="button"
+        onClick={paid ? onOpenFamily : () => setLocked(true)}
+        className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-moss px-5 text-sm font-semibold text-paper"
+      >
+        {paid ? <Send className="size-4" /> : <Lock className="size-4" />} Пригласить родственника
+      </button>
       {paid ? (
-        <button type="button" onClick={onOpenFamily} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-moss px-5 text-sm font-semibold text-paper">
-          <Send className="size-4" /> Пригласить родственника
+        <button type="button" onClick={() => setCustom(true)} className="ml-2 mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-moss/40 bg-white/60 px-5 text-sm font-semibold text-moss">
+          Составить интервью
         </button>
-      ) : (
-        <>
-          <p className="mt-3 text-sm font-semibold text-ink/70">Входит в полный доступ.</p>
-          <button type="button" onClick={onOpenTariff} className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-full bg-moss px-5 text-sm font-semibold text-paper">
-            Что входит
-          </button>
-        </>
-      )}
+      ) : null}
+      {custom ? <CustomInterviewSheet onClose={() => setCustom(false)} /> : null}
+      {locked ? (
+        <Sheet title="Только в полном доступе" onClose={() => setLocked(false)}>
+          <p className="text-base leading-relaxed text-ink">
+            Собирать книгу вместе с родственниками можно в платной программе. Вы отправляете вопрос или ссылку, родственник отвечает у себя, добавляет фото и рассказы, а всё приходит к вам готовым.
+          </p>
+          <p className="mt-3 text-sm text-ink/70">Бесплатно остаются карточки для игры вместе и книга на этом телефоне.</p>
+          <div className="mt-5 grid gap-2">
+            <Button
+              onClick={() => {
+                setLocked(false);
+                onOpenTariff();
+              }}
+            >
+              Открыть полный доступ · <span className="whitespace-nowrap">{PROGRAM_PRICE}</span>
+            </Button>
+            <Button variant="ghost" onClick={() => setLocked(false)}>
+              Не сейчас
+            </Button>
+          </div>
+        </Sheet>
+      ) : null}
     </section>
   );
 }

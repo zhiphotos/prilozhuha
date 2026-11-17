@@ -8,7 +8,7 @@ import { useRod } from "@/lib/rod/store";
 import type { PageBlock } from "@/lib/rod/types";
 import { recognition, type SpeechRec } from "@/lib/rod/speech";
 import { Button, ScreenFrame, TopBar, lineStyle, useNav } from "@/components/rod/chrome";
-import { sendQuestion } from "@/lib/rod/ask-relative";
+import { SendInterviewSheet } from "@/components/rod/send-interview";
 import { cn } from "@/lib/cn";
 
 /** Каждая колода: свой мотив из её фото-библиотеки, номер в каталоге и поверхность. */
@@ -192,22 +192,15 @@ export function DeckScreen({ situationId }: { situationId: string }) {
   const origin = useRef(0);
   const recRef = useRef<SpeechRec | null>(null);
   const programOpen = useRod((state) => state.programOpen);
-  const [sending, setSending] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
 
-  /** Самолётик: вопрос и ссылка уходят родственнику. Только на платной программе. */
-  const send = (text: string) => {
+  /** Самолётик: открывает отправку родственнику (один вопрос или интервью из колоды). Только на платной программе. */
+  const send = () => {
     if (!programOpen) {
-      toast("Отправка вопросов родственникам входит в платную программу.");
+      toast("Отправка вопросов родственникам доступна в платной программе.", { action: { label: "Что входит", onClick: () => nav.tab({ id: "home" }) }, duration: 8000 });
       return;
     }
-    setSending(true);
-    void sendQuestion(text)
-      .then((mode) => {
-        if (mode === "shared") toast("Вопрос отправлен. Ответ придёт к вам во входящие.");
-        else if (mode === "copied") toast("Текст с вопросом и ссылкой скопирован: вставьте его в сообщение родственнику.");
-      })
-      .catch((error) => toast(error instanceof Error ? error.message : "Не получилось отправить.", { duration: 6000 }))
-      .finally(() => setSending(false));
+    setSendOpen(true);
   };
 
   if (!situation) {
@@ -364,11 +357,10 @@ export function DeckScreen({ situationId }: { situationId: string }) {
                       {question ? (
                         <button
                           type="button"
-                          onClick={() => send(question)}
-                          disabled={sending}
+                          onClick={send}
                           aria-label="Отправить этот вопрос родственнику"
                           title={programOpen ? "Отправить вопрос родственнику" : "Отправка родственникам: в платной программе"}
-                          className="plane-btn inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full pl-2 pr-3 text-sm font-semibold text-moss disabled:opacity-60"
+                          className="plane-btn inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full pl-2 pr-3 text-sm font-semibold text-moss"
                         >
                           <img src={`${import.meta.env.BASE_URL}stickers/pack/leaf_plane.webp`} alt="" draggable={false} className="pointer-events-none w-8 -rotate-6" />
                           Родственнику
@@ -426,6 +418,7 @@ export function DeckScreen({ situationId }: { situationId: string }) {
           </div>
         </>
       )}
+      {sendOpen ? <SendInterviewSheet situation={situation} index={Math.min(index, situation.questions.length - 1)} onClose={() => setSendOpen(false)} /> : null}
     </ScreenFrame>
   );
 }
