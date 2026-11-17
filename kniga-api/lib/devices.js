@@ -22,6 +22,8 @@ export async function claimDevice(identity, deviceId) {
   }
   if (!(id in known) && Object.keys(known).length >= DEVICE_LIMIT) return false;
   await redis("HSET", key(identity), id, String(now));
+  // Подключаем уведомления лениво: этот файл читают и тесты приложения, где нет почтовой библиотеки сервера.
+  if (!Object.keys(known).length) void import("./owner-notify.js").then((m) => m.firstLoginEvent(identity)).catch(() => {});
   return true;
 }
 
