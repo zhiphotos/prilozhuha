@@ -387,7 +387,9 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     const block = blocks[i]!;
     if (block.ids.length < 2 || banned.has("*")) continue;
     // Предки выбранного, у которых известны родители: каждый встаёт под своими, даже если в блоке несколько браков.
-    const cands = block.ids.filter((id) => hasParents(id, block.level) && ancestors.has(id) && (strict || siblingsFamily(id) <= SMALL_FAMILY));
+    // Пара самого выбранного человека (он и его супруги) устроена так же: у каждого своё крыло, его родители стоят над ним, а не на краю листа.
+    const centerPair = block.ids.includes(focusId);
+    const cands = block.ids.filter((id) => hasParents(id, block.level) && (ancestors.has(id) || centerPair) && (strict || siblingsFamily(id) <= SMALL_FAMILY));
     if (cands.length < 2) continue;
     const order = block.ids.slice();
     // Главным остаётся тот, у кого несколько браков: остальные супруги стоят вокруг него и не оказываются рядом с чужим бывшим мужем или женой.
@@ -408,7 +410,9 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
       blocks.push(ghost);
       block.ids = block.ids.filter((id) => !gids.includes(id));
       for (const id of gids) blockOf.set(id, ghost.index);
-      block.splits.push({ ghost: ghost.index, side: order.indexOf(other) < order.indexOf(main) ? -1 : 1, key });
+      // Сторона крыла: как пользователь поставил супруга (слева или справа), иначе по порядку в паре.
+      const wish = g.people.get(other)?.side === "left" || g.people.get(main)?.side === "right" ? -1 : g.people.get(other)?.side === "right" || g.people.get(main)?.side === "left" ? 1 : 0;
+      block.splits.push({ ghost: ghost.index, side: wish !== 0 ? (wish as -1 | 1) : order.indexOf(other) < order.indexOf(main) ? -1 : 1, key });
       blockOf.set(other, ghost.index);
     }
   }
@@ -625,7 +629,7 @@ function tidyOnce(g: Graph, people: Person[], gen: Map<string, number>, focusId:
     links.push({ from: tb, to: ta, side: side === -1 ? 1 : -1 });
   };
   for (const block of blocks) {
-    for (const sp of block.splits) addLink(block.index, sp.ghost, sp.side);
+    for (const sp of block.splits) addLink(block.index, sp.ghost, sp.side, block.ids.includes(focusId));
     if (!block.primary || block.ghostOf !== null) continue;
     for (const id of block.ids) {
       if (id === block.primary) continue;
@@ -1185,11 +1189,11 @@ function layoutCore(people: Person[], unions: Union[], focusId: string, flow: "d
       .map((id) => at.get(id))
       .filter((n): n is NonNullable<typeof n> => {
         if (!n) return false;
-        // Супруг из другой семьи, его родители далеко: линию не тянем через схему, у карточки значок. Остальные дети всегда соединены с родителями.
+        // Супруг из другой семьи, его родители далеко: связь рисуется бледным пунктиром, у карточки значок. Остальные дети всегда соединены с родителями.
         const reach = Math.max(FAR_DROP, (union.childIds.length * (PLATE_W + H_GAP)) / 2 + 3 * (PLATE_W + H_GAP));
         if (!pedigreeMode && detached.has(n.id) && parentMid !== null && Math.abs(n.x - parentMid) > reach) {
+          // Линию не прячем: связь с родителями супруга всегда нарисована (далёкая, бледным пунктиром), значок «↑» остаётся подсказкой.
           hiddenLinks.add(n.id);
-          return false;
         }
         return true;
       });
