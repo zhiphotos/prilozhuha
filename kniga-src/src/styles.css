@@ -910,9 +910,9 @@ body {
 .kr-f[data-tone="bordo"]{--c:#6a2234}
 .kr-f[data-tone="olive"]{--c:#56603a}
 .kr-f[data-tone="cream"]{--c:#e6dec9;color:#2a2420}
-.kr-f:first-child{margin-top:34px}.kr-f[data-open="true"]{margin-bottom:58px}
-.kr-ft{position:absolute;top:-33px;left:calc(var(--o) * 26% + 2px);width:44%;height:34px;padding:2px 14px 0;background:var(--c) url(/tex/linen.webp) center/260px;background-blend-mode:multiply;font:600 14px Manrope,sans-serif;color:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 40C22 40 20 3 44 3H156C180 3 178 40 200 40Z'/%3E%3C/svg%3E") 0 0/100% 100% no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 40C22 40 20 3 44 3H156C180 3 178 40 200 40Z'/%3E%3C/svg%3E") 0 0/100% 100% no-repeat}
-.kr-f[data-open="true"]{min-height:96px;box-shadow:0 -6px 16px rgba(42,36,32,.32),inset 0 1px 0 rgba(255,255,255,.18)}
+.kr-f:first-child{margin-top:34px}.kr-f{transition:transform .22s cubic-bezier(.2,.8,.2,1)}.kr-f[data-up="true"]{transform:translateY(-14px)}
+.kr-ft{position:absolute;top:-33px;left:calc(var(--o) * 11% + 2px);width:78%;height:34px;padding:3px 20px 0;text-align:center;background:var(--c) url(/tex/linen.webp) center/260px;background-blend-mode:multiply;font:600 13.5px Manrope,sans-serif;color:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 40C22 40 20 3 44 3H156C180 3 178 40 200 40Z'/%3E%3C/svg%3E") 0 0/100% 100% no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0 40C22 40 20 3 44 3H156C180 3 178 40 200 40Z'/%3E%3C/svg%3E") 0 0/100% 100% no-repeat}
+
 .kr-fb{display:grid;gap:8px;padding:16px 14px 14px;animation:kr-rise .3s cubic-bezier(.2,.8,.2,1)}
 .kr-row{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:0 14px;border-radius:12px;background:#f1ead9;color:#2a2420;font:600 15px Manrope,sans-serif;text-align:left}
 .kr-f[data-tone="cream"] .kr-row{background:#fff}
