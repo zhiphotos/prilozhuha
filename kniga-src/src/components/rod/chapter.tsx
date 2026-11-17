@@ -71,7 +71,7 @@ export function ChapterScreen() {
       {note ? <p role="status" className="mt-2 text-sm text-ink">{note}</p> : left !== null ? <p className="mt-2 text-sm text-muted">Глав сегодня осталось: {left}</p> : null}
       {paragraphs.length > 0 && (
         <article className="mt-5 rounded-2xl bg-white/80 p-4">
-          {paragraphs.map((p, i) => (i === 0 ? <h2 key={i} className="mb-3 font-serif text-2xl leading-tight">{p}</h2> : <p key={i} className="mb-3 text-base leading-relaxed whitespace-pre-line">{p}</p>))}
+          {paragraphs.map((p, i) => (i === 0 ? <h2 key={i} className="mb-3 display-title text-2xl leading-tight">{p}</h2> : <p key={i} className="mb-3 text-base leading-relaxed whitespace-pre-line">{p}</p>))}
           <Button variant="ghost" onClick={() => { void navigator.clipboard?.writeText(chapter).then(() => toast("Глава скопирована")).catch(() => toast("Не удалось скопировать")); }}>Скопировать главу</Button>
         </article>
       )}

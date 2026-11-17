@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { BookOpen, ChevronLeft, GraduationCap, Home, MessageCircle, PenLine, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -104,8 +104,8 @@ export function Dock() {
   const nav = useNav();
   const current = tabKey(nav.screen);
   return (
-    <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 px-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] lg:hidden">
-      <ul data-tour="nav" className="glass-strong mx-auto grid max-w-md grid-cols-6 gap-1 rounded-3xl p-1.5">
+    <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 px-[max(0.375rem,env(safe-area-inset-left))] pr-[max(0.375rem,env(safe-area-inset-right))] lg:hidden">
+      <ul data-tour="nav" className="glass-strong mx-auto grid max-w-md grid-cols-6 gap-0 rounded-3xl p-1">
         {TABS.map((item) => {
           const Icon = item.icon;
           const active = current === item.id;
@@ -115,13 +115,13 @@ export function Dock() {
                 type="button"
                 onClick={() => nav.tab(item.screen)}
                 className={cn(
-                  "flex min-h-[3.75rem] w-full flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-2xl px-0 text-[10.5px] leading-none transition [@media(max-height:480px)]:min-h-10",
-                  active ? "font-semibold text-night" : "font-medium text-ink/70",
+                  "flex min-h-[4.25rem] w-full flex-col items-center justify-center gap-1.5 whitespace-nowrap rounded-[1.15rem] px-0 text-[12px] leading-none transition [@media(max-height:480px)]:min-h-11",
+                  active ? "bg-night font-semibold text-paper" : "font-medium text-ink/80",
                 )}
                 aria-current={active ? "page" : undefined}
               >
-                <span className={cn("grid size-9 place-items-center rounded-full transition [@media(max-height:480px)]:size-7", active ? "bg-night text-paper" : "")}>
-                  <Icon className="size-[1.2rem]" strokeWidth={active ? 2.2 : 1.7} />
+                <span className="grid size-7 place-items-center [@media(max-height:480px)]:size-6">
+                  <Icon className="size-[1.55rem]" strokeWidth={active ? 2.2 : 1.7} />
                 </span>
                 {item.label}
               </button>
@@ -180,6 +180,7 @@ export function Sheet({
   dim?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
   const downOnBackdrop = useRef(false);
   /** onClose приходит новой функцией на каждый рендер: держим в ref, иначе эффект перезапускается и отнимает фокус у поля (на iPhone клавиатура сворачивается). */
   const closeRef = useRef(onClose);
@@ -223,8 +224,8 @@ export function Sheet({
         downOnBackdrop.current = false;
       }}
     >
-      <div ref={box} tabIndex={-1} className={cn("glass-strong sheet-in pointer-events-auto max-h-[min(86svh,calc(100dvh-1rem))] w-full max-w-lg overflow-auto overscroll-contain rounded-2xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] outline-none", !dim && "!bg-paper shadow-2xl ring-1 ring-ink/10", className)}>
-        <div className={cn("sticky -top-5 z-10 -mx-1 mb-3 flex items-start justify-between gap-3 bg-[rgba(246,242,233,0.97)] px-1 py-1.5", !dim && "-mt-1 bg-paper pb-2 pt-1")}>
+      <div ref={box} tabIndex={-1} onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 6)} className={cn("glass-strong sheet-in pointer-events-auto max-h-[min(86svh,calc(100dvh-1rem))] w-full max-w-lg overflow-auto overscroll-contain rounded-2xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] outline-none", !dim && "!bg-paper shadow-2xl ring-1 ring-ink/10", className)}>
+        <div className={cn("sticky -top-5 z-10 -mx-1 mb-3 flex items-start justify-between gap-3 px-1 py-1.5 transition-colors", scrolled && "bg-[rgba(246,242,233,0.97)]", !dim && "-mt-1 bg-paper pb-2 pt-1")}>
           {title ? <h2 className={cn("leading-tight text-ink", title.length <= 16 ? "display-title text-[1.15rem]" : "text-[1.25rem] font-semibold")}>{title}</h2> : <span />}
           <button type="button" className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-ink" onClick={onClose} aria-label="Закрыть">
             <X className="size-4" />

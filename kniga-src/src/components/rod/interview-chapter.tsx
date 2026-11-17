@@ -28,7 +28,7 @@ function ChapterText({ text }: { text: string }) {
       {text.split("\n").map((line, i) => {
         const t = line.trim();
         if (!t) return null;
-        if (/^Глава:/i.test(t)) return <h2 key={i} className="mb-2 mt-1 font-serif text-2xl leading-tight">{t.replace(/^Глава:\s*/i, "")}</h2>;
+        if (/^Глава:/i.test(t)) return <h2 key={i} className="mb-2 mt-1 display-title text-2xl leading-tight">{t.replace(/^Глава:\s*/i, "")}</h2>;
         if (/^\*\*[^*]+\*\*$/.test(t) || /^#{1,4}\s/.test(t)) return <h3 key={i} className="mb-1 mt-4 text-[17px] font-semibold text-ink">{t.replace(/^#{1,4}\s+/, "").replace(/\*\*/g, "")}</h3>;
         if (/^[-*•]\s/.test(t)) return <p key={i} className="mb-1 pl-4 -indent-3 text-base leading-relaxed">• {inline(t.replace(/^[-*•]\s+/, ""))}</p>;
         return <p key={i} className="mb-2 text-base leading-relaxed">{inline(t)}</p>;

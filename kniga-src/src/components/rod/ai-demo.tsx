@@ -13,7 +13,7 @@ export const AI_DEMOS: Record<string, AiDemo> = {
     kicker: "ИИ-генеалог",
     title: "Спросите про любую семейную загадку",
     text: "Где искать метрики, как читать старую запись, с чего начать поиск. Отвечает по справочникам и называет источник.",
-    limit: "3 вопроса в день",
+    limit: "5 вопросов в день",
     chat: [
       { who: "me", text: "Где искать метрики села в Бессарабии?" },
       { who: "ai", text: "Начните с Национального архива Молдовы: там книги 1820–1924. Назовите уезд и год." },
@@ -39,7 +39,7 @@ export const AI_DEMOS: Record<string, AiDemo> = {
     kicker: "Глава",
     title: "Из записи получается глава книги",
     text: "Рассказ по темам с цитатами и вопросами, что уточнить. Отдельно выписаны люди для древа и места для изучения. Можно прислать и свой текст: пять стилей, от тёплого семейного до сказа.",
-    limit: "3 главы в день",
+    limit: "2 главы в день",
     chat: [
       { who: "me", text: "Стиль: тёплый семейный" },
       { who: "ai", text: "Глава: «На берегах Волги»" },
@@ -108,17 +108,19 @@ export function AiDemoSheet({ demo, onClose }: { demo: AiDemo; onClose: () => vo
           <p key={`${demo.id}-${i}`} className={`ai-demo-msg ai-demo-${b.who}`} style={{ animationDelay: `${0.25 + i * 0.95}s` }}>{b.text}</p>
         ))}
       </div>
-      <h3 className="mt-4 font-serif text-2xl leading-tight text-ink">{demo.title}</h3>
+      <h3 className="mt-5 display-title text-2xl leading-tight text-ink">{demo.title}</h3>
       <p className="mt-2 text-base leading-snug text-ink/80">{demo.text}</p>
-      {demo.limit ? <p className="mt-3 border-l-[3px] border-gold-ink pl-3 text-base font-semibold text-ink">{demo.limit}</p> : null}
+      {demo.limit ? <p className="mt-3 inline-block rounded-full border border-gold-ink/50 bg-[#f8f5ed] px-3.5 py-1.5 text-sm font-semibold text-gold-ink">{demo.limit}</p> : null}
       {demo.soon ? (
         <p className="mt-3 text-sm text-muted">Эта функция появится позже. Она войдёт в программу.</p>
       ) : (
         <>
-          <p className="mt-3 text-sm text-muted">Единоразовая плата: открывается сразу и остаётся навсегда. Запас обновляется сам.</p>
-          <Button className="mt-3 w-full" onClick={() => setPay(true)}>
-            <ShoppingBag className="size-4" /> Купить тариф: единоразовая плата
-          </Button>
+          <div className="mt-4 rounded-3xl bg-[#1d3024] p-4 shadow-[0_20px_34px_-20px_rgba(20,22,15,0.8)]">
+            <Button className="min-h-14 w-full whitespace-nowrap !bg-[#e6cf9c] px-4 text-[1.1rem] !text-[#241a07] hover:!bg-[#c9ae74]" onClick={() => setPay(true)}>
+              <ShoppingBag className="size-5" /> Открыть программу
+            </Button>
+            <p className="mt-3 text-center text-sm leading-snug text-[#f3f0e8]/85">Единоразовая плата: открывается сразу и остаётся навсегда. Запас обновляется сам.</p>
+          </div>
         </>
       )}
     </Sheet>
