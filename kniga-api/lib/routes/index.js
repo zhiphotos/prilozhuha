@@ -22,6 +22,7 @@ import roomAck from "./room-ack.js";
 import roomBase from "./room-base.js";
 import roomCreate from "./room-create.js";
 import roomInbox from "./room-inbox.js";
+import roomInterview from "./room-interview.js";
 import roomMedia from "./room-media.js";
 import roomInfo from "./room-info.js";
 import roomSubmit from "./room-submit.js";
@@ -58,6 +59,7 @@ export const ROUTES = {
   "room-base": roomBase,
   "room-create": roomCreate,
   "room-inbox": roomInbox,
+  "room-interview": roomInterview,
   "room-media": roomMedia,
   "room-info": roomInfo,
   "room-submit": roomSubmit,

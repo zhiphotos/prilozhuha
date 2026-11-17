@@ -8,6 +8,7 @@ import { useRod } from "@/lib/rod/store";
 import type { PageBlock } from "@/lib/rod/types";
 import { recognition, type SpeechRec } from "@/lib/rod/speech";
 import { Button, ScreenFrame, TopBar, lineStyle, useNav } from "@/components/rod/chrome";
+import { SendInterviewSheet } from "@/components/rod/send-interview";
 import { cn } from "@/lib/cn";
 
 /** Каждая колода: свой мотив из её фото-библиотеки, номер в каталоге и поверхность. */
@@ -29,6 +30,7 @@ export function CardsScreen() {
   const nav = useNav();
   const notes = useRod((state) => state.notes);
   const addPage =useRod((state) => state.addPage);
+  const [introOpen, setIntroOpen] = useState(false);
   const words = notes.reduce((sum, note) => sum + note.answer.trim().split(/\s+/).filter(Boolean).length, 0);
   const play = SITUATIONS.filter((item) => item.play);
   const talks = SITUATIONS.filter((item) => !item.play);
@@ -73,9 +75,19 @@ export function CardsScreen() {
   return (
     <ScreenFrame>
       <TopBar kicker="Вопросы" title="Спросите, пока можно" />
-      <p data-tour="cards-intro" className="max-w-xl text-muted">
-        Передайте телефон. На карточке говорят в микрофон: коротко, как помнят. Ответы копятся, и из них можно собрать страницы.
-      </p>
+      <div data-tour="cards-intro" className="max-w-xl">
+        <p className="text-[15px] leading-snug text-ink/80">Это игровая механика: играйте карточками вместе или отправляйте вопросы родственникам.</p>
+        <button type="button" aria-expanded={introOpen} onClick={() => setIntroOpen((v) => !v)} className="mt-1 inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-moss underline underline-offset-2">
+          {introOpen ? "Свернуть" : "Подробнее"}
+        </button>
+        {introOpen ? (
+          <div className="mb-1 grid gap-2 text-[15px] leading-snug text-ink/80">
+            <p>Вместе на встречах: передайте телефон по кругу, на карточке говорят в микрофон коротко, как помнят.</p>
+            <p>Родственникам: нажмите самолётик на карточке, вопрос уйдёт ссылкой. Родственник ответит у себя, а вы получите готовый ответ.</p>
+            <p>Ответы копятся, и из них можно собрать страницы. Отправка родственникам входит в платную программу.</p>
+          </div>
+        ) : null}
+      </div>
 
       <section className="mt-6 border-y border-ink/15 py-5">
         <div className="flex items-end justify-between gap-4">
@@ -179,6 +191,17 @@ export function DeckScreen({ situationId }: { situationId: string }) {
   const dragRef = useRef(0);
   const origin = useRef(0);
   const recRef = useRef<SpeechRec | null>(null);
+  const programOpen = useRod((state) => state.programOpen);
+  const [sendOpen, setSendOpen] = useState(false);
+
+  /** Самолётик: открывает отправку родственнику (один вопрос или интервью из колоды). Только на платной программе. */
+  const send = () => {
+    if (!programOpen) {
+      toast("Отправка вопросов родственникам доступна в платной программе.", { action: { label: "Что входит", onClick: () => nav.tab({ id: "home" }) }, duration: 8000 });
+      return;
+    }
+    setSendOpen(true);
+  };
 
   if (!situation) {
     return (
@@ -329,7 +352,21 @@ export function DeckScreen({ situationId }: { situationId: string }) {
                   <h2 className="relative mt-3 pr-16 text-[1.7rem] font-semibold leading-[1.15] text-ink sm:text-[2rem]">{question}</h2>
                   {previous ? <p className="relative mt-2 max-h-40 overflow-auto whitespace-pre-wrap text-sm text-muted">Было: {previous.answer}</p> : null}
                   <div className="mt-auto">
-                    <p className="hand mb-1 text-[1.25rem] leading-none text-gold-ink">запишите так, как сказали</p>
+                    <div className="mb-2 flex items-end justify-between gap-2">
+                      <p className="hand text-[1.25rem] leading-none text-gold-ink">запишите так, как сказали</p>
+                      {question ? (
+                        <button
+                          type="button"
+                          onClick={send}
+                          aria-label="Отправить этот вопрос родственнику"
+                          title={programOpen ? "Отправить вопрос родственнику" : "Отправка родственникам: в платной программе"}
+                          className="plane-btn inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full pl-2 pr-3 text-sm font-semibold text-moss"
+                        >
+                          <img src={`${import.meta.env.BASE_URL}stickers/pack/leaf_plane.webp`} alt="" draggable={false} className="pointer-events-none w-8 -rotate-6" />
+                          Родственнику
+                        </button>
+                      ) : null}
+                    </div>
                     <textarea
                       value={answer}
                       onChange={(event) => setAnswer(event.target.value)}
@@ -381,6 +418,7 @@ export function DeckScreen({ situationId }: { situationId: string }) {
           </div>
         </>
       )}
+      {sendOpen ? <SendInterviewSheet situation={situation} index={Math.min(index, situation.questions.length - 1)} onClose={() => setSendOpen(false)} /> : null}
     </ScreenFrame>
   );
 }
