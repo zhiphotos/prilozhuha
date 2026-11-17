@@ -335,6 +335,8 @@ export type ArchiveTab = "people" | "tree" | "time" | "photos" | "places" | "doc
 export type Screen =
   | { id: "home" }
   | { id: "lessons" }
+  | { id: "ai" }
+  | { id: "ai-genealogist" }
   | { id: "lesson"; lessonId: string }
   | { id: "cards" }
   | { id: "deck"; situationId: string }

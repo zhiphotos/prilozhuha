@@ -1,6 +1,6 @@
 // Лимиты ИИ. Значения по умолчанию можно менять без кода: переменная окружения AI_LIMITS (JSON), например
 //   {"text":{"per":"day","user":15},"audio_min":{"per":"month","user":600,"global":20000}}
-// Единицы: text – запросы, facts – вызовы «найти главное в интервью» (кусок до 9000 знаков = 1), audio_min – минуты аудио, ocr_pages – страницы, archive – поиски по архивам.
+// Единицы: text – запросы, facts – вызовы «найти главное в интервью» (кусок до 9000 знаков = 1), audio_min – минуты аудио, ocr_pages – страницы, archive – поиски по архивам, chat – вопросы ИИ-генеалогу.
 // global – общий потолок на всех покупателей за период. Без global общий потолок не действует, поэтому он задан по умолчанию.
 export const DEFAULT_LIMITS = {
   text: { per: "day", user: 20, global: 400 },
@@ -8,6 +8,7 @@ export const DEFAULT_LIMITS = {
   audio_min: { per: "month", user: 300, global: 20000 },
   ocr_pages: { per: "month", user: 100, global: 3000 },
   archive: { per: "month", user: 10, global: 3000 },
+  chat: { per: "month", user: 60, global: 3000 },
 };
 
 export const KINDS = Object.keys(DEFAULT_LIMITS);

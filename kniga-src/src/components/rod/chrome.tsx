@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { BookOpen, ChevronLeft, GraduationCap, Home, MessageCircle, PenLine, X } from "lucide-react";
+import { BookOpen, ChevronLeft, GraduationCap, Home, MessageCircle, PenLine, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { Screen } from "@/lib/rod/types";
 
@@ -88,10 +88,12 @@ const TABS: { id: string; label: string; icon: typeof BookOpen; screen: Screen }
   { id: "cards", label: "Вопросы", icon: MessageCircle, screen: { id: "cards" } },
   { id: "stories", label: "Истории", icon: PenLine, screen: { id: "stories" } },
   { id: "lessons", label: "Уроки", icon: GraduationCap, screen: { id: "lessons" } },
+  { id: "ai", label: "ИИ", icon: Sparkles, screen: { id: "ai" } },
 ];
 
 export function tabKey(screen: Screen): string {
   if (screen.id === "lessons" || screen.id === "lesson") return "lessons";
+  if (screen.id === "ai" || screen.id === "ai-genealogist") return "ai";
   if (screen.id === "cards" || screen.id === "deck" || screen.id === "answers") return "cards";
   if (screen.id === "stories" || screen.id === "my-stories" || screen.id === "interviews" || screen.id === "interview" || screen.id === "wizard" || screen.id === "story" || screen.id === "free") return "stories";
   if (screen.id === "book" || screen.id === "editor" || screen.id === "flip") return "book";
@@ -103,7 +105,7 @@ export function Dock() {
   const current = tabKey(nav.screen);
   return (
     <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 px-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] lg:hidden">
-      <ul data-tour="nav" className="glass-strong mx-auto grid max-w-md grid-cols-5 rounded-2xl p-1.5">
+      <ul data-tour="nav" className="glass-strong mx-auto grid max-w-md grid-cols-6 rounded-2xl p-1.5">
         {TABS.map((item) => {
           const Icon = item.icon;
           const active = current === item.id;

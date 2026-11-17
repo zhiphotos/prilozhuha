@@ -981,3 +981,26 @@ body {
 
 /* Длинная книга: страницы за экраном не рисуются, пока до них не докрутили (быстрее открывается вкладка «Книга») */
 .kr-lazy-li{content-visibility:auto;contain-intrinsic-size:auto 280px}
+
+/* Вкладка «ИИ»: сетка цветных папок, из которых торчат карточки (как в референсе), палитра книги: мох, бордо, песок, камень. */
+.ai-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px 14px;padding:6px 2px 8px}
+.ai-f{position:relative;display:block;width:100%;height:172px;text-align:left;border:0;background:none;padding:0;color:inherit;-webkit-tap-highlight-color:transparent;transition:transform .18s ease}
+.ai-f[data-tone="moss"]{--c:#4b5a30;--c2:#3b4826;--ink:#f2efe3}
+.ai-f[data-tone="bordo"]{--c:#6a2234;--c2:#551b29;--ink:#f6ecea}
+.ai-f[data-tone="sand"]{--c:#d9cdb2;--c2:#c8bb9d;--ink:#3a3426}
+.ai-f[data-tone="stone"]{--c:#8e9188;--c2:#7a7d74;--ink:#fbfaf6}
+.ai-f:not([disabled]):active{transform:translateY(-4px)}
+.ai-f[disabled]{opacity:.78}
+.ai-back{position:absolute;left:0;right:0;top:18px;bottom:0;border-radius:18px;background:linear-gradient(var(--c2),var(--c2));box-shadow:0 8px 16px -10px rgba(30,24,18,.55)}
+.ai-back::before{content:"";position:absolute;left:0;top:-14px;width:46%;height:20px;border-radius:12px 14px 0 0;background:var(--c2)}
+.ai-peek{position:absolute;left:12px;right:12px;top:0;height:112px;pointer-events:none}
+.ai-peek i{position:absolute;bottom:0;display:block;width:58%;height:104px;border-radius:9px;background:#fbf8ef;box-shadow:0 3px 8px rgba(30,24,18,.28);overflow:hidden}
+.ai-peek i::before{content:"";position:absolute;left:9px;right:9px;top:12px;height:5px;border-radius:3px;background:rgba(60,52,38,.35);box-shadow:0 11px 0 rgba(60,52,38,.22),0 22px 0 rgba(60,52,38,.22),0 33px 0 rgba(60,52,38,.14)}
+.ai-peek i:nth-child(1){left:2%;transform:rotate(-7deg)}
+.ai-peek i:nth-child(2){right:2%;transform:rotate(6deg);background:#efe6d1}
+.ai-peek i:nth-child(2)::before{height:34px;top:10px;border-radius:6px;background:rgba(75,90,48,.28);box-shadow:0 44px 0 -14px rgba(60,52,38,.22),0 54px 0 -14px rgba(60,52,38,.18)}
+.ai-front{position:absolute;left:0;right:0;bottom:0;height:98px;border-radius:18px 18px 18px 18px;padding:14px 14px 12px;background:url(/tex/scratch.webp) 0 0/520px auto,linear-gradient(var(--c),var(--c));box-shadow:inset 0 2px 0 rgba(255,255,255,.22),0 -3px 8px rgba(30,24,18,.18)}
+.ai-front b{display:block;font:700 17px/1.15 var(--font-sans,"Manrope",sans-serif);color:var(--ink);text-shadow:0 1px 0 rgba(0,0,0,.25)}
+.ai-front small{display:block;margin-top:5px;font:500 13px/1.2 var(--font-sans,"Manrope",sans-serif);color:var(--ink);opacity:.78}
+.ai-ic{position:absolute;right:11px;bottom:11px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.88);color:#3a3426;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.ai-ic svg{width:18px;height:18px}
