@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Mic, Pencil } from "lucide-react";
 import { Cut } from "@/components/rod/botanica";
 import { STORY_TEMPLATES, findTemplate } from "@/lib/rod/content";
@@ -8,7 +8,7 @@ import { useRod } from "@/lib/rod/store";
 import { plural } from "@/lib/rod/progress";
 import { pageFromStory, pagesFromStoryPhotos } from "@/lib/rod/layouts";
 import { Attachments } from "@/components/rod/attachments";
-import { TranscribeSheet, minutesLine, useMinutes } from "@/components/rod/transcribe-sheet";
+import { MINUTES_DEFAULT, TranscribeSheet, minutesLine, useMinutes } from "@/components/rod/transcribe-sheet";
 import { sendInterview } from "@/lib/rod/ask-relative";
 import { SendStoriesSheet } from "@/components/rod/send-interview";
 import type { Attachment } from "@/lib/rod/types";
@@ -18,19 +18,35 @@ import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chr
 /** Вырезки из её библиотеки: разделяют группы историй. */
 const DIVIDERS = ["peony", "lily_valley", "rosebuds", "daffodil", "stick_rosehip", "driftwood"];
 
+const SEEN_KEY = "kr-mystories-seen";
+const readSeen = (): Set<string> => {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) ?? "[]") as string[]);
+  } catch {
+    return new Set();
+  }
+};
+const writeSeen = (ids: string[]) => {
+  try {
+    localStorage.setItem(SEEN_KEY, JSON.stringify(ids));
+  } catch {
+    /* без запоминания */
+  }
+};
+
 /** Иллюстрация к теме по смыслу: вырезка из библиотеки приложения. */
 const TEMPLATE_CUT: Record<string, string> = {
   "first-love": "rose",
-  "parents-met": "lace/lace_14_t",
+  "parents-met": "lily_valley",
   "first-home": "wood_slice",
-  "hard-time": "lace/lace_04_t",
+  "hard-time": "driftwood",
   happiest: "daffodil",
-  child: "lace/lace_18_t",
+  child: "shell",
   wedding: "peony",
   "little-money": "paper_two_scraps",
   moving: "envelope_brown",
-  tradition: "lace/lace_19_t",
-  "one-photo": "frame_line_corners",
+  tradition: "branch",
+  "one-photo": "old_notebook",
 };
 
 export function StoriesScreen() {
@@ -40,59 +56,62 @@ export function StoriesScreen() {
   const programOpen = useRod((state) => state.programOpen);
   const stories = useRod((state) => state.stories);
   const minutes = useMinutes();
+  // Новое в папке: истории, которых ещё не видели на экране «Мои истории».
+  useEffect(() => {
+    // Первый заход: уже сохранённое не считаем новым.
+    if (!readSeen().size && stories.length) writeSeen(stories.map((story) => story.id));
+  }, [stories]);
+  const fresh = (() => {
+    const seen = readSeen();
+    if (!seen.size && stories.length) return 0; // первый заход: старые истории не считаем новыми
+    return stories.filter((story) => !seen.has(story.id)).length;
+  })();
 
   return (
     <ScreenFrame>
-      <TopBar kicker="Семейные истории" title="Расскажи историю" />
-      <p className="max-w-xl text-base leading-relaxed text-ink/75">Выберите, о чём рассказать, и ответьте на несколько вопросов. Из ответов получится страница вашей книги.</p>
-      <button type="button" onClick={() => nav.go({ id: "free" })} className="story-main mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 text-base font-semibold">
-        <Pencil className="size-5" /> Написать свою историю
-      </button>
-      {programOpen ? (
-        <button type="button" onClick={() => setTranscribe(true)} className="story-glass mt-3 flex min-h-[4.5rem] w-full items-center gap-4 rounded-2xl px-5 py-3 text-left">
-          <span className="story-glass-icon" aria-hidden>
-            <Mic className="size-6" />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-base font-semibold text-ink">Расшифровать интервью</span>
-            <span className="block text-[15px] leading-snug text-ink/80">Загрузите запись разговора, например рассказ бабушки, и получите текст</span>
-            <span className="mt-0.5 block text-sm font-semibold text-moss">{minutes ? minutesLine(minutes) : "Входит в программу: до 300 минут в месяц."}</span>
-          </span>
-          <span className="story-ai" aria-label="Работает на искусственном интеллекте" title="Работает на искусственном интеллекте">ИИ</span>
+      <TopBar
+        title="Расскажи историю"
+        action={
+          <button type="button" onClick={() => nav.go({ id: "my-stories" })} className="story-folder-btn relative shrink-0" aria-label={`Мои истории: сохранено ${stories.length}${fresh ? `, новых ${fresh}` : ""}`} title="Мои истории">
+            <Cut id="moss_folder" className="h-full w-full object-contain" />
+            {fresh ? <span className="story-folder-badge">+{fresh}</span> : null}
+          </button>
+        }
+      />
+      <section className="story-desk" aria-label="Действия с историей">
+        <button type="button" onClick={() => nav.go({ id: "free" })} className="story-main flex min-h-[3.75rem] w-full items-center justify-center gap-2 rounded-2xl px-5 text-[17px] font-semibold">
+          <Pencil className="size-5" /> Написать свою историю
         </button>
-      ) : null}
-
-      <button
-        type="button"
-        onClick={() => {
-          if (!programOpen) {
-            toast("Отправка вопросов родственникам доступна в платной программе.", { action: { label: "Что входит", onClick: () => nav.tab({ id: "home" }) }, duration: 8000 });
-            return;
-          }
-          setAskRelative(true);
-        }}
-        className="story-ask mt-3 flex min-h-[4.5rem] w-full items-center gap-4 rounded-2xl px-5 py-3 text-left"
-      >
-        <img src={`${import.meta.env.BASE_URL}stickers/pack/leaf_plane.webp`} alt="" draggable={false} className="pointer-events-none w-11 shrink-0 -rotate-6 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]" />
-        <span className="min-w-0">
-          <span className="block text-base font-semibold text-ink">Отправить вопросы родственнику</span>
-          <span className="block text-[15px] leading-snug text-ink/80">Вопросы из историй или своё интервью: родственник ответит голосом, а ответы придут вам</span>
-        </span>
-      </button>
+        {programOpen ? (
+          <button type="button" onClick={() => setTranscribe(true)} className="story-row story-row-ai">
+            <span className="story-glass-icon story-row-icon" aria-hidden>
+              <Mic className="size-5" />
+            </span>
+            <span className="story-row-title">Расшифровать интервью</span>
+            <span className="story-row-meta">{minutes ? minutesLine(minutes) : MINUTES_DEFAULT}</span>
+            <span className="story-ai" aria-label="Работает на искусственном интеллекте" title="Работает на искусственном интеллекте">ИИ</span>
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            if (!programOpen) {
+              toast("Отправка вопросов родственникам доступна в платной программе.", { action: { label: "Что входит", onClick: () => nav.tab({ id: "home" }) }, duration: 8000 });
+              return;
+            }
+            setAskRelative(true);
+          }}
+          className="story-row"
+        >
+          <img src={`${import.meta.env.BASE_URL}stickers/pack/leaf_plane.webp`} alt="" draggable={false} className="story-row-sticker" />
+          <span className="story-row-title">Отправить вопросы родственнику</span>
+          <span aria-hidden className="story-row-chev">›</span>
+        </button>
+      </section>
       {askRelative ? <SendStoriesSheet onClose={() => setAskRelative(false)} /> : null}
 
       <div className="story-table mt-6">
-        <button type="button" onClick={() => nav.go({ id: "my-stories" })} className="story-folder mb-8 flex w-full items-center gap-4 text-left">
-          <Cut id="moss_folder" className="story-folder-img" />
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-gold-ink">Папка</span>
-            <span className="story-sheet-title block">Мои истории</span>
-            <span className="story-sheet-lead block">{stories.length ? `Сохранено: ${stories.length}` : "Пока пусто. Первая история появится здесь."}</span>
-          </span>
-          <span aria-hidden className="shrink-0 text-2xl text-ink/60">›</span>
-        </button>
-
-        <h2 className="story-group-label">О чём расскажем?</h2>
+        <h2 className="story-hand">О чём расскажем?</h2>
         <ul data-tour="stories-list" className="grid gap-3.5">
           {STORY_TEMPLATES.map((template, index) => (
             <Fragment key={template.id}>
@@ -129,6 +148,9 @@ export function StoriesScreen() {
 export function MyStoriesScreen() {
   const nav = useNav();
   const stories = useRod((state) => state.stories);
+  useEffect(() => {
+    writeSeen(stories.map((story) => story.id));
+  }, [stories]);
   const removeStory = useRod((state) => state.removeStory);
   const dateOf = (iso: string) => {
     const d = new Date(iso);

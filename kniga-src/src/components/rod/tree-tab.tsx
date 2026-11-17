@@ -106,6 +106,18 @@ function TreeScreen() {
   const [schemeOpen, setSchemeOpen] = useState(false);
   // Выбор людей для схемы нажатием прямо по древу: отмеченные получают кольцо с галочкой.
   const [pickMode, setPickMode] = useState(false);
+  // Пришли с «Семейное дерево на страницу» в «Книге»: сразу включаем выбор людей для схемы.
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem("kr-tree-pick") === "1") {
+        sessionStorage.removeItem("kr-tree-pick");
+        if (people.length >= 2) setPickMode(true);
+      }
+    } catch {
+      /* без флага */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [picked, setPicked] = useState<Set<string>>(() => new Set());
   const togglePicked = (id: string) =>
     setPicked((prev) => {

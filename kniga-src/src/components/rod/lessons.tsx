@@ -12,6 +12,7 @@ import { serverStatus } from "@/lib/rod/server";
 import { leaveLead, loginWithCode, platformLogin, redeemCode, requestLoginCode, startCheckout } from "@/lib/rod/pay";
 import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
+import { CommunityCard } from "@/components/rod/access";
 import { Button, ScreenFrame, Sheet, TopBar, linkScreen, useNav } from "@/components/rod/chrome";
 
 export function LessonsScreen() {
@@ -38,8 +39,10 @@ export function LessonsScreen() {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#c9ae74]">Программа</p>
         <h1 className="display-title mt-1 text-[2rem] leading-[1.1] text-paper">Книга рода</h1>
       </div>
-      <p className="max-w-xl text-paper/70">Начните с бесплатного урока. Если зацепит, дальше целая программа: видео, ИИ-помощник и материалы для печати.</p>
-      {LESSONS.filter((lesson) => lesson.free).map((lesson) => {
+      <p className="max-w-xl text-paper/70">
+        {programOpen ? "Вся программа открыта. Проходите уроки по порядку, любой можно смотреть снова." : "Начните с бесплатного урока. Если зацепит, дальше целая программа: видео, ИИ-помощник и материалы для печати."}
+      </p>
+      {(programOpen ? [] : LESSONS.filter((lesson) => lesson.free)).map((lesson) => {
         const passed = done.includes(lesson.id);
         return (
           <button key={lesson.id} type="button" onClick={() => nav.go({ id: "lesson", lessonId: lesson.id })} className="relative mt-5 block w-full overflow-hidden rounded-3xl text-left shadow-2xl">
@@ -47,12 +50,12 @@ export function LessonsScreen() {
             <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
             <span className="relative flex min-h-44 flex-col justify-end p-5">
               <span className="mb-3 w-fit rounded-full border border-paper/30 bg-paper/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-paper backdrop-blur-md">
-                Бесплатный урок · {lesson.minutes} мин{passed ? " · пройден" : ""}
+                {programOpen ? "Урок 1" : "Бесплатный урок"} · {lesson.minutes} мин{passed ? " · пройден" : ""}
               </span>
               <span className="flex items-end gap-4 rounded-2xl border border-paper/25 bg-paper/15 p-4 backdrop-blur-xl">
                 <span className="min-w-0 flex-1">
                   <span className="block text-[1.3rem] font-semibold leading-tight text-paper">{lesson.title}</span>
-                  <span className="mt-1 block text-sm leading-snug text-paper/80">Смотрите первым: как создаётся Книга Рода с ИИ</span>
+                  <span className="mt-1 block text-sm leading-snug text-paper/80">{programOpen ? "Вводный урок: как создаётся Книга Рода с ИИ" : "Смотрите первым: как создаётся Книга Рода с ИИ"}</span>
                 </span>
                 <span className="grid size-12 shrink-0 place-items-center rounded-full bg-paper/90 text-[#14160f]">{passed ? <Check className="size-5" /> : <Play className="size-5 translate-x-0.5" />}</span>
               </span>
@@ -61,8 +64,11 @@ export function LessonsScreen() {
         );
       })}
 
-      <h2 id="program" className="display-title mt-10 scroll-mt-4 text-[1.35rem] text-paper">Программа «Книга Рода с ИИ»</h2>
-      <p className="mt-1 text-sm text-paper/65">Нажмите на урок: увидите, что в нём будет. Откроется после оплаты.</p>
+      {programOpen ? <CommunityCard /> : null}
+      <h2 id="program" className="display-title mt-10 scroll-mt-4 text-[1.35rem] text-paper">{programOpen ? "Пройдите все уроки" : "Программа «Книга Рода с ИИ»"}</h2>
+      <p className="mt-1 text-sm text-paper/65">
+        {programOpen ? `Нажмите на урок, чтобы смотреть. Пройдено ${LESSONS.filter((l) => done.includes(l.id)).length} из ${LESSONS.length}.` : "Нажмите на урок: увидите, что в нём будет. Откроется после оплаты."}
+      </p>
       <div className="mt-4 grid gap-3">
         <img src={asset("course/gc/ov-welcome.jpg")} alt="Добро пожаловать в Книгу Рода" className="w-full rounded-2xl" />
         {LESSONS.filter((lesson) => !lesson.free).map((lesson) => {
@@ -82,7 +88,7 @@ export function LessonsScreen() {
           <img src={asset("course/gc/ov-community.jpg")} alt="Чат участников" loading="lazy" className="w-full" />
         </button>
       </div>
-      <Reviews />
+      {programOpen ? null : <Reviews />}
 
       {!programOpen ? (
         <div className="wash-blush mt-3 rounded-2xl p-5">
@@ -95,9 +101,7 @@ export function LessonsScreen() {
             Открыть программу
           </Button>
         </div>
-      ) : (
-        <p className="mt-4 text-sm text-[#c9ae74]">Программа открыта на этом устройстве.</p>
-      )}
+      ) : null}
       <a
         href="https://balanuca.vercel.app/learn"
         target="_blank"

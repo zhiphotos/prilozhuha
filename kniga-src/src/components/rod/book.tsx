@@ -17,12 +17,11 @@ import { GrowingTree } from "@/components/rod/growing-tree";
 import { treeGrowth } from "@/lib/rod/book-tree";
 import { TemplateOrbit, type OrbitItem } from "@/components/rod/template-orbit";
 import { COMING, PreviewVideo, SLIDES } from "@/components/rod/unlock-carousel";
-import { CommunityCard } from "@/components/rod/access";
 import { PaySheet } from "@/components/rod/lessons";
 import { AI_NOTE } from "@/lib/rod/lesson-pitch";
 import { PROGRAM_PRICE } from "@/lib/rod/content";
 import { ReelButton } from "@/components/rod/reel-modal";
-import { Hint } from "@/components/rod/hint";
+import { BookDesk } from "@/components/rod/book-desk";
 import { ContentsSheet, filledCount } from "@/components/rod/contents-sheet";
 import { AllPagesColor } from "@/components/rod/all-pages-color";
 import { downloadFamilyBook, downloadPrintBlock, downloadPrintCover } from "@/lib/rod/print-book";
@@ -107,39 +106,6 @@ export function BookScreen() {
       {/* Дерево растёт на фоне блока, кнопки лежат поверх него справа. */}
       <div className={treeOn ? "relative mb-5 min-h-[27rem]" : "mb-5"}>
         {treeOn ? <GrowingTree growth={growth} onHide={() => switchTree(false)} /> : null}
-      <div data-tour="book-actions" className={treeOn ? "relative z-10 ml-[44%] grid min-w-0 grid-cols-1 content-start gap-2" : "grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2"}>
-        <Hint id="book-print">
-          <Button variant="soft" className="min-h-12" onClick={() => (pages.length ? setPrinting(true) : toast("Сначала добавьте хотя бы одну страницу"))}>
-            <Printer className="size-4" /> Формат и печать
-          </Button>
-        </Hint>
-        <Hint id="book-plan">
-          <Button variant="soft" className="min-h-12" onClick={() => setPlanning(true)}>
-            <Sparkles className="size-4" /> Список страниц
-          </Button>
-        </Hint>
-        <Hint id="book-text-pages">
-          <Button variant="soft" className="min-h-12" onClick={() => setTextToPages(true)}>
-            <Sparkles className="size-4" /> Вставить длинный рассказ
-          </Button>
-          <p className="mt-1 rounded-xl bg-paper/75 px-2 py-1 text-xs text-muted backdrop-blur-sm">Длинную историю вставьте сюда, она сама разойдётся по страницам.</p>
-        </Hint>
-        <Button variant="soft" className="min-h-12" onClick={() => { toast("Откройте древо и выберите «Схема из выбранных»"); nav.go({ id: "archive", tab: "tree" }); }}>
-          <Sparkles className="size-4" /> Семейное дерево на страницу
-        </Button>
-        <Hint id="book-cover">
-          <Button variant="soft" className="min-h-12" onClick={() => setCoverSetup(true)}>
-            <Palette className="size-4" /> Обложка и корешок
-          </Button>
-        </Hint>
-        {/* Тёмные кнопки тяжелее по виду, поэтому стоят внизу списка. */}
-        <Button className="min-h-12" onClick={() => (pages.length ? nav.go({ id: "flip" }) : toast("Сначала добавьте хотя бы одну страницу"))}>
-          <BookOpen className="size-4" /> Листать книгу
-        </Button>
-        <Button className="min-h-12" onClick={() => setContents(true)}>
-          <BookOpen className="size-4" /> Содержание{plan.length ? ` · ${plan.filter((c) => c.done).length} из ${plan.length}` : ""}
-        </Button>
-      </div>
         {treeOn || !TREE_AVAILABLE ? null : (
           <div className="mt-2 flex justify-center">
             <button type="button" className="min-h-9 text-xs font-semibold text-moss underline underline-offset-2" onClick={() => switchTree(true)}>
@@ -167,12 +133,22 @@ export function BookScreen() {
           </span>
         </span>
       </button>
+      <BookDesk
+        planDone={plan.filter((c) => c.done).length}
+        planTotal={plan.length}
+        onPrint={() => (pages.length ? setPrinting(true) : toast("Сначала добавьте хотя бы одну страницу"))}
+        onPlan={() => setPlanning(true)}
+        onTextToPages={() => setTextToPages(true)}
+        onTree={() => { try { sessionStorage.setItem("kr-tree-pick", "1"); } catch { /* без флага */ } toast("Отметьте людей, которых нужно поместить на страницу"); nav.go({ id: "archive", tab: "tree" }); }}
+        onCover={() => setCoverSetup(true)}
+        onFlip={() => (pages.length ? nav.go({ id: "flip" }) : toast("Сначала добавьте хотя бы одну страницу"))}
+        onContents={() => setContents(true)}
+      />
 
       {/* Одна карусель шаблонов, под ней покупка и «Скоро в приложении» (у платных вместо них сообщество). */}
       {/* Заголовок «Шаблоны книги» только у тех, у кого доступ открыт: у остальных карусель сама начинается с рассказа о программе. */}
-      {data.programOpen ? <h2 className="mb-3 mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Шаблоны книги</h2> : null}
-      <TemplateStage pages={pages} meta={meta} onUnlock={() => setPay(true)} />
-      {data.programOpen ? <CommunityCard /> : <SoonBlock onBuy={() => setPay(true)} />}
+      <div className="kr-stage-wrap"><TemplateStage pages={pages} meta={meta} onUnlock={() => setPay(true)} /></div>
+      {data.programOpen ? null : <SoonBlock onBuy={() => setPay(true)} />}
 
       {pageGrid}
 
