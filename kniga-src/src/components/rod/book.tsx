@@ -1,6 +1,6 @@
 import { needsMaidenName } from "@/lib/rod/person";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeftRight, BookOpen, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, ChevronDown, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeftRight, BookOpen, Check, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, ChevronDown, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, ScreenFrame, Sheet, TopBar, useNav } from "@/components/rod/chrome";
 import { PageSheet } from "@/components/rod/page-view";
@@ -16,7 +16,7 @@ import { WEDDING_EXTRA, WEDDING_EXTRA_PAGES, WEDDING_MODERN, WEDDING_MODERN_PAGE
 import { GrowingTree } from "@/components/rod/growing-tree";
 import { treeGrowth } from "@/lib/rod/book-tree";
 import { TemplateOrbit, type OrbitItem } from "@/components/rod/template-orbit";
-import { COMING, PreviewVideo, SLIDES } from "@/components/rod/unlock-carousel";
+import { COMING, COMING_DONE, PreviewVideo, SLIDES } from "@/components/rod/unlock-carousel";
 import { PaySheet } from "@/components/rod/lessons";
 import { AI_NOTE } from "@/lib/rod/lesson-pitch";
 import { PROGRAM_PRICE } from "@/lib/rod/content";
@@ -891,7 +891,7 @@ function SoonBlock({ onBuy }: { onBuy: () => void }) {
         <button type="button" onClick={() => setMore((v) => !v)} aria-expanded={more} className="flex min-h-11 w-full items-center justify-between gap-3 text-left">
           <span>
             <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">Скоро в приложении</span>
-            <span className="mt-0.5 block text-sm text-ink/80">Запланировано функций: {COMING.length}</span>
+            <span className="mt-0.5 block text-sm text-ink/80">Уже есть: {COMING_DONE.size}, скоро: {COMING.length - COMING_DONE.size}</span>
           </span>
           <span className="flex shrink-0 items-center gap-1 text-sm font-semibold text-moss">
             {more ? "Свернуть" : "Раскрыть"}
@@ -902,9 +902,14 @@ function SoonBlock({ onBuy }: { onBuy: () => void }) {
           <>
             <ul className="mt-3 grid gap-2 text-sm text-ink/80">
               {COMING.map((item) => (
-                <li key={item} className="flex gap-3">
-                  <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-current opacity-50" />
-                  <span>{item}</span>
+                <li key={item} className="flex items-start gap-3">
+                  <span aria-hidden className={cn("mt-1.5 size-1.5 shrink-0 rounded-full", COMING_DONE.has(item) ? "bg-moss" : "bg-current opacity-50")} />
+                  <span className="flex-1">{item}</span>
+                  {COMING_DONE.has(item) ? (
+                    <span className="flex shrink-0 items-center gap-1 rounded-full bg-moss/15 px-2 py-0.5 text-xs font-semibold text-moss">
+                      <Check className="size-3.5" /> Уже есть
+                    </span>
+                  ) : null}
                 </li>
               ))}
             </ul>

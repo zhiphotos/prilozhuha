@@ -35,12 +35,13 @@ export function isApple(): boolean {
   return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
-type Browser = "edge" | "chrome" | "safari" | "firefox" | "other";
+type Browser = "edge" | "chrome" | "safari" | "firefox" | "other" | "embedded";
 
 /** Какой браузер на компьютере: от этого зависит, как установить книгу как приложение. */
 export function desktopBrowser(): Browser {
   if (typeof navigator === "undefined") return "other";
   const ua = navigator.userAgent;
+  if (/Electron\//.test(ua)) return "embedded";
   if (/Edg\//.test(ua)) return "edge";
   if (/Firefox\//.test(ua)) return "firefox";
   if (/Chrome\//.test(ua) || /Chromium\//.test(ua)) return "chrome";
@@ -52,9 +53,11 @@ function DesktopSheet({ onClose, first }: { onClose: () => void; first: boolean 
   const mac = isMac();
   const browser = desktopBrowser();
   const key = mac ? "⌘ + D" : "Ctrl + D";
-  const name = { edge: "Microsoft Edge", chrome: "Google Chrome", safari: "Safari", firefox: "Firefox", other: "этом браузере" }[browser];
+  const name = { embedded: "окне программы, а не в браузере", edge: "Microsoft Edge", chrome: "Google Chrome", safari: "Safari", firefox: "Firefox", other: "этом браузере" }[browser];
   const install =
-    browser === "safari" ? (
+    browser === "embedded" ? (
+      <>Сейчас книга открыта внутри другой программы (например, во встроенном окне приложения), а не в Safari или Chrome. Здесь нет пункта «Установить» и данные не сохраняются надёжно. Скопируйте адрес <b>kniga-balanuca.ru/app/</b>, откройте его в <b>Safari или Chrome</b> и установите книгу там.</>
+    ) : browser === "safari" ? (
       <>Установите книгу как приложение: в верхнем меню нажмите <b>«Файл» → «Добавить в Dock»</b> (нужен Safari 17 или новее). Появится отдельная программа «Книга рода», открывайте её из Dock.</>
     ) : browser === "chrome" || browser === "edge" ? (
       <>Установите книгу как приложение: справа в адресной строке нажмите значок установки (монитор со стрелкой) или меню <b>⋮ → «Установить Книгу рода»</b>{browser === "edge" ? " (в Edge: «…» → «Приложения» → «Установить этот сайт как приложение»)" : ""}. Она откроется в своём окне, как обычная программа.</>

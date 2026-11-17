@@ -117,6 +117,9 @@ export const COMING = [
   "Расшифровка рукописных страниц по фото с помощью ИИ",
 ];
 
+/** Что из списка выше уже сделано: показываем зелёную отметку «Уже есть». */
+export const COMING_DONE = new Set<string>([COMING[0], COMING[9]]);
+
 /** Превью урока: нажали и играет сразу, без звука; повторное нажатие ставит на паузу, листание в сторону тоже. */
 export function PreviewVideo({ src, poster }: { src: string; poster: string }) {
   const video = useRef<HTMLVideoElement>(null);
