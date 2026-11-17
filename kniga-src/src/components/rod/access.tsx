@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { BookCopy, Check, Cloud, Lock, MessageCircle, Send, UserRound } from "lucide-react";
+import { BookCopy, Bell, Check, Cloud, Lock, MessageCircle, Send, UserRound } from "lucide-react";
+import { RoomBell, RoomTiles, useRoomStatus } from "@/components/rod/room-status";
+import { cn } from "@/lib/cn";
 import { toast } from "sonner";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { MediaImg } from "@/components/rod/media-img";
@@ -129,6 +131,7 @@ export function TogetherCard({ onOpenFamily, onOpenTariff }: { onOpenFamily: () 
   const [locked, setLocked] = useState(false);
   const [custom, setCustom] = useState(false);
   const photos = useRod((state) => state.photos);
+  const { room, waiting, stats, notify, turnOn } = useRoomStatus();
   // Фото людей: по одному на человека, самые свежие.
   const faces: typeof photos = [];
   const seen = new Set<string>();
@@ -140,8 +143,8 @@ export function TogetherCard({ onOpenFamily, onOpenTariff }: { onOpenFamily: () 
     if (faces.length >= 4) break;
   }
   return (
-    <section className="story-card together mt-9 rounded-3xl p-5" aria-label="Собирать книгу вместе с родственниками">
-      <div className="together-faces" aria-hidden>
+    <section className={cn("story-card together mt-9 rounded-3xl", paid && room ? "px-4 py-3.5" : "p-5")} aria-label="Собирать книгу вместе с родственниками">
+      <div className="together-faces" style={paid && room ? { display: "none" } : undefined} aria-hidden>
         {faces.map((photo) => (
           <span key={photo.id} className="together-face">
             <MediaImg src={photo.dataUrl} alt="" className="size-full object-cover" />
@@ -154,23 +157,39 @@ export function TogetherCard({ onOpenFamily, onOpenTariff }: { onOpenFamily: () 
           </span>
         ))}
       </div>
-      <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-gold-ink">Вместе с родными</p>
-      <h2 className="mt-1 text-[1.35rem] font-semibold leading-tight text-ink">Собирайте книгу вместе с родственниками</h2>
-      <p className="mt-2 max-w-[36ch] text-[15px] leading-snug text-ink/80">
-        Отправьте родственнику вопрос или ссылку: он ответит у себя, добавит фото и рассказ, а всё пришлёт вам готовым.
-      </p>
-      <button
-        type="button"
-        onClick={paid ? onOpenFamily : () => setLocked(true)}
-        className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-moss px-5 text-sm font-semibold text-paper"
-      >
-        {paid ? <Send className="size-4" /> : <Lock className="size-4" />} Пригласить родственника
-      </button>
-      {paid ? (
-        <button type="button" onClick={() => setCustom(true)} className="ml-2 mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-moss/40 bg-white/60 px-5 text-sm font-semibold text-moss">
-          Составить интервью
+      <div className={cn("flex items-start justify-between gap-3", paid && room ? "" : "mt-4")}>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-ink">Вместе с родными</p>
+        {paid && room && notify ? <RoomBell /> : null}
+      </div>
+      <div className="mt-1 flex items-start justify-between gap-3">
+        <h2 className={cn("font-semibold leading-tight text-ink", paid && room ? "text-[1.15rem]" : "text-[1.35rem]")}>{paid && room ? "Пригласить ещё родственников" : "Собирайте книгу вместе с родственниками"}</h2>
+        {paid && waiting > 0 ? <span className="grid min-w-8 shrink-0 place-items-center rounded-full bg-moss px-2.5 py-1 text-sm font-semibold text-paper">{waiting}</span> : null}
+      </div>
+      {paid && room && waiting === 0 ? null : (
+        <p className="mt-2 max-w-[36ch] text-[15px] leading-snug text-ink/80">
+          {paid && waiting > 0 ? `Родные прислали: ${waiting}. Загляните во «Входящие».` : "Отправьте родственнику вопрос или ссылку: он ответит у себя, добавит фото и рассказ, а всё пришлёт вам готовым."}
+        </p>
+      )}
+      {paid && room ? <RoomTiles stats={stats} /> : null}
+      <div className={cn("flex flex-wrap items-center gap-2", paid && room ? "mt-3" : "mt-4")}>
+        <button
+          type="button"
+          onClick={paid ? onOpenFamily : () => setLocked(true)}
+          className={cn("inline-flex items-center gap-2 rounded-full bg-moss text-sm font-semibold text-paper", paid && room ? "min-h-10 px-4" : "min-h-11 px-5")}
+        >
+          {paid ? <Send className="size-4" /> : <Lock className="size-4" />} {paid && waiting > 0 ? "Открыть входящие" : paid && room ? "Пригласить ещё" : "Пригласить родственника"}
         </button>
-      ) : null}
+        {paid ? (
+          <button type="button" onClick={() => setCustom(true)} className={cn("inline-flex items-center gap-2 rounded-full border border-moss/40 bg-white/60 text-sm font-semibold text-moss", room ? "min-h-10 px-3" : "min-h-11 px-5")}>
+            Составить интервью
+          </button>
+        ) : null}
+        {paid && room && !notify ? (
+          <button type="button" onClick={() => void turnOn()} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-moss/40 bg-white/60 px-3 text-sm font-semibold text-moss">
+            <Bell className="size-4" /> Уведомлять
+          </button>
+        ) : null}
+      </div>
       {custom ? <CustomInterviewSheet onClose={() => setCustom(false)} /> : null}
       {locked ? (
         <Sheet title="Только в полном доступе" onClose={() => setLocked(false)}>

@@ -65,7 +65,7 @@ async function call<T>(body: Record<string, unknown>): Promise<{ status: number;
   for (let n = 0; n < attempts; n += 1) {
     if (n > 0) await new Promise((resolve) => setTimeout(resolve, 600 * n));
     try {
-      const response = await fetch(`${API_BASE}/api/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, deviceId: deviceId(), slot: activeProjectId(), name: bookName(), ...body }) });
+      const response = await fetch(`${API_BASE}/api/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, deviceId: deviceId(), slot: activeProjectId(), name: bookName(), ...body }), signal: typeof AbortSignal !== "undefined" && "timeout" in AbortSignal ? AbortSignal.timeout(45_000) : undefined }); // без ответа за 45 секунд (плохая связь, VPN) сдаёмся и честно говорим об этом, а не висим на «Синхронизирую…»
       const parsed = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
       if (parsed) return { status: response.status, data: parsed };
       last = { status: response.status, data: { error: `Облако не ответило (код ${response.status || "нет связи"}).` } as T & { error?: string } };

@@ -53,6 +53,7 @@ ok("огромное фото отклонено", (await run(submit, { body: { 
 ok("чужой не читает входящие", (await run(inbox, { body: { room, ownerKey: "bad" } })).status === 404);
 const box = await run(inbox, { body: { room, ownerKey } });
 ok("владелец видит входящие по порядку", box.json.items.length === 2 && box.json.items[0].from.name === "Тётя Нина" && box.json.items[1].photo === tiny);
+ok("счётчик: ответили родные и открывали приглашение", box.json.stats.people.length >= 1 && box.json.stats.people.some((p) => p.name === "Тётя Нина" && p.count >= 1) && box.json.stats.opens >= 1);
 await run(ack, { body: { room, ownerKey, ids: [box.json.items[0].id] } });
 ok("принятое убрано", (await run(inbox, { body: { room, ownerKey } })).json.items.length === 1);
 const rot = await run(ack, { body: { room, ownerKey, rotate: true } });

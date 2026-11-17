@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { serverStatus } from "@/lib/rod/server";
-import { fetchInbox } from "@/lib/rod/family";
+import { RoomBell, RoomTiles, useRoomStatus } from "@/components/rod/room-status";
 import { FamilySheet } from "@/components/rod/family-sheet";
-import { ChevronLeft, ChevronRight, Pencil, Plus, Search, X } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight, Pencil, Plus, Search, X } from "lucide-react";
 import { PeoplePicker } from "@/components/rod/people-picker";
 import { photoCaption, photoLinkFields, photoPeopleIds } from "@/lib/rod/photo-people";
 import { filterPeople } from "@/lib/rod/people-filter";
@@ -74,30 +74,40 @@ export function ArchiveScreen({ tab }: { tab: ArchiveTab }) {
 }
 
 function FamilyCard() {
-  const room = useRod((state) => state.room);
   const [open, setOpen] = useState(false);
-  const [waiting, setWaiting] = useState(0);
-  const [live, setLive] = useState(false);
-  useEffect(() => {
-    void serverStatus().then((status) => setLive(status.rooms));
-  }, []);
-  useEffect(() => {
-    if (!room || !live) return;
-    void fetchInbox().then((items) => setWaiting(items.length)).catch(() => undefined);
-  }, [room, open, live]);
+  const { room, waiting, stats, live, notify, turnOn } = useRoomStatus(open);
   return (
     <>
-      <button
-        type="button"
-        onClick={() => (live ? setOpen(true) : toast("Семейный доступ появится, когда подключится сервер приложения."))}
-        className="glass flex min-h-16 w-full items-center gap-3 rounded-2xl px-4 py-3 text-left"
-      >
-        <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-semibold text-ink">Пригласить родственников</span>
-          <span className="block text-sm text-muted">Пусть расскажут свои истории и пришлют фото. Им покажем бесплатный урок.</span>
-        </span>
-        {waiting > 0 ? <span className="grid min-w-7 place-items-center rounded-full bg-rose-deep px-2 py-1 text-xs font-semibold text-paper">{waiting}</span> : null}
-      </button>
+      <section className={cn("story-card together rounded-3xl px-4 py-3.5", waiting > 0 && "ring-2 ring-moss/50")} aria-label="Родственники">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold-ink">Вместе с родными</p>
+          {room && notify ? <RoomBell /> : null}
+        </div>
+        <div className="mt-1 flex items-start justify-between gap-3">
+          <h2 className="text-[1.15rem] font-semibold leading-tight text-ink">{room ? "Пригласить ещё родственников" : "Пригласить родственников"}</h2>
+          {waiting > 0 ? <span className="grid min-w-8 shrink-0 place-items-center rounded-full bg-moss px-2.5 py-1 text-sm font-semibold text-paper">{waiting}</span> : null}
+        </div>
+        {waiting > 0 || !room ? (
+          <p className="mt-1.5 text-sm leading-snug text-ink/80">
+            {waiting > 0 ? `Родные прислали: ${waiting}. Загляните во «Входящие».` : "Пусть расскажут свои истории и пришлют фото. Им покажем бесплатный урок."}
+          </p>
+        ) : null}
+        {room ? <RoomTiles stats={stats} /> : null}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => (live ? setOpen(true) : toast("Семейный доступ появится, когда подключится сервер приложения."))}
+            className="inline-flex min-h-10 items-center gap-2 rounded-full bg-moss px-4 text-sm font-semibold text-paper shadow-md"
+          >
+            {waiting > 0 ? "Открыть входящие" : room ? "Пригласить ещё" : "Пригласить"}
+          </button>
+          {room && !notify ? (
+            <button type="button" onClick={() => void turnOn()} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-moss/40 bg-white/60 px-3 text-sm font-semibold text-moss">
+              <Bell className="size-4" /> Уведомлять
+            </button>
+          ) : null}
+        </div>
+      </section>
       {open ? <FamilySheet onClose={() => setOpen(false)} /> : null}
     </>
   );

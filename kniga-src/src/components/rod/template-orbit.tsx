@@ -333,6 +333,7 @@ export function TemplateOrbit({
             alt=""
             draggable={false}
             decoding="async"
+            loading={index === 0 ? "eager" : "lazy"}
             style={{ opacity: Math.max(0, 1 - delta * 1.2), objectPosition: item.focus, transform: `scale(${1.06 - Math.min(delta, 1) * 0.04})` }}
           />
         );

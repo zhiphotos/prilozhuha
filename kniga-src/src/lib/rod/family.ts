@@ -28,6 +28,17 @@ export async function createRoom(name: string): Promise<void> {
   const answer = await post<{ room?: string; ownerKey?: string; inviteKey?: string }>("/api/room-create", { name, token });
   if (!answer.room || !answer.ownerKey || !answer.inviteKey) throw new Error(answer.error || "Не получилось создать ссылку.");
   useRod.getState().setRoom({ id: answer.room, ownerKey: answer.ownerKey, inviteKey: answer.inviteKey, name });
+  void import("@/lib/rod/push").then((m) => m.linkRoomPush()).catch(() => undefined); // если уведомления уже включены, привязываем их к новой комнате
+}
+
+export type RoomStats = { people: { name: string; relation: string; count: number; last: number }[]; opens: number };
+
+/** Входящие и счётчики для карточки: сколько родных ответили, сколько раз открывали приглашение. */
+export async function fetchRoomStatus(): Promise<{ items: Incoming[]; stats: RoomStats }> {
+  const room = useRod.getState().room;
+  if (!room) return { items: [], stats: { people: [], opens: 0 } };
+  const answer = await post<{ items?: Incoming[]; stats?: RoomStats }>("/api/room-inbox", { room: room.id, ownerKey: room.ownerKey });
+  return { items: answer.items ?? [], stats: answer.stats ?? { people: [], opens: 0 } };
 }
 
 export async function fetchInbox(): Promise<Incoming[]> {

@@ -1,6 +1,7 @@
 import { bodyOf, cors, json } from "../config.js";
 import { redis, redisConfigured } from "../redis.js";
 import { getRoom, isInvited, limited, newKey } from "../room.js";
+import { pushConfigured, setupWebPush } from "../push.js";
 
 const MAX_TEXT = 6000;
 const MAX_CHANGES = 2500000; // знаков JSON
@@ -44,5 +45,43 @@ export default async function handler(req, res) {
   const key = `kr:inbox:${body.room}`;
   if (Number(await redis("HLEN", key)) >= 200) return json(res, 429, { error: "Входящие переполнены. Попросите владельца книги разобрать их." });
   await redis("HSET", key, item.id, JSON.stringify(item));
+  await rememberSender(body.room, item).catch(() => undefined); // сколько родственников ответили: для карточки владельца
+  await notifyOwner(body.room, item).catch(() => undefined); // уведомление владельцу: без него присылка всё равно сохранена
   return json(res, 200, { ok: true });
+}
+
+const KIND = { story: "прислал(а) историю", answer: "ответил(а) на вопрос", photo: "прислал(а) фото", changes: "прислал(а) правки" };
+
+/** Пуш владельцу книги: «Родственник что-то прислал». Подписки привязаны к комнате через /api/push-room. */
+async function notifyOwner(room, item) {
+  if (!pushConfigured()) return;
+  const ids = (await redis("HKEYS", `kr:roompush:${room}`)) ?? [];
+  if (!ids.length) return;
+  const web = setupWebPush();
+  const who = item.from?.name || "Родственник";
+  const payload = JSON.stringify({ title: "Книга рода: пришло от родных", body: `${who} ${KIND[item.kind] ?? "что-то прислал(а)"}. Загляните во «Входящие».`, tag: `kniga-roda-room-${item.id}` });
+  for (const id of ids) {
+    const raw = await redis("HGET", "kr:push", id);
+    if (!raw) {
+      await redis("HDEL", `kr:roompush:${room}`, id);
+      continue;
+    }
+    const record = JSON.parse(raw);
+    try {
+      await web.sendNotification(record.sub, JSON.stringify({ ...JSON.parse(payload), url: record.app }), { TTL: 24 * 3600 });
+    } catch (error) {
+      if (error?.statusCode === 404 || error?.statusCode === 410) {
+        await redis("HDEL", "kr:push", id);
+        await redis("HDEL", `kr:roompush:${room}`, id);
+      }
+    }
+  }
+}
+
+/** Кто из родных уже что-то прислал: по имени (без учёта регистра), с числом присылок и временем последней. */
+async function rememberSender(room, item) {
+  const name = item.from?.name || "Родственник";
+  const key = name.toLowerCase();
+  const old = await redis("HGET", `kr:roomfrom:${room}`, key).then((raw) => (raw ? JSON.parse(raw) : null)).catch(() => null);
+  await redis("HSET", `kr:roomfrom:${room}`, key, JSON.stringify({ name, relation: item.from?.relation || old?.relation || "", count: (old?.count ?? 0) + 1, last: item.at }));
 }

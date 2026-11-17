@@ -5,6 +5,12 @@ import { useRod } from "@/lib/rod/store";
 
 /** Устройство узнаём по случайному номеру, который лежит только в этом браузере: так сервер считает два устройства на один доступ. */
 export function deviceId(): string {
+  // Просим браузер не стирать данные приложения (книгу и номер устройства) при нехватке места и «умной» очистке.
+  try {
+    void navigator.storage?.persist?.();
+  } catch {
+    /* не поддерживается */
+  }
   try {
     let id = localStorage.getItem("kr-device");
     if (!id) {

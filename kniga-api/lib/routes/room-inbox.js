@@ -9,5 +9,7 @@ export default async function handler(req, res) {
   const { room, ownerKey } = bodyOf(req);
   if (!isOwner(await getRoom(room), ownerKey)) return json(res, 404, { error: "Комната не найдена." });
   const items = Object.values(pairs(await redis("HGETALL", `kr:inbox:${room}`))).map((raw) => JSON.parse(raw)).sort((a, b) => a.at - b.at);
-  return json(res, 200, { items });
+  const people = Object.values(pairs(await redis("HGETALL", `kr:roomfrom:${room}`))).map((raw) => JSON.parse(raw)).sort((a, b) => b.last - a.last);
+  const stat = pairs(await redis("HGETALL", `kr:roomstat:${room}`));
+  return json(res, 200, { items, stats: { people, opens: Number(stat.opens ?? 0) } });
 }
