@@ -499,3 +499,9 @@ main:focus{outline:none}
 .vibe__kick{color:#7b5c24}
 .vibe__tag b{color:#3a2d1b}
 .vibe__tag em{color:#4a4538}
+
+/* Строка со статьями на главной: одна компактная полоса */
+.stati-strip{padding:18px 0;background:var(--moss);border-block:1px solid var(--line)}
+.stati-strip__t{margin:0;font-size:15px;line-height:1.7;color:#d6d0c0}
+.stati-strip__t a{color:var(--gold2);text-decoration:none;white-space:nowrap}
+.stati-strip__t a:hover{text-decoration:underline}
