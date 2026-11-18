@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { setDockStyle, useDockStyle } from "@/lib/rod/dock-style";
 import { ArrowRight, BookCopy, BookOpen, Camera, Clock, GraduationCap, PenLine, Play, Search, Settings2, Users } from "lucide-react";
 import { MovedBanner } from "@/components/rod/moved-banner";
 import { OpenCopyButton } from "@/components/rod/open-copy";
@@ -349,6 +350,7 @@ function ProfileSheet({ onClose, onBooks }: { onClose: () => void; onBooks: () =
   const [confirmReset, setConfirmReset] = useState(false);
   const [install, setInstall] = useState(false);
   const [pay, setPay] = useState(false);
+  const dockStyle = useDockStyle();
 
   return (
     <Sheet title="Для кого эта книга" onClose={onClose}>
@@ -374,6 +376,16 @@ function ProfileSheet({ onClose, onBooks }: { onClose: () => void; onBooks: () =
           <Field label="Ваше имя на обложке">
             <input className="field" value={mine} onChange={(event) => setMine(event.target.value)} />
           </Field>
+        </div>
+        <div className="mt-4 grid gap-2">
+          <p className="text-sm font-semibold text-ink">Нижнее меню</p>
+          <div className="grid grid-cols-2 gap-2">
+            {([["classic", "Плотное"], ["glass", "Матовое стекло"]] as const).map(([id, label]) => (
+              <button key={id} type="button" onClick={() => setDockStyle(id)} className={cn("rounded-2xl border px-3 py-3 text-sm", dockStyle === id ? "border-night bg-white font-semibold" : "border-white/70 bg-white/40")}>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
           <Button

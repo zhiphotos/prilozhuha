@@ -1034,18 +1034,17 @@ body {
   .editor-zoom { transform: scale(0.8); right: 0.25rem; bottom: 0.25rem; opacity: 0.85; }
 }
 
-/* Нижнее меню: матовое стекло. Плашка и «холм» над активным разделом одного оттенка и размыты вместе с тем, что под ними. */
+/* Нижнее меню: матовое стекло, полупрозрачное, с лёгким шумом; картинка под ним просвечивает. Плашка и «холм» одного оттенка. */
 .dock-glass {
-  background: rgb(22 25 17 / 0.72);
-  -webkit-backdrop-filter: blur(22px) saturate(1.5);
-  backdrop-filter: blur(22px) saturate(1.5);
-  border-top: 1px solid rgb(246 241 231 / 0.2);
-  box-shadow: 0 -14px 34px -16px rgb(10 12 8 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.12);
+  background-color: rgb(22 25 17 / 0.34);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .32 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"), linear-gradient(180deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0));
+  background-size: 160px 160px, 100% 100%;
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  backdrop-filter: blur(14px) saturate(1.6);
 }
-.dock-hill-glass {
-  background: rgb(22 25 17 / 0.72);
-  -webkit-backdrop-filter: blur(22px) saturate(1.5);
-  backdrop-filter: blur(22px) saturate(1.5);
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 26' preserveAspectRatio='none'%3E%3Cpath d='M0 26 C18 26 24 0 48 0 C72 0 78 26 96 26 Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 26' preserveAspectRatio='none'%3E%3Cpath d='M0 26 C18 26 24 0 48 0 C72 0 78 26 96 26 Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+.dock-glass {
+  border-top: 1px solid rgb(246 241 231 / 0.28);
+  box-shadow: 0 -14px 34px -16px rgb(10 12 8 / 0.4), inset 0 1px 0 rgb(255 255 255 / 0.18);
 }
+.dock[data-style="glass"] button { text-shadow: 0 1px 6px rgb(0 0 0 / 0.55); }
+.dock[data-style="glass"] .dock-ico svg { filter: drop-shadow(0 1px 4px rgb(0 0 0 / 0.55)); }
