@@ -128,7 +128,7 @@ export function Dock() {
           </div>
         </div>
         <div aria-hidden="true" className="dock-dot pointer-events-none absolute left-0 top-0 flex w-1/6 justify-center">
-          <span className="dock-circle -mt-[1.2rem] grid size-[2.6rem] place-items-center rounded-full shadow-[0_6px_14px_-4px_rgba(0,0,0,0.55)]" style={{ background: tone.bg }} />
+          <span className="dock-circle -mt-[0.55rem] grid size-[2.5rem] place-items-center rounded-full shadow-[0_6px_14px_-4px_rgba(0,0,0,0.55)]" style={{ background: tone.bg }} />
         </div>
         <ul data-tour="nav" className="relative grid w-full grid-cols-6 px-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
           {TABS.map((item) => {
@@ -141,12 +141,12 @@ export function Dock() {
                   onClick={() => nav.tab(item.screen)}
                   aria-label={item.label}
                   className={cn(
-                    "flex min-h-[3.3rem] w-full flex-col items-center justify-end gap-0.5 whitespace-nowrap px-0 pb-1.5 text-[11px] leading-none transition-colors [@media(max-height:480px)]:min-h-11",
+                    "flex min-h-[3.5rem] w-full flex-col items-center justify-end gap-0.5 whitespace-nowrap px-0 pb-1.5 text-[11px] leading-none transition-colors [@media(max-height:480px)]:min-h-11",
                     active ? "font-bold text-paper" : "font-medium text-paper/70",
                   )}
                   aria-current={active ? "page" : undefined}
                 >
-                  <span className={cn("dock-ico grid size-7 place-items-center transition-transform duration-300", active ? "-translate-y-[0.7rem]" : "-translate-y-[0.1rem]")} style={active ? { color: tone.ink } : undefined}>
+                  <span className={cn("dock-ico grid size-7 place-items-center transition-transform duration-300", active ? "-translate-y-[0.72rem]" : "-translate-y-[0.5rem]")} style={active ? { color: tone.ink } : undefined}>
                     <Icon className="size-[1.4rem]" strokeWidth={active ? 2.2 : 1.7} />
                   </span>
                   <span className={active ? "" : "hidden"}>{item.label}</span>
