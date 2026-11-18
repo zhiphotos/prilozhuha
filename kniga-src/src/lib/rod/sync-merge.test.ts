@@ -48,3 +48,42 @@ test("значения, которые не являются списками з
   assert.deepEqual(data.fonts, ["x", "y"]);
   assert.equal(data.extra, "из облака");
 });
+
+test("страница устарела здесь, а в облаке её дописали: берётся облачная (по времени правки, даже без базы)", () => {
+  const local = { pages: [{ id: "p1", title: "черновик", editedAt: 100 }], people: [] };
+  const cloud = { pages: [{ id: "p1", title: "готово", editedAt: 500 }], people: [] };
+  const { data, report } = mergeBooks(local, cloud);
+  assert.equal((data.pages as { title: string }[])[0]!.title, "готово");
+  assert.equal(report.total.fromCloud, 1);
+});
+
+test("здесь правили позже, чем в облаке: остаётся здешняя", () => {
+  const local = { pages: [{ id: "p1", title: "новая", editedAt: 900 }] };
+  const cloud = { pages: [{ id: "p1", title: "старая", editedAt: 500 }] };
+  assert.equal(((mergeBooks(local, cloud).data.pages as { title: string }[])[0]!).title, "новая");
+});
+
+test("с базой: здесь запись не менялась, в облаке менялась: берётся облачная, времени правки может и не быть", () => {
+  const base = { people: [{ id: "a", name: "Анна" }] };
+  const local = { people: [{ id: "a", name: "Анна" }] };
+  const cloud = { people: [{ id: "a", name: "Анна Ивановна" }] };
+  const { data, report } = mergeBooks(local, cloud, base);
+  assert.equal((data.people as { name: string }[])[0]!.name, "Анна Ивановна");
+  assert.equal(report.total.fromCloud, 1);
+  assert.equal(report.total.differing, 0);
+});
+
+test("с базой: здесь запись менялась, в облаке нет: остаётся здешняя", () => {
+  const base = { people: [{ id: "a", name: "Анна" }] };
+  const local = { people: [{ id: "a", name: "Анна Петровна" }] };
+  const cloud = { people: [{ id: "a", name: "Анна" }] };
+  assert.equal(((mergeBooks(local, cloud, base).data.people as { name: string }[])[0]!).name, "Анна Петровна");
+});
+
+test("с базой: настройки менялись только в облаке: берутся облачные; только здесь: остаются здешние", () => {
+  const base = { print: { size: "A5" }, back: "x" };
+  const d1 = mergeBooks({ print: { size: "A5" }, back: "x" }, { print: { size: "A4" }, back: "x" }, base).data;
+  assert.deepEqual(d1.print, { size: "A4" });
+  const d2 = mergeBooks({ print: { size: "A3" }, back: "x" }, { print: { size: "A5" }, back: "x" }, base).data;
+  assert.deepEqual(d2.print, { size: "A3" });
+});

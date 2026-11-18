@@ -155,3 +155,28 @@ test("пока шло объединение, в облаке появилась
   const again = await B.sync("auto"); // повторная синхронизация снова предлагает выбор, а не затирает
   assert.ok(again.kind === "conflict" || again.kind === "uploaded", again.kind);
 });
+
+test("автосинхронизация без вопросов: правили и здесь, и там, сразу объединяется, потом всё одинаково на обоих устройствах", async () => {
+  const { A, B } = await setup(); // B уже получил «conflict» в обычном режиме, ничего не изменилось
+  const result = await engine.syncSmart(B.deps());
+  assert.equal(result.kind, "merged");
+  assert.deepEqual(B.ids(), ["a-only", "b-only", "base"]);
+  assert.deepEqual(await cloudIds(B), ["a-only", "b-only", "base"]);
+  assert.equal(kind(await A.sync()), "downloaded"); // первое устройство просто подтянуло объединённое
+  assert.deepEqual(A.ids(), ["a-only", "b-only", "base"]);
+  assert.ok(B.backupIds().includes("b-only") && B.backupIds().includes("a-only"), "обе версии лежат в копиях");
+  assert.equal(kind(await engine.syncSmart(B.deps())), "same");
+});
+
+test("автосинхронизация: без конфликта работает как обычная (грузит и берёт)", async () => {
+  const order = newOrder();
+  const A = new Device(order, "dev-aaaaaaaa");
+  const B = new Device(order, "dev-bbbbbbbb");
+  A.add("x");
+  assert.equal(kind(await engine.syncSmart(A.deps())), "uploaded");
+  assert.equal(kind(await engine.syncSmart(B.deps())), "downloaded");
+  B.add("y");
+  assert.equal(kind(await engine.syncSmart(B.deps())), "uploaded");
+  assert.equal(kind(await engine.syncSmart(A.deps())), "downloaded");
+  assert.deepEqual(A.ids(), ["x", "y"]);
+});

@@ -6,8 +6,9 @@ import { hasMedia, mediaDataUrl, saveMediaAs } from "@/lib/rod/media";
 import { deviceId } from "@/lib/rod/pay";
 import { MAIN_ID, activeProjectId, addProjectWithId, listProjects } from "@/lib/rod/projects";
 import { fingerprint, splitParts } from "@/lib/rod/sync-logic";
-import { PART, afterOpenCopy, previewMerge, restoreLocalBackup, restorePreviousCloud, syncCore, type Deps, type Meta, type SyncMode, type SyncOutcome } from "@/lib/rod/sync-engine";
+import { PART, afterOpenCopy, previewMerge, restoreLocalBackup, restorePreviousCloud, syncCore, syncSmart, type Deps, type Meta, type SyncMode, type SyncOutcome } from "@/lib/rod/sync-engine";
 import { readBackup, saveBackup } from "@/lib/rod/sync-backup";
+import { STATE_STORE, idbGet, idbSet } from "@/lib/rod/idb";
 import { flushBook, useRod } from "@/lib/rod/store";
 
 // Синхронизация книги между устройствами одного оплаченного доступа (до 3 устройств).
@@ -142,6 +143,11 @@ function makeDeps(): Deps {
     saveBackup,
     readBackup,
     now: () => new Date().toISOString(),
+    saveBase: (text) => idbSet(STATE_STORE, `kniga-sync-base:${activeProjectId()}`, text),
+    readBase: async () => {
+      const text = await idbGet<string>(STATE_STORE, `kniga-sync-base:${activeProjectId()}`);
+      return text ? (JSON.parse(text) as Record<string, unknown>) : null;
+    },
   };
 }
 
@@ -166,9 +172,10 @@ function report(outcome: SyncOutcome, mode: SyncMode) {
   } else if (outcome.kind === "error") {
     ui.setState({ busy: false, message: outcome.message });
   } else if (outcome.kind === "merged") {
-    const { added, differing } = outcome.report.total;
-    const kept = differing ? ` Записей с разным содержимым: ${differing}. Оставлены версии с этого устройства, облачные лежат в копиях.` : "";
-    ui.setState({ busy: false, conflict: false, message: `Книги объединены: из облака добавлено записей: ${added}.${kept} Удалённое на одном устройстве, но оставшееся на другом, вернулось. Обе прежние версии сохранены копиями на этом устройстве. Если книга открыта на других устройствах, нажмите «Синхронизировать сейчас» и там: они возьмут объединённую.` });
+    const { added, differing, fromCloud } = outcome.report.total;
+    const kept = differing ? ` Записей с разным содержимым: ${differing}. Оставлены те, что правили позже; другие версии лежат в копиях.` : "";
+    if (mode === "auto" && (added || differing || fromCloud)) toast("Объединила изменения с двух устройств. Обе версии сохранены копиями, ничего не потеряно.", { duration: 6000 });
+    ui.setState({ busy: false, conflict: false, message: `Книги объединены: из облака добавлено записей: ${added}${fromCloud ? `, обновлено более новыми: ${fromCloud}` : ""}.${kept} Удалённое на одном устройстве, но оставшееся на другом, вернулось. Обе прежние версии сохранены копиями на этом устройстве. Если книга открыта на других устройствах, нажмите «Синхронизировать сейчас» и там: они возьмут объединённую.` });
   } else {
     ui.setState({ busy: false, conflict: false, message: MESSAGES[outcome.kind] });
   }
@@ -201,7 +208,8 @@ export async function syncNow(mode: SyncMode = "auto"): Promise<void> {
   if (ui.busy || !API_BASE || !useRod.getState().access?.token) return;
   ui.setState({ busy: true, message: "Синхронизирую…" });
   if (mode === "auto") await adoptCloudBooks().catch(() => undefined);
-  report(await syncCore(makeDeps(), mode), mode);
+  // Автоматический запуск не задаёт вопросов: при конфликте объединяет сам. Ручные «Оставить мою / облачную / Объединить» работают как раньше.
+  report(mode === "auto" ? await syncSmart(makeDeps()) : await syncCore(makeDeps(), mode), mode);
 }
 
 /** Копия книги на этом устройстве до замены. Вызывать перед «Открыть копию» и перед восстановлением. */
@@ -229,7 +237,7 @@ export async function restorePreviousCloudVersion(): Promise<void> {
 
 let started = false;
 
-/** Автосинхронизация: при запуске, при возврате в приложение, раз в две минуты, при появлении сети и через 20 секунд после правок. */
+/** Автосинхронизация: при запуске, при возврате в приложение, раз в две минуты, при появлении сети и через 8 секунд после правок. */
 export function startAutoSync(): void {
   if (started || typeof document === "undefined") return;
   started = true;
@@ -243,6 +251,6 @@ export function startAutoSync(): void {
   let timer: number | undefined;
   useRod.subscribe(() => {
     window.clearTimeout(timer);
-    timer = window.setTimeout(run, 20_000);
+    timer = window.setTimeout(run, 8_000);
   });
 }
