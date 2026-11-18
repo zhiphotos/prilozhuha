@@ -5,11 +5,13 @@ import { useRod } from "@/lib/rod/store";
 import type { Person } from "@/lib/rod/types";
 import { buildDiagnostics, buildTreeFile, parseTreeFile, planImport, type ImportPlan, type TreeFile } from "@/lib/tree/treeFile";
 import { hiddenGhostCount, restoreGhosts, useTree } from "@/lib/tree/ui-store";
+import { gedcomFromTree } from "@/lib/tree/gedExport";
+import { treeFromPeople } from "@/lib/tree/from-people";
 
 const build = () => document.querySelector<HTMLScriptElement>("script[src*='assets/index-']")?.src.match(/index-([^./]+)\.js/)?.[1] ?? "";
 
-function download(name: string, content: string) {
-  const url = URL.createObjectURL(new Blob([content], { type: "application/json" }));
+function download(name: string, content: string, type = "application/json") {
+  const url = URL.createObjectURL(new Blob([content], { type }));
   const a = document.createElement("a");
   a.href = url;
   a.download = name;
@@ -35,6 +37,12 @@ export function TreeFileButton() {
   const saveTree = () => {
     download(`kniga-roda-${stamp()}.tree`, JSON.stringify(buildTreeFile(people, build(), view()), null, 1));
     toast("Файл древа сохранён. В нём имена и данные родственников: храните его так же бережно, как саму книгу. Фото в файл не входят.", { duration: 9000 });
+  };
+  const saveGed = () => {
+    if (!people.length) return toast("В древе пока никого нет.");
+    // BOM нужен, чтобы Windows-программы не ломали русские буквы; сам формат остаётся GEDCOM 5.5.1 в UTF-8.
+    download(`kniga-roda-${stamp()}.ged`, "\uFEFF" + gedcomFromTree(treeFromPeople(people)), "text/plain;charset=utf-8");
+    toast("GEDCOM сохранён. Его можно загрузить в MyHeritage, Ancestry, Gramps и другие программы. В файле имена и данные родственников: храните его бережно.", { duration: 9000 });
   };
   const diag = (anonymize: boolean) => {
     download(`kniga-roda-diagnostika${anonymize ? "-obezlichennaya" : ""}-${stamp()}.json`, JSON.stringify(buildDiagnostics(people, { anonymize, build: build(), view: view() }), null, 1));
@@ -111,6 +119,8 @@ export function TreeFileButton() {
             <p className="text-muted">Файл «.tree» это копия дерева для переноса в другую книгу или на другое устройство и для резервного хранения. Двойным нажатием он не откроется (внутри обычный текст). Для печати и пересылки используйте кнопку печати: она делает PDF или картинку.</p>
             <Button onClick={saveTree}>Скачать файл древа (.tree)</Button>
             <button type="button" className="min-h-11 rounded-xl border border-ink/20 px-3" onClick={() => input.current?.click()}>Загрузить файл древа…</button>
+            <p className="text-muted">GEDCOM (.ged) это общий формат родословных: файл откроется в других программах и сайтах.</p>
+            <button type="button" className="min-h-11 rounded-xl border border-ink/20 px-3" onClick={saveGed}>Скачать GEDCOM (.ged)</button>
             <p className="pt-1 font-semibold">Для диагностики</p>
             <p className="text-muted">Если схема выглядит неправильно, скачайте файл и передайте разработчице. Обезличенный убирает имена, даты, заметки и фото, но структура семьи остаётся и по ней иногда можно узнать семью.</p>
             <button type="button" className="min-h-11 rounded-xl border border-ink/20 px-3" onClick={() => diag(true)}>Скачать обезличенный файл</button>
