@@ -7,6 +7,9 @@ import { buildDiagnostics, buildTreeFile, parseTreeFile, planImport, type Import
 import { hiddenGhostCount, restoreGhosts, useTree } from "@/lib/tree/ui-store";
 import { gedcomFromTree } from "@/lib/tree/gedExport";
 import { treeFromPeople } from "@/lib/tree/from-people";
+import { planPhotos } from "@/lib/tree/photo-match";
+import { saveMedia } from "@/lib/rod/media";
+import { fileToPhoto } from "@/lib/tree/photo";
 
 const build = () => document.querySelector<HTMLScriptElement>("script[src*='assets/index-']")?.src.match(/index-([^./]+)\.js/)?.[1] ?? "";
 
@@ -33,6 +36,22 @@ export function TreeFileButton() {
   const [incoming, setIncoming] = useState<{ file: TreeFile; warnings: string[]; plan: ImportPlan } | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const people = useRod((s) => s.people);
+  const photoInput = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const addPhotos = async (list: FileList | null) => {
+    const files = [...(list ?? [])].filter((f) => f.type.startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(f.name));
+    if (photoInput.current) photoInput.current.value = "";
+    if (!files.length) return;
+    setBusy(true);
+    try {
+      const plan = planPhotos(files, useRod.getState().people);
+      for (const { person, file } of plan.assign) {
+        const ref = await saveMedia(await fileToPhoto(file));
+        useRod.getState().updatePerson(person.id, { photo: ref });
+      }
+      toast(`Фото поставлено: ${plan.assign.length}. Не нашла в древе: ${plan.unmatched.length}. Уже с фото: ${plan.skipped}.`, { duration: 9000 });
+    } finally { setBusy(false); }
+  };
 
   const saveTree = () => {
     download(`kniga-roda-${stamp()}.tree`, JSON.stringify(buildTreeFile(people, build(), view()), null, 1));
@@ -117,6 +136,9 @@ export function TreeFileButton() {
               </div>
             ) : null}
             <p className="text-muted">Файл «.tree» это копия дерева для переноса в другую книгу или на другое устройство и для резервного хранения. Двойным нажатием он не откроется (внутри обычный текст). Для печати и пересылки используйте кнопку печати: она делает PDF или картинку.</p>
+            <input ref={photoInput} type="file" accept="image/*" multiple className="hidden" onChange={(event) => void addPhotos(event.target.files)} />
+            <button type="button" disabled={busy} className="min-h-11 rounded-xl border border-ink/20 px-3" onClick={() => photoInput.current?.click()}>{busy ? "Ставлю фото…" : "Загрузить фото пачкой"}</button>
+            <p className="text-muted">Выберите сразу много фото. Имя файла должно быть как имя человека («Буров Валерий Владимирович.jpg»): программа сама поставит фото на нужные карточки.</p>
             <Button onClick={saveTree}>Скачать файл древа (.tree)</Button>
             <button type="button" className="min-h-11 rounded-xl border border-ink/20 px-3" onClick={() => input.current?.click()}>Загрузить файл древа…</button>
             <p className="text-muted">GEDCOM (.ged) это общий формат родословных: файл откроется в других программах и сайтах.</p>
