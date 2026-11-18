@@ -2300,13 +2300,13 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             <span className="truncate text-xs text-muted">Всё двигается и удаляется</span>
           </div>
         ) : (
-          <p className="h-11 truncate pt-3 text-center text-xs text-muted max-md:hidden">Пунктир: безопасная зона, текст держите внутри. Фото можно тянуть до самого края.</p>
+          <p className="editor-hint h-11 truncate pt-3 text-center text-xs text-muted max-md:hidden">Пунктир: безопасная зона, текст держите внутри. Фото можно тянуть до самого края.</p>
         )}
       </div>
 
       {/* Инструменты */}
-      <nav className={cn("relative z-[46] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2", drawingTool && "hidden")}>
-        <div className="toolbar-dark mx-auto flex max-w-xl items-stretch justify-between gap-0.5 rounded-[1.6rem] p-1.5">
+      <nav className={cn("editor-nav relative z-[46] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2", drawingTool && "hidden")}>
+        <div className="toolbar-dark editor-nav-bar mx-auto flex max-w-xl items-stretch justify-between gap-0.5 rounded-[1.6rem] p-1.5">
           <ToolBtn label="Текст" onClick={onTextTool}>
             <Type className="size-5" />
           </ToolBtn>
