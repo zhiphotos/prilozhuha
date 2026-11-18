@@ -36,3 +36,5 @@ body{padding-top:64px;font-family:"Manrope",var(--body)}
 .art__dl{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 1.2em}
 .art__body .btn{color:#14160f}
 .art__body .btn--ghost{color:#3a3426}
+.art__free{margin:1.4em 0 0;padding:14px 18px;border-radius:14px;background:rgba(75,90,48,.14);border:1px solid rgba(75,90,48,.35);font-size:17px}
+.art__body ol[start]{padding-left:1.8em}
