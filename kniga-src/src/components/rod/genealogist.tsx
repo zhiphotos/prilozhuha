@@ -32,7 +32,7 @@ export function AiHubScreen() {
       {programOpen ? null : <p className="mb-3 rounded-2xl bg-white/60 p-3 text-base leading-snug">ИИ-помощники входят в платную программу. Здесь можно посмотреть, что они умеют.</p>}
       <div className="ai-grid">
         {list.map((f) => (
-          <button key={f.id} type="button" className="ai-f" data-tone={f.tone} data-photo={f.id === "photo" ? "1" : undefined} data-bubbles={f.id === "gen" ? "1" : undefined} data-mic={f.id === "iv" ? "1" : undefined} disabled={!f.go} onClick={f.go} aria-label={f.label}>
+          <button key={f.id} type="button" className="ai-f" data-tone={f.tone} data-photo={f.id === "photo" ? "1" : undefined} data-bubbles={f.id === "gen" ? "1" : undefined} data-mic={f.id === "iv" ? "1" : undefined} data-doc={f.id === "doc" ? "1" : undefined} disabled={!f.go} onClick={f.go} aria-label={f.label}>
             <span className="ai-back" aria-hidden="true" />
             <span className="ai-peek" aria-hidden="true"><i /><i />{f.id === "gen" ? <img className="ai-phone" src="/ai/moss-phone.webp" alt="" /> : null}</span>
             <span className="ai-front">
