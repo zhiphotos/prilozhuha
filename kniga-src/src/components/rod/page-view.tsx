@@ -24,7 +24,7 @@ import {
 } from "@/lib/rod/page-style";
 import { cropGeom, innerBox } from "@/lib/rod/crop";
 import { shapeParts, shapeStyle } from "@/lib/rod/shapes";
-import { useGhosts } from "@/lib/rod/spread";
+import { isGhostId, mergeGhosts, useGhosts } from "@/lib/rod/spread";
 import type { BookPage, InkStroke, PageBlock, PaperKind } from "@/lib/rod/types";
 import { cn } from "@/lib/cn";
 
@@ -70,6 +70,7 @@ export function PageSheet({
   hideStrokes = false,
   clip = true,
   ghosts = true,
+  ghostsInChildren = false,
 }: {
   page: BookPage;
   meta: CoverMeta;
@@ -80,8 +81,10 @@ export function PageSheet({
   clip?: boolean;
   /** Показывать части фото, которые заходят с соседней страницы разворота. */
   ghosts?: boolean;
+  /** Копии через разворот рисует сам вызывающий (редактор): они вставлены среди блоков по слоям. */
+  ghostsInChildren?: boolean;
 }) {
-  const crossing = useGhosts(ghosts ? page.id : "");
+  const crossing = useGhosts(ghosts && !ghostsInChildren ? page.id : "");
   return (
     <DarkPage.Provider value={isDark(page.bg)}>
     <div
@@ -90,19 +93,20 @@ export function PageSheet({
     >
       {isDark(page.bg) ? null : <div className="paper-grain pointer-events-none absolute inset-0" />}
       {page.kind === "cover" && !page.designed ? <CoverArt meta={meta} /> : null}
-      {crossing.map((block) => (
-        <PlacedBlock key={block.id} block={block} className="pointer-events-none">
-          <BlockArt block={block} />
-        </PlacedBlock>
-      ))}
       <PageBlocks.Provider value={page.blocks}>
         {children ?? (
           <>
-            {page.blocks.map((block) => (
-              <PlacedBlock key={block.id} block={block}>
-                <BlockArt block={block} editing={editing} />
-              </PlacedBlock>
-            ))}
+            {mergeGhosts(page.blocks, crossing).map((block) =>
+              isGhostId(block.id) ? (
+                <PlacedBlock key={block.id} block={block} className="pointer-events-none">
+                  <BlockArt block={block} />
+                </PlacedBlock>
+              ) : (
+                <PlacedBlock key={block.id} block={block}>
+                  <BlockArt block={block} editing={editing} />
+                </PlacedBlock>
+              ),
+            )}
           </>
         )}
       </PageBlocks.Provider>

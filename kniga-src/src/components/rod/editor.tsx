@@ -62,7 +62,7 @@ import { findPrompt } from "@/lib/rod/pages";
 import { paintPage } from "@/lib/rod/print-book";
 import { defaultShapeBox } from "@/lib/rod/shapes";
 import { scratch, stickSound, turnPage } from "@/lib/rod/sounds";
-import { partnerIndex, spreadGhosts } from "@/lib/rod/spread";
+import { ghostPosition, isGhostId, mergeGhosts, partnerIndex, spreadGhosts, useGhosts } from "@/lib/rod/spread";
 import { backPage, flushBook, useRod } from "@/lib/rod/store";
 import { BACK_ID, type BookPage, type BrushKind, type FontRef, type InkStroke, type PageBlock, type PaperKind, type PhotoFrame, type ShapeKind, type StickerKind } from "@/lib/rod/types";
 import type { Recognized } from "@/lib/rod/ink";
@@ -188,6 +188,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const hasCover = pages[0]?.kind === "cover";
   const partnerAt = isBack ? -1 : partnerIndex(pages, index);
   const partner = partnerAt >= 0 ? (pages[partnerAt] ?? null) : null;
+  const crossing = useGhosts(isBack ? "" : pageId);
   const [spread, setSpreadState] = useState(() => {
     try {
       const saved = localStorage.getItem("kniga-spread");
@@ -2063,9 +2064,16 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             >
               {/* Вылет под обрез: сюда можно тянуть фото, всё остальное отрежется */}
               <div className="pointer-events-none absolute rounded-[2px] border border-dashed border-rose/40" style={{ inset: `-${bleedPctY}% -${bleedPct}%` }} />
-              <PageSheet page={page} meta={meta} hideStrokes clip={false} className="rounded-[2px]">
+              <PageSheet page={page} meta={meta} hideStrokes clip={false} ghostsInChildren className="rounded-[2px]">
                 <div data-bg="1" className="absolute inset-0" />
-                {page.blocks.map((blockBase) => {
+                {mergeGhosts(page.blocks, crossing).map((blockBase) => {
+                  if (isGhostId(blockBase.id)) {
+                    return (
+                      <PlacedBlock key={blockBase.id} block={blockBase} className="pointer-events-none">
+                        <BlockArt block={blockBase} />
+                      </PlacedBlock>
+                    );
+                  }
                   const block = eraseDraft && eraseDraft.id === blockBase.id ? eraseDraft : blockBase;
                   if (block.type === "ink" && !block.strokes.length) return null;
                   const box = ghost?.id === block.id ? ghost.box : (ghostGroup?.[block.id] ?? null);
@@ -2576,6 +2584,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             onOpen: () => { setPanel(null); turnPage(); nav.replace({ id: "editor", pageId: partner.id }); },
             onLock: () => updatePage(partner.id, (pg) => ({ ...pg, blocks: pg.blocks.map((x) => (x.id === b.id ? ({ ...x, locked: !x.locked } as PageBlock) : x)) })),
             onRemove: () => updatePage(partner.id, (pg) => ({ ...pg, blocks: pg.blocks.filter((x) => x.id !== b.id) })),
+            onUnder: (anchor: string | null) => updatePage(partner.id, (pg) => ({ ...pg, blocks: pg.blocks.map((x) => (x.id === b.id ? ({ ...x, ghostUnder: anchor } as PageBlock) : x)) })),
           })) : []}
         />
       ) : null}

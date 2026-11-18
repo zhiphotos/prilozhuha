@@ -34,3 +34,25 @@ export function useGhosts(pageId: string): PageBlock[] {
   const pages = useRod((state) => state.pages);
   return useMemo(() => spreadGhosts(pages, pageId), [pages, pageId]);
 }
+
+export const isGhostId = (id: string) => id.startsWith("ghost:");
+
+/** Место копии среди блоков страницы: 0 – самая нижняя, blocks.length – поверх всех. */
+export function ghostPosition(blocks: PageBlock[], ghostUnder: string | null | undefined): number {
+  if (ghostUnder === null) return blocks.length;
+  if (ghostUnder === undefined) return 0;
+  const at = blocks.findIndex((b) => b.id === ghostUnder);
+  return at < 0 ? 0 : at;
+}
+
+/** Блоки страницы вместе с копиями через разворот, каждая копия на своём месте по порядку слоёв. */
+export function mergeGhosts(blocks: PageBlock[], ghosts: PageBlock[]): PageBlock[] {
+  if (!ghosts.length) return blocks;
+  const out: PageBlock[] = [];
+  const at = (i: number) => ghosts.filter((g) => ghostPosition(blocks, g.ghostUnder) === i);
+  blocks.forEach((b, i) => {
+    out.push(...at(i), b);
+  });
+  out.push(...at(blocks.length));
+  return out;
+}
