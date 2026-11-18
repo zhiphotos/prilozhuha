@@ -22,7 +22,7 @@ export function AiHubScreen() {
     { id: "ch", label: "Глава", sub: "Рассказ в стиле книги", tone: "sand", icon: <PenLine />, go: () => (programOpen ? nav.go({ id: "ai-chapter" }) : setDemo("ch")) },
     { id: "photo", label: "Старые фото", sub: "Восстановление фото, скоро", tone: "sand", icon: <ImageIcon />, go: () => setDemo("photo") },
     { id: "iv", label: "Интервью", sub: "Запись в текст", tone: "bordo", icon: <Mic />, go: () => (programOpen ? nav.go({ id: "interviews" }) : setDemo("iv")) },
-    { id: "lay", label: "Вёрстка страниц", sub: "Скоро", tone: "stone", icon: <LayoutTemplate />, go: () => setDemo("lay") },
+    { id: "lay", label: "Вёрстка страниц", sub: "Вёрстка с ИИ, скоро", tone: "stone", icon: <LayoutTemplate />, go: () => setDemo("lay") },
     { id: "doc", label: "Старые документы", sub: "Скоро", tone: "moss", icon: <ScrollText />, go: () => setDemo("doc") },
     { id: "arc", label: "Поиск в архивах", sub: "В карточке человека", tone: "bordo", icon: <Archive />, go: () => (programOpen ? nav.go({ id: "archive", tab: "tree" }) : setDemo("arc")) },
   ];
