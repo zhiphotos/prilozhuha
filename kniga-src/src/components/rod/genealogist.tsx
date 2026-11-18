@@ -20,7 +20,7 @@ export function AiHubScreen() {
   const list: { id: string; label: string; sub: string; tone: string; icon: ReactNode; go?: () => void }[] = [
     { id: "gen", label: "Генеалог", sub: "Ответы по справочникам", tone: "moss", icon: <Compass />, go: () => (programOpen ? nav.go({ id: "ai-genealogist" }) : setDemo("gen")) },
     { id: "ch", label: "Глава", sub: "Рассказ в стиле книги", tone: "sand", icon: <PenLine />, go: () => (programOpen ? nav.go({ id: "ai-chapter" }) : setDemo("ch")) },
-    { id: "photo", label: "Старые фото", sub: "Скоро", tone: "sand", icon: <ImageIcon />, go: () => setDemo("photo") },
+    { id: "photo", label: "Старые фото", sub: "Восстановление фото, скоро", tone: "sand", icon: <ImageIcon />, go: () => setDemo("photo") },
     { id: "iv", label: "Интервью", sub: "Запись в текст", tone: "bordo", icon: <Mic />, go: () => (programOpen ? nav.go({ id: "interviews" }) : setDemo("iv")) },
     { id: "lay", label: "Вёрстка страниц", sub: "Скоро", tone: "stone", icon: <LayoutTemplate />, go: () => setDemo("lay") },
     { id: "doc", label: "Старые документы", sub: "Скоро", tone: "moss", icon: <ScrollText />, go: () => setDemo("doc") },
@@ -32,9 +32,9 @@ export function AiHubScreen() {
       {programOpen ? null : <p className="mb-3 rounded-2xl bg-white/60 p-3 text-base leading-snug">ИИ-помощники входят в платную программу. Здесь можно посмотреть, что они умеют.</p>}
       <div className="ai-grid">
         {list.map((f) => (
-          <button key={f.id} type="button" className="ai-f" data-tone={f.tone} disabled={!f.go} onClick={f.go} aria-label={f.label}>
+          <button key={f.id} type="button" className="ai-f" data-tone={f.tone} data-photo={f.id === "photo" ? "1" : undefined} data-bubbles={f.id === "gen" ? "1" : undefined} disabled={!f.go} onClick={f.go} aria-label={f.label}>
             <span className="ai-back" aria-hidden="true" />
-            <span className="ai-peek" aria-hidden="true"><i /><i /></span>
+            <span className="ai-peek" aria-hidden="true"><i /><i />{f.id === "gen" ? <img className="ai-phone" src="/ai/moss-phone.webp" alt="" /> : null}</span>
             <span className="ai-front">
               <b>{f.label}</b>
               <small>{f.sub}</small>
