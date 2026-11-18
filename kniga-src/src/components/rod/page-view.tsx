@@ -420,7 +420,7 @@ function BoldText({ text }: { text: string }) {
 /** Фото в рамке. Если задано кадрирование, картинка сдвинута и приближена внутри рамки. */
 function PhotoImage({ block, src, alt }: { block: Extract<PageBlock, { type: "photo" }>; src: string; alt: string }) {
   const [ar, setAr] = useState(0);
-  const inner = innerBox(block.frame, false, block.w, block.h);
+  const inner = innerBox(block.frame, false, block.w, block.h, INK_PAGE_H);
   if (!src) return <div className="h-full w-full animate-pulse bg-[#e6ddd1]" />;
   if (block.crop && ar) {
     const g = cropGeom(inner, ar, block.crop);
