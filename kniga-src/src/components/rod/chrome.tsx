@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useDockStyle } from "@/lib/rod/dock-style";
 import { createPortal } from "react-dom";
 import { BookOpen, ChevronLeft, GraduationCap, Home, MessageCircle, PenLine, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -115,18 +116,23 @@ export function Dock() {
   const current = tabKey(nav.screen);
   const index = Math.max(0, TABS.findIndex((item) => item.id === current));
   const tone = TAB_TONE[TABS[index]?.id ?? "home"];
+  const dockStyle = useDockStyle();
+  const glass = dockStyle === "glass";
   // Плашка приклеена к низу, от края до края, с круглыми верхними углами. Над активным разделом вырастает «холм» с цветным кругом,
   // при переключении он плавно переезжает на новое место и меняет цвет.
   return (
-    <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 lg:hidden" style={{ ["--i" as string]: index }}>
-      <div className="relative rounded-t-[1.5rem] bg-night shadow-[0_-12px_30px_-14px_rgba(10,12,8,0.7)]">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-[calc(100%-1.5rem)] h-[2.6rem] overflow-hidden">
-          <div className="dock-hill h-full w-1/3">
-            <svg viewBox="0 0 96 62" preserveAspectRatio="none" className="size-full" fill="currentColor">
-              <path d="M0 26 C18 26 24 0 48 0 C72 0 78 26 96 26 L96 62 L0 62 Z" />
-            </svg>
+    <nav aria-label="Основная навигация" data-style={dockStyle} className="dock no-print fixed inset-x-0 bottom-0 z-30 lg:hidden" style={{ ["--i" as string]: index }}>
+      <div className={cn("relative", !glass && "rounded-t-[1.5rem] bg-night shadow-[0_-12px_30px_-14px_rgba(10,12,8,0.7)]")}>
+        {glass ? <div aria-hidden="true" className="dock-glass pointer-events-none absolute inset-x-0 bottom-0 top-[-1.1rem]" /> : null}
+        {glass ? null : (
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-[calc(100%-1.5rem)] h-[2.6rem] overflow-hidden">
+            <div className="dock-hill h-full w-1/3 text-night">
+              <svg viewBox="0 0 96 62" preserveAspectRatio="none" className="size-full" fill="currentColor">
+                <path d="M0 26 C18 26 24 0 48 0 C72 0 78 26 96 26 L96 62 L0 62 Z" />
+              </svg>
+            </div>
           </div>
-        </div>
+        )}
         <div aria-hidden="true" className="dock-dot pointer-events-none absolute left-0 top-0 flex w-1/6 justify-center">
           <span className="dock-circle -mt-[0.55rem] grid size-[2.5rem] place-items-center rounded-full shadow-[0_6px_14px_-4px_rgba(0,0,0,0.55)]" style={{ background: tone.bg }} />
         </div>
