@@ -224,7 +224,7 @@ p{margin:0 0 1em}
 .msg{margin:0;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.4;max-width:88%;opacity:0;transform:translateY(14px)}
 .msg.me{background:#d9cba6;color:#2d2616;justify-self:end;border-bottom-right-radius:4px}
 .msg.ai{background:var(--paper);color:#2d2616;justify-self:start;border-bottom-left-radius:4px}
-.msg.page{background:var(--gold);color:#241a07;font-weight:700;justify-self:stretch;max-width:100%;text-align:center}
+.msg.page{position:static;top:auto;width:auto;height:auto;display:block;border:0;padding:10px 14px;background:var(--gold);color:#241a07;font-weight:700;justify-self:stretch;max-width:100%;text-align:center}
 .is-active .msg{animation:rise .5s ease forwards}
 .is-active .m1{animation-delay:.2s}.is-active .m2{animation-delay:1.1s}.is-active .m3{animation-delay:2.1s}.is-active .m4{animation-delay:3s}
 /* поиск */

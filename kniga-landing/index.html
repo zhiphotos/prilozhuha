@@ -139,14 +139,14 @@
   <div class="wrap">
     <p class="kicker kicker--center">Приложение «Книга Рода»</p>
     <h2 class="h2 h2--center" id="appTitle">Что люди получают в приложении</h2>
-    <p class="sub sub--center">Всё, что нужно для семейной книги, лежит в одном месте на вашем телефоне. Листайте и смотрите, как это выглядит.</p>
+    <p class="sub sub--center">Всё, что нужно для семейной книги, лежит в одном месте на вашем телефоне. Листайте и смотрите, как это выглядит. ИИ-помощники пока работают на бесплатных мощностях, поэтому у каждого свой запас: он указан на слайдах и обновляется сам.</p>
 
     <div class="demo" id="demo" role="region" aria-roledescription="карусель" aria-label="Возможности приложения">
       <div class="demo__viewport" id="demoViewport">
         <div class="demo__track" id="demoTrack" aria-live="off">
 
           <!-- 1. Древо -->
-          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="1 из 10">
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="1 из 12">
             <div class="slide__scene scene scene--shots scene--treeshots" aria-hidden="true">
               <img class="shot s1" src="/media/tree-cameo.webp" alt="" loading="lazy"><img class="shot s2" src="/media/tree-taiga.webp" alt="" loading="lazy">
               <span class="chip chip--float">пять оформлений древа</span>
@@ -160,7 +160,7 @@
           </article>
 
           <!-- 2. Ленты -->
-          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="2 из 10">
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="2 из 12">
             <div class="slide__scene scene scene--feed" aria-hidden="true">
               <div class="feed">
                 <div class="post p1"><i class="ph ph--a"></i><b>Дом в Вятке, 1962</b><span>фото из бабушкиного альбома</span></div>
@@ -178,7 +178,7 @@
           </article>
 
           <!-- 3. Книга и макеты -->
-          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="3 из 10">
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="3 из 12">
             <div class="slide__scene scene scene--shots scene--bookshots" aria-hidden="true">
               <img class="shot s1 wide" src="/media/app-templates.webp" alt="" loading="lazy">
               <span class="chip chip--float">шаблон на 100 страниц</span>
@@ -192,7 +192,7 @@
           </article>
 
           <!-- 4. Мемуары любви -->
-          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="4 из 10">
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="4 из 12">
             <div class="slide__scene scene scene--shots scene--loveshots" aria-hidden="true">
               <img class="shot s1" src="/media/love-daria.webp" alt="" loading="lazy">
               <div class="chapters"><p class="ch c1"><span>1</span>Начало</p><p class="ch c2"><span>2</span>Знакомство</p><p class="ch c3"><span>3</span>Жизнь вместе</p><p class="ch c4"><span>4</span>Свадьба</p><p class="ch c5"><span>5</span>Дом</p><p class="ch c6"><span>6</span>Семья</p></div>
@@ -207,7 +207,7 @@
           </article>
 
           <!-- 5. Свадебная книга -->
-          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="5 из 10">
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="5 из 12">
             <div class="slide__scene scene scene--shots scene--wedshots" aria-hidden="true">
               <img class="shot s1 tall" src="/media/wedding.webp" alt="" loading="lazy">
               <p class="cap">Утро · Церемония · Первый танец</p>
@@ -222,7 +222,7 @@
           </article>
 
           <!-- 6. Колоды вопросов с голосом -->
-          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="6 из 10">
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="6 из 12">
             <div class="slide__scene scene scene--voice" aria-hidden="true">
               <div class="qcard"><small>Вопрос для бабушки</small><b>Чем пахло в вашем детстве по воскресеньям?</b></div>
               <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
@@ -237,42 +237,80 @@
             </div>
           </article>
 
-          <!-- 7. ИИ-помощник -->
-          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="7 из 10">
+          <!-- 7. Генеалог -->
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="7 из 12">
             <div class="slide__scene scene scene--ai" aria-hidden="true">
               <div class="chat">
-                <p class="msg me m1">Бабушка жила в Вятке, любила печь пироги…</p>
-                <p class="msg ai m2">Расскажите, какой пирог был главным и кто сидел за столом?</p>
-                <p class="msg me m3">Капустный. Дед, мама и соседка баба Нюра.</p>
-                <p class="msg page m4">Страница готова: «Воскресенья в Вятке»</p>
+                <p class="msg me m1">Где искать метрики села в Бессарабии?</p>
+                <p class="msg ai m2">Начните с Национального архива Молдовы: там книги 1820–1924. Назовите уезд и год.</p>
+                <p class="msg me m3">Бендерский уезд, 1894</p>
+                <p class="msg page m4">Источник: метрические книги</p>
               </div>
-              <span class="chip chip--float">ИИ-помощник</span>
+              <span class="chip chip--float">ИИ-генеалог</span>
             </div>
             <div class="slide__body">
-              <p class="kicker">ИИ-помощник</p>
-              <h3 class="h3">Спросит, выслушает и напишет страницу</h3>
-              <p>Спросит, выслушает и превратит ответы и голосовые в красивый текст. Начать можно, даже если о роде известно немного.</p>
-              <p class="pain">Не нужно уметь писать, достаточно рассказать.</p>
+              <p class="kicker">ИИ-генеалог</p>
+              <h3 class="h3">Спросите про любую семейную загадку</h3>
+              <p>Где искать метрики, как читать старую запись, с чего начать поиск. Отвечает по справочникам и называет источник.</p>
+              <p class="pain">5 вопросов в день</p>
             </div>
           </article>
 
           <!-- 8. Архивы -->
-          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="8 из 10">
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="8 из 12">
             <div class="slide__scene scene scene--search" aria-hidden="true">
               <div class="sbox"><span class="q">Балануца, Вятская губерния</span><i class="lens">⌕</i></div>
               <ul class="results"><li class="r1"><b>Метрическая книга, 1894</b><span>запись о рождении</span></li><li class="r2"><b>Ревизская сказка</b><span>семья в селе</span></li><li class="r3"><b>Книга памяти</b><span>участник войны</span></li></ul>
-              <span class="chip chip--float">поиск по архивам</span>
+              <span class="chip chip--float">поиск по архивам с ИИ</span>
             </div>
             <div class="slide__body">
               <p class="kicker">Поиск предков</p>
-              <h3 class="h3">Поиск предков по архивам</h3>
-              <p>Подсказки, где искать документы, и готовые базы. Находки сразу попадают в архив и на страницы книги.</p>
-              <p class="pain">Расследование, которое увлекает как детектив.</p>
+              <h3 class="h3">ИИ подберёт архивы под вашего предка</h3>
+              <p>Составит запрос с вариантами написания фамилии и подскажет, как понять, что нашёлся тот самый человек. Находки сразу попадают в архив и на страницы книги.</p>
+              <p class="pain">10 поисков в месяц</p>
+            </div>
+          </article>
+
+          <!-- 9. Голос в текст -->
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="9 из 12">
+            <div class="slide__scene scene scene--ai" aria-hidden="true">
+              <div class="chat">
+                <p class="msg me m1">Запись разговора с бабушкой, 42 минуты</p>
+                <p class="msg ai m2">Расшифровала. Нашла 12 человек, 5 мест, 9 историй и 3 рецепта.</p>
+                <p class="msg ai m3">У каждого факта есть цитата и время в записи.</p>
+                <p class="msg page m4">Люди готовы для древа</p>
+              </div>
+              <span class="chip chip--float">голос в текст</span>
+            </div>
+            <div class="slide__body">
+              <p class="kicker">Интервью</p>
+              <h3 class="h3">Голос бабушки становится текстом</h3>
+              <p>Запишите разговор и получите расшифровку. ИИ найдёт в ней людей, места, события, увлечения и традиции, ничего не придумывая.</p>
+              <p class="pain">до 300 минут записи в месяц</p>
+            </div>
+          </article>
+
+          <!-- 10. Глава -->
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="10 из 12">
+            <div class="slide__scene scene scene--ai" aria-hidden="true">
+              <div class="chat">
+                <p class="msg me m1">Стиль: тёплый семейный</p>
+                <p class="msg ai m2">Глава: «На берегах Волги»</p>
+                <p class="msg ai m3">Корни, братья и сёстры, свадьба, дача. Внизу вопросы, что уточнить у родных.</p>
+                <p class="msg page m4">Люди и места выписаны отдельно</p>
+              </div>
+              <span class="chip chip--float">глава книги</span>
+            </div>
+            <div class="slide__body">
+              <p class="kicker">Глава из рассказа</p>
+              <h3 class="h3">Из записи получается глава книги</h3>
+              <p>Рассказ по темам с цитатами и вопросами. Отдельно выписаны люди для древа и места для изучения. Можно прислать и свой текст: пять стилей, от тёплого семейного до сказа.</p>
+              <p class="pain">2 главы в день</p>
             </div>
           </article>
 
           <!-- 9. Напоминания -->
-          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="9 из 10">
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="11 из 12">
             <div class="slide__scene scene scene--remind" aria-hidden="true">
               <div class="phone"><i class="notch"></i>
                 <div class="push pu1"><b>Книга рода</b><span>Завтра день рождения у бабушки Нины. Позвоните ей</span></div>
@@ -289,7 +327,7 @@
           </article>
 
           <!-- 10. Синхронизация -->
-          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="10 из 10">
+          <article class="slide" data-slide role="group" aria-roledescription="слайд" aria-label="12 из 12">
             <div class="slide__scene scene scene--sync" aria-hidden="true">
               <div class="dev dev--a"><i class="mini"></i><i class="mini"></i></div>
               <div class="link"><i></i><i></i><i></i></div>

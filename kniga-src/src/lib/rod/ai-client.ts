@@ -1,7 +1,7 @@
 // Клиент ИИ-слоя. Все лимиты и проверки доступа выполняет сервер (kniga-api/lib/ai); здесь только вызовы и понятные тексты.
 // Зависимости (адрес, токен, устройство, fetch) передаются снаружи: так модуль проверяется тестами без браузера.
 
-export type AiKind = "text" | "facts" | "audio_min" | "ocr_pages" | "archive" | "chat";
+export type AiKind = "text" | "facts" | "audio_min" | "ocr_pages" | "archive" | "chat" | "chapter";
 export type AiQuota = { per: "day" | "month"; limit: number; used: number; left: number; resetAt: string };
 export type AiStatus = { enabled: boolean; available: Record<AiKind, boolean>; usage: Record<AiKind, AiQuota> };
 export type AiDeps = { apiBase: string; token: string; deviceId: string; fetch?: typeof fetch };
@@ -36,6 +36,15 @@ export const extractFactsChunk = (deps: AiDeps, text: string, requestId: string,
 /** Чат с ИИ-генеалогом: история диалога и вопрос; сервер добавляет инструкцию и базу знаний. */
 export type ChatMsg = { role: "user" | "assistant"; text: string };
 export const chatGenealogist = (deps: AiDeps, messages: ChatMsg[], requestId: string) => post<{ reply: string; sources: string[]; left: number; resetAt: string }>(deps, "ai-chat", { messages, requestId });
+
+/** Художественная глава по присланному рассказу: стиль выбирает человек, инструкции живут на сервере. */
+export type ChapterStyle = "family" | "classic" | "memoir" | "essay" | "skaz" | "interview";
+export const writeChapter = (deps: AiDeps, input: { text: string; style: ChapterStyle; wish: string }, requestId: string) => post<{ chapter: string; left: number; resetAt: string }>(deps, "ai-chapter", { ...input, requestId });
+
+/** Поиск по архивам с ИИ: сервер выбирает и расставляет архивы из присланного списка и добавляет советы по методике. */
+export type SeekLead = { id: string; title: string; archive: string; href: string; query: string; why: string; grade: "A" | "B" | "C"; seen: boolean };
+export type SeekInput = { question: string; variants: string[]; place: string; seek: string; leads: SeekLead[] };
+export const seekArchives = (deps: AiDeps, input: SeekInput, requestId: string) => post<{ summary: string; leads: SeekLead[]; tips: string[]; sources: string[]; left: number; resetAt: string }>(deps, "ai-seek", { ...input, requestId });
 
 /** «Осталось 12 из 20 до 4 ноября». */
 export function quotaLine(quota: AiQuota, now = new Date()): string {

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Archive, Compass, Image as ImageIcon, LayoutTemplate, Mic, ScrollText } from "lucide-react";
+import { Archive, Compass, PenLine, Image as ImageIcon, LayoutTemplate, Mic, ScrollText } from "lucide-react";
 import { toast } from "sonner";
 import { Button, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
 import { chatGenealogist, type AiDeps, type ChatMsg } from "@/lib/rod/ai-client";
+import { AI_DEMOS, AiDemoSheet } from "@/components/rod/ai-demo";
 import { API_BASE } from "@/lib/rod/config";
 import { deviceId } from "@/lib/rod/pay";
 import { useRod } from "@/lib/rod/store";
@@ -15,13 +16,15 @@ type Turn = ChatMsg & { sources?: string[] };
 export function AiHubScreen() {
   const nav = useNav();
   const programOpen = useRod((s) => s.programOpen);
+  const [demo, setDemo] = useState<string | null>(null);
   const list: { id: string; label: string; sub: string; tone: string; icon: ReactNode; go?: () => void }[] = [
-    { id: "gen", label: "Генеалог", sub: "Ответы по справочникам", tone: "moss", icon: <Compass />, go: () => nav.go({ id: "ai-genealogist" }) },
-    { id: "iv", label: "Интервью", sub: "Главное из записи", tone: "bordo", icon: <Mic />, go: () => nav.go({ id: "interviews" }) },
-    { id: "photo", label: "Старые фото", sub: "Восстановление, скоро", tone: "sand", icon: <ImageIcon /> },
-    { id: "lay", label: "Вёрстка страниц", sub: "С ИИ, скоро", tone: "stone", icon: <LayoutTemplate /> },
-    { id: "doc", label: "Старые документы", sub: "Скоро", tone: "moss", icon: <ScrollText /> },
-    { id: "arc", label: "Поиск в архивах", sub: "Скоро", tone: "bordo", icon: <Archive /> },
+    { id: "gen", label: "Генеалог", sub: "Ответы по справочникам", tone: "moss", icon: <Compass />, go: () => (programOpen ? nav.go({ id: "ai-genealogist" }) : setDemo("gen")) },
+    { id: "ch", label: "Глава", sub: "Рассказ в стиле книги", tone: "sand", icon: <PenLine />, go: () => (programOpen ? nav.go({ id: "ai-chapter" }) : setDemo("ch")) },
+    { id: "iv", label: "Интервью", sub: "Запись в текст", tone: "bordo", icon: <Mic />, go: () => (programOpen ? nav.go({ id: "interviews" }) : setDemo("iv")) },
+    { id: "photo", label: "Старые фото", sub: "Скоро", tone: "sand", icon: <ImageIcon />, go: () => setDemo("photo") },
+    { id: "lay", label: "Вёрстка страниц", sub: "Скоро", tone: "stone", icon: <LayoutTemplate />, go: () => setDemo("lay") },
+    { id: "doc", label: "Старые документы", sub: "Скоро", tone: "moss", icon: <ScrollText />, go: () => setDemo("doc") },
+    { id: "arc", label: "Поиск в архивах", sub: "В карточке человека", tone: "bordo", icon: <Archive />, go: () => (programOpen ? nav.go({ id: "archive", tab: "tree" }) : setDemo("arc")) },
   ];
   return (
     <ScreenFrame>
@@ -40,6 +43,7 @@ export function AiHubScreen() {
           </button>
         ))}
       </div>
+      {demo && AI_DEMOS[demo] ? <AiDemoSheet demo={AI_DEMOS[demo]} onClose={() => setDemo(null)} /> : null}
     </ScreenFrame>
   );
 }

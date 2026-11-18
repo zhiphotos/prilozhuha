@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowRight, Check, ChevronLeft, ExternalLink, FileText, Lock, Play, Sparkles, X } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, ExternalLink, FileText, Library, Lock, Network, Play, ShoppingBag, Sparkles, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson, type Lesson } from "@/lib/rod/content";
 import { FAQ } from "@/lib/rod/faq";
@@ -266,12 +266,12 @@ function LessonVideo({ lessonId, flat = false }: { lessonId: string; flat?: bool
 }
 
 /** Что откроется после покупки: список по пунктам, как страница Кики+. */
-function IncludesList({ dark = false }: { dark?: boolean }) {
+function IncludesList({ dark = false, bare = false }: { dark?: boolean; bare?: boolean }) {
   const strong = dark ? "text-paper" : "text-ink";
   const soft = dark ? "text-paper/75" : "text-muted";
   return (
-    <div className={dark ? "mt-4" : "mt-4 rounded-2xl bg-white/60 p-4"}>
-      <p className={cn("text-[11px] font-semibold uppercase tracking-[0.16em]", dark ? "text-[#c9ae74]" : "text-muted")}>Что откроется после покупки</p>
+    <div className={dark || bare ? "mt-2 pb-3" : "mt-4 rounded-2xl bg-white/60 p-4"}>
+      {bare ? null : <p className={cn("text-[11px] font-semibold uppercase tracking-[0.16em]", dark ? "text-[#c9ae74]" : "text-muted")}>Что откроется после покупки</p>}
       <ul className="mt-3 grid gap-2.5">
         {PROGRAM_PERKS.map((perk) => (
           <li key={perk.title} className="flex gap-3 text-sm">
@@ -365,13 +365,16 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
   };
 
   return (
-    <Sheet title={mode === "restore" ? "Вход по почте" : "Программа «Книга рода»"} onClose={onClose}>
-      {mode === "buy" ? <PriceTag /> : null}
-      {mode === "buy" ? <p className="mt-2 text-sm text-muted">Шесть уроков с видео, ИИ-помощник и шаблоны, полный шаблон книги на 100 страниц, материалы для печати. Платите один раз: единоразовая плата, приложение остаётся с вами навсегда, без автоматических списаний.</p> : null}
+    <Sheet title={mode === "restore" ? "Вход по почте" : "Книга рода"} onClose={onClose} className={mode === "buy" && !started ? "!bg-[#efe9da] [&>div:first-child]:!bg-[#efe9da]" : undefined}>
+      {mode === "buy" && !started ? <PayPitch onBuy={() => setStarted(true)} /> : null}
+      {mode === "buy" && started ? <PriceTag /> : null}
 
       {mode === "buy" && !started ? (
         <div className="mt-4 grid gap-3">
-          <Button className="h-auto min-h-12 w-full py-3" onClick={() => setStarted(true)}>Оплатить · {PROGRAM_PRICE}</Button>
+          <div className="rounded-3xl bg-[#1d3024] p-4 shadow-[0_20px_34px_-20px_rgba(20,22,15,0.8)]">
+            <Button className="min-h-14 w-full whitespace-nowrap !bg-[#e6cf9c] px-4 text-[1.1rem] !text-[#241a07] shadow-[0_12px_24px_-12px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.6)_inset] hover:!bg-[#c9ae74]" onClick={() => setStarted(true)}><ShoppingBag className="size-5" /> Купить за {PROGRAM_PRICE}</Button>
+            <p className="mt-3 text-center text-sm leading-snug text-[#f3f0e8]/85">Платите один раз, навсегда, без подписки и списаний</p>
+          </div>
           {live ? <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("restore")}>Уже оплатили? Войти по почте</button> : null}
           <button type="button" className="text-left text-sm text-muted underline" onClick={() => setMore((v) => !v)}>{more ? "Скрыть" : "Другие способы войти"}</button>
           {more ? (
@@ -573,13 +576,87 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
         )
       ) : null}
 
-      {mode === "buy" ? <IncludesList /> : null}
+      {mode === "buy" && !started ? (
+        <details className="mt-4 rounded-2xl bg-white/50 px-4 py-1">
+          <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-ink">Полный список: что откроется</summary>
+          <IncludesList bare />
+        </details>
+      ) : null}
     </Sheet>
   );
 }
 
 /** Файлы курса лежат в public/course: путь считаем от адреса приложения. */
 const asset = (url: string) => (/^(https?:)?\/\//.test(url) ? url : `${import.meta.env.BASE_URL}${url}`);
+
+/** Первый экран окна оплаты: обещание, цена, что человек получает (с запасами ИИ). Сами шаги оплаты ниже не менялись. */
+function PayPitch({ onBuy }: { onBuy: () => void }) {
+  const grain = `url(${asset("tex/scratch.webp")}) 0 0/520px auto`;
+  const tones = {
+    moss: { tint: "#e1e6d0", edge: "#3f4a22", icon: "#3f4a22", fg: "#f3f0e8" },
+    wine: { tint: "#efdcdd", edge: "#55203a", icon: "#55203a", fg: "#f3f0e8" },
+    sand: { tint: "#efe4c8", edge: "#a8894f", icon: "#d9cdb2", fg: "#1c1a16" },
+    stone: { tint: "#e3e4de", edge: "#6b6e66", icon: "#6b6e66", fg: "#ffffff" },
+    gold: { tint: "#f3e6bf", edge: "#c9ae74", icon: "#c9ae74", fg: "#241a07" },
+  } as const;
+  const card = "relative flex gap-3.5 overflow-hidden rounded-2xl py-4 pl-5 pr-4 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_12px_22px_-16px_rgba(30,24,18,0.55)]";
+  const cardStyle = (t: keyof typeof tones) => ({ background: `${grain}, ${tones[t].tint}`, boxShadow: `inset 5px 0 0 ${tones[t].edge}` });
+  const iconStyle = (t: keyof typeof tones) => ({ background: tones[t].icon, color: tones[t].fg });
+  const icon = "grid size-11 shrink-0 place-items-center rounded-full shadow-[0_6px_12px_-6px_rgba(30,24,18,0.6),0_1px_0_rgba(255,255,255,0.35)_inset]";
+  return (
+    <div>
+      <div className="relative overflow-hidden rounded-3xl bg-[#1d3024] shadow-[0_20px_34px_-20px_rgba(20,22,15,0.8)]">
+        <div className="h-[200px] bg-cover bg-center" style={{ backgroundImage: `url(${asset("course/site/materials.jpg")})` }} role="img" aria-label="Книга рода и семейные материалы" />
+        <div className="absolute inset-x-0 top-0 h-[200px]" style={{ background: "linear-gradient(180deg,rgba(29,48,36,0.25) 0%,rgba(29,48,36,0.5) 60%,#1d3024 100%)" }} aria-hidden="true" />
+        <div className="relative -mt-14 px-5 pb-5">
+          <h3 className="display-title text-[2.1rem] leading-[1.08] text-[#e6cf9c]">Книга о вашей семье</h3>
+          <p className="mt-1.5 text-[1.05rem] leading-snug text-[#f3f0e8]">от первого вопроса до печати</p>
+          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span className="text-[2.6rem] font-semibold leading-none text-[#e6cf9c]">{PROGRAM_PRICE}</span>
+            <span className="grid gap-0.5 leading-none">
+              <span className="text-base text-[#f3f0e8]/75 line-through decoration-[#e6cf9c]/70">{PROGRAM_OLD_PRICE}</span>
+              <span className="mt-1 w-fit rounded-md border border-[#c9ae74] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#e6cf9c]">скидка 49%</span>
+            </span>
+          </div>
+          <Button className="mt-5 min-h-14 w-full whitespace-nowrap !bg-[#e6cf9c] px-4 text-[1.1rem] !text-[#241a07] shadow-[0_12px_24px_-12px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.6)_inset] hover:!bg-[#c9ae74]" onClick={onBuy}><ShoppingBag className="size-5" /> Купить за {PROGRAM_PRICE}</Button>
+          <p className="mt-3 text-center text-sm leading-snug text-[#f3f0e8]/85">Платите один раз, навсегда, без подписки и списаний</p>
+        </div>
+      </div>
+      <p className="story-hand !mb-3 !mt-6">что вы получите</p>
+      <ul className="grid gap-3">
+        <li className={card} style={cardStyle("moss")}>
+          <span className={icon} style={iconStyle("moss")}><Play className="size-[18px]" /></span>
+          <div className="text-sm leading-snug"><b className="block text-[15px] text-ink">Шесть уроков с видео</b><span className="text-muted">От первого вопроса до печати книги. Смотреть можно с телефона, доступ на год.</span></div>
+        </li>
+        <li className={card} style={cardStyle("wine")}>
+          <span className={icon} style={iconStyle("wine")}><Sparkles className="size-[18px]" /></span>
+          <div className="text-sm leading-snug">
+            <b className="block text-[15px] text-ink">ИИ-помощники внутри приложения</b>
+            <ul className="mt-1.5 grid gap-1 text-muted">
+              <li><b className="text-ink">Генеалог:</b> 5 вопросов в день</li>
+              <li><b className="text-ink">Поиск по архивам:</b> 10 поисков в месяц</li>
+              <li><b className="text-ink">Голос в текст:</b> до 300 минут записи в месяц</li>
+              <li><b className="text-ink">Глава книги:</b> 2 в день, людей и места выписывает отдельно</li>
+            </ul>
+          </div>
+        </li>
+        <li className={card} style={cardStyle("sand")}>
+          <span className={icon} style={iconStyle("sand")}><Network className="size-[18px]" /></span>
+          <div className="text-sm leading-snug"><b className="block text-[15px] text-ink">Древо и страницы книги</b><span className="text-muted">Пять оформлений древа, PDF для печати, шаблон книги на 100 страниц, «Мемуары любви» и свадебная фотокнига.</span></div>
+        </li>
+        <li className={card} style={cardStyle("stone")}>
+          <span className={icon} style={iconStyle("stone")}><Library className="size-[18px]" /></span>
+          <div className="text-sm leading-snug"><b className="block text-[15px] text-ink">Материалы, которые экономят недели</b><span className="text-muted">150 готовых промптов, тетрадь на 300 вопросов для родных, архивные базы для поиска предков.</span></div>
+        </li>
+        <li className={card} style={cardStyle("gold")}>
+          <span className={icon} style={iconStyle("gold")}><Users className="size-[18px]" /></span>
+          <div className="text-sm leading-snug"><b className="block text-[15px] text-ink">Чат, обновления и три устройства</b><span className="text-muted">Сообщество с Дариной, обновления, на которые вы влияете, книга в облаке на телефоне и компьютере.</span></div>
+        </li>
+      </ul>
+      <p className="mt-3 text-xs leading-snug text-muted">ИИ пока работает на бесплатных мощностях, у каждого свой запас, он обновляется сам. Скоро: старые фото и вёрстка страниц с ИИ.</p>
+    </div>
+  );
+}
 
 function PriceTag({ big = false }: { big?: boolean }) {
   return (

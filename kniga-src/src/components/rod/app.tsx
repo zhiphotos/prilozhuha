@@ -22,6 +22,7 @@ import { Onboarding } from "@/components/rod/onboarding";
 import { PhotoNewScreen } from "@/components/rod/photo";
 import { InterviewScreen, InterviewsScreen } from "@/components/rod/interviews";
 import { AiHubScreen, GenealogistScreen } from "@/components/rod/genealogist";
+import { ChapterScreen } from "@/components/rod/chapter";
 import { FreeStoryScreen, MyStoriesScreen, StoriesScreen, StoryScreen, WizardScreen } from "@/components/rod/stories";
 import { SurnameScreen } from "@/components/rod/surname";
 import { afterHydrate } from "@/lib/rod/boot";
@@ -201,6 +202,8 @@ function ScreenView({ screen }: { screen: Screen }) {
       return <AiHubScreen />;
     case "ai-genealogist":
       return <GenealogistScreen />;
+    case "ai-chapter":
+      return <ChapterScreen />;
     case "cards":
       return <CardsScreen />;
     case "answers":

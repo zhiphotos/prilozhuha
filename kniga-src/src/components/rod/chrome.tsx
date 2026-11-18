@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { BookOpen, ChevronLeft, GraduationCap, Home, MessageCircle, PenLine, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -93,40 +93,70 @@ const TABS: { id: string; label: string; icon: typeof BookOpen; screen: Screen }
 
 export function tabKey(screen: Screen): string {
   if (screen.id === "lessons" || screen.id === "lesson") return "lessons";
-  if (screen.id === "ai" || screen.id === "ai-genealogist") return "ai";
+  if (screen.id === "ai" || screen.id === "ai-genealogist" || screen.id === "ai-chapter") return "ai";
   if (screen.id === "cards" || screen.id === "deck" || screen.id === "answers") return "cards";
   if (screen.id === "stories" || screen.id === "my-stories" || screen.id === "interviews" || screen.id === "interview" || screen.id === "wizard" || screen.id === "story" || screen.id === "free") return "stories";
   if (screen.id === "book" || screen.id === "editor" || screen.id === "flip") return "book";
   return "home";
 }
 
+/** Цвет круга под активным разделом: тот же язык, что у цветных папок во вкладке ИИ. */
+const TAB_TONE: Record<string, { bg: string; ink: string }> = {
+  home: { bg: "#4b5a30", ink: "#f2efe3" },
+  book: { bg: "#c9ae74", ink: "#241a07" },
+  cards: { bg: "#6a2234", ink: "#f6ecea" },
+  stories: { bg: "#d9cdb2", ink: "#3a3426" },
+  lessons: { bg: "#8e9188", ink: "#14160f" },
+  ai: { bg: "#5d6f3a", ink: "#f2efe3" },
+};
+
 export function Dock() {
   const nav = useNav();
   const current = tabKey(nav.screen);
+  const index = Math.max(0, TABS.findIndex((item) => item.id === current));
+  const tone = TAB_TONE[TABS[index]?.id ?? "home"];
+  // Плашка приклеена к низу, от края до края, с круглыми верхними углами. Над активным разделом вырастает «холм» с цветным кругом,
+  // при переключении он плавно переезжает на новое место и меняет цвет.
   return (
-    <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 px-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] lg:hidden">
-      <ul data-tour="nav" className="glass-strong mx-auto grid max-w-md grid-cols-6 rounded-2xl p-1.5">
-        {TABS.map((item) => {
-          const Icon = item.icon;
-          const active = current === item.id;
-          return (
-            <li key={item.id}>
-              <button
-                type="button"
-                onClick={() => nav.tab(item.screen)}
-                className={cn(
-                  "flex min-h-14 w-full flex-col items-center justify-center gap-0.5 rounded-[1.2rem] text-xs font-medium transition [@media(max-height:480px)]:min-h-10",
-                  active ? "bg-night text-paper" : "text-ink/70",
-                )}
-                aria-current={active ? "page" : undefined}
-              >
-                <Icon className="size-[1.15rem]" strokeWidth={active ? 2.2 : 1.7} />
-                {item.label}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+    <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 lg:hidden" style={{ ["--i" as string]: index }}>
+      <div className="relative rounded-t-[1.5rem] bg-night shadow-[0_-12px_30px_-14px_rgba(10,12,8,0.7)]">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-[calc(100%-1.5rem)] h-[2.6rem] overflow-hidden">
+          <div className="dock-hill h-full w-1/3">
+            <svg viewBox="0 0 96 62" preserveAspectRatio="none" className="size-full" fill="currentColor">
+              <path d="M0 26 C18 26 24 0 48 0 C72 0 78 26 96 26 L96 62 L0 62 Z" />
+            </svg>
+          </div>
+        </div>
+        <div aria-hidden="true" className="dock-dot pointer-events-none absolute left-0 top-0 flex w-1/6 justify-center">
+          <span className="dock-circle -mt-[0.55rem] grid size-[2.5rem] place-items-center rounded-full shadow-[0_6px_14px_-4px_rgba(0,0,0,0.55)]" style={{ background: tone.bg }} />
+        </div>
+        <ul data-tour="nav" className="relative grid w-full grid-cols-6 px-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+          {TABS.map((item) => {
+            const Icon = item.icon;
+            const active = current === item.id;
+            return (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => nav.tab(item.screen)}
+                  aria-label={item.label}
+                  className={cn(
+                    "flex min-h-[3.5rem] w-full flex-col items-center justify-end gap-0.5 whitespace-nowrap px-0 pb-1.5 text-[11px] leading-none transition-colors [@media(max-height:480px)]:min-h-11",
+                    active ? "font-bold text-paper" : "font-medium text-paper/70",
+                  )}
+                  aria-current={active ? "page" : undefined}
+                >
+                  <span className={cn("dock-ico grid size-7 place-items-center transition-transform duration-300", active ? "-translate-y-[0.72rem]" : "-translate-y-[0.5rem]")} style={active ? { color: tone.ink } : undefined}>
+                    <Icon className="size-[1.4rem]" strokeWidth={active ? 2.2 : 1.7} />
+                  </span>
+                  <span className={active ? "" : "hidden"}>{item.label}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <div aria-hidden="true" className="h-[env(safe-area-inset-bottom)]" />
+      </div>
     </nav>
   );
 }
@@ -178,6 +208,7 @@ export function Sheet({
   dim?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
   const downOnBackdrop = useRef(false);
   /** onClose приходит новой функцией на каждый рендер: держим в ref, иначе эффект перезапускается и отнимает фокус у поля (на iPhone клавиатура сворачивается). */
   const closeRef = useRef(onClose);
@@ -221,8 +252,8 @@ export function Sheet({
         downOnBackdrop.current = false;
       }}
     >
-      <div ref={box} tabIndex={-1} className={cn("glass-strong sheet-in pointer-events-auto max-h-[min(86svh,calc(100dvh-1rem))] w-full max-w-lg overflow-auto overscroll-contain rounded-2xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] outline-none", !dim && "!bg-paper shadow-2xl ring-1 ring-ink/10", className)}>
-        <div className={cn("sticky -top-5 z-10 -mx-1 mb-3 flex items-start justify-between gap-3", !dim && "-mt-1 bg-paper pb-2 pt-1")}>
+      <div ref={box} tabIndex={-1} onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 6)} className={cn("glass-strong sheet-in pointer-events-auto max-h-[min(86svh,calc(100dvh-1rem))] w-full max-w-lg overflow-auto overscroll-contain rounded-2xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] outline-none", !dim && "!bg-paper shadow-2xl ring-1 ring-ink/10", className)}>
+        <div className={cn("sticky -top-5 z-10 -mx-1 mb-3 flex items-start justify-between gap-3 px-1 py-1.5 transition-colors", scrolled && "bg-[rgba(246,242,233,0.97)]", !dim && "-mt-1 bg-paper pb-2 pt-1")}>
           {title ? <h2 className={cn("leading-tight text-ink", title.length <= 16 ? "display-title text-[1.15rem]" : "text-[1.25rem] font-semibold")}>{title}</h2> : <span />}
           <button type="button" className="grid size-11 shrink-0 place-items-center rounded-full bg-white/80 text-ink" onClick={onClose} aria-label="Закрыть">
             <X className="size-4" />

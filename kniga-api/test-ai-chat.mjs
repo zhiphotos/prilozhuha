@@ -40,5 +40,5 @@ ok("после остановки провайдер не вызывается",
 mode = "ok";
 process.env.AI_LIMITS = "";
 const { limits } = await import("./lib/ai/limits.js");
-ok("по умолчанию: 3 вопроса в день на человека, 40 на всех", limits({}).chat.user === 3 && limits({}).chat.per === "day" && limits({}).chat.global === 40);
+ok("по умолчанию: 5 вопросов в день на человека, 150 на всех", limits({}).chat.user === 5 && limits({}).chat.per === "day" && limits({}).chat.global === 150);
 console.log(process.exitCode ? "ЕСТЬ ОШИБКИ" : "ВСЁ ПРОШЛО");
