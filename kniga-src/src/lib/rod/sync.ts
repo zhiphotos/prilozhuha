@@ -8,6 +8,7 @@ import { MAIN_ID, activeProjectId, addProjectWithId, listProjects } from "@/lib/
 import { fingerprint, splitParts } from "@/lib/rod/sync-logic";
 import { PART, afterOpenCopy, previewMerge, restoreLocalBackup, restorePreviousCloud, syncCore, syncSmart, type Deps, type Meta, type SyncMode, type SyncOutcome } from "@/lib/rod/sync-engine";
 import { readBackup, saveBackup } from "@/lib/rod/sync-backup";
+import { STATE_STORE, idbGet, idbSet } from "@/lib/rod/idb";
 import { flushBook, useRod } from "@/lib/rod/store";
 
 // Синхронизация книги между устройствами одного оплаченного доступа (до 3 устройств).
@@ -142,6 +143,11 @@ function makeDeps(): Deps {
     saveBackup,
     readBackup,
     now: () => new Date().toISOString(),
+    saveBase: (text) => idbSet(STATE_STORE, `kniga-sync-base:${activeProjectId()}`, text),
+    readBase: async () => {
+      const text = await idbGet<string>(STATE_STORE, `kniga-sync-base:${activeProjectId()}`);
+      return text ? (JSON.parse(text) as Record<string, unknown>) : null;
+    },
   };
 }
 
@@ -166,10 +172,10 @@ function report(outcome: SyncOutcome, mode: SyncMode) {
   } else if (outcome.kind === "error") {
     ui.setState({ busy: false, message: outcome.message });
   } else if (outcome.kind === "merged") {
-    const { added, differing } = outcome.report.total;
-    const kept = differing ? ` Записей с разным содержимым: ${differing}. Оставлены версии с этого устройства, облачные лежат в копиях.` : "";
-    if (mode === "auto" && (added || differing)) toast("Объединила изменения с двух устройств. Обе версии сохранены копиями, ничего не потеряно.", { duration: 6000 });
-    ui.setState({ busy: false, conflict: false, message: `Книги объединены: из облака добавлено записей: ${added}.${kept} Удалённое на одном устройстве, но оставшееся на другом, вернулось. Обе прежние версии сохранены копиями на этом устройстве. Если книга открыта на других устройствах, нажмите «Синхронизировать сейчас» и там: они возьмут объединённую.` });
+    const { added, differing, fromCloud } = outcome.report.total;
+    const kept = differing ? ` Записей с разным содержимым: ${differing}. Оставлены те, что правили позже; другие версии лежат в копиях.` : "";
+    if (mode === "auto" && (added || differing || fromCloud)) toast("Объединила изменения с двух устройств. Обе версии сохранены копиями, ничего не потеряно.", { duration: 6000 });
+    ui.setState({ busy: false, conflict: false, message: `Книги объединены: из облака добавлено записей: ${added}${fromCloud ? `, обновлено более новыми: ${fromCloud}` : ""}.${kept} Удалённое на одном устройстве, но оставшееся на другом, вернулось. Обе прежние версии сохранены копиями на этом устройстве. Если книга открыта на других устройствах, нажмите «Синхронизировать сейчас» и там: они возьмут объединённую.` });
   } else {
     ui.setState({ busy: false, conflict: false, message: MESSAGES[outcome.kind] });
   }

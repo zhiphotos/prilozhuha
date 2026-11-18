@@ -56,8 +56,8 @@ export function TransferCard({ hasData }: { hasData: boolean }) {
                   useSync.getState().setState({ message: preview.message });
                   return;
                 }
-                const { added, differing } = preview.report.total;
-                const text = `Объединить книги? Из облака добавится записей: ${added}.${differing ? ` Одних и тех же записей с разным содержимым: ${differing}, останутся версии с этого устройства (облачные сохранятся в копии).` : ""} Удаления не переносятся: удалённое на одном устройстве, но оставшееся на другом, вернётся. Обе прежние версии сохранятся копиями на этом устройстве.`;
+                const { added, differing, fromCloud } = preview.report.total;
+                const text = `Объединить книги? Из облака добавится записей: ${added}.${fromCloud ? ` Обновится более новыми облачными: ${fromCloud}.` : ""}${differing ? ` Одних и тех же записей с разным содержимым: ${differing}, останется та, что правили позже (другая сохранится в копии).` : ""} Удаления не переносятся: удалённое на одном устройстве, но оставшееся на другом, вернётся. Обе прежние версии сохранятся копиями на этом устройстве.`;
                 if (window.confirm(text)) void syncNow("merge");
               })();
             }}

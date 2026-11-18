@@ -25,6 +25,9 @@ export type Deps = {
   saveBackup: (label: string, text: string, protect?: string) => Promise<string>;
   readBackup: (key: string) => Promise<Record<string, unknown> | null>;
   now: () => string;
+  /** Книга в том виде, как она была при последней успешной синхронизации: по ней видно, что менялось здесь, а что в облаке. Необязательна. */
+  saveBase?: (text: string) => Promise<void>;
+  readBase?: () => Promise<Record<string, unknown> | null>;
 };
 
 export type SyncMode = "auto" | "mine" | "cloud" | "merge";
@@ -70,7 +73,10 @@ function weightOfText(text: string): number {
 export const SHRINK_MIN = 6;
 /** Метка синхронизации: версия, отпечаток, время и размер книги на этот момент. */
 function stamp(deps: Deps, rev: number, hash: string) {
-  deps.writeMeta({ rev, hash, at: deps.now(), size: weightOfText(deps.snapshot().text) });
+  const text = deps.snapshot().text;
+  deps.writeMeta({ rev, hash, at: deps.now(), size: weightOfText(text) });
+  // Запоминаем книгу этой версии: без ожидания и без последствий, если не вышло (тогда объединение решает по времени правки).
+  void deps.saveBase?.(text).catch(() => undefined);
 }
 
 /**
@@ -168,7 +174,7 @@ export async function previewMerge(deps: Deps): Promise<{ ok: true; report: Merg
     const head = await deps.call({ op: "head" });
     if (head.status !== 200) throw fail(head, "Облако не ответило.");
     const { cloudData, localData } = await bothVersions(deps, num(head.data.rev), num(head.data.parts) || 1);
-    return { ok: true, report: mergeBooks(localData, cloudData).report };
+    return { ok: true, report: mergeBooks(localData, cloudData, await deps.readBase?.().catch(() => null)).report };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "Не получилось сравнить версии." };
   }
@@ -181,7 +187,7 @@ export async function previewMerge(deps: Deps): Promise<{ ok: true; report: Merg
  */
 async function mergeFlow(deps: Deps, cloudRev: number, parts: number): Promise<SyncOutcome> {
   const { cloudData, localText, localData } = await bothVersions(deps, cloudRev, parts);
-  const { data, report } = mergeBooks(localData, cloudData);
+  const { data, report } = mergeBooks(localData, cloudData, await deps.readBase?.().catch(() => null));
   await deps.downloadMedia(deps.collectRefs(cloudData));
   await deps.saveBackup("Книга на этом устройстве до объединения", localText);
   await deps.saveBackup("Облачная книга до объединения", JSON.stringify(cloudData));
