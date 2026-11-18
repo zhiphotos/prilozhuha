@@ -2467,10 +2467,17 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       {panel === "card" ? (
         <PersonCardSheet
           onClose={() => setPanel(null)}
-          onPlace={(text) => {
+          onPlace={(text, photo) => {
             const taken = (current()?.blocks ?? []).filter((b) => b.type === "text").map((b) => b.y);
-            const freeY = [40, 58, 24, 74, 10, 86].find((y) => taken.every((t) => Math.abs(t - y) > 14)) ?? 40;
-            addBlock({ id: id(), type: "text", x: 14, y: freeY, w: 72, text, font: "sans", size: "md", look: "card" } as PageBlock);
+            let y = [40, 58, 24, 74, 10, 86].find((t) => taken.every((v) => Math.abs(v - t) > 14)) ?? 40;
+            if (photo) {
+              const w = 34;
+              const h = clamp(w / (PAGE_H / 100), 3, 90);
+              y = 6;
+              addBlock({ id: id(), type: "photo", x: 50 - w / 2, y, w, h, src: photo, caption: "", frame: "none", shape: "round", shadow: false } as PageBlock);
+              y = y + h + 3;
+            }
+            addBlock({ id: id(), type: "text", x: 12, y, w: 76, text, font: "sans", size: "sm", look: "card", color: "#2a2420", bg: "#fbf8f3", align: photo ? "center" : "left", leadMul: 1.25 } as PageBlock);
             toast("Карточка на странице: её можно двигать и менять");
           }}
         />
