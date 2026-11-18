@@ -4,8 +4,12 @@ import type { PhotoFrame } from "@/lib/rod/types";
 
 export type Crop = { cx: number; cy: number; z: number };
 
-/** Внутренняя область рамки, где лежит картинка, в % страницы. */
-export function innerBox(frame: PhotoFrame, plain: boolean, w: number, h: number): { w: number; h: number; dx: number; dy: number } {
+/**
+ * Внутренняя область рамки, где лежит картинка. Ширина и высота в долях ширины страницы (cqw).
+ * h – высота рамки как она хранится (% высоты страницы); pageH – высота страницы при ширине 100 (по умолчанию h уже в cqw).
+ */
+export function innerBox(frame: PhotoFrame, plain: boolean, w: number, hIn: number, pageH = 100): { w: number; h: number; dx: number; dy: number } {
+  const h = (hIn * pageH) / 100;
   if (frame === "polaroid") {
     const side = (POLAROID.side * w) / 100;
     const top = (POLAROID.top * w) / 100;

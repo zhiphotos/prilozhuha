@@ -1536,7 +1536,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
     if (g.mode === "crop") {
       const block = current()?.blocks.find((b) => b.id === g.id);
       if (!block || block.type !== "photo" || !g.crop0) return;
-      const inner = innerBox(block.frame, false, block.w, block.h);
+      const inner = innerBox(block.frame, false, block.w, block.h, PAGE_H);
       const geom = cropGeom(inner, cropAr.current, g.crop0);
       patchBlock(g.id, { crop: { cx: round(g.crop0.cx - dx / geom.dw), cy: round(g.crop0.cy - (dy * (PAGE_H / 100)) / geom.dh), z: g.crop0.z } } as Partial<PageBlock>, `crop:${g.id}`);
       return;
