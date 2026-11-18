@@ -1036,15 +1036,23 @@ body {
 
 /* Нижнее меню: матовое стекло, полупрозрачное, с лёгким шумом; картинка под ним просвечивает. Плашка и «холм» одного оттенка. */
 .dock-glass {
+  --hh: 1.1rem;
+  --r: 1.5rem;
   background-color: rgb(22 25 17 / 0.34);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .32 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"), linear-gradient(180deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0));
   background-size: 160px 160px, 100% 100%;
   -webkit-backdrop-filter: blur(14px) saturate(1.6);
   backdrop-filter: blur(14px) saturate(1.6);
-}
-.dock-glass {
-  border-top: 1px solid rgb(246 241 231 / 0.28);
-  box-shadow: 0 -14px 34px -16px rgb(10 12 8 / 0.4), inset 0 1px 0 rgb(255 255 255 / 0.18);
+  /* Одна форма: плашка с круглыми верхними углами и «холм» над активным разделом (переезжает по --i). */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 26' preserveAspectRatio='none'%3E%3Cpath d='M0 26 C18 26 24 0 48 0 C72 0 78 26 96 26 Z'/%3E%3C/svg%3E"), linear-gradient(#000, #000), linear-gradient(#000, #000), radial-gradient(circle at 100% 100%, #000 calc(var(--r) - 0.5px), transparent var(--r)), radial-gradient(circle at 0 100%, #000 calc(var(--r) - 0.5px), transparent var(--r));
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 26' preserveAspectRatio='none'%3E%3Cpath d='M0 26 C18 26 24 0 48 0 C72 0 78 26 96 26 Z'/%3E%3C/svg%3E"), linear-gradient(#000, #000), linear-gradient(#000, #000), radial-gradient(circle at 100% 100%, #000 calc(var(--r) - 0.5px), transparent var(--r)), radial-gradient(circle at 0 100%, #000 calc(var(--r) - 0.5px), transparent var(--r));
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 33.3334% var(--hh), 100% calc(100% - var(--hh) - var(--r)), calc(100% - 2 * var(--r)) calc(100% - var(--hh)), var(--r) var(--r), var(--r) var(--r);
+  mask-size: 33.3334% var(--hh), 100% calc(100% - var(--hh) - var(--r)), calc(100% - 2 * var(--r)) calc(100% - var(--hh)), var(--r) var(--r), var(--r) var(--r);
+  -webkit-mask-position: calc((var(--i, 0) - 0.5) * 25%) 0, 0 100%, 50% 100%, 0 var(--hh), 100% var(--hh);
+  mask-position: calc((var(--i, 0) - 0.5) * 25%) 0, 0 100%, 50% 100%, 0 var(--hh), 100% var(--hh);
+  transition: -webkit-mask-position 380ms cubic-bezier(0.3, 1.25, 0.5, 1), mask-position 380ms cubic-bezier(0.3, 1.25, 0.5, 1);
 }
 .dock[data-style="glass"] button { text-shadow: 0 1px 6px rgb(0 0 0 / 0.55); }
 .dock[data-style="glass"] .dock-ico svg { filter: drop-shadow(0 1px 4px rgb(0 0 0 / 0.55)); }

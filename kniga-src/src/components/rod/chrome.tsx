@@ -123,7 +123,7 @@ export function Dock() {
   return (
     <nav aria-label="Основная навигация" data-style={dockStyle} className="dock no-print fixed inset-x-0 bottom-0 z-30 lg:hidden" style={{ ["--i" as string]: index }}>
       <div className={cn("relative", !glass && "rounded-t-[1.5rem] bg-night shadow-[0_-12px_30px_-14px_rgba(10,12,8,0.7)]")}>
-        {glass ? <div aria-hidden="true" className="dock-glass pointer-events-none absolute inset-0 rounded-t-[1.5rem]" /> : null}
+        {glass ? <div aria-hidden="true" className="dock-glass pointer-events-none absolute inset-x-0 bottom-0 top-[-1.1rem]" /> : null}
         {glass ? null : (
           <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-[calc(100%-1.5rem)] h-[2.6rem] overflow-hidden">
             <div className="dock-hill h-full w-1/3 text-night">
