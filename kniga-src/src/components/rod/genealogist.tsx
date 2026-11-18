@@ -10,7 +10,7 @@ import { useRod } from "@/lib/rod/store";
 
 const STARTERS = ["Помоги найти предков в Бессарабии", "Расшифруй эту метрическую запись", "Где искать ревизские сказки?", "Как составить родословное дерево?"];
 const KEY = "kniga-genealogist-chat";
-type Turn = ChatMsg & { sources?: string[] };
+type Turn = ChatMsg & { id: string; sources?: string[]; at: string };
 
 /** Вкладка «ИИ»: сетка цветных папок, из которых торчат карточки. */
 export function AiHubScreen() {
@@ -72,27 +72,40 @@ export function GenealogistScreen() {
   const nav = useNav();
   const programOpen = useRod((s) => s.programOpen);
   const access = useRod((s) => s.access);
-  const [turns, setTurns] = useState<Turn[]>(read);
+  const stored = useRod((st) => st.aiChat);
+  const addAiTurns = useRod((st) => st.addAiTurns);
+  const clearAiChat = useRod((st) => st.clearAiChat);
+  const [pending, setPending] = useState<Turn | null>(null);
+  const sorted = [...stored].sort((a, b) => a.at.localeCompare(b.at));
+  const turns: Turn[] = pending ? [...sorted, pending] : sorted;
+  // Переписка раньше жила только в памяти браузера: переносим её в книгу один раз, чтобы она ушла в облако.
+  useEffect(() => {
+    const old = read();
+    if (old.length && useRod.getState().aiChat.length === 0) addAiTurns(old.map((m, i) => ({ id: crypto.randomUUID(), role: m.role, text: m.text, sources: m.sources, at: new Date(Date.now() - (old.length - i) * 1000).toISOString() })));
+    try { localStorage.removeItem(KEY); } catch { /* не страшно */ }
+  }, [addAiTurns]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [left, setLeft] = useState<number | null>(null);
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => { try { localStorage.setItem(KEY, JSON.stringify(turns.slice(-30))); } catch { /* память переполнена */ } end.current?.scrollIntoView({ block: "end" }); }, [turns]);
+  useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [turns.length]);
 
   const send = async (raw: string) => {
     const q = raw.trim();
     if (!q || busy) return;
-    const next: Turn[] = [...turns, { role: "user", text: q }];
-    setTurns(next);
+    const mine: Turn = { id: crypto.randomUUID(), role: "user", text: q, at: new Date().toISOString() };
+    const next: Turn[] = [...sorted, mine].slice(-30);
+    setPending(mine);
     setText("");
     setBusy(true);
     setNote("");
     const deps: AiDeps = { apiBase: API_BASE, token: access?.token ?? "", deviceId: deviceId() };
     const res = await chatGenealogist(deps, next.map(({ role, text: t }) => ({ role, text: t })), crypto.randomUUID());
     setBusy(false);
-    if (res.ok) { setTurns([...next, { role: "assistant", text: res.data.reply, sources: res.data.sources }]); setLeft(res.data.left); }
-    else { setTurns(turns); setText(q); setNote(res.message); toast(res.message); }
+    setPending(null);
+    if (res.ok) { addAiTurns([mine, { id: crypto.randomUUID(), role: "assistant", text: res.data.reply, sources: res.data.sources, at: new Date().toISOString() }]); setLeft(res.data.left); }
+    else { setText(q); setNote(res.message); toast(res.message); }
   };
 
   if (!programOpen) {
@@ -117,7 +130,7 @@ export function GenealogistScreen() {
       ) : (
         <ul className="mb-3 grid gap-3">
           {turns.map((m, i) => (
-            <li key={i} className={m.role === "user" ? "ml-8 rounded-2xl bg-moss px-4 py-3 text-paper" : "mr-4 rounded-2xl bg-white/80 px-4 py-3 text-ink"}>
+            <li key={m.id} className={m.role === "user" ? "ml-8 rounded-2xl bg-moss px-4 py-3 text-paper" : "mr-4 rounded-2xl bg-white/80 px-4 py-3 text-ink"}>
               <div className="text-base leading-snug"><Rich text={m.text} /></div>
               {m.sources?.length ? <p className="mt-2 text-xs text-muted">Источник: {m.sources.join("; ")}</p> : m.role === "assistant" ? <p className="mt-2 text-xs text-muted">Из общих знаний, проверьте по документам.</p> : null}
             </li>
@@ -130,7 +143,7 @@ export function GenealogistScreen() {
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} maxLength={2000} placeholder="Ваш вопрос генеалогу" className="w-full rounded-xl border border-ink/20 bg-paper p-3 text-base" />
         <div className="flex gap-2">
           <Button className="flex-1" disabled={busy || !text.trim()} onClick={() => void send(text)}>Спросить</Button>
-          {turns.length ? <Button variant="ghost" onClick={() => { setTurns([]); setNote(""); }}>Начать заново</Button> : null}
+          {turns.length ? <Button variant="ghost" onClick={() => { clearAiChat(); setNote(""); }}>Начать заново</Button> : null}
         </div>
       </div>
       <div ref={end} className="h-6" />

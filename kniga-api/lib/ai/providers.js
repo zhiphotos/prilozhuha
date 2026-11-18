@@ -69,7 +69,8 @@ export const cloudflareChat = {
     const data = await r.json().catch(() => ({}));
     if (r.status === 429 || (data.errors ?? []).some((e) => e.code === 4006)) throw new QuotaError("provider quota");
     if (!r.ok || !data.success) throw new Error(`provider ${r.status}`);
-    return { text: String(data.result?.response ?? "").trim() };
+    const resp2 = data.result?.response;
+    return { text: (resp2 && typeof resp2 === "object" ? JSON.stringify(resp2) : String(resp2 ?? "")).trim() };
   },
 };
 export const geminiChat = {

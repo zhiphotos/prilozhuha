@@ -89,6 +89,14 @@ export function CardsScreen() {
         ) : null}
       </div>
 
+      <ul className="mt-6 grid gap-3">
+        {play.map((item) => (
+          <li key={item.id}>
+            <DeckLink item={item} saved={notes.filter((note) => note.situationId === item.id).length} onOpen={() => nav.go({ id: "deck", situationId: item.id })} featured />
+          </li>
+        ))}
+      </ul>
+
       <section className="mt-6 border-y border-ink/15 py-5">
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -104,14 +112,6 @@ export function CardsScreen() {
         </p>
         <p className="mt-2 text-xs text-muted">Ответы хранятся в этом телефоне вместе с книгой, в блоке «Последние ответы» ниже. «Собрать страницы» превращает их в страницы книги. Чтобы не потерять, сохраняйте копию книги на Главной.</p>
       </section>
-
-      <ul className="mt-6 grid gap-3">
-        {play.map((item) => (
-          <li key={item.id}>
-            <DeckLink item={item} saved={notes.filter((note) => note.situationId === item.id).length} onOpen={() => nav.go({ id: "deck", situationId: item.id })} featured />
-          </li>
-        ))}
-      </ul>
 
       <h2 className="display-title mt-9 text-[1.1rem] text-ink">Разговоры</h2>
       <ul className="mt-3 grid grid-cols-2 gap-3">

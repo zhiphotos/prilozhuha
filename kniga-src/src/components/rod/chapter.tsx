@@ -26,6 +26,9 @@ export function ChapterScreen() {
   const [style, setStyle] = useState<ChapterStyle>("family");
   const [wish, setWish] = useState("");
   const [chapter, setChapter] = useState(saved.chapter ?? "");
+  const chapters = useRod((st) => st.aiChapters);
+  const addAiChapter = useRod((st) => st.addAiChapter);
+  const removeAiChapter = useRod((st) => st.removeAiChapter);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [left, setLeft] = useState<number | null>(null);
@@ -48,7 +51,7 @@ export function ChapterScreen() {
     const deps: AiDeps = { apiBase: API_BASE, token: access?.token ?? "", deviceId: deviceId() };
     const res = await writeChapter(deps, { text: text.trim(), style, wish: wish.trim() }, crypto.randomUUID());
     setBusy(false);
-    if (res.ok) { setChapter(res.data.chapter); setLeft(res.data.left); keep(text, res.data.chapter); }
+    if (res.ok) { setChapter(res.data.chapter); setLeft(res.data.left); keep(text, res.data.chapter); addAiChapter({ text: text.trim(), style, chapter: res.data.chapter }); }
     else { setNote(res.message); toast(res.message); }
   };
   const paragraphs = chapter.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
@@ -74,6 +77,22 @@ export function ChapterScreen() {
           {paragraphs.map((p, i) => (i === 0 ? <h2 key={i} className="mb-3 display-title text-2xl leading-tight">{p}</h2> : <p key={i} className="mb-3 text-base leading-relaxed whitespace-pre-line">{p}</p>))}
           <Button variant="ghost" onClick={() => { void navigator.clipboard?.writeText(chapter).then(() => toast("Глава скопирована")).catch(() => toast("Не удалось скопировать")); }}>Скопировать главу</Button>
         </article>
+      )}
+      {chapters.length > 0 && (
+        <section className="mt-6">
+          <p className="mb-2 text-sm font-semibold">Мои главы (хранятся в книге и в облаке)</p>
+          <ul className="grid gap-2">
+            {[...chapters].sort((a, b) => b.at.localeCompare(a.at)).map((c) => (
+              <li key={c.id} className="flex items-center gap-2 rounded-xl bg-white/80 p-3">
+                <button type="button" className="min-h-11 flex-1 text-left" onClick={() => { setText(c.text); setChapter(c.chapter); setStyle((c.style as ChapterStyle) || "family"); keep(c.text, c.chapter); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                  <span className="block text-base font-semibold leading-tight">{c.chapter.split(/\n+/)[0]?.slice(0, 60) || "Глава"}</span>
+                  <span className="block text-xs text-muted">{new Date(c.at).toLocaleDateString("ru-RU")}</span>
+                </button>
+                <button type="button" aria-label="Удалить главу" className="min-h-11 px-3 text-sm text-muted" onClick={() => removeAiChapter(c.id)}>Удалить</button>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       <div className="h-24" />
     </ScreenFrame>

@@ -22,6 +22,8 @@ import {
   type FamilyDoc,
   type FamilyPhoto,
   type Interview,
+  type AiTurn,
+  type AiChapter,
   type InterviewFact,
   type Person,
   type Place,
@@ -43,6 +45,8 @@ type RodState = {
   stories: Story[];
   /** Интервью: расшифровки с найденными фактами. */
   interviews: Interview[];
+  aiChat: AiTurn[];
+  aiChapters: AiChapter[];
   events: TimelineEvent[];
   documents: FamilyDoc[];
   notes: CardNote[];
@@ -100,6 +104,10 @@ type RodState = {
   addInterview: (input: Omit<Interview, "id" | "createdAt" | "facts" | "factsDone" | "factsTotal" | "dropped"> & Partial<Pick<Interview, "facts" | "factsDone" | "factsTotal" | "dropped">>) => string;
   updateInterview: (id: string, patch: Partial<Omit<Interview, "id">>) => void;
   removeInterview: (id: string) => void;
+  addAiTurns: (turns: AiTurn[]) => void;
+  clearAiChat: () => void;
+  addAiChapter: (input: Omit<AiChapter, "id" | "at">) => string;
+  removeAiChapter: (id: string) => void;
   patchFact: (interviewId: string, factId: string, patch: Partial<Omit<InterviewFact, "id">>) => void;
   updateStory: (id: string, patch: Partial<Pick<Story, "title" | "narrative" | "attachments">>) => void;
   addEvent: (input: Omit<TimelineEvent, "id">) => void;
@@ -144,6 +152,8 @@ const empty = {
   photos: [] as FamilyPhoto[],
   stories: [] as Story[],
   interviews: [] as Interview[],
+  aiChat: [] as AiTurn[],
+  aiChapters: [] as AiChapter[],
   events: [] as TimelineEvent[],
   documents: [] as FamilyDoc[],
   notes: [] as CardNote[],
@@ -348,6 +358,14 @@ export const useRod = create<RodState>()(
         return id;
       },
       updateInterview: (id, patch) => set((state) => ({ interviews: state.interviews.map((item) => (item.id === id ? { ...item, ...patch } : item)) })),
+      addAiTurns: (turns) => set((state) => ({ aiChat: [...state.aiChat, ...turns.filter((t) => !state.aiChat.some((x) => x.id === t.id))].slice(-200) })),
+      clearAiChat: () => set({ aiChat: [] }),
+      addAiChapter: (input) => {
+        const id = uid();
+        set((state) => ({ aiChapters: [{ ...input, id, at: new Date().toISOString() }, ...state.aiChapters].slice(0, 100) }));
+        return id;
+      },
+      removeAiChapter: (id) => set((state) => ({ aiChapters: state.aiChapters.filter((c) => c.id !== id) })),
       removeInterview: (id) => set((state) => ({ interviews: state.interviews.filter((item) => item.id !== id) })),
       patchFact: (interviewId, factId, patch) =>
         set((state) => ({ interviews: state.interviews.map((item) => (item.id === interviewId ? { ...item, facts: item.facts.map((fact) => (fact.id === factId ? { ...fact, ...patch } : fact)) } : item)) })),
