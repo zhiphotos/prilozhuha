@@ -302,6 +302,14 @@ export function EditorScreen({ pageId }: { pageId: string }) {
   const touches = useRef(new Map<number, { x: number; y: number }>());
   const twoTap = useRef<{ t0: number; moved: boolean; fired: boolean } | null>(null);
   const [size, setSize] = useState({ w: 320, h: 320 });
+  // Телефон лёжа: лист не помещается по высоте, поэтому его двигают пальцем вверх и вниз (иначе он «приклеен» и виден не весь).
+  const [landscapePhone, setLandscapePhone] = useState(() => typeof window !== "undefined" && window.matchMedia("(orientation: landscape) and (max-height: 500px)").matches);
+  useEffect(() => {
+    const query = window.matchMedia("(orientation: landscape) and (max-height: 500px)");
+    const on = () => setLandscapePhone(query.matches);
+    query.addEventListener("change", on);
+    return () => query.removeEventListener("change", on);
+  }, []);
 
   const setStyle = (next: PhotoStyle) => {
     setStyleState(next);
@@ -2043,7 +2051,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             <div
               ref={sheetRef}
               className={cn("book-page-shadow relative z-[5] select-none rounded-[2px]", dropping && "ring-4 ring-rose/60")}
-              style={{ width: size.w * zoom, cursor: pipette ? "crosshair" : cursor, touchAction: tool === "hand" && zoom > 1 && !pickMode ? "pan-x pan-y" : "none" }}
+              style={{ width: size.w * zoom, cursor: pipette ? "crosshair" : cursor, touchAction: tool === "hand" && (zoom > 1 || landscapePhone) && !pickMode ? "pan-x pan-y" : "none" }}
               onPointerDown={onSheetDown}
               onPointerMove={onSheetMove}
               onPointerUp={onSheetUp}
