@@ -39,6 +39,9 @@ export const chatGenealogist = (deps: AiDeps, messages: ChatMsg[], requestId: st
 
 /** Художественная глава по присланному рассказу: стиль выбирает человек, инструкции живут на сервере. */
 export type ChapterStyle = "family" | "classic" | "memoir" | "essay" | "skaz" | "interview";
+export type StoryDraft = { title: string; text: string; at?: number; people: { name: string; relation: string }[]; places: string[] };
+/** Мини-рассказы по куску записи интервью (часть с отметками [мм:сс]). Одна единица «глав». */
+export const writeStories = (deps: AiDeps, input: { text: string; wish: string }, requestId: string) => post<{ stories: StoryDraft[]; left: number; resetAt: string }>(deps, "ai-chapter", { ...input, style: "stories", requestId });
 export const writeChapter = (deps: AiDeps, input: { text: string; style: ChapterStyle; wish: string }, requestId: string) => post<{ chapter: string; left: number; resetAt: string }>(deps, "ai-chapter", { ...input, requestId });
 
 /** Поиск по архивам с ИИ: сервер выбирает и расставляет архивы из присланного списка и добавляет советы по методике. */

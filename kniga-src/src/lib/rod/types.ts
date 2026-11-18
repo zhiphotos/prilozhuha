@@ -131,6 +131,22 @@ export type Interview = {
   /** Глава по интервью, которую написал ИИ, и фрагменты, на которые она ссылается как на [1], [2]. */
   chapter?: string;
   chapterSources?: { n: number; label: string; quote: string }[];
+  /** Мини-рассказы по записи: конкретные эпизоды, которые написал ИИ. Ходят в облако вместе с интервью. */
+  minis?: MiniStory[];
+};
+
+export type MiniStory = {
+  id: string;
+  title: string;
+  text: string;
+  /** Секунда в записи, где эпизод начинается: чтобы сверить на слух. */
+  at?: number;
+  people: { name: string; relation: string }[];
+  places: string[];
+  /** Номер части записи, из которой написан рассказ. */
+  part: number;
+  /** Уже добавлен в «Истории». */
+  saved?: boolean;
 };
 
 export type TimelineEvent = {

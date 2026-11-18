@@ -36,4 +36,17 @@ r = await run(ROUTES["ai-chapter"], { token: B, deviceId: "d2", requestId: "iv1"
 ok("глава по интервью принимается, правила про ссылки в инструкции", r.status === 200 && /\[3\]|ссылк|номера фрагментов/.test(lastBody.messages[0].content) && r.json.left === 0);
 r = await run(ROUTES["ai-chapter"], { token: B, deviceId: "d2", requestId: "iv2", text: frag, style: "interview" });
 ok("вторая глава по интервью в тот же день не проходит (стоит 2)", r.status === 429);
+// Мини-рассказы по куску записи: JSON с рассказами, время эпизода, цена 1 единица
+const C = makeToken({ order: "kr-5003", until: Date.now() + 86400000 });
+const piece = "[00:12] Валя: Дядя Толя приехал на мотоцикле в Ростов к тёте Лиде.\n[00:40] Валя: Он привёз ей мешок картошки, и они долго пили чай на веранде.\n".repeat(4);
+const fetchBefore = globalThis.fetch;
+globalThis.fetch = async (url, init) => { lastBody = JSON.parse(init.body); return { status: 200, ok: true, json: async () => ({ success: true, result: { response: JSON.stringify({ stories: [{ title: "Дядя Толя в Ростове", text: "Дядя Толя приехал в Ростов на мотоцикле. ".repeat(6), at: "00:12", people: [{ name: "дядя Толя", relation: "брат" }, { name: "тётя Лида", relation: "" }], places: ["Ростов"] }] }) } }) }; };
+r = await run(ROUTES["ai-chapter"], { token: C, deviceId: "d3", requestId: "st1", text: piece, style: "stories", wish: "Рассказывает Валя" });
+ok("рассказы приходят с названием, временем, людьми и местами", r.status === 200 && r.json.stories?.[0]?.title === "Дядя Толя в Ростове" && r.json.stories[0].at === 12 && r.json.stories[0].people.length === 2 && r.json.stories[0].places[0] === "Ростов");
+ok("в инструкции требование конкретного эпизода, а не пересказа", /ОДИН конкретный эпизод/.test(lastBody.messages[0].content) && /не пересказ/i.test(lastBody.messages[0].content));
+ok("стоит 1 единицу", r.json.left === 1);
+globalThis.fetch = async () => ({ status: 200, ok: true, json: async () => ({ success: true, result: { response: "просто текст" } }) });
+r = await run(ROUTES["ai-chapter"], { token: C, deviceId: "d3", requestId: "st2", text: piece, style: "stories" });
+ok("не-JSON: ошибка, расход возвращён", r.status === 502 && (await run(ROUTES["ai-status"], { token: C, deviceId: "d3" })).json.usage.chapter.left === 1);
+globalThis.fetch = fetchBefore;
 console.log(process.exitCode ? "ЕСТЬ ОШИБКИ" : "ВСЁ ПРОШЛО");
