@@ -384,3 +384,8 @@ export type SpineSetup = { text: string; bg?: string; color?: string; font: Font
 
 /** Свой шрифт, загруженный из файла (например, почерк бабушки). */
 export type CustomFontEntry = { id: string; name: string; ref: string };
+
+/** Реплика в чате с генеалогом: живёт в книге и уходит в облако вместе с ней. */
+export type AiTurn = { id: string; role: "user" | "assistant"; text: string; sources?: string[]; at: string };
+/** Глава, написанная ИИ: исходный рассказ, стиль и готовый текст. */
+export type AiChapter = { id: string; text: string; style: string; chapter: string; at: string };
