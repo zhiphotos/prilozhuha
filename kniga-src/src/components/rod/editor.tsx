@@ -1899,7 +1899,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
       onDrop={onDrop}
     >
       {/* Верх */}
-      <header className="relative z-[46] flex items-center gap-2 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] max-sm:flex-wrap">
+      <header className="editor-head relative z-[46] flex items-center gap-2 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] max-sm:flex-wrap">
         <button type="button" className="glass-strong grid size-11 shrink-0 place-items-center rounded-full" aria-label="К книге" onClick={() => { remindBackup(); nav.back(); }}>
           <ChevronLeft className="size-5" />
         </button>
@@ -2222,7 +2222,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             {twoUp && partner && side === "left" ? <PartnerPage page={partner} meta={meta} width={size.w * zoom} side="right" onOpen={() => { turnPage(); nav.replace({ id: "editor", pageId: partner.id }); }} /> : null}
           </div>
         </div>
-        <div className="glass-strong absolute bottom-2 right-3 z-10 flex origin-bottom-right items-center rounded-full p-1 max-md:hidden">
+        <div className="editor-zoom glass-strong absolute bottom-2 right-3 z-10 flex origin-bottom-right items-center rounded-full p-1 max-md:hidden">
           <IconBtn label="Мельче" disabled={zoom <= 1} onClick={() => setZoom((z) => Math.max(1, z - 0.5))}>
             <ZoomOut className="size-4" />
           </IconBtn>
@@ -2300,13 +2300,13 @@ export function EditorScreen({ pageId }: { pageId: string }) {
             <span className="truncate text-xs text-muted">Всё двигается и удаляется</span>
           </div>
         ) : (
-          <p className="h-11 truncate pt-3 text-center text-xs text-muted max-md:hidden">Пунктир: безопасная зона, текст держите внутри. Фото можно тянуть до самого края.</p>
+          <p className="editor-hint h-11 truncate pt-3 text-center text-xs text-muted max-md:hidden">Пунктир: безопасная зона, текст держите внутри. Фото можно тянуть до самого края.</p>
         )}
       </div>
 
       {/* Инструменты */}
-      <nav className={cn("relative z-[46] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2", drawingTool && "hidden")}>
-        <div className="toolbar-dark mx-auto flex max-w-xl items-stretch justify-between gap-0.5 rounded-[1.6rem] p-1.5">
+      <nav className={cn("editor-nav relative z-[46] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2", drawingTool && "hidden")}>
+        <div className="toolbar-dark editor-nav-bar mx-auto flex max-w-xl items-stretch justify-between gap-0.5 rounded-[1.6rem] p-1.5">
           <ToolBtn label="Текст" onClick={onTextTool}>
             <Type className="size-5" />
           </ToolBtn>
