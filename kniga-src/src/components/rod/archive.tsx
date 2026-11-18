@@ -12,6 +12,7 @@ import { useMedia } from "@/lib/rod/media";
 import { toast } from "sonner";
 import { DOC_KINDS, EXAMPLE_TIMELINE } from "@/lib/rod/content";
 import { maidenAllowed, personEvents } from "@/lib/rod/person";
+import { sortByDate } from "@/lib/rod/event-sort";
 import { EMPTY_PERSON, PersonAvatar, PersonEditor, PersonFields, type PersonDraft } from "@/components/rod/person-fields";
 import { useRod } from "@/lib/rod/store";
 import type { ArchiveTab, Attachment, Place } from "@/lib/rod/types";
@@ -253,7 +254,7 @@ function TimePane() {
   const [detail, setDetail] = useState("");
   const people = useRod((state) => state.people);
   const auto = personEvents(people);
-  const sorted = [...events.map((item) => ({ ...item, personId: "" })), ...auto].sort((a, b) => yearNum(a.year) - yearNum(b.year));
+  const sorted = sortByDate([...events.map((item) => ({ ...item, personId: "" })), ...auto]);
   const showingExample = sorted.length === 0;
 
   return (
@@ -659,11 +660,6 @@ function DocsPane() {
       </ul>
     </div>
   );
-}
-
-function yearNum(value: string): number {
-  const match = value.match(/\d{3,4}/);
-  return match ? Number(match[0]) : 9999;
 }
 
 /** Просмотр: стрелки, свайп и клавиши листают всю галерею, не закрывая фото. */
