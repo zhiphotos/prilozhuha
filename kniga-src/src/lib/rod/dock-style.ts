@@ -1,15 +1,15 @@
 import { useSyncExternalStore } from "react";
 
-/** Вид нижнего меню: «classic» (плотная тёмная плашка) или «glass» (матовое стекло). Выбор помнится на этом устройстве. */
+/** Вид нижнего меню: «glass» (матовое стекло, по умолчанию) или «classic» (плотная тёмная плашка). Выбор помнится на этом устройстве. */
 export type DockStyle = "classic" | "glass";
 const KEY = "kniga-dock-style";
 const listeners = new Set<() => void>();
 
 export function getDockStyle(): DockStyle {
   try {
-    return localStorage.getItem(KEY) === "glass" ? "glass" : "classic";
+    return localStorage.getItem(KEY) === "classic" ? "classic" : "glass";
   } catch {
-    return "classic";
+    return "glass";
   }
 }
 
@@ -29,6 +29,6 @@ export function useDockStyle(): DockStyle {
       return () => listeners.delete(fn);
     },
     getDockStyle,
-    () => "classic" as DockStyle,
+    () => "glass" as DockStyle,
   );
 }
