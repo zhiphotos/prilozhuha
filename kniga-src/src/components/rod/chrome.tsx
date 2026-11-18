@@ -119,12 +119,11 @@ export function Dock() {
   // при переключении он плавно переезжает на новое место и меняет цвет.
   return (
     <nav aria-label="Основная навигация" className="dock no-print fixed inset-x-0 bottom-0 z-30 lg:hidden" style={{ ["--i" as string]: index }}>
-      <div className="relative rounded-t-[1.5rem] bg-night shadow-[0_-12px_30px_-14px_rgba(10,12,8,0.7)]">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-[calc(100%-1.5rem)] h-[2.6rem] overflow-hidden">
+      <div className="relative">
+        <div aria-hidden="true" className="dock-glass pointer-events-none absolute inset-0 rounded-t-[1.5rem]" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-full h-[1.1rem] overflow-hidden">
           <div className="dock-hill h-full w-1/3">
-            <svg viewBox="0 0 96 62" preserveAspectRatio="none" className="size-full" fill="currentColor">
-              <path d="M0 26 C18 26 24 0 48 0 C72 0 78 26 96 26 L96 62 L0 62 Z" />
-            </svg>
+            <div className="dock-hill-glass size-full" />
           </div>
         </div>
         <div aria-hidden="true" className="dock-dot pointer-events-none absolute left-0 top-0 flex w-1/6 justify-center">
