@@ -1064,8 +1064,8 @@ body {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 26' preserveAspectRatio='none'%3E%3Cpath d='M0 26 C18 26 24 0 48 0 C72 0 78 26 96 26 Z'/%3E%3C/svg%3E"), linear-gradient(#000, #000), linear-gradient(#000, #000), radial-gradient(circle at 100% 100%, #000 calc(var(--r) - 0.5px), transparent var(--r)), radial-gradient(circle at 0 100%, #000 calc(var(--r) - 0.5px), transparent var(--r));
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
-  -webkit-mask-size: 33.3334% var(--hh), 100% calc(100% - var(--hh) - var(--r)), calc(100% - 2 * var(--r)) calc(100% - var(--hh)), var(--r) var(--r), var(--r) var(--r);
-  mask-size: 33.3334% var(--hh), 100% calc(100% - var(--hh) - var(--r)), calc(100% - 2 * var(--r)) calc(100% - var(--hh)), var(--r) var(--r), var(--r) var(--r);
+  -webkit-mask-size: 33.3334% var(--hh), 100% calc(100% - var(--hh) - var(--r) + 1px), calc(100% - 2 * var(--r)) calc(100% - var(--hh) + 1px), var(--r) var(--r), var(--r) var(--r);
+  mask-size: 33.3334% var(--hh), 100% calc(100% - var(--hh) - var(--r) + 1px), calc(100% - 2 * var(--r)) calc(100% - var(--hh) + 1px), var(--r) var(--r), var(--r) var(--r);
   -webkit-mask-position: calc((var(--i, 0) - 0.5) * 25%) 0, 0 100%, 50% 100%, 0 var(--hh), 100% var(--hh);
   mask-position: calc((var(--i, 0) - 0.5) * 25%) 0, 0 100%, 50% 100%, 0 var(--hh), 100% var(--hh);
   transition: -webkit-mask-position 380ms cubic-bezier(0.3, 1.25, 0.5, 1), mask-position 380ms cubic-bezier(0.3, 1.25, 0.5, 1);
