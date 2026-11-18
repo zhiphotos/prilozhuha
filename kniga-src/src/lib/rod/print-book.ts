@@ -31,7 +31,7 @@ import type { PrintSetup } from "@/lib/rod/page-style";
 import { shapeParts, shapeStyle } from "@/lib/rod/shapes";
 import { isStampBrush, stampRaster } from "@/lib/rod/stamp-brush";
 import { explodeBold, stripBold } from "@/lib/rod/rich";
-import { spreadGhosts } from "@/lib/rod/spread";
+import { isGhostId, mergeGhosts, spreadGhosts } from "@/lib/rod/spread";
 import { backPage } from "@/lib/rod/store";
 import type { BookPage, PageBlock, PaperKind, SpineSetup } from "@/lib/rod/types";
 import { splitWords } from "@/lib/rod/words";
@@ -629,8 +629,10 @@ export async function paintPage(page: BookPage, meta: CoverMeta, setup?: PrintSe
   paintPaper(ctx, page.paper, bleed, page.bg);
   if (page.kind === "cover" && !page.designed) await paintCover(ctx, meta);
   await loadFonts([...ghosts, ...page.blocks]);
-  for (const block of ghosts) await paintBlock(ctx, block, isDark(page.bg));
-  for (const block of page.blocks) await paintBlock(ctx, block, isDark(page.bg), page.blocks);
+  for (const block of mergeGhosts(page.blocks, ghosts)) {
+    if (isGhostId(block.id)) await paintBlock(ctx, block, isDark(page.bg));
+    else await paintBlock(ctx, block, isDark(page.bg), page.blocks);
+  }
   paintStrokes(ctx, page);
   return canvas;
 }

@@ -1,3 +1,4 @@
+import { ghostPosition, mergeGhosts } from "@/lib/rod/spread";
 import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Camera, ClipboardPaste, FileUp, Images, Lock, Mic, ScanLine, Search, Trash2, Unlock, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -374,7 +375,7 @@ export function LayersSheet({
   shared = [],
 }: {
   /** Картинки через разворот, которые лежат на соседней странице: здесь их не выбрать, но можно открыть, закрепить или убрать. */
-  shared?: { block: PageBlock; onOpen: () => void; onLock: () => void; onRemove: () => void }[];
+  shared?: { block: PageBlock; onOpen: () => void; onLock: () => void; onRemove: () => void; onUnder: (anchor: string | null) => void }[];
   blocks: PageBlock[];
   selected: string | null;
   onSelect: (id: string) => void;
@@ -383,60 +384,75 @@ export function LayersSheet({
   onRemove: (id: string) => void;
   onClose: () => void;
 }) {
-  const list = blocks.map((block, index) => ({ block, index })).reverse();
+  // Картинки через разворот стоят в общем списке на своём месте: их можно ставить выше и ниже элементов этой страницы.
+  const sharedAt = (blockId: string) => shared.find((item) => item.block.id === blockId);
+  const merged = mergeGhosts(blocks, shared.map((item) => item.block));
+  const list = merged.map((block, index) => ({ block, index })).reverse();
+  const own = (block: PageBlock) => blocks.findIndex((b) => b.id === block.id);
+  const moveShared = (item: NonNullable<ReturnType<typeof sharedAt>>, where: "up" | "down") => {
+    const pos = ghostPosition(blocks, item.block.ghostUnder);
+    const next = Math.max(0, Math.min(blocks.length, pos + (where === "up" ? 1 : -1)));
+    item.onUnder(next >= blocks.length ? null : (blocks[next]?.id ?? null));
+  };
   return (
     <Sheet title="Слои" onClose={onClose} dim={false}>
       <p className="mb-2 text-sm text-muted">Сверху тот, что поверх всех. Нажмите на строку, чтобы выбрать элемент, даже если он закрыт фото. Замок: элемент не двигается и не мешает соседям.</p>
       {list.length === 0 ? <p className="py-6 text-center text-sm text-muted">На странице пока ничего нет.</p> : null}
       <ul className="grid gap-1.5">
-        {list.map(({ block, index }) => (
-          <li key={block.id} className={cn("flex items-center gap-2 rounded-2xl bg-white/70 p-1.5", selected === block.id && "ring-2 ring-night")}>
-            <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={() => onSelect(block.id)}>
-              <LayerThumb block={block} />
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium text-ink">{blockLabel(block)}</span>
-                <span className="block text-xs text-muted">{block.locked ? "заблокирован · " : ""}слой {blocks.length - index}</span>
-              </span>
-            </button>
-            <button type="button" aria-label="Выше" disabled={index === blocks.length - 1} className="grid size-11 place-items-center rounded-full disabled:opacity-30" onClick={() => onMove(block.id, "up")}>
-              <ArrowUp className="size-4" />
-            </button>
-            <button type="button" aria-label="Ниже" disabled={index === 0} className="grid size-11 place-items-center rounded-full disabled:opacity-30" onClick={() => onMove(block.id, "down")}>
-              <ArrowDown className="size-4" />
-            </button>
-            <button type="button" aria-label={block.locked ? "Разблокировать" : "Заблокировать"} className={cn("grid size-11 place-items-center rounded-full", block.locked && "bg-night text-paper")} onClick={() => onLock(block.id)}>
-              {block.locked ? <Lock className="size-4" /> : <Unlock className="size-4" />}
-            </button>
-            <button type="button" aria-label="Удалить" className="grid size-11 place-items-center rounded-full text-rose-deep" onClick={() => onRemove(block.id)}>
-              <Trash2 className="size-4" />
-            </button>
-          </li>
-        ))}
-      </ul>
-      {shared.length ? (
-        <>
-          <p className="mb-2 mt-4 text-sm text-muted">Через разворот. Эти картинки лежат на соседней странице. Нажмите на строку, чтобы перейти туда и двигать их, как обычно.</p>
-          <ul className="grid gap-1.5">
-            {shared.map(({ block, onOpen, onLock, onRemove: remove }) => (
-              <li key={block.id} className="flex items-center gap-2 rounded-2xl bg-white/70 p-1.5">
-                <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={onOpen}>
+        {list.map(({ block, index }) => {
+          const item = sharedAt(block.id);
+          if (item) {
+            const pos = ghostPosition(blocks, block.ghostUnder);
+            return (
+              <li key={`s:${block.id}`} className="flex items-center gap-2 rounded-2xl bg-white/70 p-1.5">
+                <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={item.onOpen}>
                   <LayerThumb block={block} />
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium text-ink">{blockLabel(block)}</span>
-                    <span className="block text-xs text-muted">{block.locked ? "заблокирован · " : ""}на соседней странице, открыть</span>
+                    <span className="block text-xs text-muted">{block.locked ? "заблокирован · " : ""}через разворот · слой {merged.length - index} · нажмите, чтобы открыть</span>
                   </span>
                 </button>
-                <button type="button" aria-label={block.locked ? "Разблокировать" : "Заблокировать"} className={cn("grid size-11 place-items-center rounded-full", block.locked && "bg-night text-paper")} onClick={onLock}>
+                <button type="button" aria-label="Выше" disabled={pos >= blocks.length} className="grid size-11 place-items-center rounded-full disabled:opacity-30" onClick={() => moveShared(item, "up")}>
+                  <ArrowUp className="size-4" />
+                </button>
+                <button type="button" aria-label="Ниже" disabled={pos <= 0} className="grid size-11 place-items-center rounded-full disabled:opacity-30" onClick={() => moveShared(item, "down")}>
+                  <ArrowDown className="size-4" />
+                </button>
+                <button type="button" aria-label={block.locked ? "Разблокировать" : "Заблокировать"} className={cn("grid size-11 place-items-center rounded-full", block.locked && "bg-night text-paper")} onClick={item.onLock}>
                   {block.locked ? <Lock className="size-4" /> : <Unlock className="size-4" />}
                 </button>
-                <button type="button" aria-label="Удалить" className="grid size-11 place-items-center rounded-full text-rose-deep" onClick={remove}>
+                <button type="button" aria-label="Удалить" className="grid size-11 place-items-center rounded-full text-rose-deep" onClick={item.onRemove}>
                   <Trash2 className="size-4" />
                 </button>
               </li>
-            ))}
-          </ul>
-        </>
-      ) : null}
+            );
+          }
+          const at = own(block);
+          return (
+            <li key={block.id} className={cn("flex items-center gap-2 rounded-2xl bg-white/70 p-1.5", selected === block.id && "ring-2 ring-night")}>
+              <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={() => onSelect(block.id)}>
+                <LayerThumb block={block} />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-ink">{blockLabel(block)}</span>
+                  <span className="block text-xs text-muted">{block.locked ? "заблокирован · " : ""}слой {merged.length - index}</span>
+                </span>
+              </button>
+              <button type="button" aria-label="Выше" disabled={at === blocks.length - 1} className="grid size-11 place-items-center rounded-full disabled:opacity-30" onClick={() => onMove(block.id, "up")}>
+                <ArrowUp className="size-4" />
+              </button>
+              <button type="button" aria-label="Ниже" disabled={at === 0} className="grid size-11 place-items-center rounded-full disabled:opacity-30" onClick={() => onMove(block.id, "down")}>
+                <ArrowDown className="size-4" />
+              </button>
+              <button type="button" aria-label={block.locked ? "Разблокировать" : "Заблокировать"} className={cn("grid size-11 place-items-center rounded-full", block.locked && "bg-night text-paper")} onClick={() => onLock(block.id)}>
+                {block.locked ? <Lock className="size-4" /> : <Unlock className="size-4" />}
+              </button>
+              <button type="button" aria-label="Удалить" className="grid size-11 place-items-center rounded-full text-rose-deep" onClick={() => onRemove(block.id)}>
+                <Trash2 className="size-4" />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
       <Button className="mt-3 w-full" onClick={onClose}>
         Готово
       </Button>
