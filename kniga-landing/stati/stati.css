@@ -1,0 +1,26 @@
+/* Статьи: тот же вид, что у лендинга. Светлая «бумага» для чтения на тёмном фоне. */
+body{padding-top:64px}
+.art{padding:40px 0 64px}
+.art__crumbs{font-size:14px;color:#c9c3b3;margin:0 0 18px}
+.art__crumbs a{color:var(--gold2);text-decoration:none}
+.art__crumbs a:hover{text-decoration:underline}
+.art__h1{font:400 clamp(28px,5vw,46px)/1.12 var(--display);color:var(--gold2);margin:0 0 .5em;letter-spacing:.01em}
+.art__lead{font-size:clamp(18px,2.4vw,21px);line-height:1.55;color:#ece7da;margin:0 0 28px}
+.art__body{background:var(--paper);color:var(--ink);border-radius:var(--r);padding:clamp(22px,4vw,40px)}
+.art__body h2{font:400 clamp(22px,3.2vw,30px)/1.2 var(--display);color:var(--ink);margin:1.4em 0 .5em}
+.art__body h2:first-child{margin-top:0}
+.art__body p,.art__body li{font-size:18px;line-height:1.65}
+.art__body ul{padding-left:1.2em;margin:0 0 1em}
+.art__body li{margin:0 0 .45em}
+.art__body a{color:#4b5a30;text-underline-offset:3px}
+.art__cta{margin:32px 0;padding:26px;border:1px solid var(--line);border-radius:var(--r);background:var(--moss);text-align:center}
+.art__cta-t{font:400 24px/1.2 var(--display);color:var(--gold2);margin:0 0 .4em}
+.art__more h2{font:400 22px/1.2 var(--display);color:var(--gold2);margin:0 0 .6em}
+.art__more ul{list-style:none;margin:0;padding:0}
+.art__more li{margin:0 0 .6em}
+.art__cards{list-style:none;margin:0;padding:0;display:grid;gap:16px}
+.art__card a{display:block;padding:22px;border:1px solid var(--line);border-radius:var(--r);background:var(--moss);text-decoration:none}
+.art__card a:hover{background:var(--moss2)}
+.art__card-t{display:block;font:400 22px/1.2 var(--display);color:var(--gold2);margin:0 0 .3em}
+.art__card-d{display:block;color:#c9c3b3;font-size:16px;line-height:1.5}
+@media(max-width:600px){.art__body p,.art__body li{font-size:17px}}
