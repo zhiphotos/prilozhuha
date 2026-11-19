@@ -1148,19 +1148,20 @@ body {
 /* Конверт и распаковка */
 .gift-unbox{position:relative;aspect-ratio:1.5/1;}
 .gift-env-back,.gift-env-pocket,.gift-env-flap{position:absolute;left:0;right:0;}
-.gift-env-back{inset:0;border-radius:1rem;background:linear-gradient(160deg,#5a1c2c,#3b111e);box-shadow:0 26px 40px -24px rgba(0,0,0,.85);transition:opacity .6s ease 1.25s,transform .8s ease 1.2s;}
+.gift-env-back{inset:0;border-radius:1rem;background:linear-gradient(160deg,#5a1c2c,#3b111e);box-shadow:0 26px 40px -24px rgba(0,0,0,.85);transition:opacity .6s ease 1.8s,transform .8s ease 1.75s;}
 .gift-env-card{position:absolute;left:5%;right:5%;top:6%;z-index:2;transform:translateY(6%) scale(.96);}
-.gift-env-pocket{bottom:0;top:0;z-index:3;border-radius:1rem;background:linear-gradient(170deg,#8a3048 0%,#6a2234 60%,#521a29 100%);clip-path:polygon(0 38%,50% 72%,100% 38%,100% 100%,0 100%);box-shadow:inset 0 -1px 0 rgba(230,207,156,.4);transition:opacity .5s ease 1.2s,transform .8s ease 1.2s;}
+.gift-env-pocket{bottom:0;top:0;z-index:3;border-radius:1rem;background:linear-gradient(170deg,#8a3048 0%,#6a2234 60%,#521a29 100%);clip-path:polygon(0 38%,50% 72%,100% 38%,100% 100%,0 100%);box-shadow:inset 0 -1px 0 rgba(230,207,156,.4);transition:opacity .5s ease 1.75s,transform .8s ease 1.75s;}
 .gift-env-flap{top:0;height:62%;z-index:4;border-radius:1rem 1rem 0 0;background:linear-gradient(180deg,#9a3a53,#6a2234);clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:50% 0;transition:transform .7s cubic-bezier(.5,0,.3,1) .25s,opacity .3s ease .7s;}
 .gift-seal{position:absolute;left:50%;top:62%;z-index:5;width:3.6rem;height:3.6rem;margin:-1.8rem 0 0 -1.8rem;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#f6e3ae,#c9a861 55%,#8a6a2c 100%);color:#5a1c2c;font-size:1.4rem;box-shadow:0 6px 14px -4px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.6);transition:transform .45s cubic-bezier(.5,-.4,.5,1.4),opacity .35s ease;}
 .gift-open .gift-seal{transform:scale(0) rotate(160deg);opacity:0;}
 .gift-open .gift-env-flap{transform:rotateX(180deg);opacity:0;}
 .gift-open .gift-env-pocket,.gift-open .gift-env-back{opacity:0;transform:translateY(40%);}
-.gift-open .gift-env-card{z-index:6;animation:gift-rise 2s cubic-bezier(.3,.9,.3,1) .55s both;}
-@keyframes gift-rise{0%{transform:translateY(6%) scale(.96)}38%{transform:translateY(-40%) scale(.98)}62%{transform:translateY(-22%) rotateY(180deg) scale(1.01)}100%{transform:translateY(4%) rotateY(360deg) scale(1)}}
-.gift-flash{position:absolute;left:50%;top:40%;width:150%;aspect-ratio:1;translate:-50% -50%;border-radius:50%;background:radial-gradient(circle,rgba(255,244,214,.95) 0%,rgba(230,207,156,.45) 25%,transparent 60%);opacity:0;animation:gift-flash 1.2s ease-out 1.05s forwards;}
+/* Карта выезжает из кармашка, оставаясь за его передней стенкой (z 2), и выходит вперёд только когда целиком над конвертом. Старт после того, как раскрылся клапан. */
+.gift-open .gift-env-card{animation:gift-rise 2.2s cubic-bezier(.3,.9,.3,1) .85s both;}
+@keyframes gift-rise{0%{z-index:2;transform:translateY(6%) scale(.96)}36%{z-index:2;transform:translateY(-62%) scale(.97)}37%{z-index:6;transform:translateY(-63%) scale(.97)}70%{z-index:6;transform:translateY(-4%) scale(1.03)}100%{z-index:6;transform:translateY(4%) scale(1)}}
+.gift-flash{position:absolute;left:50%;top:40%;width:150%;aspect-ratio:1;translate:-50% -50%;border-radius:50%;background:radial-gradient(circle,rgba(255,244,214,.95) 0%,rgba(230,207,156,.45) 25%,transparent 60%);opacity:0;animation:gift-flash 1.2s ease-out 1.6s forwards;}
 @keyframes gift-flash{0%{opacity:0;transform:scale(.3)}25%{opacity:1}100%{opacity:0;transform:scale(1.3)}}
-.gift-spark{position:absolute;left:50%;top:45%;color:#f4dfa8;text-shadow:0 0 10px rgba(244,223,168,.9);opacity:0;pointer-events:none;animation:gift-burst 1.6s cubic-bezier(.1,.7,.3,1) var(--d) forwards;}
+.gift-spark{position:absolute;left:50%;top:45%;color:#f4dfa8;text-shadow:0 0 10px rgba(244,223,168,.9);opacity:0;pointer-events:none;animation:gift-burst 1.6s cubic-bezier(.1,.7,.3,1) calc(var(--d) + 1.6s) forwards;}
 @keyframes gift-burst{0%{opacity:0;transform:translate(0,0) scale(.2) rotate(0)}12%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(var(--s)) rotate(var(--r))}}
 .gift-card-in{animation:gift-card-in .9s cubic-bezier(.2,.8,.2,1) .2s both;}
 @keyframes gift-card-in{0%{transform:scale(.88) translateY(14px);opacity:.4}100%{transform:none;opacity:1}}
@@ -1201,3 +1202,8 @@ body {
 .kcard-back .kcard-note{left:28cqw;}
 .kcard-back .kcard-back-mark{left:28cqw;}
 .gift-open .gift-env-card{animation-timing-function:cubic-bezier(.45,0,.2,1);}
+
+/* Конверт: та же бумага, что на папках в разделе ИИ (/tex/scratch.webp), поверх цвета. */
+.gift-env-back{background:url(/tex/scratch.webp) 0 0/520px auto,linear-gradient(160deg,#5a1c2c,#3b111e);}
+.gift-env-pocket{background:url(/tex/scratch.webp) -140px -60px/520px auto,linear-gradient(170deg,#8a3048 0%,#6a2234 60%,#521a29 100%);}
+.gift-env-flap{background:url(/tex/scratch.webp) -60px -200px/520px auto,linear-gradient(180deg,#9a3a53,#6a2234);}
