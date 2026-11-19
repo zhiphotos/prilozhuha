@@ -7,6 +7,7 @@ import { Button, Sheet } from "@/components/rod/chrome";
 import { MediaImg } from "@/components/rod/media-img";
 import { CustomInterviewSheet } from "@/components/rod/send-interview";
 import { PaySheet } from "@/components/rod/lessons";
+import { GiftActions } from "@/components/rod/gift";
 import { LoginScreen } from "@/components/rod/login-screen";
 import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
 import { PROGRAM_PRICE } from "@/lib/rod/content";
@@ -87,6 +88,9 @@ export function AccessSheet({ onClose, onBooks }: { onClose: () => void; onBooks
             <Button className="btn-glass-green mt-4 h-auto min-h-12 w-full whitespace-normal py-3" onClick={() => setPay("buy")}>
               <span className="text-center">Открыть полный доступ <span className="whitespace-nowrap">· {PROGRAM_PRICE}</span></span>
             </Button>
+            <div className="mt-3">
+              <GiftActions />
+            </div>
           </div>
           <button type="button" className="mt-4 min-h-11 text-left text-sm font-semibold text-moss underline underline-offset-2" onClick={() => setLogin(true)}>
             Уже оплатили? Войти по почте

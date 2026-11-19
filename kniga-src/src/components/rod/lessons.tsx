@@ -13,6 +13,7 @@ import { leaveLead, loginWithCode, platformLogin, redeemCode, requestLoginCode, 
 import { useRod } from "@/lib/rod/store";
 import { cn } from "@/lib/cn";
 import { CommunityCard } from "@/components/rod/access";
+import { GiftActions } from "@/components/rod/gift";
 import { Button, ScreenFrame, Sheet, TopBar, linkScreen, useNav } from "@/components/rod/chrome";
 
 export function LessonsScreen() {
@@ -375,6 +376,7 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
             <Button className="min-h-14 w-full whitespace-nowrap !bg-[#e6cf9c] px-4 text-[1.1rem] !text-[#241a07] shadow-[0_12px_24px_-12px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.6)_inset] hover:!bg-[#c9ae74]" onClick={() => setStarted(true)}><ShoppingBag className="size-5" /> Купить за {PROGRAM_PRICE}</Button>
             <p className="mt-3 text-center text-sm leading-snug text-[#f3f0e8]/85">Платите один раз, навсегда, без подписки и списаний</p>
           </div>
+          {live ? <GiftActions /> : null}
           {live ? <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("restore")}>Уже оплатили? Войти по почте</button> : null}
           <button type="button" className="text-left text-sm text-muted underline" onClick={() => setMore((v) => !v)}>{more ? "Скрыть" : "Другие способы войти"}</button>
           {more ? (
@@ -828,6 +830,9 @@ function LockedLesson({ lesson, onBack, onBuy, onNext, onMore, widget = false }:
           ) : null}
           <div className="mt-1">
             <GoldTicket onClick={onBuy}>Купить уроки и полный доступ в приложение за {PROGRAM_PRICE}</GoldTicket>
+            <div className="mt-3">
+              <GiftActions dark />
+            </div>
           </div>
         </div>
         {widget ? null : (

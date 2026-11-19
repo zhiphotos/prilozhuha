@@ -62,3 +62,42 @@ ${help}`);
   const text = `Код для входа в «Книгу рода»: ${code}\nВпишите его в приложении. Код работает 15 минут. Если вы его не просили, ничего не делайте.`;
   return { subject, html, text };
 }
+
+/** Письмо дарителю: подарок оплачен, вот ссылка, которую нужно отправить. */
+export function giftMadeMail({ to, link }) {
+  const who = to ? `. Кому: ${esc(to)}` : "";
+  const subject = "Подарок оплачен. Вот ссылка, которую нужно отправить";
+  const html = frame("Подарок готов", `
+<p style="margin:0 0 6px">Вы оплатили Книгу рода в подарок${who}. Остался один шаг: отправьте человеку эту ссылку в мессенджере или сообщением.</p>
+${button(link, "Открыть открытку")}
+<p style="margin:0 0 10px;font-weight:bold">Что произойдёт дальше:</p>
+<ol style="margin:0 0 16px;padding-left:24px">
+<li style="margin-bottom:10px">Человек откроет ссылку и увидит вашу открытку.</li>
+<li style="margin-bottom:10px">Нажмёт на неё, подарок распакуется, и доступ откроется.</li>
+<li style="margin-bottom:10px">Год доступа считается с того дня, когда он откроет подарок, поэтому торопиться не нужно.</li>
+</ol>
+<p style="margin:0 0 6px;word-break:break-all;font-size:15px;color:#555">Ссылка: ${esc(link)}</p>
+${help}`);
+  const text = ["Подарок оплачен.", `Отправьте человеку эту ссылку: ${link}`, "Он откроет открытку, подарок распакуется и доступ откроется. Год доступа считается с дня, когда подарок откроют."].join("\n");
+  return { subject, html, text };
+}
+
+/** Письмо получателю: вам подарили Книгу рода. */
+export function giftForYouMail({ from, to, link }) {
+  const name = to ? `${esc(to)}, вам` : "Вам";
+  const who = from ? `<p style="margin:0 0 6px">От кого: <b>${esc(from)}</b></p>` : "";
+  const subject = "Вам подарили Книгу рода";
+  const html = frame("Вам подарок", `
+<p style="margin:0 0 6px">${name} подарили Книгу рода: приложение, в котором можно собрать историю своей семьи в одну книгу.</p>
+${who}
+${button(link, "Открыть подарок")}
+<p style="margin:0 0 10px;font-weight:bold">Как это работает:</p>
+<ol style="margin:0 0 16px;padding-left:24px">
+<li style="margin-bottom:10px">Нажмите кнопку выше, откроется открытка.</li>
+<li style="margin-bottom:10px">Нажмите на неё, подарок распакуется.</li>
+<li style="margin-bottom:10px">Впишите свою почту, чтобы входить с любого устройства. Год доступа начнётся в этот день.</li>
+</ol>
+${help}`);
+  const text = [`${to ? `${to}, вам` : "Вам"} подарили Книгу рода${from ? `. От кого: ${from}` : ""}.`, `Откройте подарок: ${link}`, "Нажмите на открытку, подарок распакуется. Год доступа начнётся в день, когда вы его откроете."].join("\n");
+  return { subject, html, text };
+}
