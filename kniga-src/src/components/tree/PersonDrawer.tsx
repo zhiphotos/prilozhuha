@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import { AncestorGate } from "@/components/tree/AncestorGate";
-import { familyOf, inflectSurname } from "@/lib/tree/fill";
+import { birthSurname, familyOf, inflectSurname } from "@/lib/tree/fill";
 import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { relationCard, relationNote, relationOf } from "@/lib/tree/recenter";
 import { fileToPhoto } from "@/lib/tree/photo";
@@ -58,7 +58,7 @@ function DeathField({ value, onChange }: { value: string | undefined; onChange: 
   );
 }
 
-import { BRANCH_PALETTE, setBranchColor, useBranchColors } from "@/lib/tree/branch-colors";
+import { BRANCH_PALETTE, applySideColors, setBranchColor, sideColors, useBranchColors } from "@/lib/tree/branch-colors";
 import { useCardFields } from "@/lib/tree/card-fields";
 
 export function PersonDrawer({ onNewBook }: { onNewBook: () => void }) {
@@ -438,7 +438,7 @@ function AddRelative({
   const gender: Draft["gender"] =
     intent.kind === "father" ? "m" : intent.kind === "mother" ? "f" : flexible ? "u" : person.gender === "m" ? "f" : "m";
   const inherited =
-    intent.kind === "spouse" ? "" : inflectSurname(person.lastName, gender === "u" ? person.gender : gender);
+    intent.kind === "spouse" ? "" : inflectSurname(birthSurname(person, intent.kind), gender === "u" ? person.gender : gender);
   const q = query.trim().toLowerCase();
   const candidates = people.filter((p) => {
     if (p.id === person.id) return false;
@@ -701,6 +701,10 @@ function Portrait({ person }: { person: Person }) {
 function BranchPicker({ personId }: { personId: string }) {
   const colors = useBranchColors();
   const own = colors[personId];
+  const people = useTree((s) => s.people);
+  const unions = useTree((s) => s.unions);
+  const focusId = useTree((s) => s.focusId);
+  const canSides = unions.some((u) => u.partnerIds.length === 2 && u.partnerIds.includes(focusId));
   return (
     <div className="mt-3">
       <p className="text-sm font-semibold">Цвет ветви</p>
@@ -713,6 +717,18 @@ function BranchPicker({ personId }: { personId: string }) {
           Без цвета
         </button>
       </div>
+      {canSides ? (
+        <button
+          type="button"
+          className="mt-3 min-h-11 w-full rounded-2xl border border-line px-3 text-sm font-semibold"
+          onClick={() => {
+            applySideColors(sideColors(people, unions, focusId, BRANCH_PALETTE[0], BRANCH_PALETTE[1]));
+            toast("Моя сторона зелёная, сторона супруга бордовая. Любую ветку можно перекрасить отдельно.");
+          }}
+        >
+          Раскрасить: моя сторона и сторона супруга
+        </button>
+      ) : null}
     </div>
   );
 }

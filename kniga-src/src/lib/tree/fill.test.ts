@@ -1,5 +1,5 @@
 import { demoTree } from "./demo.ts";
-import { addPerson, attachPerson, buildStarter, familyOf } from "./fill.ts";
+import { addPerson, attachPerson, birthSurname, buildStarter, familyOf, inflectSurname } from "./fill.ts";
 import { kinship } from "./kinship.ts";
 import { layoutTree } from "./layout.ts";
 import type { TreeData } from "./types.ts";
@@ -91,3 +91,9 @@ const igor = kinship(demo.people, demo.unions, "olga", "igor");
 assert(igor.title.includes("сводн"), igor.title);
 
 console.log("fill ok", deepKin.card, igor.title);
+
+// Диана М. 2026-11-19: бабушка по маме предлагалась с фамилией отца, а не девичьей фамилией мамы.
+assert(birthSurname({ lastName: "Орловская", maidenName: "Петрова" }, "mother") === "Петрова", "родитель замужней женщины носит её девичью фамилию");
+assert(inflectSurname(birthSurname({ lastName: "Орловская", maidenName: "Петрова" }, "mother"), "f") === "Петрова", "и склоняется как женская");
+assert(birthSurname({ lastName: "Орловская", maidenName: "Петрова" }, "son") === "Орловская", "ребёнок носит текущую фамилию");
+assert(birthSurname({ lastName: "Орловский" }, "father") === "Орловский", "без девичьей фамилии берётся основная");

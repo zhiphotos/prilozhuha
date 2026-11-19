@@ -15,6 +15,7 @@ import { roleOf } from "@/lib/tree/from-people";
 import { applyMarriages, withMarriages } from "@/lib/tree/marriages";
 import { Button, Field } from "@/components/rod/chrome";
 import { CircleCrop } from "@/components/rod/circle-crop";
+import { Attachments } from "@/components/rod/attachments";
 
 export type PersonDraft = Omit<Person, "id">;
 
@@ -167,6 +168,7 @@ export function PersonFields({ value, onChange, others, extraSiblings, onExtraSi
           </Field>
         </div>
       </details>
+      <Attachments scan title="Фото и документы человека" empty="Пока ничего. Прикрепите старые фото, документы, выписки из книг, награды, вырезки." items={value.attachments ?? []} onChange={(next) => onChange({ attachments: next.length ? next : undefined })} />
       {others.length ? <p className="-mb-1 mt-1 text-sm font-semibold text-ink">Как он связан с семьёй: без этого его не будет на древе</p> : null}
       {others.length ? (
         <Field label="Супруг или супруга" hint="Пара встанет в древе в одном ряду.">

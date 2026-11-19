@@ -86,7 +86,7 @@ export function validateGraph(g: RelationshipGraph, rootId?: string): Issue[] {
   for (const id of g.ids) if (!state.has(id)) visit(id, []);
   if (rootId && !out.some((i) => i.code === "cycle")) {
     const r = calculateGenerations(rootId, g);
-    for (const c of r.conflicts) out.push({ code: "generation-conflict", ids: [c], message: "Связи ставят человека в несовместимые поколения." });
+    for (const c of r.conflicts) out.push({ code: "generation-conflict", ids: [c], message: "Поколения не сходятся: проверьте, кто чей родитель." });
   }
   return out;
 }

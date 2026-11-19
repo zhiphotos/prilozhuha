@@ -320,6 +320,13 @@
     line-height: 1.45;
   }
 
+  /* Подпись и поле всегда друг под другом: в полной ширине поле вставало в одну строку с подписью («фамилияОрловская»). */
+  label.field > :is(input:not([type="checkbox"], [type="radio"]), textarea, select) {
+    display: block;
+    width: 100%;
+    margin-top: 0.15rem;
+  }
+
   .field::placeholder {
     color: color-mix(in oklab, var(--color-muted) 80%, white);
   }

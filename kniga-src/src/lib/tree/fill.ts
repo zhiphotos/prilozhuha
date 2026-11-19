@@ -55,6 +55,12 @@ function year(value?: string): string {
   return (value ?? "").replace(/\D/g, "").slice(0, 4);
 }
 
+/** Фамилия, с которой родился человек: у замужней женщины это девичья. Её родители и родные братья и сёстры носят именно её, а не мужнину. */
+export function birthSurname(person: { lastName: string; maidenName?: string }, kind: string): string {
+  if (kind === "father" || kind === "mother" || kind === "brother" || kind === "sister") return person.maidenName?.trim() || person.lastName;
+  return person.lastName;
+}
+
 export function inflectSurname(lastName: string, gender: Gender): string {
   const name = lastName.trim();
   if (!name || gender === "u") return name;
