@@ -14,7 +14,7 @@ self.addEventListener("push", (event) => {
       body: data.body || "",
       icon: "icons/icon-192.png",
       badge: "icons/icon-180.png",
-      tag: "kniga-roda-daily",
+      tag: data.tag || "kniga-roda-daily",
       data: { url: data.url || self.registration.scope },
     }),
   );

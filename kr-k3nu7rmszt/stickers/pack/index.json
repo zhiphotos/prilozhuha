@@ -635,5 +635,429 @@
 "kind": "sticker",
 "textures": true,
 "mode": "Стикер"
+},
+{
+"id": "lace_01",
+"label": "Рамка-прямоугольник",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_01.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_01_t.webp"
+},
+{
+"id": "lace_02",
+"label": "Букет лилий",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_02.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_02_t.webp"
+},
+{
+"id": "lace_03",
+"label": "Овальная рамка",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_03.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_03_t.webp"
+},
+{
+"id": "lace_04",
+"label": "Месяц",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_04.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_04_t.webp"
+},
+{
+"id": "lace_05",
+"label": "Звезда",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_05.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_05_t.webp"
+},
+{
+"id": "lace_06",
+"label": "Сердце",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_06.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_06_t.webp"
+},
+{
+"id": "lace_07",
+"label": "Орхидеи, вензель",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_07.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_07_t.webp"
+},
+{
+"id": "lace_08",
+"label": "Овальная салфетка",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_08.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_08_t.webp"
+},
+{
+"id": "lace_09",
+"label": "Овальная рамка тонкая",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_09.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_09_t.webp"
+},
+{
+"id": "lace_10",
+"label": "Открытка в кружеве",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_10.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_10_t.webp"
+},
+{
+"id": "lace_11",
+"label": "Серебряная рамка",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_11.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_11_t.webp"
+},
+{
+"id": "lace_12",
+"label": "Арка",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_12.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_12_t.webp"
+},
+{
+"id": "lace_13",
+"label": "Вертикальная рамка",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_13.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_13_t.webp"
+},
+{
+"id": "lace_14",
+"label": "Сердце-подушечка",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_14.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_14_t.webp"
+},
+{
+"id": "lace_15",
+"label": "Бантик-лента",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_15.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_15_t.webp"
+},
+{
+"id": "lace_16",
+"label": "Кружевной бант",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_16.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_16_t.webp"
+},
+{
+"id": "lace_17",
+"label": "Сердце большое",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_17.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_17_t.webp"
+},
+{
+"id": "lace_18",
+"label": "Бабочка",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_18.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_18_t.webp"
+},
+{
+"id": "lace_19",
+"label": "Круглая салфетка",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_19.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_19_t.webp"
+},
+{
+"id": "lace_20",
+"label": "Сердце нежное",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_20.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_20_t.webp"
+},
+{
+"id": "lace_21",
+"label": "Салфетка-прямоугольник",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_21.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_21_t.webp"
+},
+{
+"id": "lace_22",
+"label": "Салфетка-звезда",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_22.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_22_t.webp"
+},
+{
+"id": "lace_23",
+"label": "Платок с оборкой",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_23.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_23_t.webp"
+},
+{
+"id": "lace_24",
+"label": "Круглая салфетка тёмная",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_24.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_24_t.webp"
+},
+{
+"id": "lace_25",
+"label": "Квадратный платок",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_25.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_25_t.webp"
+},
+{
+"id": "lace_26",
+"label": "Рамка-овал в квадрате",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_26.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_26_t.webp"
+},
+{
+"id": "lace_27",
+"label": "Маленькая овальная рамка",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_27.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_27_t.webp"
+},
+{
+"id": "lace_28",
+"label": "Овальная салфетка светлая",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_28.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_28_t.webp"
+},
+{
+"id": "lace_29",
+"label": "Вертикальная рамка кремовая",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_29.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_29_t.webp"
+},
+{
+"id": "lace_30",
+"label": "Вертикальная рамка старая",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_30.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_30_t.webp"
+},
+{
+"id": "lace_31",
+"label": "Брошь с камеей",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_31.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_31_t.webp"
+},
+{
+"id": "lace_32",
+"label": "Бант розовый",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_32.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_32_t.webp"
+},
+{
+"id": "lace_33",
+"label": "Розовый цветок",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_33.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_33_t.webp"
+},
+{
+"id": "lace_34",
+"label": "Розовый цветок с пуговицей",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_34.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_34_t.webp"
+},
+{
+"id": "lace_35",
+"label": "Сердце-сеточка",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_35.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_35_t.webp"
+},
+{
+"id": "lace_36",
+"label": "Белый бант",
+"cat": "Кружево: сердца, банты, цветы",
+"file": "stickers/pack/lace/lace_36.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_36_t.webp"
+},
+{
+"id": "lace_37",
+"label": "Круглая салфетка малая",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_37.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_37_t.webp"
+},
+{
+"id": "lace_38",
+"label": "Круглая салфетка серая",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_38.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_38_t.webp"
+},
+{
+"id": "lace_39",
+"label": "Овал серебряный",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_39.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_39_t.webp"
+},
+{
+"id": "lace_40",
+"label": "Платок прозрачный",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_40.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_40_t.webp"
+},
+{
+"id": "lace_41",
+"label": "Платок оливковый",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_41.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_41_t.webp"
+},
+{
+"id": "lace_42",
+"label": "Платок с каймой",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_42.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_42_t.webp"
+},
+{
+"id": "lace_43",
+"label": "Льняной платок",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_43.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_43_t.webp"
+},
+{
+"id": "lace_44",
+"label": "Платок тёмный в горошек",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_44.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_44_t.webp"
+},
+{
+"id": "lace_45",
+"label": "Платок серый с вышивкой",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_45.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_45_t.webp"
+},
+{
+"id": "lace_46",
+"label": "Овал розовый",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_46.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_46_t.webp"
+},
+{
+"id": "lace_47",
+"label": "Арка розовая",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_47.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_47_t.webp"
+},
+{
+"id": "lace_48",
+"label": "Овал резной",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_48.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_48_t.webp"
+},
+{
+"id": "lace_49",
+"label": "Вертикальная резная",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_49.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_49_t.webp"
+},
+{
+"id": "lace_50",
+"label": "Вертикальная кремовая",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_50.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_50_t.webp"
+},
+{
+"id": "lace_51",
+"label": "Арка светлая",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_51.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_51_t.webp"
+},
+{
+"id": "lace_52",
+"label": "Овал кружевной",
+"cat": "Кружевные рамки",
+"file": "stickers/pack/lace/lace_52.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_52_t.webp"
+},
+{
+"id": "lace_53",
+"label": "Платок-прямоугольник",
+"cat": "Кружевные салфетки и платки",
+"file": "stickers/pack/lace/lace_53.png",
+"kind": "sticker",
+"thumb": "stickers/pack/lace/lace_53_t.webp"
 }
 ]
