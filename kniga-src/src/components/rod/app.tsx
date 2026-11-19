@@ -11,6 +11,7 @@ import { startUpdateWatch } from "@/lib/rod/update";
 import { JoinScreen } from "@/components/rod/join";
 import { HelperBar } from "@/components/rod/helper-ui";
 import { TreeViewScreen } from "@/components/rod/tree-view";
+import { GiftMadeScreen, GiftScreen, WishScreen } from "@/components/rod/gift";
 import { LegalScreen } from "@/components/rod/legal";
 import { FlipBookScreen } from "@/components/rod/flipbook";
 import { startAutoSync } from "@/lib/rod/sync";
@@ -52,8 +53,22 @@ function initialStack(): Screen[] {
 
 /** Ссылка #/view/<номер> открывает древо родственника только для просмотра, без книги и входа. */
 export function RodApp() {
-  const view = typeof window !== "undefined" ? window.location.hash.match(/^#\/view\/([0-9a-f]{16})$/) : null;
-  return view ? <TreeViewScreen id={view[1]!} /> : <RodAppMain />;
+  const [hash, setHash] = useState(() => (typeof window !== "undefined" ? window.location.hash : ""));
+  useEffect(() => {
+    const sync = () => setHash(window.location.hash);
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+  const view = hash.match(/^#\/view\/([0-9a-f]{16})$/);
+  if (view) return <TreeViewScreen id={view[1]!} />;
+  // Подарок: открытка для получателя, экран со ссылкой для дарителя и «намёк». Все три работают без входа и без знакомства с приложением.
+  const gift = hash.match(/^#\/gift\/([\w-]{20})$/);
+  if (gift) return <GiftScreen id={gift[1]!} />;
+  const made = hash.match(/^#\/gift-made\/([\w-]{20})$/);
+  if (made) return <GiftMadeScreen id={made[1]!} />;
+  const wish = hash.match(/^#\/wish\/([\w-]{8,1200})$/);
+  if (wish) return <WishScreen payload={wish[1]!} />;
+  return <RodAppMain />;
 }
 
 function RodAppMain() {

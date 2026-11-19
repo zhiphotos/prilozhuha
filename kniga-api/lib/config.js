@@ -3,6 +3,8 @@ export const PRICE_RUB = Number(process.env.PRICE_RUB || 2026);
 export const ACCESS_DAYS = Number(process.env.ACCESS_DAYS || 365);
 export const PRODUCT_NAME = "Программа «Книга рода»: уроки и полный доступ в приложение";
 
+export const GIFT_NAME = "Подарок: Программа «Книга рода», уроки и полный доступ в приложение";
+
 /** Адреса приложения, которым разрешено обращаться к серверу и куда можно возвращать после оплаты. */
 export function allowedOrigins() {
   return (process.env.APP_ORIGINS || "").split(",").map((s) => s.trim().replace(/\/$/, "")).filter(Boolean);

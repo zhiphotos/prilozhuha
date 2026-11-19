@@ -54,17 +54,17 @@ async function call(method, params) {
 }
 
 /** Корзина для кассового чека (54-ФЗ): банк сам формирует чек и отправляет его покупателю на почту. */
-function bundle(email, amountKop) {
+function bundle(email, amountKop, item = {}) {
   return JSON.stringify({
     customerDetails: { email },
     cartItems: {
       items: [
         {
           positionId: 1,
-          name: PRODUCT_NAME,
+          name: item.name ?? PRODUCT_NAME,
           quantity: { value: 1, measure: "шт" },
           itemAmount: amountKop,
-          itemCode: "kniga-roda-program",
+          itemCode: item.code ?? "kniga-roda-program",
           itemPrice: amountKop,
           tax: { taxType: Number(process.env.ALFA_VAT_TYPE || 0) },
           // 4 – полный расчёт, 4 – услуга (признаки способа и предмета расчёта)
@@ -76,7 +76,7 @@ function bundle(email, amountKop) {
 }
 
 /** Регистрируем заказ и возвращаем адрес платёжной страницы банка. */
-export async function createCheckout({ email, ads, legal, returnUrl, failUrl }) {
+export async function createCheckout({ email, ads, legal, returnUrl, failUrl, item }) {
   const amount = PRICE_RUB * 100;
   const orderNumber = `kr-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 8)}`;
   const answer = await call("register.do", {
@@ -85,13 +85,13 @@ export async function createCheckout({ email, ads, legal, returnUrl, failUrl }) 
     currency: "643",
     returnUrl,
     failUrl,
-    description: `${PRODUCT_NAME}`.slice(0, 99),
+    description: `${item?.name ?? PRODUCT_NAME}`.slice(0, 99),
     email,
     language: "ru",
     taxSystem: String(process.env.ALFA_TAX_SYSTEM ?? "1"),
-    orderBundle: bundle(email, amount),
+    orderBundle: bundle(email, amount, item),
     // Запись согласий: что принял покупатель и в какой редакции документов (остаётся в заказе у банка).
-    jsonParams: JSON.stringify({ email, product: "kniga-roda", consentPd: true, consentAds: Boolean(ads), legal: String(legal ?? "").slice(0, 20), at: new Date().toISOString() }),
+    jsonParams: JSON.stringify({ email, product: item?.code ?? "kniga-roda", consentPd: true, consentAds: Boolean(ads), legal: String(legal ?? "").slice(0, 20), at: new Date().toISOString() }),
   });
   if (!answer.orderId || !answer.formUrl) throw new Error(`alfa register: ${answer.errorCode ?? ""} ${answer.errorMessage ?? ""}`.trim());
   return { formUrl: answer.formUrl, orderId: answer.orderId, orderNumber };

@@ -23,13 +23,13 @@ export function deviceId(): string {
   }
 }
 
-const post = async <T,>(path: string, body: unknown): Promise<T & { error?: string }> => {
+export const post = async <T,>(path: string, body: unknown): Promise<T & { error?: string }> => {
   const response = await fetch(`${API_BASE}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(body as object), deviceId: deviceId() }) });
   return (await response.json().catch(() => ({ error: "Сервер не ответил." }))) as T & { error?: string };
 };
 
 /** Адрес приложения без хвоста: сюда банк вернёт покупателя. */
-const appAddress = () => `${window.location.origin}${window.location.pathname}`;
+export const appAddress = () => `${window.location.origin}${window.location.pathname}`;
 
 /** Открывает платёжную страницу банка. Чек придёт на указанную почту. */
 export async function startCheckout(email: string, ads: boolean): Promise<string> {

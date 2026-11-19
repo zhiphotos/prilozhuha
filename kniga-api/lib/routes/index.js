@@ -8,6 +8,10 @@ import aiStatus from "./ai-status.js";
 import aiTranscribe from "./ai-transcribe.js";
 import checkout from "./checkout.js";
 import claim from "./claim.js";
+import giftCheckout from "./gift-checkout.js";
+import giftInfo from "./gift-info.js";
+import giftOpen from "./gift-open.js";
+import giftReturn from "./gift-return.js";
 import grantsAdmin from "./grants-admin.js";
 import layout from "./layout.js";
 import lead from "./lead.js";
@@ -48,6 +52,10 @@ export const ROUTES = {
   "ai-transcribe": aiTranscribe,
   checkout,
   claim,
+  "gift-checkout": giftCheckout,
+  "gift-info": giftInfo,
+  "gift-open": giftOpen,
+  "gift-return": giftReturn,
   "grants-admin": grantsAdmin,
   layout,
   lead,

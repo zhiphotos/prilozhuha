@@ -1072,3 +1072,33 @@ body {
 }
 .dock[data-style="glass"] button { text-shadow: 0 1px 6px rgb(0 0 0 / 0.55); }
 .dock[data-style="glass"] .dock-ico svg { filter: drop-shadow(0 1px 4px rgb(0 0 0 / 0.55)); }
+
+/* Подарок: распаковка открытки. Только transform и opacity, чтобы шло плавно на телефоне. */
+.gift-stage{position:fixed;inset:0;z-index:60;overflow:auto;background:radial-gradient(120% 90% at 50% 18%,#2c4634 0%,#16241b 55%,#0d140f 100%);color:#f3f0e8;}
+.gift-star{position:absolute;color:#e6cf9c;opacity:.0;animation:gift-twinkle 4.2s ease-in-out infinite;pointer-events:none;}
+@keyframes gift-twinkle{0%,100%{opacity:.05;transform:scale(.6)}50%{opacity:.85;transform:scale(1.15)}}
+.gift-float{animation:gift-float 4.5s ease-in-out infinite;}
+@keyframes gift-float{0%,100%{transform:translateY(0) rotate(-.6deg)}50%{transform:translateY(-8px) rotate(.6deg)}}
+.gift-wrap{position:absolute;inset:0;border-radius:inherit;overflow:hidden;background:linear-gradient(150deg,#f1e3bd 0%,#d8bd7d 55%,#b99a5b 100%);transition:transform .9s cubic-bezier(.2,.8,.2,1),opacity .7s ease .15s;transform-origin:50% 100%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35);}
+.gift-ribbon-h,.gift-ribbon-v{position:absolute;background:linear-gradient(90deg,#7d2b40,#a63e58 50%,#7d2b40);transition:transform .7s cubic-bezier(.6,0,.4,1),opacity .5s ease;}
+.gift-ribbon-h{left:0;right:0;top:calc(50% - 22px);height:44px;}
+.gift-ribbon-v{top:0;bottom:0;left:calc(50% - 22px);width:44px;}
+.gift-seal{position:absolute;left:50%;top:50%;width:84px;height:84px;margin:-42px 0 0 -42px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#d9566f,#7d2b40 70%);color:#f7dcc0;font-size:34px;box-shadow:0 8px 18px -6px rgba(0,0,0,.55);transition:transform .6s cubic-bezier(.5,-.4,.5,1.4),opacity .4s ease;}
+.gift-open .gift-ribbon-h{transform:translateX(115%);opacity:0;}
+.gift-open .gift-ribbon-v{transform:translateY(-115%);opacity:0;}
+.gift-open .gift-seal{transform:scale(0) rotate(160deg);opacity:0;}
+.gift-open .gift-wrap{transform:translateY(-14%) scale(1.08);opacity:0;pointer-events:none;}
+.gift-card-in{animation:gift-card-in .9s cubic-bezier(.2,.8,.2,1) .2s both;}
+@keyframes gift-card-in{0%{transform:scale(.88) translateY(14px);opacity:.4}100%{transform:none;opacity:1}}
+.gift-spark{position:absolute;left:50%;top:50%;color:#f4dfa8;text-shadow:0 0 10px rgba(244,223,168,.9);opacity:0;pointer-events:none;animation:gift-burst 1.6s cubic-bezier(.1,.7,.3,1) var(--d) forwards;}
+@keyframes gift-burst{0%{opacity:0;transform:translate(0,0) scale(.2) rotate(0)}12%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(var(--s)) rotate(var(--r))}}
+.gift-line{opacity:0;animation:gift-line .8s ease forwards;}
+@keyframes gift-line{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.gift-pulse{animation:gift-pulse 1.8s ease-in-out infinite;}
+@keyframes gift-pulse{0%,100%{opacity:.55}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){
+  .gift-star,.gift-float,.gift-pulse,.gift-spark{animation:none!important;}
+  .gift-spark{display:none;}
+  .gift-wrap,.gift-ribbon-h,.gift-ribbon-v,.gift-seal{transition-duration:.01s!important;}
+  .gift-card-in,.gift-line{animation-duration:.01s!important;animation-delay:0s!important;}
+}

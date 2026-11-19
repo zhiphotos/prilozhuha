@@ -3,6 +3,7 @@
 import { accessUntil, orderState } from "./alfa.js";
 import { redis, redisConfigured } from "./redis.js";
 import { recordPaid } from "./paid.js";
+import { reconcileGifts } from "./gift.js";
 
 const KEY = "kr:pending";
 const GIVE_UP_MS = 3 * 86400000; // не оплатили за три дня: забываем заказ
@@ -56,6 +57,11 @@ export async function reconcilePending() {
     }
   } finally {
     running = false;
+  }
+  try {
+    recorded += await reconcileGifts();
+  } catch (error) {
+    console.error("[gift-reconcile]", error instanceof Error ? error.message : error);
   }
   return recorded;
 }
