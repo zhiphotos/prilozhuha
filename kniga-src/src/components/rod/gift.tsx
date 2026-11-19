@@ -543,6 +543,7 @@ export function GiftScreen({ id }: { id: string }) {
     return () => window.clearTimeout(t);
   }, [opened]);
   const [email, setEmail] = useState("");
+  const [pdOk, setPdOk] = useState(false);
   const [busy, setBusy] = useState(false);
   const sparks = useMemo(
     () =>
@@ -654,7 +655,18 @@ export function GiftScreen({ id }: { id: string }) {
             ))}
           </ol>
           <input className="field mt-4" type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Ваша почта" aria-label="Ваша почта" />
-          <Button className="gift-gold-btn mt-3 w-full" disabled={busy} onClick={() => void activate()}>
+          {email.trim() ? (
+            <label className="mt-3 flex cursor-pointer items-start gap-3 text-left text-sm leading-snug text-ink">
+              <input type="checkbox" className="mt-0.5 size-5 shrink-0 accent-[#3f4a22]" checked={pdOk} onChange={(event) => setPdOk(event.target.checked)} />
+              <span>
+                Я даю{" "}
+                <a className="font-semibold underline" href="#/legal/consent-pd" target="_blank" rel="noopener noreferrer">
+                  согласие на обработку персональных данных
+                </a>
+              </span>
+            </label>
+          ) : null}
+          <Button className="gift-gold-btn mt-3 w-full" disabled={busy || (Boolean(email.trim()) && !pdOk)} onClick={() => void activate()}>
             {busy ? "Открываю…" : "Открыть Книгу рода"}
           </Button>
           <p className="mt-2 text-xs text-muted">
