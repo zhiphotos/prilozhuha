@@ -77,6 +77,11 @@ ok("сверка ничего лишнего не делает", (await reconcil
 const fresh = JSON.parse((await run(checkout, { body: { email: "z@mail.ru", app: "https://app.example/app/", to: "Анна" } })).text);
 const o2 = orders.get(fresh.url.split("/").pop()); o2.status = 2;
 ok("сверка находит оплату без возврата на сайт", (await reconcileGifts()) === 1);
+// Срок открытия: через год после оплаты неоткрытый подарок сам не открывается.
+const giftLib = await import("./lib/gift.js");
+await giftLib.saveGift("OLDOLDOLDOLDOLDOLDOL", { id: "OLDOLDOLDOLDOLDOLDOL", status: "paid", paidAt: Date.now() - 400 * 86400000, card: { from: "", to: "", message: "", card: "ivory" }, app: "https://app.example/app/" });
+const late = await run(open, { body: { id: "OLDOLDOLDOLDOLDOLDOL" } });
+ok("через год неоткрытый подарок сам не открывается", late.status === 410);
 // Письмо получателю: по расписанию, один раз.
 const sent = [];
 process.env.MAIL_FROM = "t@example.com"; process.env.RESEND_API_KEY = "k";

@@ -12,6 +12,7 @@ export const CARDS = ["ivory", "forest", "rose", "night"];
 const PENDING = "kr:giftpending"; // номер заказа в банке -> номер подарка
 const DELIVER = "kr:giftdeliver"; // номер подарка -> когда отправить письмо получателю
 const GIVE_UP_MS = 3 * 86400000;
+export const GIFT_OPEN_DAYS = 366;
 const key = (id) => `kr:gift:${id}`;
 
 export const newGiftId = () => randomBytes(15).toString("base64url");
@@ -74,6 +75,8 @@ export async function openGift(id, email) {
   const mail = clean(email, 120).toLowerCase();
   const withMail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail) ? mail : "";
   let code = rec.code;
+  // Неоткрытый подарок открывается в течение года с оплаты (п. 4а.6 оферты). Дальше только через Дарину.
+  if (!code && rec.paidAt && Date.now() - Number(rec.paidAt) > GIFT_OPEN_DAYS * 86400000) return { error: "expired", rec };
   if (!code) {
     code = makeCode();
     await redis("HSET", "kr:grants", code, JSON.stringify({ at: Date.now(), days: ACCESS_DAYS, note: `gift:${id}`, ...(withMail ? { email: withMail } : {}) }));

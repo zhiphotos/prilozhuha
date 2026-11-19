@@ -12,6 +12,7 @@ export default async function handler(req, res) {
   if (!validGiftId(id)) return json(res, 404, { error: "Подарок не найден." });
   try {
     const result = await openGift(id, body.email);
+    if (result.error === "expired") return json(res, 410, { error: "Срок, чтобы открыть подарок, закончился. Напишите Дарине: она откроет подарок или вернёт деньги." });
     if (result.error) return json(res, result.rec ? 402 : 404, { error: result.rec ? "Подарок ещё не оплачен." : "Подарок не найден." });
     return json(res, 200, { code: result.code });
   } catch (error) {

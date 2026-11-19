@@ -359,6 +359,7 @@ export function GiftWizard({ onClose, preset }: { onClose: () => void; preset?: 
             </span>
           </button>
           {byMail ? <input className="field" type="email" inputMode="email" autoComplete="off" value={recipientEmail} onChange={(event) => setRecipientEmail(event.target.value)} placeholder="Почта получателя" aria-label="Почта получателя" /> : null}
+          {byMail ? <p className="text-xs text-muted">Эта почта нужна только для письма с открыткой. Указывайте её, если человек не против такого письма.</p> : null}
         </div>
       ) : null}
 
@@ -407,7 +408,8 @@ export function GiftWizard({ onClose, preset }: { onClose: () => void; preset?: 
               Кому: <b>{to || "получатель"}</b>
             </p>
             <p className="mt-1">Уроки и полный доступ на год. <b>{PROGRAM_PRICE}</b>, один раз.</p>
-            <p className="mt-1 text-muted">Год начнётся в тот день, когда человек откроет подарок.</p>
+            <p className="mt-1 text-muted">Год начнётся в тот день, когда человек откроет подарок. Открыть подарок можно в течение года после оплаты, а если его не откроют, деньги можно вернуть.</p>
+            {byMail ? <p className="mt-1 text-muted">Письмо придёт на {recipientEmail.trim()}. Оплачивая, вы подтверждаете, что человек не против его получить.</p> : null}
           </div>
           <label className="block text-sm font-medium text-ink" htmlFor="gift-email">
             Ваша почта для чека
@@ -655,7 +657,17 @@ export function GiftScreen({ id }: { id: string }) {
           <Button className="gift-gold-btn mt-3 w-full" disabled={busy} onClick={() => void activate()}>
             {busy ? "Открываю…" : "Открыть Книгу рода"}
           </Button>
-          <p className="mt-2 text-xs text-muted">Год доступа начинается сегодня, в день, когда вы открыли подарок.</p>
+          <p className="mt-2 text-xs text-muted">
+            Год доступа начинается сегодня, в день, когда вы открыли подарок. Нажимая кнопку, вы принимаете{" "}
+            <a className="underline" href="#/legal/offer" target="_blank" rel="noopener noreferrer">
+              оферту
+            </a>{" "}
+            и знакомитесь с{" "}
+            <a className="underline" href="#/legal/privacy" target="_blank" rel="noopener noreferrer">
+              политикой обработки данных
+            </a>
+            . Почту можно не указывать, тогда подарок будет только на этом устройстве.
+          </p>
         </div>
       ) : null}
     </Shell>
