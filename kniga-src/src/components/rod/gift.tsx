@@ -644,7 +644,7 @@ export function GiftScreen({ id }: { id: string }) {
         <div className="gift-line gift-panel mt-5 w-full text-left" style={{ animationDelay: "2.3s" }}>
           <p className="text-lg font-semibold">Что дальше</p>
           <ol className="mt-3 grid gap-2.5 text-sm">
-            {["Впишите свою почту. Через неё вы будете входить с любого телефона.", "Нажмите «Открыть Книгу рода». Подарок включится сам, вводить коды не нужно.", "Внизу экрана нажмите «Уроки»: там первые шаги, как собрать семейную книгу."].map((line, i) => (
+            {["Впишите свою почту. Через неё вы будете входить с любого устройства.", "Нажмите «Открыть Книгу рода». Подарок включится сам, вводить коды не нужно.", "Внизу экрана нажмите «Уроки»: там первые шаги, как собрать семейную книгу."].map((line, i) => (
               <li key={line} className="flex gap-3">
                 <span className="gift-num">{i + 1}</span>
                 <span>{line}</span>
