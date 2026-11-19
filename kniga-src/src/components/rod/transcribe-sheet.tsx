@@ -132,7 +132,7 @@ export function TranscribeSheet({ onClose }: { onClose: () => void }) {
         {phase === "idle" || phase === "reading" ? (
           <label className="flex min-h-12 cursor-pointer items-center justify-center rounded-2xl bg-moss px-4 font-semibold text-paper">
             {phase === "reading" ? "Читаю…" : "Выбрать запись"}
-            <input type="file" accept="audio/*,video/*" className="sr-only" disabled={phase === "reading"} onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); }} />
+            <input type="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.oga,.opus,.aac,.amr,.3gp,.3gpp,.caf,.flac,.wma,.mp4,.mov,.webm" className="sr-only" disabled={phase === "reading"} onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); }} />
           </label>
         ) : null}
         <p className="rounded-2xl bg-ink/5 px-3 py-2 text-sm text-ink">

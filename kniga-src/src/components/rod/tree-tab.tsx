@@ -179,6 +179,8 @@ function TreeScreen() {
   // Если файл выбрали на экскурсии, панель настроек открыта сразу: кнопка загрузки в ней подхватит файл.
   const [toolsOpen, setToolsOpen] = useState(() => hasPendingGedFile());
   const [scopeOpen, setScopeOpen] = useState(false);
+  /** Подсказка про связи закрыта крестиком: снова покажется, только если список замечаний изменился. */
+  const [hiddenIssues, setHiddenIssues] = useState("");
   const [scopeShift, setScopeShift] = useState(0);
   // Меню длиннее экрана телефона: высота до низа экрана, дальше листается пальцем.
   const [scopeMax, setScopeMax] = useState(480);
@@ -270,14 +272,18 @@ function TreeScreen() {
 
   return (
     <main data-theme={theme} className={`tree-root${dots ? "" : " no-dots"} fixed inset-0 z-40 overflow-hidden bg-canvas text-fg`} style={lineColor ? ({ "--color-blood": lineColor } as React.CSSProperties) : undefined}>
-      {issues.length ? (
-        <div role="status" className="absolute bottom-28 left-3 right-3 z-30 max-h-24 overflow-auto rounded-xl bg-white/90 p-3 text-xs text-ink shadow">
-          <b>Нужно уточнить связи:</b>
+      {issues.length && hiddenIssues !== issues.join("|") ? (
+        <div role="status" className="absolute left-3 right-3 top-16 z-30 max-h-32 overflow-auto rounded-xl bg-white/95 p-3 pr-11 text-xs text-ink shadow">
+          <button type="button" aria-label="Закрыть подсказку" className="absolute right-1.5 top-1.5 grid size-9 place-items-center rounded-full text-lg leading-none text-ink/70 active:bg-ink/10" onClick={() => setHiddenIssues(issues.join("|"))}>
+            ×
+          </button>
+          <b>Нужно уточнить связи ({issues.length}):</b>
           <ul className="mt-1 list-disc pl-4">
             {issues.slice(0, 5).map((text) => (
               <li key={text}>{text}</li>
             ))}
           </ul>
+          {issues.length > 5 ? <p className="mt-1 text-ink/60">И ещё {issues.length - 5}.</p> : null}
         </div>
       ) : null}
       <TreeStage

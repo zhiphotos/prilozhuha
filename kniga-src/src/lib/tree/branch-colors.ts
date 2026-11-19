@@ -62,3 +62,51 @@ export function branchColorOf(people: Person[], unions: Union[], id: string, col
   }
   return undefined;
 }
+
+/**
+ * Раскраска по сторонам семьи: родня выбранного человека одним цветом, родня его супруга другим.
+ * Сторона берётся поиском в ширину от обоих сразу (связь между ними не считается); цвет получают самые старшие предки каждой стороны, остальные берут его сами.
+ * Возвращает, кому какой цвет поставить (пусто, если у выбранного нет супруга).
+ */
+export function sideColors(people: Person[], unions: Union[], me: string, mine: string, theirs: string): Record<string, string> {
+  const spouse = unions.find((u) => u.partnerIds.length === 2 && u.partnerIds.includes(me))?.partnerIds.find((x) => x !== me);
+  if (!spouse) return {};
+  const adj = new Map<string, string[]>();
+  const link = (a: string, b: string) => {
+    (adj.get(a) ?? adj.set(a, []).get(a)!).push(b);
+    (adj.get(b) ?? adj.set(b, []).get(b)!).push(a);
+  };
+  const hasParents = new Set<string>();
+  for (const u of unions) {
+    for (const c of u.childIds) hasParents.add(c);
+    if (u.partnerIds.includes(me) && u.partnerIds.includes(spouse)) {
+      for (const c of u.childIds) {
+        link(me, c);
+        link(spouse, c);
+      }
+      continue;
+    }
+    if (u.partnerIds.length === 2) link(u.partnerIds[0]!, u.partnerIds[1]!);
+    for (const p of u.partnerIds) for (const c of u.childIds) link(p, c);
+  }
+  const side = new Map<string, string>([[me, mine], [spouse, theirs]]);
+  const queue = [me, spouse];
+  for (let i = 0; i < queue.length; i++) for (const n of adj.get(queue[i]!) ?? []) if (!side.has(n)) { side.set(n, side.get(queue[i]!)!); queue.push(n); }
+  const out: Record<string, string> = {};
+  const known = new Set(people.map((p) => p.id));
+  for (const [id, color] of side) if (known.has(id) && !hasParents.has(id)) out[id] = color;
+  // У выбранного и его супруга родителей может не быть: тогда красим их самих.
+  if (!out[me] && !hasParents.has(me)) out[me] = mine;
+  return out;
+}
+
+/** Ставит цвета сторон, прежний выбор по людям заменяется. */
+export function applySideColors(colors: Record<string, string>) {
+  current = { ...colors };
+  try {
+    localStorage.setItem(KEY, JSON.stringify(current));
+  } catch {
+    // выбор останется до закрытия страницы
+  }
+  for (const l of listeners) l();
+}

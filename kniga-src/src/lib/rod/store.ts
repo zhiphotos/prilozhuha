@@ -334,7 +334,10 @@ export const useRod = create<RodState>()(
           if (!("relation" in patch) && ("parents" in patch || "spouse" in patch || "siblingOf" in patch || "moreSpouses" in patch)) people = syncRelations(people);
           return { people };
         }),
-      removePerson: (id) => set((state) => ({ people: withoutPerson(state.people, id) })),
+      removePerson: (id) => {
+        for (const file of get().people.find((p) => p.id === id)?.attachments ?? []) dropMedia(file.ref);
+        set((state) => ({ people: withoutPerson(state.people, id) }));
+      },
       addPlace: (input) => set((state) => ({ places: [{ ...input, id: uid() }, ...state.places] })),
       updatePlace: (id, patch) => set((state) => ({ places: state.places.map((place) => (place.id === id ? { ...place, ...patch } : place)) })),
       removePlace: (id) => set((state) => ({ places: state.places.filter((place) => place.id !== id) })),
