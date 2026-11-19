@@ -1,38 +1,194 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { Check, Copy, Gift, Heart, Share2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Check, Copy, Gift, Heart, RotateCw, Share2 } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { PROGRAM_PRICE } from "@/lib/rod/content";
 import { GIFT_CARDS, MESSAGE_IDEAS, giftLink, lookOf, readWish, wishLink, type GiftCardId, type GiftInfo, type Wish } from "@/lib/rod/gift";
 import { fetchGift, openGift, startGiftCheckout } from "@/lib/rod/gift-api";
 import { serverStatus } from "@/lib/rod/server";
+import { registerBuiltinFonts } from "@/lib/rod/fonts";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const GOLD = "#e6cf9c";
 
-/** Открытка: лицо подарка. Одно и то же в мастере, на экране получателя и в предпросмотре. */
-export function GiftCardFace({ card, to, from, message, heading, className }: { card: GiftCardId; to: string; from: string; message: string; heading?: string; className?: string }) {
-  const look = lookOf(card);
+const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+type OrientationCtor = { requestPermission?: () => Promise<"granted" | "denied"> };
+
+/** Наклон карты за пальцем, мышью и гироскопом. Пишем только CSS-переменные, React не перерисовывается. */
+function useTilt(enabled: boolean) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !enabled || reducedMotion()) return;
+    let tx = 0, ty = 0, cx = 0, cy = 0, raf = 0, base: number | null = null, gyro = false, asked = false;
+    const loop = () => {
+      cx += (tx - cx) * 0.12;
+      cy += (ty - cy) * 0.12;
+      el.style.setProperty("--rx", `${cy.toFixed(2)}deg`);
+      el.style.setProperty("--ry", `${cx.toFixed(2)}deg`);
+      el.style.setProperty("--px", (cx / 16).toFixed(3));
+      el.style.setProperty("--py", (cy / 14).toFixed(3));
+      raf = Math.abs(tx - cx) + Math.abs(ty - cy) > 0.02 ? requestAnimationFrame(loop) : 0;
+    };
+    const aim = (x: number, y: number) => {
+      tx = Math.max(-16, Math.min(16, x));
+      ty = Math.max(-14, Math.min(14, y));
+      el.classList.add("kcard-live");
+      if (!raf) raf = requestAnimationFrame(loop);
+    };
+    const onMove = (event: PointerEvent) => {
+      if (gyro) return;
+      const r = el.getBoundingClientRect();
+      aim(((event.clientX - r.left) / r.width - 0.5) * 32, -((event.clientY - r.top) / r.height - 0.5) * 28);
+    };
+    const onLeave = () => {
+      if (gyro) return;
+      aim(0, 0);
+      el.classList.remove("kcard-live");
+    };
+    const onTurn = (event: DeviceOrientationEvent) => {
+      if (event.gamma == null || event.beta == null) return;
+      gyro = true;
+      if (base == null) base = event.beta;
+      aim(event.gamma * 0.6, -(event.beta - base) * 0.5);
+    };
+    const listenGyro = () => window.addEventListener("deviceorientation", onTurn);
+    const ctor = (window as unknown as { DeviceOrientationEvent?: OrientationCtor }).DeviceOrientationEvent;
+    const onDown = () => {
+      if (asked || !ctor?.requestPermission) return;
+      asked = true;
+      ctor.requestPermission().then((state) => state === "granted" && listenGyro()).catch(() => undefined);
+    };
+    if (ctor && !ctor.requestPermission) listenGyro();
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerleave", onLeave);
+    el.addEventListener("pointerdown", onDown);
+    return () => {
+      cancelAnimationFrame(raf);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", onLeave);
+      el.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("deviceorientation", onTurn);
+    };
+  }, [enabled]);
+  return ref;
+}
+
+/** Знак вместо чипа: золотое древо с корнями. */
+function TreeMark({ color }: { color: string }) {
   return (
-    <div className={`relative overflow-hidden rounded-[1.6rem] p-[7%] shadow-[0_28px_44px_-24px_rgba(0,0,0,0.75)] ${className ?? ""}`} style={{ background: look.bg, color: look.ink, aspectRatio: "4 / 5" }}>
-      <div className="pointer-events-none absolute inset-[3.5%] rounded-[1.3rem] border" style={{ borderColor: look.edge, opacity: 0.75 }} aria-hidden />
-      <div className="relative flex h-full flex-col text-center">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.28em]" style={{ color: look.accent }}>Книга рода</p>
-        {!heading && to ? <p className="mt-[5%] text-xs uppercase tracking-[0.2em] opacity-80">подарок для</p> : null}
-        <p className={`${!heading && to ? "mt-1" : "mt-[5%]"} text-[1.9rem] leading-tight`} style={{ fontFamily: '"kr-babushka","Manrope Variable",cursive', color: look.accent }}>
-          {heading ?? (to || "Подарок")}
-        </p>
-        <div className="my-3 flex items-center justify-center gap-2" style={{ color: look.accent }} aria-hidden>
-          <span className="h-px w-10" style={{ background: look.edge }} />
-          <span>✦</span>
-          <span className="h-px w-10" style={{ background: look.edge }} />
+    <svg viewBox="0 0 40 30" className="h-full w-full" fill="none" stroke={color} strokeWidth="1.3" strokeLinecap="round" aria-hidden>
+      <path d="M20 27V13M20 18l-6-5M20 16l6-5M20 13l-3-5M20 13l3-5M14 13l-4-1M26 11l4-2" />
+      <path d="M20 27c-2 0-4 1-6 2M20 27c2 0 4 1 6 2" opacity=".7" />
+      <g fill={color} stroke="none">
+        <circle cx="17" cy="7.5" r="1.4" /><circle cx="23" cy="7.5" r="1.4" /><circle cx="10" cy="12" r="1.3" /><circle cx="30" cy="9" r="1.3" /><circle cx="14" cy="13" r="1" /><circle cx="26" cy="11" r="1" /><circle cx="20" cy="5" r="1.6" />
+      </g>
+    </svg>
+  );
+}
+
+/** Подарочная карта: пластик с кромкой, бликом и фольгой. Спереди имя, на обороте послание. Одна и та же в мастере, у дарителя и у получателя. */
+export function GiftCardFace({
+  card,
+  to,
+  from,
+  message,
+  heading,
+  className,
+  flipped = false,
+  onFlip,
+  tilt = true,
+}: {
+  card: GiftCardId;
+  to: string;
+  from: string;
+  message: string;
+  heading?: string;
+  className?: string;
+  flipped?: boolean;
+  onFlip?: () => void;
+  tilt?: boolean;
+}) {
+  const look = lookOf(card);
+  const ref = useTilt(tilt);
+  const name = heading ?? (to || "Подарок");
+  const nameSize = name.length > 26 ? "kcard-name-s" : name.length > 15 ? "kcard-name-m" : "";
+  const text = message || "Здесь будут ваши слова.";
+  const textSize = text.length > 320 ? "kcard-msg-s" : text.length > 150 ? "kcard-msg-m" : "";
+  const vars = { "--k-bg": look.bg, "--k-ink": look.ink, "--k-accent": look.accent, "--k-rim": look.rim, "--k-edge": look.edge } as CSSProperties;
+  const body = (
+    <div ref={ref} className="kcard-tilt">
+      <div className={`kcard-flip ${flipped ? "is-back" : ""}`}>
+        {[1, 2, 3, 4].map((n) => (
+          <span key={n} className="kcard-rim" style={{ transform: `translateZ(${1.6 - n * 0.8}px)` }} aria-hidden />
+        ))}
+        <div className="kcard-face kcard-front" aria-hidden={flipped}>
+          <span className="kcard-pattern" aria-hidden />
+          <span className="kcard-holo-wrap" aria-hidden><span className="kcard-holo" /></span>
+          <div className="kcard-content">
+            <p className="kcard-emboss kcard-brand">Книга рода</p>
+            <div className="kcard-chip" aria-hidden>
+              <TreeMark color={card === "ivory" ? "#6b5020" : "#5a4416"} />
+            </div>
+            <div className="mt-auto flex items-end justify-between gap-[3cqw]">
+              <div className="min-w-0">
+                <p className="kcard-label">{heading ? "намёк" : "кому"}</p>
+                <p className={`kcard-name ${nameSize}`}>{name}</p>
+              </div>
+              {from ? (
+                <div className="min-w-0 max-w-[45%] shrink-0 text-right">
+                  <p className="kcard-label">от</p>
+                  <p className="kcard-from">{from}</p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+          <div className="kcard-stub" aria-hidden>
+            <span className="kcard-foil kcard-stub-star">✦</span>
+            <span className="kcard-stub-text">год доступа</span>
+            <span className="kcard-foil kcard-stub-star">✦</span>
+          </div>
+          <span className="kcard-grain" aria-hidden />
+          <span className="kcard-glare-wrap" aria-hidden><span className="kcard-glare" /></span>
         </div>
-        <p className="flex-1 overflow-hidden whitespace-pre-line text-[1.05rem] leading-snug">{message || "Здесь будут ваши слова."}</p>
-        <p className="mt-3 text-[1.35rem]" style={{ fontFamily: '"kr-babushka","Manrope Variable",cursive', color: look.accent }}>
-          {from ? `от ${from}` : ""}
-        </p>
+        <div className="kcard-face kcard-back" aria-hidden={!flipped}>
+          <span className="kcard-stripe" aria-hidden />
+          <div className="kcard-note">
+            <p className={`kcard-msg ${textSize}`}>{text}</p>
+            {from ? <p className="kcard-sign">От: {from}</p> : null}
+          </div>
+          <p className="kcard-back-mark"><span className="kcard-foil">✦</span> Книга рода</p>
+          <span className="kcard-grain" aria-hidden />
+          <span className="kcard-glare-wrap" aria-hidden><span className="kcard-glare" /></span>
+        </div>
       </div>
     </div>
+  );
+  return (
+    <div className={`kcard-scene ${className ?? ""}`} data-look={card} style={vars}>
+      <div className="kcard-sway">
+        {onFlip ? (
+          <button type="button" className="kcard-hit" onClick={onFlip} aria-label={flipped ? "Показать лицевую сторону карты" : "Перевернуть карту и прочитать послание"}>
+            {body}
+          </button>
+        ) : (
+          body
+        )}
+      </div>
+      <p className="sr-only">
+        Карта «Книга рода», год доступа. Кому: {name}. {from ? `От: ${from}.` : ""} {text}
+      </p>
+    </div>
+  );
+}
+
+/** Подсказка под картой: перевернуть. */
+function FlipHint({ flipped, onFlip, dark = true }: { flipped: boolean; onFlip: () => void; dark?: boolean }) {
+  return (
+    <button type="button" onClick={onFlip} className={`mt-4 inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm ${dark ? "text-[#f3f0e8]/85" : "text-ink/70"}`}>
+      <RotateCw className="size-4" /> {flipped ? "Показать лицевую сторону" : "Перевернуть и прочитать"}
+    </button>
   );
 }
 
@@ -106,8 +262,10 @@ export function GiftWizard({ onClose, preset }: { onClose: () => void; preset?: 
   const [busy, setBusy] = useState(false);
   const [live, setLive] = useState(true);
   const [stepNo, setStepNo] = useState(0);
+  const [flip, setFlip] = useState(false);
   useEffect(() => {
     void serverStatus().then((status) => setLive(status.pay));
+    void registerBuiltinFonts();
   }, []);
 
   const steps: StepId[] = byMail ? ["design", "who", "words", "time", "pay"] : ["design", "who", "words", "pay"];
@@ -133,7 +291,7 @@ export function GiftWizard({ onClose, preset }: { onClose: () => void; preset?: 
     }
   };
 
-  const title: Record<StepId, string> = { design: "Выберите открытку", who: "Кому подарок", words: "Ваши слова", time: "Когда отправить", pay: "Оплата" };
+  const title: Record<StepId, string> = { design: "Выберите карту", who: "Кому подарок", words: "Ваши слова", time: "Когда отправить", pay: "Оплата" };
   const doc = (id: string, label: string) => (
     <a className="font-semibold underline" href={`#/legal/${id}`} target="_blank" rel="noopener noreferrer">
       {label}
@@ -144,25 +302,38 @@ export function GiftWizard({ onClose, preset }: { onClose: () => void; preset?: 
 
   return (
     <Sheet title="Подарить Книгу рода" onClose={onClose} className="max-w-xl">
-      <div className="flex items-end justify-between">
-        <p className="display-title text-[2.4rem] leading-none text-ink">{String(stepNo + 1).padStart(2, "0")}</p>
-        <p className="text-xs uppercase tracking-[0.16em] text-muted">
-          {stepNo + 1} из {steps.length}
-        </p>
+      <div className="flex items-end justify-between gap-3">
+        <p className="gift-stepno display-title" aria-hidden>{String(stepNo + 1).padStart(2, "0")}</p>
+        <div className="flex-1 pb-2">
+          <div className="flex gap-1" aria-hidden>
+            {steps.map((id, i) => (
+              <span key={id} className={`h-[3px] flex-1 rounded-full transition-colors ${i <= stepNo ? "bg-[#c9ae74]" : "bg-ink/10"}`} />
+            ))}
+          </div>
+          <p className="mt-2 text-right text-xs uppercase tracking-[0.16em] text-muted">
+            Шаг {stepNo + 1} из {steps.length}
+          </p>
+        </div>
       </div>
-      <h3 className="mt-2 text-xl font-semibold text-ink">{title[step]}</h3>
+      <h3 className="mt-1 text-xl font-semibold text-ink">{title[step]}</h3>
+
+      <div className={`gift-mini-stage ${step === "design" ? "is-big" : ""}`}>
+        <div key={card} className="gift-swap w-full">
+          <GiftCardFace card={card} to={to} from={from} message={message || MESSAGE_IDEAS[1]!} flipped={step === "words" || flip} onFlip={() => setFlip(!flip)} className={step === "design" ? "mx-auto w-full max-w-[20rem]" : "mx-auto w-full max-w-[13.5rem]"} />
+        </div>
+      </div>
 
       {step === "design" ? (
         <div className="mt-4">
-          <GiftCardFace card={card} to={to} from={from} message={message || MESSAGE_IDEAS[1]!} className="mx-auto w-full max-w-[16rem]" />
-          <div className="mt-4 grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {GIFT_CARDS.map((item) => (
-              <button key={item.id} type="button" onClick={() => setCard(item.id)} aria-label={item.name} aria-pressed={card === item.id} className={`relative h-12 rounded-xl ring-2 ${card === item.id ? "ring-moss" : "ring-transparent"}`} style={{ background: item.bg }}>
-                {card === item.id ? <Check className="absolute inset-0 m-auto size-5" style={{ color: item.accent }} /> : null}
+              <button key={item.id} type="button" onClick={() => { setCard(item.id); setFlip(false); }} aria-label={item.name} aria-pressed={card === item.id} className={`gift-swatch ${card === item.id ? "is-on" : ""}`} style={{ background: item.bg }}>
+                <span className="gift-swatch-chip" aria-hidden />
+                {card === item.id ? <Check className="absolute right-1.5 top-1.5 size-3.5" style={{ color: item.accent }} /> : null}
               </button>
             ))}
           </div>
-          <p className="mt-2 text-center text-sm text-muted">{lookOf(card).name}</p>
+          <p className="mt-2 text-center text-sm font-medium text-ink">{lookOf(card).name}</p>
         </div>
       ) : null}
 
@@ -231,10 +402,11 @@ export function GiftWizard({ onClose, preset }: { onClose: () => void; preset?: 
 
       {step === "pay" ? (
         <form className="mt-4 grid gap-3" onSubmit={(event) => { event.preventDefault(); if (can.pay && live) void pay(); }}>
-          <div className="rounded-2xl bg-white/60 p-3 text-sm text-ink">
+          <div className="rounded-2xl border border-[#c9ae74]/40 bg-white/70 p-3 text-sm text-ink">
             <p>
-              Подарок для <b>{to || "получателя"}</b>: уроки и полный доступ на год. <b>{PROGRAM_PRICE}</b>, один раз.
+              Кому: <b>{to || "получатель"}</b>
             </p>
+            <p className="mt-1">Уроки и полный доступ на год. <b>{PROGRAM_PRICE}</b>, один раз.</p>
             <p className="mt-1 text-muted">Год начнётся в тот день, когда человек откроет подарок.</p>
           </div>
           <label className="block text-sm font-medium text-ink" htmlFor="gift-email">
@@ -263,12 +435,12 @@ export function GiftWizard({ onClose, preset }: { onClose: () => void; preset?: 
 
       <div className="mt-5 flex gap-2">
         {stepNo > 0 ? (
-          <Button variant="soft" onClick={() => setStepNo(stepNo - 1)}>
+          <Button variant="soft" onClick={() => { setStepNo(stepNo - 1); setFlip(false); }}>
             Назад
           </Button>
         ) : null}
         {step !== "pay" ? (
-          <Button className="flex-1" disabled={!can[step]} onClick={() => setStepNo(stepNo + 1)}>
+          <Button className="flex-1" disabled={!can[step]} onClick={() => { setStepNo(stepNo + 1); setFlip(false); }}>
             Далее
           </Button>
         ) : null}
@@ -321,11 +493,14 @@ export function HintSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Shell({ children }: { children: ReactNode }) {
+function Shell({ children, top = false }: { children: ReactNode; top?: boolean }) {
+  useEffect(() => {
+    void registerBuiltinFonts();
+  }, []);
   return (
     <div className="gift-stage">
       <Stars />
-      <div className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-5 py-10 text-center">{children}</div>
+      <div className={`relative mx-auto flex min-h-dvh w-full max-w-md flex-col items-center px-5 py-10 text-center ${top ? "justify-start pt-[14vh]" : "justify-center"}`}>{children}</div>
       <Toaster position="top-center" toastOptions={{ className: "rod-toast" }} />
     </div>
   );
@@ -359,6 +534,12 @@ function useGift(id: string) {
 export function GiftScreen({ id }: { id: string }) {
   const { info, problem } = useGift(id);
   const [opened, setOpened] = useState(false);
+  const [flipped, setFlipped] = useState(false);
+  useEffect(() => {
+    if (!opened) return;
+    const t = window.setTimeout(() => setFlipped(true), reducedMotion() ? 600 : 3600);
+    return () => window.clearTimeout(t);
+  }, [opened]);
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const sparks = useMemo(
@@ -366,7 +547,7 @@ export function GiftScreen({ id }: { id: string }) {
       Array.from({ length: 30 }, (_, i) => {
         const angle = (i / 30) * Math.PI * 2 + (i % 3) * 0.12;
         const radius = 110 + ((i * 47) % 150);
-        return { dx: `${Math.round(Math.cos(angle) * radius)}px`, dy: `${Math.round(Math.sin(angle) * radius)}px`, d: `${(i % 6) * 0.05}s`, s: 0.7 + (i % 4) * 0.35, r: `${(i % 2 ? 1 : -1) * (40 + (i % 5) * 30)}deg` };
+        return { dx: `${Math.round(Math.cos(angle) * radius)}px`, dy: `${Math.round(Math.sin(angle) * radius)}px`, d: `${1.15 + (i % 6) * 0.05}s`, s: 0.7 + (i % 4) * 0.35, r: `${(i % 2 ? 1 : -1) * (40 + (i % 5) * 30)}deg` };
       }),
     [],
   );
@@ -411,31 +592,38 @@ export function GiftScreen({ id }: { id: string }) {
   }
 
   return (
-    <Shell>
-      {!opened ? (
-        <>
-          <p className="gift-line text-sm uppercase tracking-[0.24em]" style={{ color: GOLD }}>
-            Вам подарок
-          </p>
-          {info.from ? (
-            <p className="gift-line mt-1 text-lg" style={{ animationDelay: "0.2s" }}>
-              от {info.from}
+    <Shell top>
+      <div className="h-12">
+        {!opened ? (
+          <>
+            <p className="gift-line text-sm uppercase tracking-[0.24em]" style={{ color: GOLD }}>
+              Вам подарок
             </p>
-          ) : null}
-        </>
-      ) : null}
+            {info.from ? (
+              <p className="gift-line mt-1 text-lg" style={{ animationDelay: "0.2s" }}>
+                От: {info.from}
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <p className="gift-line text-sm uppercase tracking-[0.24em]" style={{ color: GOLD, animationDelay: "1.6s" }}>
+            Книга рода на целый год
+          </p>
+        )}
+      </div>
 
-      <div className={`relative mt-6 w-full max-w-[18rem] ${opened ? "gift-open" : "gift-float"}`}>
-        <button type="button" onClick={unwrap} disabled={opened} className="relative block w-full rounded-[1.6rem] text-left" aria-label="Открыть подарок">
-          <GiftCardFace card={info.card ?? "ivory"} to={info.to ?? ""} from={info.from ?? ""} message={info.message ?? ""} className={opened ? "gift-card-in" : ""} />
-          <span className="gift-wrap rounded-[1.6rem]" aria-hidden>
-            <span className="gift-ribbon-h" />
-            <span className="gift-ribbon-v" />
-            <span className="gift-seal">✦</span>
-          </span>
-        </button>
+      <div className={`gift-unbox mt-4 w-full max-w-[21rem] ${opened ? "gift-open" : "gift-float"}`}>
+        <span className="gift-env-back" aria-hidden />
+        <div className="gift-env-card">
+          <GiftCardFace card={info.card ?? "ivory"} to={info.to ?? ""} from={info.from ?? ""} message={info.message ?? ""} tilt={opened} flipped={flipped} onFlip={opened ? () => setFlipped(!flipped) : undefined} />
+        </div>
+        <span className="gift-env-pocket" aria-hidden />
+        <span className="gift-env-flap" aria-hidden />
+        <span className="gift-seal" aria-hidden>✦</span>
+        {!opened ? <button type="button" onClick={unwrap} className="absolute inset-0 z-20 rounded-2xl" aria-label="Открыть подарок" /> : null}
         {opened ? (
-          <div className="pointer-events-none absolute inset-0" aria-hidden>
+          <div className="pointer-events-none absolute inset-0 z-30" aria-hidden>
+            <span className="gift-flash" />
             {sparks.map((spark, i) => (
               <span key={i} className="gift-spark text-lg" style={{ "--dx": spark.dx, "--dy": spark.dy, "--d": spark.d, "--s": spark.s, "--r": spark.r } as CSSProperties}>
                 ✦
@@ -445,27 +633,26 @@ export function GiftScreen({ id }: { id: string }) {
         ) : null}
       </div>
 
-      {!opened ? <p className="gift-pulse mt-8 text-sm text-[#f3f0e8]/85">Нажмите на открытку, чтобы открыть</p> : null}
+      {!opened ? <p className="gift-pulse mt-8 text-sm text-[#f3f0e8]/85">Нажмите на конверт, чтобы открыть</p> : null}
+      {opened ? (
+        <div className="gift-line" style={{ animationDelay: "1.9s" }}>
+          <FlipHint flipped={flipped} onFlip={() => setFlipped(!flipped)} />
+        </div>
+      ) : null}
 
       {opened ? (
-        <div className="gift-line mt-8 w-full rounded-3xl bg-[#f3f0e8] p-5 text-left text-ink" style={{ animationDelay: "1.1s" }}>
+        <div className="gift-line gift-panel mt-5 w-full text-left" style={{ animationDelay: "2.3s" }}>
           <p className="text-lg font-semibold">Что дальше</p>
           <ol className="mt-3 grid gap-2.5 text-sm">
-            <li className="flex gap-3">
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-moss text-xs font-semibold text-paper">1</span>
-              <span>Впишите свою почту. Через неё вы будете входить с любого телефона.</span>
-            </li>
-            <li className="flex gap-3">
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-moss text-xs font-semibold text-paper">2</span>
-              <span>Нажмите «Открыть Книгу рода». Подарок включится сам, вводить коды не нужно.</span>
-            </li>
-            <li className="flex gap-3">
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-moss text-xs font-semibold text-paper">3</span>
-              <span>Внизу экрана нажмите «Уроки»: там первые шаги, как собрать семейную книгу.</span>
-            </li>
+            {["Впишите свою почту. Через неё вы будете входить с любого телефона.", "Нажмите «Открыть Книгу рода». Подарок включится сам, вводить коды не нужно.", "Внизу экрана нажмите «Уроки»: там первые шаги, как собрать семейную книгу."].map((line, i) => (
+              <li key={line} className="flex gap-3">
+                <span className="gift-num">{i + 1}</span>
+                <span>{line}</span>
+              </li>
+            ))}
           </ol>
           <input className="field mt-4" type="email" inputMode="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Ваша почта" aria-label="Ваша почта" />
-          <Button className="mt-3 w-full" disabled={busy} onClick={() => void activate()}>
+          <Button className="gift-gold-btn mt-3 w-full" disabled={busy} onClick={() => void activate()}>
             {busy ? "Открываю…" : "Открыть Книгу рода"}
           </Button>
           <p className="mt-2 text-xs text-muted">Год доступа начинается сегодня, в день, когда вы открыли подарок.</p>
@@ -480,6 +667,7 @@ export function GiftMadeScreen({ id }: { id: string }) {
   const { info, problem } = useGift(id);
   const link = giftLink(id);
   const [copied, setCopied] = useState(false);
+  const [flipped, setFlipped] = useState(false);
   const copy = () =>
     void navigator.clipboard
       .writeText(link)
@@ -513,13 +701,17 @@ export function GiftMadeScreen({ id }: { id: string }) {
       <p className="gift-line text-sm uppercase tracking-[0.24em]" style={{ color: GOLD }}>
         Подарок оплачен
       </p>
-      <GiftCardFace card={info?.card ?? "ivory"} to={info?.to ?? ""} from={info?.from ?? ""} message={info?.message ?? ""} className="gift-card-in mt-5 w-full max-w-[15rem]" />
-      <div className="mt-6 w-full rounded-3xl bg-[#f3f0e8] p-5 text-left text-ink">
+      <p className="gift-line mt-2 display-title text-[1.9rem] leading-tight" style={{ animationDelay: "0.15s" }}>
+        Карта готова
+      </p>
+      <GiftCardFace card={info?.card ?? "ivory"} to={info?.to ?? ""} from={info?.from ?? ""} message={info?.message ?? ""} flipped={flipped} onFlip={() => setFlipped(!flipped)} className="gift-card-in mt-6 w-full max-w-[20rem]" />
+      <FlipHint flipped={flipped} onFlip={() => setFlipped(!flipped)} />
+      <div className="gift-panel mt-4 w-full text-left">
         <p className="text-lg font-semibold">Отправьте эту ссылку</p>
         <p className="mt-1 text-sm text-muted">Человек откроет её, увидит открытку и сам включит подарок. Ссылку я продублировала вам на почту.</p>
         <input className="field mt-3" readOnly value={link} onFocus={(event) => event.currentTarget.select()} aria-label="Ссылка на подарок" />
         <div className="mt-3 grid gap-2">
-          <Button onClick={() => void share("Подарок", `${info?.to ? `${info.to}, у` : "У"} меня для вас подарок.`, link)}>
+          <Button className="gift-gold-btn" onClick={() => void share("Подарок", `${info?.to ? `${info.to}, у` : "У"} меня для вас подарок.`, link)}>
             <Share2 className="size-4" /> Отправить
           </Button>
           <Button variant="soft" onClick={copy}>
@@ -541,6 +733,11 @@ export function GiftMadeScreen({ id }: { id: string }) {
 export function WishScreen({ payload }: { payload: string }) {
   const wish: Wish | null = useMemo(() => readWish(payload), [payload]);
   const [open, setOpen] = useState(false);
+  const [flipped, setFlipped] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setFlipped(true), reducedMotion() ? 300 : 1800);
+    return () => window.clearTimeout(t);
+  }, []);
   if (!wish || !wish.from) {
     return (
       <Shell>
@@ -555,11 +752,12 @@ export function WishScreen({ payload }: { payload: string }) {
       <p className="gift-line text-sm uppercase tracking-[0.24em]" style={{ color: GOLD }}>
         {wish.to ? `${wish.to}, вам тихонько намекают` : "Вам тихонько намекают"}
       </p>
-      <GiftCardFace card="rose" to="" heading="Моё желание" from={wish.from} message={wish.message} className="gift-card-in gift-float mt-6 w-full max-w-[18rem]" />
-      <Button className="mt-8 w-full max-w-[18rem] !bg-[#e6cf9c] !text-[#241a07]" onClick={() => setOpen(true)}>
-        <Gift className="size-4" /> Подарить {wish.from}
+      <GiftCardFace card="rose" to="" heading="Моё желание" from={wish.from} message={wish.message} flipped={flipped} onFlip={() => setFlipped(!flipped)} className="gift-card-in mt-6 w-full max-w-[20rem]" />
+      <FlipHint flipped={flipped} onFlip={() => setFlipped(!flipped)} />
+      <Button className="gift-gold-btn mt-5 w-full max-w-[20rem]" onClick={() => setOpen(true)}>
+        <Gift className="size-4" /> Исполнить мечту
       </Button>
-      <p className="mt-3 max-w-[18rem] text-center text-xs text-[#f3f0e8]/70">Книга рода: приложение, в котором семья собирает свои истории в одну книгу. Подарок на {PROGRAM_PRICE}, платить один раз.</p>
+      <p className="mt-3 max-w-[20rem] text-center text-xs text-[#f3f0e8]/70">Книга рода: приложение, в котором семья собирает свои истории в одну книгу. Подарок на {PROGRAM_PRICE}, платить один раз.</p>
       {open ? <GiftWizard preset={{ to: wish.from }} onClose={() => setOpen(false)} /> : null}
     </Shell>
   );

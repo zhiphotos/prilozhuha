@@ -3,13 +3,13 @@ const appAddress = () => `${window.location.origin}${window.location.pathname}`;
 
 /** Четыре оформления открытки. Цвета из палитры приложения: тёмный лес, слоновая кость, бордо и ночь. */
 export type GiftCardId = "ivory" | "forest" | "rose" | "night";
-export type GiftCardLook = { id: GiftCardId; name: string; bg: string; edge: string; ink: string; accent: string };
+export type GiftCardLook = { id: GiftCardId; name: string; bg: string; edge: string; ink: string; accent: string; rim: string };
 
 export const GIFT_CARDS: GiftCardLook[] = [
-  { id: "ivory", name: "Слоновая кость", bg: "linear-gradient(160deg,#f6f0e0 0%,#e8dcc0 100%)", edge: "#b99a5b", ink: "#2a2210", accent: "#8a6a2c" },
-  { id: "forest", name: "Тёмный лес", bg: "linear-gradient(160deg,#27402f 0%,#16241b 100%)", edge: "#e6cf9c", ink: "#f3f0e8", accent: "#e6cf9c" },
-  { id: "rose", name: "Бордо", bg: "linear-gradient(160deg,#7d2b40 0%,#4b1624 100%)", edge: "#e8c9a0", ink: "#fbeee6", accent: "#e8c9a0" },
-  { id: "night", name: "Ночь", bg: "linear-gradient(160deg,#242a3d 0%,#10131f 100%)", edge: "#d9c9a3", ink: "#f1ede2", accent: "#d9c9a3" },
+  { id: "ivory", name: "Слоновая кость", bg: "linear-gradient(135deg,#faf5e8 0%,#efe6cf 45%,#ddcca2 100%)", edge: "#b99a5b", ink: "#2a2210", accent: "#8a6a2c", rim: "#b8a172" },
+  { id: "forest", name: "Тёмный лес", bg: "linear-gradient(135deg,#34503c 0%,#1d3024 45%,#0f1912 100%)", edge: "#e6cf9c", ink: "#f3f0e8", accent: "#e6cf9c", rim: "#0a110c" },
+  { id: "rose", name: "Бордо", bg: "linear-gradient(135deg,#9a3a53 0%,#6a2234 50%,#3b111e 100%)", edge: "#e8c9a0", ink: "#fbeee6", accent: "#ecd1a6", rim: "#2c0c16" },
+  { id: "night", name: "Ночь", bg: "linear-gradient(135deg,#2e3549 0%,#181c2c 50%,#0a0c15 100%)", edge: "#d9c9a3", ink: "#f1ede2", accent: "#dccca6", rim: "#07080e" },
 ];
 
 export const lookOf = (id?: string): GiftCardLook => GIFT_CARDS.find((card) => card.id === id) ?? GIFT_CARDS[0]!;
