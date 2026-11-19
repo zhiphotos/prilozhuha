@@ -24,7 +24,7 @@ const gateway = http.createServer((req, res) => {
 await new Promise((r) => gateway.listen(0, r));
 process.env.ALFA_BASE_URL = `http://127.0.0.1:${gateway.address().port}`;
 process.env.ALFA_API_USER = "test"; process.env.ALFA_API_PASSWORD = "test";
-process.env.ACCESS_SECRET = "s".repeat(40); process.env.APP_ORIGINS = "https://app.example";
+process.env.ACCESS_SECRET = "s".repeat(40); process.env.APP_ORIGINS = "https://app.example"; process.env.GIFT_ENABLED = "1";
 
 // Redis в памяти (MEMORY_STORE=1).
 process.env.MEMORY_STORE = "1";

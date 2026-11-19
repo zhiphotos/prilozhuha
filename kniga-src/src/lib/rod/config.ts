@@ -72,3 +72,4 @@ export function embedUrl(url: string): { kind: "iframe" | "video"; src: string }
 
 /** Куда переехала книга. Задаётся только при сборке старого адреса (VITE_MOVED_TO); на новом адресе пусто. */
 export const MOVED_TO = (import.meta.env.VITE_MOVED_TO as string | undefined) ?? "";
+

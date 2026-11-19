@@ -8,6 +8,7 @@ export default async function handler(req, res) {
   if (cors(req, res)) return;
   if (req.method !== "POST") return json(res, 405, { error: "method" });
   if (await throttled(req, res, "gift-checkout", 30)) return;
+  if (process.env.GIFT_ENABLED !== "1") return json(res, 503, { error: "Подарки пока недоступны." });
   if (!alfaConfigured()) return json(res, 503, { error: "Оплата ещё не подключена." });
   const body = bodyOf(req);
   const mail = String(body.email ?? "").trim().toLowerCase();

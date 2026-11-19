@@ -6,6 +6,7 @@ import { PROGRAM_PRICE } from "@/lib/rod/content";
 import { GIFT_CARDS, MESSAGE_IDEAS, giftLink, lookOf, readWish, wishLink, type GiftCardId, type GiftInfo, type Wish } from "@/lib/rod/gift";
 import { fetchGift, openGift, startGiftCheckout } from "@/lib/rod/gift-api";
 import { serverStatus } from "@/lib/rod/server";
+import { GIFT_ON } from "@/lib/rod/gift-flag";
 import { registerBuiltinFonts } from "@/lib/rod/fonts";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -223,7 +224,11 @@ const share = async (title: string, text: string, url: string) => {
 };
 
 /** Две кнопки под «Купить»: подарить и намекнуть. */
-export function GiftActions({ dark = false }: { dark?: boolean }) {
+export function GiftActions(props: { dark?: boolean }) {
+  return GIFT_ON ? <GiftActionsOn {...props} /> : null;
+}
+
+function GiftActionsOn({ dark = false }: { dark?: boolean }) {
   const [sheet, setSheet] = useState<null | "gift" | "hint">(null);
   const base = dark ? "border-[#c9ae74]/60 text-[#e6cf9c]" : "border-moss/40 text-moss";
   return (
