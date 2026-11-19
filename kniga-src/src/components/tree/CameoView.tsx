@@ -2,6 +2,7 @@ import { FramedFace } from "@/components/tree/FramedFace";
 import { cardLine } from "@/lib/tree/card-fields";
 import { SheetTitle } from "@/components/tree/SheetTitle";
 import { useMemo } from "react";
+import { FamilyOverlay } from "@/components/tree/FamilyOverlay";
 import { fitText, initialsOf, nameLines, yearsOf } from "@/lib/tree/kinship";
 import { relationCard, relationsFrom } from "@/lib/tree/recenter";
 import { FRAME, FRAMES, type CameoSheet } from "@/lib/tree/cameo";
@@ -31,6 +32,7 @@ export function CameoView({ sheet, people, unions, focusId, homeId, selectedId, 
             {mark.text}
           </text>
         ))}
+        <FamilyOverlay sheet={sheet} byId={byId} ink={INK} stroke={INK} strokeWidth={1.15} frame={FRAME} />
         {sheet.nodes.map((node) => {
           const person = byId.get(node.id);
           if (!person) return null;

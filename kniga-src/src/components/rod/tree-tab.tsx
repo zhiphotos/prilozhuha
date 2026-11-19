@@ -19,6 +19,7 @@ import { displayName, kinship, yearsOf } from "@/lib/tree/kinship";
 import { setCardFields, useCardFields } from "@/lib/tree/card-fields";
 import { publishShare, readShare, revokeShare } from "@/lib/rod/share-tree";
 import { layoutTree, sliceByRadius } from "@/lib/tree/layout";
+import { buildLayout, type AppLayout } from "@/lib/tree/layout-engine";
 import { applyShifts, shiftsOf } from "@/lib/tree/offsets";
 import { SCOPES, scopeFilter } from "@/lib/tree/scope";
 import { addRelatives } from "@/lib/tree/subset";
@@ -192,15 +193,25 @@ function TreeScreen() {
   const spread = useTree((s) => s.spread);
   const setSpread = useTree((s) => s.setSpread);
   const cardFields = useCardFields();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const layout = useMemo(() => applyShifts(layoutTree(view.people, view.unions, focusId, flow), view.unions, shiftsOf(view.people)), [view, focusId, flow, spread]);
+  // Раскладка «пара в центре» (family) на «Схеме» и в темах «Камея», «Гжель», «Богема», «Тайга» (не в «Живом древе») и только по выбору на этом устройстве; по умолчанию прежняя. Владелец книги (homeId), а не выбранный человек, определяет центр:
+  // от выбранного человека (focusId) зависят лишь камера, подсветка и подписи родства, но не координаты. Если владельца нет в показанной части (радиус вокруг другого человека), центром служит focusId.
+  const engine = useTree((s) => s.engine);
+  const setEngine = useTree((s) => s.setEngine);
+  const familyLayout = engine === "family" && style !== "carved";
+  const ownerId = view.people.some((p) => p.id === homeId) ? homeId : focusId;
+  const layout = useMemo(
+    () => applyShifts(familyLayout ? buildLayout(view.people, view.unions, focusId, flow, { engine: "family", ownerId }) : layoutTree(view.people, view.unions, focusId, flow), view.unions, shiftsOf(view.people)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [view, focusId, flow, spread, familyLayout, ownerId],
+  );
+  const groups = (layout as { groups?: { kind: "branches" | "singles"; count: number; anchorId: string }[] }).groups ?? [];
   // Во всех стилях карточки стоят там же, где на «Схеме» (с ручными сдвигами).
   const anchor = useMemo(() => new Map(layout.nodes.map((n) => [n.id, { x: n.x, y: n.y }])), [layout]);
   const poster = useMemo(() => (style === "carved" ? layoutPoster(view.people, view.unions, focusId, flow, anchor) : null), [style, view, focusId, flow, anchor]);
-  const cameo = useMemo(() => (style === "cameo" ? layoutCameo(view.people, view.unions, focusId, flow, anchor) : null), [style, view, focusId, flow, anchor]);
-  const gzhel = useMemo(() => (style === "gzhel" ? layoutGzhel(view.people, view.unions, focusId, flow, anchor) : null), [style, view, focusId, flow, anchor]);
-  const boheme = useMemo(() => (style === "boheme" ? layoutBoheme(view.people, view.unions, focusId, flow, anchor) : null), [style, view, focusId, flow, anchor]);
-  const taiga = useMemo(() => (style === "taiga" ? layoutTaiga(view.people, view.unions, focusId, flow, anchor) : null), [style, view, focusId, flow, anchor]);
+  const cameo = useMemo(() => (style === "cameo" ? layoutCameo(view.people, view.unions, focusId, flow, anchor, familyLayout ? (layout as AppLayout) : undefined) : null), [style, view, focusId, flow, anchor]);
+  const gzhel = useMemo(() => (style === "gzhel" ? layoutGzhel(view.people, view.unions, focusId, flow, anchor, familyLayout ? (layout as AppLayout) : undefined) : null), [style, view, focusId, flow, anchor]);
+  const boheme = useMemo(() => (style === "boheme" ? layoutBoheme(view.people, view.unions, focusId, flow, anchor, familyLayout ? (layout as AppLayout) : undefined) : null), [style, view, focusId, flow, anchor]);
+  const taiga = useMemo(() => (style === "taiga" ? layoutTaiga(view.people, view.unions, focusId, flow, anchor, familyLayout ? (layout as AppLayout) : undefined) : null), [style, view, focusId, flow, anchor]);
   const banner = useTree((s) => s.banner);
   const focus = people.find((p) => p.id === focusId);
 
@@ -215,7 +226,7 @@ function TreeScreen() {
     setBusy(true);
     setNote(null);
     try {
-      await exportPoster({ people: shown.people, unions: shown.unions, focusId }, style, banner, paper, flow, format, print);
+      await exportPoster({ people: shown.people, unions: shown.unions, focusId, ...(familyLayout ? { engine: "family" as const, ownerId: shown.people.some((p) => p.id === homeId) ? homeId : focusId } : {}) }, style, banner, paper, flow, format, print);
       const saved =
         style === "work"
           ? paper === "black"
@@ -354,6 +365,24 @@ function TreeScreen() {
             </button>
           )}
         </div>
+        {groups.length > 0 && (
+          <div className="pointer-events-auto flex w-full flex-wrap items-center gap-2" aria-label="Переход к группам без связи с центром">
+            {groups.map((g) => (
+              <button
+                key={g.kind}
+                type="button"
+                className="chip"
+                onClick={() => {
+                  selectPerson(null);
+                  selectUnion(null);
+                  setCenterReq({ id: g.anchorId, n: Date.now() });
+                }}
+              >
+                {g.kind === "branches" ? "К отдельным веткам" : `К записям без связей: ${g.count}`}
+              </button>
+            ))}
+          </div>
+        )}
         {hiddenRelatives > 0 && (
           <div role="status" className="pointer-events-auto flex w-full flex-wrap items-center gap-2 rounded-2xl bg-black/55 px-3 py-2 text-sm backdrop-blur-sm">
             <span className="min-w-0 flex-1">
@@ -462,6 +491,27 @@ function TreeScreen() {
                           className={`min-h-9 flex-1 rounded-xl px-2 text-xs font-semibold ${spread === value ? "bg-gold text-ink" : "text-chip-fg"}`}
                           onClick={() => {
                             setSpread(value);
+                            setFitReq((n) => n + 1);
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Ширина по видимой части меню: остальные блоки меню шире окна на телефоне и уходят под обрезку, этому блоку это не нужно. */}
+                  <div className="mt-1 w-[min(18.75rem,calc(100vw-4.5rem))] border-t border-chip-line px-3 pt-2 pb-1">
+                    <p className="text-sm font-semibold text-chip-fg">Раскладка древа (проба)</p>
+                    <p className="text-xs opacity-75 text-chip-fg">«Пара в центре»: вы и супруг рядом, его родня в одну сторону, ваша в другую. Выбор только на этом устройстве, данные не меняются.</p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {([["classic", "Привычная"], ["family", "Пара в центре"]] as const).map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          aria-pressed={engine === value}
+                          className={`min-h-9 flex-1 rounded-xl px-2 text-xs font-semibold ${engine === value ? "bg-gold text-ink" : "text-chip-fg"}`}
+                          onClick={() => {
+                            setEngine(value);
                             setFitReq((n) => n + 1);
                           }}
                         >

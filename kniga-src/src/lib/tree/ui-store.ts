@@ -8,6 +8,7 @@ import type { UnionFacts } from "./fill.ts";
 import { toast } from "sonner";
 import { flipSpouse, moveBranch, type Patch } from "./arrange.ts";
 import { setLayoutSpread } from "./layout.ts";
+import type { LayoutEngine } from "./layout-engine.ts";
 import { SELF_ID, roleOf, treeFromPeople } from "./from-people.ts";
 import { freezeParentsOf } from "./freeze.ts";
 import { buildRelationshipGraph, validateGraph, validatePeopleLinks } from "./relgraph.ts";
@@ -59,6 +60,8 @@ type State = {
   scope: TreeScope;
   /** Насколько разводить ветки: 0 плотно, 1 шире, 2 ещё шире. */
   spread: 0 | 1 | 2;
+  /** Каким движком строить древо. Хранится только на устройстве; по умолчанию `classic`. В `.tree`, Redis и синхронизацию не попадает. */
+  engine: LayoutEngine;
   selectedId: string | null;
   unionId: string | null;
   roster: boolean;
@@ -71,6 +74,7 @@ type State = {
   setFlow: (flow: TreeFlow) => void;
   setScope: (scope: TreeScope) => void;
   setSpread: (spread: 0 | 1 | 2) => void;
+  setEngine: (engine: LayoutEngine) => void;
   /** Поменять человека и его супруга местами на схеме. */
   flipSpouse: (id: string) => void;
   /** Сдвинуть ветку человека влево или вправо среди веток своего ряда. */
@@ -88,18 +92,33 @@ type State = {
 
 const KEY = "kniga-tree-ui";
 
-function readUi(): { theme: ThemeName; style: TreeStyle; banner: string; flow: TreeFlow; scope: TreeScope; spread: 0 | 1 | 2 } {
+/** Для проверки: адрес с `?layout=family` (или `classic`) включает движок только на эту сессию и на устройстве не сохраняется. */
+let engineFromUrl = false;
+function urlEngine(): LayoutEngine | null {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) || "{}") as Partial<{ theme: ThemeName; banner: string; flow: TreeFlow; scope: TreeScope; spread: number }>;
-    return { theme: raw.theme === "paper" ? "paper" : "night", style: "work", banner: typeof raw.banner === "string" ? raw.banner : "", flow: raw.flow === "up" ? "up" : "down", scope: (["direct", "direct-sib-root", "direct-sib-all", "blood", "siblings", "ancestors", "descendants"] as const).find((x) => x === raw.scope) ?? "all", spread: raw.spread === 1 || raw.spread === 2 ? raw.spread : 0 };
+    const v = new URLSearchParams(typeof location === "undefined" ? "" : location.search).get("layout");
+    return v === "family" || v === "classic" ? v : null;
   } catch {
-    return { theme: "night", style: "work", banner: "", flow: "down", scope: "all", spread: 0 };
+    return null;
+  }
+}
+let savedEngine: LayoutEngine = "classic";
+
+function readUi(): { theme: ThemeName; style: TreeStyle; banner: string; flow: TreeFlow; scope: TreeScope; spread: 0 | 1 | 2; engine: LayoutEngine } {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY) || "{}") as Partial<{ theme: ThemeName; banner: string; flow: TreeFlow; scope: TreeScope; spread: number; engine: string }>;
+    savedEngine = raw.engine === "family" ? "family" : "classic";
+    const fromUrl = urlEngine();
+    engineFromUrl = fromUrl !== null;
+    return { engine: fromUrl ?? savedEngine, theme: raw.theme === "paper" ? "paper" : "night", style: "work", banner: typeof raw.banner === "string" ? raw.banner : "", flow: raw.flow === "up" ? "up" : "down", scope: (["direct", "direct-sib-root", "direct-sib-all", "blood", "siblings", "ancestors", "descendants"] as const).find((x) => x === raw.scope) ?? "all", spread: raw.spread === 1 || raw.spread === 2 ? raw.spread : 0 };
+  } catch {
+    return { theme: "night", style: "work", banner: "", flow: "down", scope: "all", spread: 0, engine: "classic" };
   }
 }
 
 function saveUi(s: State) {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ theme: s.theme, banner: s.banner, flow: s.flow, scope: s.scope, spread: s.spread }));
+    localStorage.setItem(KEY, JSON.stringify({ theme: s.theme, banner: s.banner, flow: s.flow, scope: s.scope, spread: s.spread, engine: engineFromUrl ? savedEngine : s.engine }));
   } catch {
     /* оформление живёт до закрытия */
   }
@@ -260,6 +279,7 @@ export const useTree = create<State>((set, get) => {
     setFlow: (flow) => { set({ flow }); persistUi(); },
     setScope: (scope) => { set({ scope }); persistUi(); },
     setSpread: (spread) => { setLayoutSpread(spread); set({ spread }); persistUi(); },
+    setEngine: (engine) => { engineFromUrl = false; savedEngine = engine; set({ engine }); persistUi(); },
     flipSpouse: (id) => applyPatches(flipSpouse(get().people, get().unions, get().focusId, id)),
     moveBranch: (id, dir) => {
       const patches = moveBranch(get().people, get().unions, get().focusId, id, dir);

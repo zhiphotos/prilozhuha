@@ -1,6 +1,8 @@
-import { schemeAnchor, schemeLayout } from "./scheme.ts";
+import { exportLayout, schemeAnchor } from "./scheme.ts";
+import { busColorIndex, busHops, BUS_PALETTE, foreignEntries } from "./bus-look.ts";
+import { busLinkPath, busPath, busIsFar, pillLabel, pillPoint, pillSize, refLinkPath, spousePath, type SchemeBus, type SchemeSpouse } from "./scheme-paths.ts";
 import { buildJpegPdf } from "../rod/pdf.ts";
-import { fullName, kinship, yearsOf } from "./kinship.ts";
+import { fitText, fullName, kinship, nameLines, yearsOf } from "./kinship.ts";
 import { cardLine, getCardFields } from "./card-fields.ts";
 import { branchColorOf } from "./branch-colors.ts";
 import { layoutTree } from "./layout.ts";
@@ -10,6 +12,7 @@ import { layoutBoheme, BOHEME_FRAME, BOHEME_FRAMES } from "./boheme.ts";
 import { layoutGzhel, GZHEL_FRAME, GZHEL_FRAMES } from "./gzhel.ts";
 import { layoutCameo, FRAME, FRAMES } from "./cameo.ts";
 import { layoutPoster } from "./poster.ts";
+import type { AppLayout } from "./layout-engine.ts";
 import { type TreeStyle } from "./styles.ts";
 import type { TreeData, UnionStatus } from "./types.ts";
 
@@ -195,7 +198,7 @@ function drawBandsPng(prep: WorkPrep): HTMLCanvasElement {
 type WorkPrep = {
   dark: boolean;
   tone: { sheet: string; blood: string; plate: string; ink: string; role: string; muted: string; ring: string; pill: string; empty: string; footer: string };
-  layout: ReturnType<typeof layoutTree>;
+  layout: ReturnType<typeof exportLayout>;
   data: TreeData;
   people: Map<string, TreeData["people"][number]>;
   photos: Map<string, HTMLImageElement | null>;
@@ -213,11 +216,106 @@ async function prepareWork(data: TreeData, paper: "white" | "black", flow: "down
     own = "";
   }
   if (/^#[0-9a-f]{6}$/i.test(own)) tone.blood = own;
-  const layout = schemeLayout(data.people, data.unions, data.focusId, flow);
+  const layout = exportLayout(data, flow);
   const people = new Map(data.people.map((p) => [p.id, p]));
   const photos = new Map<string, HTMLImageElement | null>();
   await Promise.all([...people.values()].map(async (p) => photos.set(p.id, await loadImage(p.photo))));
   return { dark, tone, layout, data, people, photos };
+}
+
+/** Линии, плашки браков, карточки-ссылки и подписи групп семейной раскладки: те же пути, что на экране (scheme-paths), только на холсте. */
+function drawFamilyLinks(ctx: CanvasRenderingContext2D, prep: WorkPrep, look: { buses: SchemeBus[]; hops: Map<number, number[]>; colors: number[] }) {
+  const { layout, tone, dark, people } = prep;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 2.6;
+  look.buses.forEach((bus, i) => {
+    ctx.strokeStyle = BUS_PALETTE[look.colors[i] ?? 0]!;
+    ctx.stroke(new Path2D(busPath(bus, look.hops.get(i))));
+  });
+  ctx.save();
+  ctx.lineWidth = 2.2;
+  ctx.globalAlpha = 0.85;
+  ctx.setLineDash([4, 7]);
+  look.buses.forEach((bus, i) => {
+    if (!busIsFar(bus)) return;
+    ctx.strokeStyle = BUS_PALETTE[look.colors[i] ?? 0]!;
+    ctx.stroke(new Path2D(busLinkPath(bus)));
+  });
+  ctx.restore();
+  const gold = dark ? "#e0b56a" : "#8d4e3a";
+  ctx.save();
+  ctx.strokeStyle = gold;
+  ctx.lineWidth = 2.2;
+  ctx.setLineDash([9, 7]);
+  for (const l of layout.refLinks ?? []) ctx.stroke(new Path2D(refLinkPath(l)));
+  ctx.restore();
+  for (const link of layout.spouses as SchemeSpouse[]) {
+    const color = lineColor(link.status, dark);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.4;
+    ctx.setLineDash(link.status === "divorced" ? [6, 7] : []);
+    const d = spousePath(link);
+    if (d) ctx.stroke(new Path2D(d));
+    ctx.setLineDash([]);
+    const p = pillPoint(link);
+    const word = pillText(link.status);
+    const text = pillLabel(word, link);
+    const w = pillSize(link.status, text !== word).w;
+    ctx.fillStyle = tone.pill;
+    roundRect(ctx, p.x - w / 2, p.y - 12, w, 24, 12);
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.font = "700 10px Manrope, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, p.x, p.y + 1);
+  }
+  for (const r of layout.refs ?? []) {
+    const person = people.get(r.of);
+    if (!person) continue;
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = tone.pill;
+    ctx.strokeStyle = gold;
+    ctx.lineWidth = 3;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, PORTRAIT_R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = gold;
+    ctx.font = "700 30px Manrope, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("↗", r.x, r.y + 1);
+    const top = r.y + PORTRAIT_R + PLATE_GAP;
+    ctx.fillStyle = tone.plate;
+    ctx.lineWidth = 2.5;
+    roundRect(ctx, r.x - PLATE_W / 2, top, PLATE_W, PLATE_H, 14);
+    ctx.fill();
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = tone.ink;
+    ctx.font = '700 17px "Cormorant Garamond", serif';
+    ctx.fillText(fitText(nameLines(person).top, PLATE_W - 14, 15).text, r.x, top + 24, PLATE_W - 14);
+    ctx.fillStyle = tone.muted;
+    ctx.font = "600 11px Manrope, sans-serif";
+    ctx.fillText("ссылка на карточку", r.x, top + 46);
+    ctx.restore();
+  }
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+  ctx.fillStyle = dark ? "rgba(244,226,196,0.85)" : "rgba(60,42,28,0.85)";
+  for (const g of layout.groups ?? []) {
+    ctx.font = '700 26px "Cormorant Garamond", serif';
+    ctx.fillText(g.text, g.x, g.y - 12);
+    ctx.font = "500 15px Manrope, sans-serif";
+    ctx.fillText(g.sub, g.x, g.y + 14);
+  }
 }
 
 /** Рисует древо в текущих координатах холста (масштаб и сдвиг уже заданы снаружи). */
@@ -231,6 +329,10 @@ function drawWork(ctx: CanvasRenderingContext2D, prep: WorkPrep, sheetW: number,
   ctx.lineWidth = 2.6;
   ctx.lineCap = "round";
   const hidden = new Set(layout.detached ?? []);
+  const family = layout.engine === "family";
+  const look = family ? { buses: layout.buses as SchemeBus[], hops: busHops(layout.buses as SchemeBus[]), colors: busColorIndex(layout.buses as SchemeBus[]), foreign: foreignEntries(layout.buses as SchemeBus[], layout.nodes) } : null;
+  if (family) drawFamilyLinks(ctx, prep, look!);
+  else {
   for (const bus of layout.buses) {
     const min = bus.xs[0];
     const max = bus.xs[bus.xs.length - 1];
@@ -289,6 +391,7 @@ function drawWork(ctx: CanvasRenderingContext2D, prep: WorkPrep, sheetW: number,
     ctx.textBaseline = "middle";
     ctx.fillText(text, mx, py);
   }
+  }
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = dark ? "rgba(244,226,196,0.72)" : "rgba(60,42,28,0.72)";
   ctx.font = "600 13px Manrope, sans-serif";
@@ -325,6 +428,18 @@ function drawWork(ctx: CanvasRenderingContext2D, prep: WorkPrep, sheetW: number,
       ctx.textBaseline = "middle";
       ctx.fillText("↑", node.x - 32, node.y - 31);
       ctx.textBaseline = "alphabetic";
+    }
+    if (look?.foreign.has(node.id)) {
+      const col = BUS_PALETTE[look.colors[look.foreign.get(node.id)!] ?? 0]!;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 4.5;
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, PORTRAIT_R + 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.arc(node.x, node.y - PORTRAIT_R - 8, 5.5, 0, Math.PI * 2);
+      ctx.fill();
     }
     const top = node.y + PORTRAIT_R + PLATE_GAP;
     ctx.fillStyle = tone.plate;
@@ -633,7 +748,7 @@ async function renderLiving(data: TreeData, titleOf: (fallback: string) => strin
 }
 
 type FrameSpec = { src: string; hole: number };
-type Sheet = { width: number; height: number; nodes: { id: string; x: number; y: number }[]; vines: string[]; marks: { x: number; y: number; text: string }[]; title: string };
+type Sheet = { width: number; height: number; nodes: { id: string; x: number; y: number }[]; vines: string[]; marks: { x: number; y: number; text: string }[]; title: string; far?: string[]; refs?: { id: string; of: string; x: number; y: number }[]; groups?: { text: string; sub: string; x: number; y: number }[] };
 
 async function renderFramed(
   data: TreeData,
@@ -707,6 +822,36 @@ async function renderFramed(
   ctx.globalAlpha = 1;
   ctx.font = 'italic 12px "Cormorant Garamond", serif';
   for (const mark of sheet.marks) ctx.fillText(mark.text, mark.x, mark.y);
+  if (sheet.far?.length) {
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.setLineDash([2, 8]);
+    for (const d of sheet.far) ctx.stroke(new Path2D(d));
+    ctx.restore();
+  }
+  for (const r of sheet.refs ?? []) {
+    const person = people.get(r.of);
+    ctx.save();
+    ctx.setLineDash([5, 6]);
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, size * 0.62, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    ctx.font = '15px "Cormorant Garamond", serif';
+    ctx.fillText("↗", r.x, r.y + 5);
+    ctx.font = 'italic 13px "Cormorant Garamond", serif';
+    if (person) ctx.fillText(fullName(person), r.x, r.y + size + 24, 210);
+  }
+  for (const g of sheet.groups ?? []) {
+    ctx.textAlign = "left";
+    ctx.font = '600 26px "Cormorant Garamond", serif';
+    ctx.fillText(g.text, g.x, g.y - 14);
+    ctx.font = 'italic 15px "Cormorant Garamond", serif';
+    ctx.globalAlpha = 0.8;
+    ctx.fillText(g.sub, g.x, g.y + 12);
+    ctx.globalAlpha = 1;
+    ctx.textAlign = "center";
+  }
   for (const node of sheet.nodes) {
     const person = people.get(node.id);
     if (!person) continue;
@@ -747,12 +892,19 @@ async function renderFramed(
   return canvas;
 }
 
+/** Лист темы по расстановке экрана: `family` отдаёт теме свою геометрию, иначе прежняя «Схема». */
+function themeSheet<S>(fn: (p: TreeData["people"], u: TreeData["unions"], f: string, flow: "down" | "up", a: ReadonlyMap<string, { x: number; y: number }>, fam?: AppLayout) => S, data: TreeData, flow: "down" | "up"): S {
+  const L = exportLayout(data, flow);
+  const anchor = new Map(L.nodes.map((n) => [n.id, { x: n.x, y: n.y }]));
+  return fn(data.people, data.unions, data.focusId, flow, anchor, L.engine === "family" ? (L as AppLayout) : undefined);
+}
+
 async function renderCameo(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up") {
-  return renderFramed(data, titleOf, layoutCameo(data.people, data.unions, data.focusId, flow, schemeAnchor(data.people, data.unions, data.focusId, flow)), FRAMES, FRAME, "#f4efe4", "#000");
+  return renderFramed(data, titleOf, themeSheet(layoutCameo, data, flow), FRAMES, FRAME, "#f4efe4", "#000");
 }
 
 async function renderGzhel(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up") {
-  const sheet = layoutGzhel(data.people, data.unions, data.focusId, flow, schemeAnchor(data.people, data.unions, data.focusId, flow));
+  const sheet = themeSheet(layoutGzhel, data, flow);
   const canvas = await renderFramed(data, titleOf, sheet, GZHEL_FRAMES, GZHEL_FRAME, "#163a78", "#fbfcfe");
   const ctx = canvas.getContext("2d");
   if (!ctx) return canvas;
@@ -775,7 +927,7 @@ async function renderGzhel(data: TreeData, titleOf: (fallback: string) => string
 }
 
 async function renderBoheme(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up") {
-  return renderFramed(data, titleOf, layoutBoheme(data.people, data.unions, data.focusId, flow, schemeAnchor(data.people, data.unions, data.focusId, flow)), BOHEME_FRAMES, BOHEME_FRAME, "#f6f1e6", "#1a2418", {
+  return renderFramed(data, titleOf, themeSheet(layoutBoheme, data, flow), BOHEME_FRAMES, BOHEME_FRAME, "#f6f1e6", "#1a2418", {
     bg: "./tree/boheme/bg.jpg",
     blur: 10,
     veil: "rgba(16,22,14,0.42)",
@@ -784,7 +936,7 @@ async function renderBoheme(data: TreeData, titleOf: (fallback: string) => strin
 }
 
 async function renderTaiga(data: TreeData, titleOf: (fallback: string) => string, flow: "down" | "up") {
-  return renderFramed(data, titleOf, layoutTaiga(data.people, data.unions, data.focusId, flow, schemeAnchor(data.people, data.unions, data.focusId, flow)), TAIGA_FRAMES, TAIGA_FRAME, "#f4f7f2", "#142018", {
+  return renderFramed(data, titleOf, themeSheet(layoutTaiga, data, flow), TAIGA_FRAMES, TAIGA_FRAME, "#f4f7f2", "#142018", {
     bg: "./tree/taiga/bg.jpg",
     blur: 3,
     veil: "rgba(14,22,18,0.35)",
