@@ -1,4 +1,5 @@
-import { childTrunk } from "@/lib/tree/trunk";
+import { busHops, busColorIndex, foreignEntries, BUS_PALETTE } from "@/lib/tree/bus-look";
+import { busIsFar, busLinkPath, busPath, pillLabel, pillPoint, pillSize, refLinkPath, spousePath, type SchemeBus } from "@/lib/tree/scheme-paths";
 import { applyShifts } from "@/lib/tree/offsets";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { branchColorOf, useBranchColors } from "@/lib/tree/branch-colors";
@@ -26,7 +27,11 @@ import type { PosterSheet } from "@/lib/tree/poster";
 import { relationCard, relationsFrom } from "@/lib/tree/recenter";
 import { useTree, type TreeFlow } from "@/lib/tree/ui-store";
 import { carvedBusPath, carvedPill, carvedSpousePath, CARVED_RX, CARVED_RY, motifs, type TreeStyle } from "@/lib/tree/styles";
+import type { RefCard } from "@/lib/tree/family-layout";
 import type { Person, TreeLayout, Union, UnionStatus } from "@/lib/tree/types";
+
+/** Раскладка экрана: прежняя (`classic`, без дополнительных полей) или `family` (карточки-ссылки, дуги, входы линий). */
+export type StageLayout = TreeLayout & { engine?: "classic" | "family"; groups?: { kind: "branches" | "singles"; text: string; sub: string; x: number; y: number; count: number; anchorId: string }[]; refs?: RefCard[]; refLinks?: { refId: string; of: string; x1: number; y1: number; x2: number; y2: number }[] };
 
 /** Ниже этого масштаба карточки не читаются: тогда встаём на «Вас» в читаемом масштабе. */
 const UNREADABLE_ZOOM = 0.28;
@@ -35,7 +40,7 @@ const READABLE_ZOOM = 0.6;
 type Cam = { x: number; y: number; k: number };
 
 type Props = {
-  layout: TreeLayout;
+  layout: StageLayout;
   people: Person[];
   unions: Union[];
   focusId: string;
@@ -83,70 +88,6 @@ function pillText(status: UnionStatus): string {
   return "БРАК";
 }
 
-/** Родители далеко от детей (семья супруга стоит отдельной веткой): эту связь рисуем бледным пунктиром, чтобы она не выглядела общей линией детей. */
-const FAR_LINK = 520;
-function busIsFar(bus: TreeLayout["buses"][number]): boolean {
-  const min = bus.xs[0];
-  const max = bus.xs[bus.xs.length - 1];
-  return bus.fromX != null && bus.fromY != null && min != null && max != null && (bus.fromX < min - FAR_LINK || bus.fromX > max + FAR_LINK);
-}
-
-function busPath(bus: TreeLayout["buses"][number]): string {
-  const parts: string[] = [];
-  const min = bus.xs[0];
-  const max = bus.xs[bus.xs.length - 1];
-  const far = busIsFar(bus);
-  let trunked = false;
-  if (!far && bus.fromX != null && bus.fromY != null && min != null && max != null) {
-    if (bus.partnerXs && bus.partnerTop != null && bus.bracketY !== undefined) {
-      parts.push(`M ${bus.fromX} ${bus.fromY} V ${bus.busY}`);
-      if (bus.fromX < min - 1) parts.push(`M ${bus.fromX} ${bus.busY} H ${min}`);
-      else if (bus.fromX > max + 1) parts.push(`M ${bus.fromX} ${bus.busY} H ${max}`);
-    } else {
-      parts.push(...childTrunk(bus.fromX, bus.fromY, bus.busY, bus.xs));
-      trunked = true;
-    }
-  }
-  if (bus.partnerXs && bus.partnerTop != null && bus.bracketY !== undefined) {
-    // Брак между далёкими супругами: от каждого вниз и общая линия; от её середины вниз к детям, там разветвление.
-    for (const x of bus.partnerXs) parts.push(`M ${x} ${bus.partnerTop} V ${bus.bracketY}`);
-    parts.push(`M ${Math.min(...bus.partnerXs)} ${bus.bracketY} H ${Math.max(...bus.partnerXs)}`);
-    const mid = bus.fromX ?? (bus.partnerXs[0]! + bus.partnerXs[1]!) / 2;
-    parts.push(`M ${mid} ${bus.bracketY} V ${bus.busY}`);
-    parts.push(`M ${Math.min(mid, ...bus.xs)} ${bus.busY} H ${Math.max(mid, ...bus.xs)}`);
-  } else if (!trunked && min != null && max != null && bus.xs.length > 1) parts.push(`M ${min} ${bus.busY} H ${max}`);
-  bus.xs.forEach((x, i) => parts.push(`M ${x} ${bus.busY} V ${bus.childTops?.[i] ?? bus.childTop}`));
-  return parts.join(" ");
-}
-
-/** Дальняя связь от родителей к детям: от брака вниз и вбок к ближайшему ребёнку. */
-function busLinkPath(bus: TreeLayout["buses"][number]): string {
-  if (!busIsFar(bus)) return "";
-  const min = bus.xs[0]!;
-  const max = bus.xs[bus.xs.length - 1]!;
-  const to = bus.fromX! < min ? min : max;
-  return `M ${bus.fromX} ${bus.fromY} V ${bus.busY} H ${to}`;
-}
-
-function spousePath(link: TreeLayout["spouses"][number]): string {
-  if (link.bracketY !== undefined) return "";
-  const dir = Math.sign(link.x2 - link.x1) || 1;
-  const x1 = link.x1 + dir * (PORTRAIT_R + 2);
-  const x2 = link.x2 - dir * (PORTRAIT_R + 2);
-  if (!link.curved) return `M ${x1} ${link.y1} H ${x2}`;
-  const mx = (link.x1 + link.x2) / 2;
-  const my = Math.min(link.y1, link.y2) - 58;
-  return `M ${x1} ${link.y1} Q ${mx} ${my} ${x2} ${link.y2}`;
-}
-
-function pillPoint(link: TreeLayout["spouses"][number]): { x: number; y: number } {
-  if (link.bracketY !== undefined) return { x: (link.x1 + link.x2) / 2, y: link.bracketY };
-  if (!link.curved) return { x: (link.x1 + link.x2) / 2, y: link.y1 };
-  const mx = (link.x1 + link.x2) / 2;
-  const my = Math.min(link.y1, link.y2) - 58;
-  return { x: mx, y: 0.25 * link.y1 + 0.5 * my + 0.25 * link.y2 };
-}
-
 function Flower({ motif }: { motif: { x: number; y: number; r: number; rot: number } }) {
   return (
     <g transform={`translate(${motif.x} ${motif.y}) rotate(${motif.rot})`} fill="#f4ecd8" opacity={0.55}>
@@ -176,6 +117,9 @@ export function TreeStage(props: Props) {
   const [live, setLive] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const personDrag = useRef<{ id: string; sx: number; sy: number; moved: boolean } | null>(null);
   const layout = useMemo(() => (live ? applyShifts(baseLayout, unions, new Map([[live.id, { dx: live.dx, dy: live.dy }]])) : baseLayout), [baseLayout, unions, live]);
+  // Только раскладка `family`: цвета соседних семей и прыжки на пересечениях. Прежняя раскладка рисуется как раньше (один цвет, без прыжков).
+  const family = layout.engine === "family";
+  const busLook = useMemo(() => (family ? { hops: busHops(layout.buses as SchemeBus[]), colors: busColorIndex(layout.buses as SchemeBus[]), foreign: foreignEntries(layout.buses as SchemeBus[], layout.nodes) } : null), [family, layout.buses, layout.nodes]);
   const anyMoved = people.some((person) => person.treeDx || person.treeDy);
   // Подсветка линии остаётся после закрытия карточки (карточка закрывает почти весь экран телефона) и гаснет по нажатию на пустое место схемы.
   const [litId, setLitId] = useState<string | null>(null);
@@ -315,13 +259,13 @@ export function TreeStage(props: Props) {
   };
 
   // Стили растягивают «Схему» одним общим множителем: при перетаскивании сдвиг переводим обратно в масштаб схемы.
-  const styled = style === "cameo" && cameo ? { k: cameo.scale, nodes: cameo.nodes, r: FRAME }
-    : style === "gzhel" && gzhel ? { k: gzhel.scale, nodes: gzhel.nodes, r: GZHEL_FRAME }
-    : style === "boheme" && boheme ? { k: boheme.scale, nodes: boheme.nodes, r: BOHEME_FRAME }
-    : style === "taiga" && taiga ? { k: taiga.scale, nodes: taiga.nodes, r: TAIGA_FRAME }
+  const styled = style === "cameo" && cameo ? { k: cameo.scale, ky: cameo.scaleY ?? cameo.scale, nodes: cameo.nodes, r: FRAME }
+    : style === "gzhel" && gzhel ? { k: gzhel.scale, ky: gzhel.scaleY ?? gzhel.scale, nodes: gzhel.nodes, r: GZHEL_FRAME }
+    : style === "boheme" && boheme ? { k: boheme.scale, ky: boheme.scaleY ?? boheme.scale, nodes: boheme.nodes, r: BOHEME_FRAME }
+    : style === "taiga" && taiga ? { k: taiga.scale, ky: taiga.scaleY ?? taiga.scale, nodes: taiga.nodes, r: TAIGA_FRAME }
     : null;
 
-  const hit = (x: number, y: number): { kind: "person" | "union"; id: string } | null => {
+  const hit = (x: number, y: number): { kind: "person" | "union" | "ref"; id: string } | null => {
     const nodes =
       style === "carved" && poster
         ? poster.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y, r: Math.max(36, n.w / 2) }))
@@ -339,6 +283,16 @@ export function TreeStage(props: Props) {
       const dy = y - node.y;
       if (dx * dx + dy * dy <= node.r * node.r) return { kind: "person", id: node.id };
       if (style === "work" && x >= node.x - PLATE_W / 2 && x <= node.x + PLATE_W / 2 && y >= node.y + PORTRAIT_R && y <= node.y + PORTRAIT_R + PLATE_GAP + PLATE_H) return { kind: "person", id: node.id };
+    }
+    const themeRefs = style === "cameo" ? cameo?.refs : style === "gzhel" ? gzhel?.refs : style === "boheme" ? boheme?.refs : style === "taiga" ? taiga?.refs : undefined;
+    const themeR = style === "cameo" ? FRAME : style === "gzhel" ? GZHEL_FRAME : style === "boheme" ? BOHEME_FRAME : TAIGA_FRAME;
+    for (const r of themeRefs ?? []) if ((x - r.x) ** 2 + (y - r.y) ** 2 <= (themeR * 0.62 + 6) ** 2) return { kind: "ref", id: r.of };
+    if (style === "work") {
+      for (const r of layout.refs ?? []) {
+        const inCircle = (x - r.x) ** 2 + (y - r.y) ** 2 <= (PORTRAIT_R + 8) ** 2;
+        const inPlate = x >= r.x - PLATE_W / 2 && x <= r.x + PLATE_W / 2 && y >= r.y + PORTRAIT_R && y <= r.y + PORTRAIT_R + PLATE_GAP + PLATE_H;
+        if (inCircle || inPlate) return { kind: "ref", id: r.of };
+      }
     }
     if (style === "work" || style === "carved") {
       for (const link of layout.spouses) {
@@ -407,8 +361,9 @@ export function TreeStage(props: Props) {
       const w = world(e.clientX, e.clientY);
       const at = baseLayout.nodes.find((n) => n.id === pd.id);
       const k = styled ? Math.max(0.2, styled.k) : 1;
+      const ky = styled ? Math.max(0.2, styled.ky) : 1;
       const dx = at ? Math.max((w.x - pd.sx) / k, 50 - at.x) : (w.x - pd.sx) / k;
-      const dy = at ? Math.max((w.y - pd.sy) / k, 50 - at.y) : (w.y - pd.sy) / k;
+      const dy = at ? Math.max((w.y - pd.sy) / ky, 50 - at.y) : (w.y - pd.sy) / ky;
       setLive({ id: pd.id, dx, dy });
       return;
     }
@@ -442,6 +397,7 @@ export function TreeStage(props: Props) {
         const p = world(e.clientX, e.clientY);
         const found = hit(p.x, p.y);
         if (found?.kind === "person") onSelectPerson(found.id);
+        else if (found?.kind === "ref") onJump(found.id);
         else if (found?.kind === "union") onSelectUnion(found.id);
         else {
           setLitId(null);
@@ -488,16 +444,24 @@ export function TreeStage(props: Props) {
           ) : (
             <svg width={layout.width} height={layout.height} role="img" aria-label="Родословное древо">
               <g fill="none" stroke="var(--color-blood)" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
-                {layout.buses.map((bus) => (
-                  <path key={bus.unionId} d={style === "carved" ? carvedBusPath(bus) : busPath(bus)} strokeDasharray={halfUnions.has(bus.unionId) ? "7 6" : undefined} />
+                {layout.buses.map((bus, i) => (
+                  <path key={`${bus.unionId}:${i}`} d={style === "carved" ? carvedBusPath(bus) : busPath(bus, busLook?.hops.get(i))} stroke={busLook ? BUS_PALETTE[busLook.colors[i] ?? 0] : undefined} strokeDasharray={halfUnions.has(bus.unionId) ? "7 6" : undefined} />
                 ))}
               </g>
               <g fill="none" stroke="var(--color-blood)" strokeWidth={1.6} strokeOpacity={0.4} strokeDasharray="2 9" strokeLinecap="round">
-                {style === "carved" ? null : layout.buses.map((bus) => (busIsFar(bus) ? <path key={`far-${bus.unionId}`} d={busLinkPath(bus)} /> : null))}
+                {style === "carved" ? null : layout.buses.map((bus, i) => (busIsFar(bus) ? <path key={`far-${bus.unionId}:${i}`} d={busLinkPath(bus)} stroke={busLook ? BUS_PALETTE[busLook.colors[i] ?? 0] : undefined} {...(busLook ? { strokeWidth: 2.2, strokeOpacity: 0.85, strokeDasharray: "4 7" } : {})} /> : null))}
               </g>
               {layout.spouses.map((link) => (
                 <path key={link.unionId} d={style === "carved" ? carvedSpousePath(link) : spousePath(link)} fill="none" stroke={lineColor(link.status)} strokeWidth={2.4} strokeLinecap="round" strokeDasharray={link.status === "divorced" ? "6 7" : undefined} />
               ))}
+              {layout.refLinks?.length ? (
+                // Карточка-ссылка: тот же человек, показанный рядом с супругом. Пунктир ведёт к его основной карточке.
+                <g fill="none" stroke="var(--color-gold)" strokeWidth={2.2} strokeDasharray="9 7" strokeLinecap="round" opacity={0.9}>
+                  {layout.refLinks.map((l) => (
+                    <path key={l.refId} d={refLinkPath(l)} />
+                  ))}
+                </g>
+              ) : null}
               {lit && lit.size > 0 ? (
                 // Выбранный человек: подсвечены его линия родства вверх (родители, братья и сёстры, предки), его браки и потомки.
                 <g fill="none" stroke="var(--color-gold)" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} pointerEvents="none">
@@ -513,6 +477,12 @@ export function TreeStage(props: Props) {
                 <text key={label.gen} x={18} y={label.y} fill="var(--color-label)" fontFamily="var(--font-sans)" fontSize={13} fontWeight={600} dominantBaseline="middle">
                   {label.gen === layout.focusGen && focusId !== homeId ? "Поколение центра" : label.text}
                 </text>
+              ))}
+              {layout.groups?.map((g) => (
+                <g key={g.kind} pointerEvents="none">
+                  <text x={g.x} y={g.y - 16} fill="var(--color-label)" fontFamily="var(--font-sans)" fontSize={28} fontWeight={700} dominantBaseline="middle">{g.text}</text>
+                  <text x={g.x} y={g.y + 14} fill="var(--color-label)" fontFamily="var(--font-sans)" fontSize={17} opacity={0.85} dominantBaseline="middle">{g.sub}</text>
+                </g>
               ))}
               {layout.nodes.map((node) => {
                 const person = byId.get(node.id);
@@ -531,6 +501,14 @@ export function TreeStage(props: Props) {
                         <path d={`M${node.x + PORTRAIT_R * 0.75 - 6} ${node.y - PORTRAIT_R * 0.75} l4 4.5 l8 -9`} fill="none" stroke="#1a1612" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
                       </g>
                     )}
+                    {busLook?.foreign.has(node.id) ? (
+                      // Вход издалека рядом с детьми другой пары: портрет обведён цветом своей семьи, на входе точка того же цвета.
+                      <g>
+                        <title>Родители этого человека из другой семьи: линия цвета обводки идёт к ним издалека, соседи не его братья и сёстры.</title>
+                        <circle cx={node.x} cy={node.y} r={PORTRAIT_R + 8} fill="none" stroke={BUS_PALETTE[busLook.colors[busLook.foreign.get(node.id)!] ?? 0]} strokeWidth={4.5} />
+                        <circle cx={node.x} cy={node.y - PORTRAIT_R - 8} r={5.5} fill={BUS_PALETTE[busLook.colors[busLook.foreign.get(node.id)!] ?? 0]} />
+                      </g>
+                    ) : null}
                     <circle cx={node.x} cy={node.y} r={PORTRAIT_R} fill="#d7c3a4" />
                     {!person.photo || broken[person.id] ? (
                       <text x={node.x} y={node.y} textAnchor="middle" dominantBaseline="middle" fill="var(--color-ink)" fontFamily="var(--font-serif)" fontSize={26}>
@@ -582,10 +560,34 @@ export function TreeStage(props: Props) {
                   </g>
                 );
               })}
+              {layout.refs?.map((r) => {
+                const person = byId.get(r.of);
+                if (!person) return null;
+                const lines = nameLines(person);
+                const top = r.y + PORTRAIT_R + PLATE_GAP;
+                const a = fitText(lines.top, PLATE_W - 14, 15);
+                return (
+                  <g key={r.id} opacity={0.85}>
+                    <title>Это ссылка на человека, чья основная карточка стоит в другом месте схемы. Нажмите, чтобы перейти к ней.</title>
+                    <circle cx={r.x} cy={r.y} r={PORTRAIT_R} fill="var(--color-chip)" stroke="var(--color-gold)" strokeWidth={3} strokeDasharray="8 6" />
+                    <text x={r.x} y={r.y} textAnchor="middle" dominantBaseline="middle" fill="var(--color-gold)" fontFamily="var(--font-sans)" fontSize={30} fontWeight={700}>
+                      ↗
+                    </text>
+                    <rect x={r.x - PLATE_W / 2} y={top} width={PLATE_W} height={PLATE_H} rx={14} fill="#f6f1e7" stroke="var(--color-gold)" strokeWidth={2.5} strokeDasharray="8 6" />
+                    <text x={r.x} y={top + 22} textAnchor="middle" fill="var(--color-ink)" fontFamily="var(--font-serif)" fontSize={a.size} fontWeight={700} textLength={a.textLength} lengthAdjust="spacingAndGlyphs">
+                      {a.text}
+                    </text>
+                    <text x={r.x} y={top + 44} textAnchor="middle" fill="var(--color-muted)" fontFamily="var(--font-sans)" fontSize={11}>
+                      ссылка на карточку
+                    </text>
+                  </g>
+                );
+              })}
               {layout.spouses.map((link) => {
                 const p = pillPoint(link);
-                const text = pillText(link.status);
-                const w = text.length > 7 ? 112 : text.length > 4 ? 88 : 72;
+                const word = pillText(link.status);
+                const text = pillLabel(word, link);
+                const w = pillSize(link.status, text !== word).w;
                 return (
                   <g key={`pill-${link.unionId}`} transform={`translate(${p.x} ${p.y})`}>
                     <rect x={-w / 2} y={-12} width={w} height={24} rx={12} fill="var(--color-chip)" stroke={lineColor(link.status)} />
@@ -619,7 +621,7 @@ export function TreeStage(props: Props) {
             return (
               <div
                 className="pointer-events-none absolute rounded-full border-[3px] border-[var(--color-gold)] bg-[var(--color-gold)]/20"
-                style={{ left: at.x + live.dx * styled.k - r, top: at.y + live.dy * styled.k - r, width: r * 2, height: r * 2 }}
+                style={{ left: at.x + live.dx * styled.k - r, top: at.y + live.dy * styled.ky - r, width: r * 2, height: r * 2 }}
               />
             );
           })() : null}

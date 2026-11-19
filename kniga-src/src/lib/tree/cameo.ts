@@ -3,6 +3,8 @@ import { NAME_HALF, reposition, type Spot } from "./anchor.ts";
 import { yearNum } from "./kinship.ts";
 import { assignGenerations } from "./layout.ts";
 import type { Person, Union } from "./types.ts";
+import { arcTopRoom, familyThemeLines, type FamilyExtras, type ThemeStyle } from "./family-sheet.ts";
+import type { AppLayout } from "./layout-engine.ts";
 
 export const FRAME = 86;
 export const FRAMES = [
@@ -24,10 +26,16 @@ export type CameoNode = { id: string; x: number; y: number };
 export type CameoMark = { x: number; y: number; text: string };
 
 export type CameoSheet = {
+  /** Далёкие связи и ссылки (пунктир), карточки-ссылки и подписи групп: только у семейной раскладки. */
+  far?: FamilyExtras["far"];
+  refs?: FamilyExtras["refs"];
+  groups?: FamilyExtras["groups"];
   width: number;
   height: number;
   /** Во сколько раз расстояния растянуты относительно «Схемы»: нужно для перетаскивания карточек. */
   scale: number;
+  /** Множитель по вертикали (у семейной раскладки отдельный от горизонтального). */
+  scaleY?: number;
   nodes: CameoNode[];
   vines: string[];
   marks: CameoMark[];
@@ -60,7 +68,9 @@ function wave(x1: number, x2: number, y: number): string {
   return `M ${x1} ${y} C ${x1 + 16} ${y - 18}, ${mid - 18} ${y - 22}, ${mid} ${y} C ${mid + 18} ${y + 22}, ${x2 - 16} ${y + 18}, ${x2} ${y}`;
 }
 
-export function layoutCameo(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down", anchor?: ReadonlyMap<string, Spot>): CameoSheet {
+const STYLE: ThemeStyle = { frame: FRAME, caption: CAPTION, edge: 2, markDy: 8, spouse: (x1, y1, x2, y2) => wave(x1, x2, y1), fan: null };
+
+export function layoutCameo(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down", anchor?: ReadonlyMap<string, Spot>, fam?: AppLayout): CameoSheet {
   const empty: CameoSheet = { width: 720, height: 960, scale: 1, nodes: [], vines: [], marks: [], title: "РОД", kicker: "Книга рода" };
   if (!people.length) return empty;
   const gen = assignGenerations(people, unions);
@@ -83,6 +93,7 @@ export function layoutCameo(people: Person[], unions: Union[], focusId: string, 
   let width = Math.max(...drafts.map((row) => row.width)) + PAD_X * 2;
   let height = PAD_Y + Math.max(0, levels.length - 1) * ROW + BOX + CAPTION + 12;
   let scale = 1;
+  let scaleY = 1;
   const nodes: CameoNode[] = [];
   levels.forEach((_, index) => {
     const draft = drafts[index];
@@ -91,10 +102,13 @@ export function layoutCameo(people: Person[], unions: Union[], focusId: string, 
     const origin = (width - draft.width) / 2;
     for (const spot of draft.spots) nodes.push({ id: spot.id, x: origin + spot.left + FRAME, y });
   });
+  let famOk = false;
   if (anchor) {
-    const ext = reposition(nodes, anchor, { hw: Math.max(FRAME, NAME_HALF), hh: FRAME + CAPTION / 2 }, { left: PAD_X + FRAME, top: PAD_Y + FRAME });
+    const ext = reposition(nodes, anchor, { hw: Math.max(FRAME, NAME_HALF), hh: FRAME + CAPTION / 2 }, { left: PAD_X + FRAME, top: PAD_Y + FRAME + (fam ? arcTopRoom(fam, STYLE) : 0) }, { aniso: Boolean(fam) });
     if (ext) {
+      famOk = true;
       scale = ext.scale;
+      scaleY = ext.scaleY;
       width = ext.maxX + FRAME + PAD_X;
       height = ext.maxY + FRAME + CAPTION + 12;
     }
@@ -125,6 +139,20 @@ export function layoutCameo(people: Person[], unions: Union[], focusId: string, 
     vines.push(...childTrunk(fromX, fromY, busY, xs));
     for (const kid of kids) vines.push(`M ${kid.x} ${busY} V ${upward ? kid.y + FRAME + CAPTION : kid.y - FRAME}`);
   }
+  let extras: FamilyExtras = { far: [], refs: [], groups: [] };
+  if (fam && famOk) {
+    const L = familyThemeLines(fam, nodes, scale, scaleY, STYLE, flow);
+    vines.length = 0;
+    vines.push(...L.vines);
+    marks.length = 0;
+    marks.push(...L.marks);
+    extras = { far: L.far, refs: L.refs, groups: L.groups };
+    for (const r of L.refs) {
+      width = Math.max(width, r.x + FRAME + PAD_X);
+      height = Math.max(height, r.y + FRAME + CAPTION + 12);
+    }
+    for (const g of L.groups) height = Math.max(height, g.y + 40);
+  }
   const focus = byId.get(focusId);
-  return { width, height, scale, nodes, vines, marks, title: (focus?.lastName || "Род").toLocaleUpperCase("ru"), kicker: "Книга рода" };
+  return { ...(fam && famOk ? extras : {}), width, height, scale, scaleY, nodes, vines, marks, title: (focus?.lastName || "Род").toLocaleUpperCase("ru"), kicker: "Книга рода" };
 }

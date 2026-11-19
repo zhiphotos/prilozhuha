@@ -2,6 +2,7 @@ import { FramedFace } from "@/components/tree/FramedFace";
 import { cardLine } from "@/lib/tree/card-fields";
 import { SheetTitle } from "@/components/tree/SheetTitle";
 import { useMemo } from "react";
+import { FamilyOverlay } from "@/components/tree/FamilyOverlay";
 import { fitText, initialsOf, nameLines, yearsOf } from "@/lib/tree/kinship";
 import { relationCard, relationsFrom } from "@/lib/tree/recenter";
 import { TAIGA_FRAME, TAIGA_FRAMES, type TaigaSheet } from "@/lib/tree/taiga";
@@ -33,6 +34,7 @@ export function TaigaView({ sheet, people, unions, focusId, homeId, selectedId, 
             {mark.text}
           </text>
         ))}
+        <FamilyOverlay sheet={sheet} byId={byId} ink={INK} stroke={"rgba(244,247,242,0.8)"} strokeWidth={1.15} frame={TAIGA_FRAME} />
         {sheet.nodes.map((node) => {
           const person = byId.get(node.id);
           if (!person) return null;

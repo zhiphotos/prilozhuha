@@ -2,6 +2,8 @@ import { NAME_HALF, reposition, type Spot } from "./anchor.ts";
 import { yearNum } from "./kinship.ts";
 import { assignGenerations } from "./layout.ts";
 import type { Person, Union } from "./types.ts";
+import { arcTopRoom, familyThemeLines, type FamilyExtras, type ThemeStyle } from "./family-sheet.ts";
+import type { AppLayout } from "./layout-engine.ts";
 
 export const GZHEL_FRAME = 88;
 export const GZHEL_FRAMES = [
@@ -23,10 +25,16 @@ const ROW = BOX + CAPTION + 40;
 export type GzhelNode = { id: string; x: number; y: number };
 export type GzhelMark = { x: number; y: number; text: string };
 export type GzhelSheet = {
+  /** Далёкие связи и ссылки (пунктир), карточки-ссылки и подписи групп: только у семейной раскладки. */
+  far?: FamilyExtras["far"];
+  refs?: FamilyExtras["refs"];
+  groups?: FamilyExtras["groups"];
   width: number;
   height: number;
   /** Во сколько раз расстояния растянуты относительно «Схемы»: нужно для перетаскивания карточек. */
   scale: number;
+  /** Множитель по вертикали (у семейной раскладки отдельный от горизонтального). */
+  scaleY?: number;
   nodes: GzhelNode[];
   vines: string[];
   marks: GzhelMark[];
@@ -60,7 +68,9 @@ function glaze(x1: number, y1: number, x2: number, y2: number): string {
   return `M ${x1} ${y1} C ${x1 + dx * 0.2} ${y1 + dy * 0.42}, ${x2 - dx * 0.2} ${y1 + dy * 0.58}, ${x2} ${y2}`;
 }
 
-export function layoutGzhel(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down", anchor?: ReadonlyMap<string, Spot>): GzhelSheet {
+const STYLE: ThemeStyle = { frame: GZHEL_FRAME, caption: CAPTION, edge: 2, markDy: 8, spouse: (x1, y1, x2, y2) => glaze(x1, y1, x2, y2), fan: glaze };
+
+export function layoutGzhel(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down", anchor?: ReadonlyMap<string, Spot>, fam?: AppLayout): GzhelSheet {
   const empty: GzhelSheet = { width: 720, height: 960, scale: 1, nodes: [], vines: [], marks: [], title: "РОД", kicker: "Гжель" };
   if (!people.length) return empty;
   const gen = assignGenerations(people, unions);
@@ -83,6 +93,7 @@ export function layoutGzhel(people: Person[], unions: Union[], focusId: string, 
   let width = Math.max(...drafts.map((row) => row.width)) + PAD_X * 2;
   let height = PAD_Y + Math.max(0, levels.length - 1) * ROW + BOX + CAPTION + 120;
   let scale = 1;
+  let scaleY = 1;
   const nodes: GzhelNode[] = [];
   levels.forEach((_, index) => {
     const draft = drafts[index];
@@ -91,10 +102,13 @@ export function layoutGzhel(people: Person[], unions: Union[], focusId: string, 
     const origin = (width - draft.width) / 2;
     for (const spot of draft.spots) nodes.push({ id: spot.id, x: origin + spot.left + GZHEL_FRAME, y });
   });
+  let famOk = false;
   if (anchor) {
-    const ext = reposition(nodes, anchor, { hw: Math.max(GZHEL_FRAME, NAME_HALF), hh: GZHEL_FRAME + CAPTION / 2 }, { left: PAD_X + GZHEL_FRAME, top: PAD_Y + GZHEL_FRAME });
+    const ext = reposition(nodes, anchor, { hw: Math.max(GZHEL_FRAME, NAME_HALF), hh: GZHEL_FRAME + CAPTION / 2 }, { left: PAD_X + GZHEL_FRAME, top: PAD_Y + GZHEL_FRAME + (fam ? arcTopRoom(fam, STYLE) : 0) }, { aniso: Boolean(fam) });
     if (ext) {
+      famOk = true;
       scale = ext.scale;
+      scaleY = ext.scaleY;
       width = ext.maxX + GZHEL_FRAME + PAD_X;
       height = ext.maxY + GZHEL_FRAME + CAPTION + 120;
     }
@@ -121,6 +135,20 @@ export function layoutGzhel(people: Person[], unions: Union[], focusId: string, 
     const fromY = upward ? Math.min(...partners.map((n) => n.y)) - GZHEL_FRAME : Math.max(...partners.map((n) => n.y)) + GZHEL_FRAME + CAPTION;
     for (const kid of kids) vines.push(glaze(fromX, fromY, kid.x, upward ? kid.y + GZHEL_FRAME + CAPTION : kid.y - GZHEL_FRAME));
   }
+  let extras: FamilyExtras = { far: [], refs: [], groups: [] };
+  if (fam && famOk) {
+    const L = familyThemeLines(fam, nodes, scale, scaleY, STYLE, flow);
+    vines.length = 0;
+    vines.push(...L.vines);
+    marks.length = 0;
+    marks.push(...L.marks);
+    extras = { far: L.far, refs: L.refs, groups: L.groups };
+    for (const r of L.refs) {
+      width = Math.max(width, r.x + GZHEL_FRAME + PAD_X);
+      height = Math.max(height, r.y + GZHEL_FRAME + CAPTION + 12);
+    }
+    for (const g of L.groups) height = Math.max(height, g.y + 40);
+  }
   const focus = byId.get(focusId);
-  return { width, height, scale, nodes, vines, marks, title: (focus?.lastName || "Род").toLocaleUpperCase("ru"), kicker: "Гжель" };
+  return { ...(fam && famOk ? extras : {}), width, height, scale, scaleY, nodes, vines, marks, title: (focus?.lastName || "Род").toLocaleUpperCase("ru"), kicker: "Гжель" };
 }

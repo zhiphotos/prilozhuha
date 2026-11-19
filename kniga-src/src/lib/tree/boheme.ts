@@ -2,6 +2,8 @@ import { NAME_HALF, reposition, type Spot } from "./anchor.ts";
 import { yearNum } from "./kinship.ts";
 import { assignGenerations } from "./layout.ts";
 import type { Person, Union } from "./types.ts";
+import { arcTopRoom, familyThemeLines, type FamilyExtras, type ThemeStyle } from "./family-sheet.ts";
+import type { AppLayout } from "./layout-engine.ts";
 
 export const BOHEME_FRAME = 96;
 export const BOHEME_FRAMES = [
@@ -22,10 +24,16 @@ const ROW = BOX + CAPTION + 44;
 export type BohemeNode = { id: string; x: number; y: number };
 export type BohemeMark = { x: number; y: number; text: string };
 export type BohemeSheet = {
+  /** Далёкие связи и ссылки (пунктир), карточки-ссылки и подписи групп: только у семейной раскладки. */
+  far?: FamilyExtras["far"];
+  refs?: FamilyExtras["refs"];
+  groups?: FamilyExtras["groups"];
   width: number;
   height: number;
   /** Во сколько раз расстояния растянуты относительно «Схемы»: нужно для перетаскивания карточек. */
   scale: number;
+  /** Множитель по вертикали (у семейной раскладки отдельный от горизонтального). */
+  scaleY?: number;
   nodes: BohemeNode[];
   vines: string[];
   marks: BohemeMark[];
@@ -58,7 +66,9 @@ function vine(x1: number, y1: number, x2: number, y2: number): string {
   return `M ${x1} ${y1} C ${x1 + dx * 0.12} ${y1 + dy * 0.46}, ${x2 - dx * 0.12} ${y1 + dy * 0.54}, ${x2} ${y2}`;
 }
 
-export function layoutBoheme(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down", anchor?: ReadonlyMap<string, Spot>): BohemeSheet {
+const STYLE: ThemeStyle = { frame: BOHEME_FRAME, caption: CAPTION, edge: 4, markDy: 10, spouse: (x1, y1, x2, y2) => vine(x1, y1, x2, y2), fan: vine };
+
+export function layoutBoheme(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down", anchor?: ReadonlyMap<string, Spot>, fam?: AppLayout): BohemeSheet {
   const empty: BohemeSheet = { width: 720, height: 980, scale: 1, nodes: [], vines: [], marks: [], title: "РОД" };
   if (!people.length) return empty;
   const gen = assignGenerations(people, unions);
@@ -81,6 +91,7 @@ export function layoutBoheme(people: Person[], unions: Union[], focusId: string,
   let width = Math.max(...drafts.map((row) => row.width)) + PAD_X * 2;
   let height = PAD_Y + Math.max(0, levels.length - 1) * ROW + BOX + CAPTION + 16;
   let scale = 1;
+  let scaleY = 1;
   const nodes: BohemeNode[] = [];
   levels.forEach((_, index) => {
     const draft = drafts[index];
@@ -89,10 +100,13 @@ export function layoutBoheme(people: Person[], unions: Union[], focusId: string,
     const origin = (width - draft.width) / 2;
     for (const spot of draft.spots) nodes.push({ id: spot.id, x: origin + spot.left + BOHEME_FRAME, y });
   });
+  let famOk = false;
   if (anchor) {
-    const ext = reposition(nodes, anchor, { hw: Math.max(BOHEME_FRAME, NAME_HALF), hh: BOHEME_FRAME + CAPTION / 2 }, { left: PAD_X + BOHEME_FRAME, top: PAD_Y + BOHEME_FRAME });
+    const ext = reposition(nodes, anchor, { hw: Math.max(BOHEME_FRAME, NAME_HALF), hh: BOHEME_FRAME + CAPTION / 2 }, { left: PAD_X + BOHEME_FRAME, top: PAD_Y + BOHEME_FRAME + (fam ? arcTopRoom(fam, STYLE) : 0) }, { aniso: Boolean(fam) });
     if (ext) {
+      famOk = true;
       scale = ext.scale;
+      scaleY = ext.scaleY;
       width = ext.maxX + BOHEME_FRAME + PAD_X;
       height = ext.maxY + BOHEME_FRAME + CAPTION + 16;
     }
@@ -119,6 +133,20 @@ export function layoutBoheme(people: Person[], unions: Union[], focusId: string,
     const fromY = upward ? Math.min(...partners.map((n) => n.y)) - BOHEME_FRAME : Math.max(...partners.map((n) => n.y)) + BOHEME_FRAME + CAPTION;
     for (const kid of kids) vines.push(vine(fromX, fromY, kid.x, upward ? kid.y + BOHEME_FRAME + CAPTION : kid.y - BOHEME_FRAME));
   }
+  let extras: FamilyExtras = { far: [], refs: [], groups: [] };
+  if (fam && famOk) {
+    const L = familyThemeLines(fam, nodes, scale, scaleY, STYLE, flow);
+    vines.length = 0;
+    vines.push(...L.vines);
+    marks.length = 0;
+    marks.push(...L.marks);
+    extras = { far: L.far, refs: L.refs, groups: L.groups };
+    for (const r of L.refs) {
+      width = Math.max(width, r.x + BOHEME_FRAME + PAD_X);
+      height = Math.max(height, r.y + BOHEME_FRAME + CAPTION + 12);
+    }
+    for (const g of L.groups) height = Math.max(height, g.y + 40);
+  }
   const focus = byId.get(focusId);
-  return { width, height, scale, nodes, vines, marks, title: (focus?.lastName || "Род").toLocaleUpperCase("ru") };
+  return { ...(fam && famOk ? extras : {}), width, height, scale, scaleY, nodes, vines, marks, title: (focus?.lastName || "Род").toLocaleUpperCase("ru") };
 }

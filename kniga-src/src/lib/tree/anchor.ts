@@ -11,7 +11,8 @@ export function reposition<N extends { id: string; x: number; y: number }>(
   anchor: ReadonlyMap<string, Spot>,
   size: { hw: number | ((n: N) => number); hh: number },
   place: { left: number; top: number },
-): { maxX: number; maxY: number; scale: number } | null {
+  opts: { aniso?: boolean } = {},
+): { maxX: number; maxY: number; scale: number; scaleY: number } | null {
   if (!nodes.length || nodes.some((n) => !anchor.has(n.id))) return null;
   const half = (n: N) => (typeof size.hw === "function" ? size.hw(n) : size.hw);
   const gap = 10;
@@ -28,7 +29,25 @@ export function reposition<N extends { id: string; x: number; y: number }>(
       if (Number.isFinite(pair) && pair > need) need = pair;
     }
   }
-  const s = Math.min(3, Math.max(0.35, need || 1));
+  let s = Math.min(3, Math.max(0.35, need || 1));
+  let sy = s;
+  if (opts.aniso) {
+    // Семейная раскладка: по горизонтали растягиваем ровно настолько, чтобы подписи соседей в одном ряду не наезжали, по вертикали ровно настолько, чтобы не наезжали ряды.
+    // Иначе общий множитель от тесного ряда делал линии между рядами вдвое длиннее самих карточек.
+    let nx = 0, ny = 0;
+    for (let i = 0; i < nodes.length; i += 1) {
+      for (let j = i + 1; j < nodes.length; j += 1) {
+        const a = anchor.get(nodes[i]!.id)!;
+        const b = anchor.get(nodes[j]!.id)!;
+        const dx = Math.abs(a.x - b.x);
+        const dy = Math.abs(a.y - b.y);
+        if (dy < size.hh) { if (dx > 0) nx = Math.max(nx, (half(nodes[i]!) + half(nodes[j]!) + gap) / dx); }
+        else ny = Math.max(ny, (size.hh * 2 + gap) / dy);
+      }
+    }
+    s = Math.min(3, Math.max(0.35, nx || 1));
+    sy = Math.min(3, Math.max(0.35, ny || 1));
+  }
   const minX = Math.min(...nodes.map((n) => anchor.get(n.id)!.x));
   const minY = Math.min(...nodes.map((n) => anchor.get(n.id)!.y));
   let maxX = 0;
@@ -36,9 +55,9 @@ export function reposition<N extends { id: string; x: number; y: number }>(
   for (const n of nodes) {
     const p = anchor.get(n.id)!;
     n.x = place.left + (p.x - minX) * s;
-    n.y = place.top + (p.y - minY) * s;
+    n.y = place.top + (p.y - minY) * sy;
     maxX = Math.max(maxX, n.x);
     maxY = Math.max(maxY, n.y);
   }
-  return { maxX, maxY, scale: s };
+  return { maxX, maxY, scale: s, scaleY: sy };
 }

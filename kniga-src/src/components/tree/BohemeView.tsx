@@ -2,6 +2,7 @@ import { FramedFace } from "@/components/tree/FramedFace";
 import { cardLine } from "@/lib/tree/card-fields";
 import { SheetTitle } from "@/components/tree/SheetTitle";
 import { useMemo } from "react";
+import { FamilyOverlay } from "@/components/tree/FamilyOverlay";
 import { fitText, initialsOf, nameLines, yearsOf } from "@/lib/tree/kinship";
 import { relationCard, relationsFrom } from "@/lib/tree/recenter";
 import { BOHEME_FRAME, BOHEME_FRAMES, type BohemeSheet } from "@/lib/tree/boheme";
@@ -41,6 +42,7 @@ export function BohemeView({ sheet, people, unions, focusId, homeId, selectedId,
             {mark.text}
           </text>
         ))}
+        <FamilyOverlay sheet={sheet} byId={byId} ink={INK} stroke={"rgba(246,241,230,0.78)"} strokeWidth={1.15} frame={BOHEME_FRAME} />
         {sheet.nodes.map((node) => {
           const person = byId.get(node.id);
           if (!person) return null;
