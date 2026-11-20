@@ -2,9 +2,11 @@
  * Автоматический обмен книгой с родственниками: решения без сети и без хранилища, чтобы их можно было проверить сценариями.
  * Реальные запросы, хранилище и фото подставляет helper.ts.
  */
-import { HELPER_KEYS, makeChangeSet, type Book } from "./helper-changes.ts";
+import { HELPER_KEYS, applyReview, makeChangeSet, reviewChanges, type Book, type Change, type Decision } from "./helper-changes.ts";
 
-export type AutoSession = { room: string; invite: string; who?: string; base: Book; baseAt?: number };
+export type AutoSession = { room: string; invite: string; who?: string; base: Book; baseAt?: number;
+  /** Что помощник уже отправил (его книга в момент отправки). base остаётся версией владельца. Нет поля: ничего не ждёт решения (старые сессии). */
+  sent?: Book };
 export type PollAnswer = { ok?: boolean; same?: boolean; base?: Book; at?: number; waiting?: number };
 
 export interface HelperDeps<S extends AutoSession> {
@@ -18,9 +20,21 @@ export interface HelperDeps<S extends AutoSession> {
   downloadMedia(session: S, base: Book): Promise<void>;
 }
 
-export type HelperResult = "no-session" | "no-who" | "waiting" | "idle" | "updated" | "skipped";
+export type HelperResult = "no-session" | "no-who" | "waiting" | "idle" | "updated" | "held" | "skipped";
 
-const pending = (session: AutoSession, current: Book) => makeChangeSet(session.base, current).length;
+/** Неотправленное: отличие книги помощника от того, что он уже отправил (а если не отправлял, от версии владельца). */
+const pending = (session: AutoSession, current: Book) => makeChangeSet(session.sent ?? session.base, current).length;
+
+const listOf = (book: Book, key: string): { id: string }[] => (Array.isArray(book[key]) ? (book[key] as { id: string }[]) : []);
+
+/** Отправленные правки, которых нет в новой версии владельца: он их не принял (или принял не так). */
+export function notAccepted(base: Book, sent: Book, owner: Book): Change[] {
+  return makeChangeSet(base, sent).filter((c) => {
+    const rec = listOf(owner, c.key).find((r) => r.id === c.id);
+    if (c.kind === "remove") return Boolean(rec);
+    return JSON.stringify(rec ?? null) !== JSON.stringify(c.after ?? null);
+  });
+}
 
 /** Один обход помощника: отправить свои правки, потом забрать свежую версию владельца, ничего не затирая. */
 export async function helperRoundWith<S extends AutoSession>(d: HelperDeps<S>): Promise<HelperResult> {
@@ -38,11 +52,16 @@ export async function helperRoundWith<S extends AutoSession>(d: HelperDeps<S>): 
   await d.downloadMedia(session, answer.base);
   const now = d.session();
   if (!now || now.room !== session.room || pending(now, d.lists())) return "skipped"; // за время загрузки что-то изменилось
+  // Владелец выложил новую версию и ящик пуст: всё, что помощник отправлял и чего в ней нет, остаётся у него, а не затирается
+  const held = now.sent ? notAccepted(now.base, now.sent, answer.base) : [];
+  const keep: Record<string, Decision> = Object.fromEntries(held.map((c) => [`${c.key}:${c.id}`, "accept" as Decision]));
+  const merged = held.length ? applyReview(answer.base, reviewChanges(answer.base, held), keep) : {};
   const patch: Record<string, unknown> = {};
-  for (const key of HELPER_KEYS) patch[key] = answer.base[key] ?? [];
+  for (const key of HELPER_KEYS) patch[key] = (merged as Record<string, unknown>)[key] ?? answer.base[key] ?? [];
   d.setLists(patch);
-  d.saveSession({ ...now, base: answer.base, baseAt: answer.at });
-  return "updated";
+  // отправленное, но не принятое ждёт решения помощника: само не уйдёт второй раз и не пропадёт
+  d.saveSession({ ...now, base: answer.base, baseAt: answer.at, sent: held.length ? (patch as Book) : undefined });
+  return held.length ? "held" : "updated";
 }
 
 export const signature = (value: unknown): string => {
