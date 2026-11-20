@@ -122,20 +122,26 @@ test("14з. реальные обезличенные книги: все вла�
   assert.ok(checked >= 60, `проверено ${checked}`);
 });
 
-test("14и. ручные сдвиги карточек: у каждого человека итог равен месту в раскладке плюс его сдвиг; без смешения сторон сдвиги ничего не меняют", () => {
-  const ps = randomWorld(7, 4, 0.6);
-  const moved = ps.map((q, i) => (i % 5 === 0 ? { ...q, treeDx: 37 + i, treeDy: i % 2 ? -21 : 14 } : q));
-  const { t, L } = lay(moved);
-  const shifts = shiftsOf(moved as never);
-  const out = applyShifts(L as never, t.unions as never, shifts) as unknown as typeof L;
-  const at = new Map(L.nodes.map((n) => [n.id, n]));
-  for (const n of out.nodes) {
-    const s = shifts.get(n.id) ?? { dx: 0, dy: 0 };
-    assert.equal(n.x, at.get(n.id)!.x + s.dx, n.id);
-    assert.equal(n.y, at.get(n.id)!.y + s.dy, n.id);
+test("14и. ручные сдвиги карточек: у каждого человека итог равен месту в раскладке плюс его сдвиг; раскладка сдвигов не читает (ни основной проход, ни резерв места и подтяжка родителей)", () => {
+  // деревья с вторыми браками предков (там включается второй проход и подтяжка): координаты с ручными сдвигами в данных и без них совпадают до пикселя
+  for (const [seed, depth, p2] of [[7, 4, 0.6], [3, 4, 1], [11, 5, 0.6], [2, 6, 0.6]] as const) {
+    const ps = randomWorld(seed, depth, p2);
+    const moved = ps.map((q, i) => (i % 5 === 0 ? { ...q, treeDx: 37 + i, treeDy: i % 2 ? -21 : 14 } : q));
+    const { t, L } = lay(moved);
+    const shifts = shiftsOf(moved as never);
+    assert.ok(shifts.size > 20, "сдвиги заданы многим");
+    const out = applyShifts(L as never, t.unions as never, shifts) as unknown as typeof L;
+    const at = new Map(L.nodes.map((n) => [n.id, n]));
+    for (const n of out.nodes) {
+      const s = shifts.get(n.id) ?? { dx: 0, dy: 0 };
+      assert.equal(n.x, at.get(n.id)!.x + s.dx, `${seed}/${n.id}`);
+      assert.equal(n.y, at.get(n.id)!.y + s.dy, `${seed}/${n.id}`);
+    }
+    // сдвиги не входят в раскладку: с ними и без них базовые координаты те же
+    assert.equal(hash(lay(ps).L.nodes as never), hash(L.nodes as never), `мир ${seed}-${depth}-${p2}`);
+    // и не зависят от порядка карточек, которым пользуется сдвиг (сдвиги не меняют ни зазоры, ни дуги в основной раскладке)
+    assert.deepEqual(lay(ps).L.spouses.map((x) => [x.unionId, x.x1, x.x2]), L.spouses.map((x) => [x.unionId, x.x1, x.x2]));
   }
-  // сдвиги не входят в раскладку: с ними и без них базовые координаты те же
-  assert.equal(hash(lay(ps).L.nodes as never), hash(L.nodes as never));
 });
 
 test("14к. ветка, которой не нашлось места рядом, отодвинута на свою сторону, но связана с родителем линией (шина или пометка «далёкая»)", () => {

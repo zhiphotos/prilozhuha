@@ -49,14 +49,16 @@ test("пример Елизаветы: оба брака видны, ссылк�
   assert.equal(laneReport(L).merged, 0);
 });
 
-test("u37 и u40 у Анны: ссылки вместо растянутых браков, людей по-прежнему 288", async () => {
+test("Анна: u37 теперь стоит рядом (резерв места), u40 остаётся ссылкой вместо растянутого брака, людей по-прежнему 288", async () => {
   const { treeFromPeople } = await import("./from-people.ts");
   const data = treeFromPeople(annaPeople());
   const L = checkLinks(data.people, data.unions, { leftId: "iaxlcs3v", rightId: "mtg8vg3n" });
   svgLinks(L, "anna_links", ["iaxlcs3v", "mtg8vg3n"]);
   console.log("ANNA_LINKS", "людей", L.nodes.length, "ссылок", L.refs.length, JSON.stringify(L.refs.map((r) => [r.unionId, r.of])), JSON.stringify(laneReport(L)));
   assert.equal(L.nodes.length, 288);
-  assert.ok(L.refs.some((r) => r.unionId === "u37") && L.refs.some((r) => r.unionId === "u40"));
+  // раньше ссылками были u37 и u40 (брак растянут на десятки карточек); после двухпроходной раскладки u37 стоит рядом, u40 растянут не больше чем на 10 карточек
+  assert.ok(!L.refs.some((r) => r.unionId === "u37"));
+  assert.ok(L.refs.some((r) => r.unionId === "u40"));
   assert.equal(laneReport(L).merged, 0);
   // фокус и порядок данных не влияют на координаты
   const a = layoutFamily(data.people, data.unions, { leftId: "iaxlcs3v", rightId: "mtg8vg3n" });

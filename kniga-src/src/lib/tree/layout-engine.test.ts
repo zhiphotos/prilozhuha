@@ -183,6 +183,7 @@ test("compareEngines на Анне: ничего не потеряно, оба �
   const r = compareEngines(c.people, c.unions, c.focus, c.owner);
   assert.equal(r.classic.nodes, 288);
   assert.equal(r.family.nodes, 288);
-  assert.equal(r.family.refs, 2);
+  // ссылок-карточек у Анны три: u11, u40, u94 (раньше две: u37, u40; после двухпроходной раскладки u37 стоит рядом, а две пары на 3–4 карточки отстоят)
+  assert.equal(r.family.refs, 3);
   console.log("COMPARE_ANNA", JSON.stringify(r));
 });
