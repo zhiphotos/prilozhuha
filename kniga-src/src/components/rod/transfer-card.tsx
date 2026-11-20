@@ -1,3 +1,4 @@
+import { describeRelations } from "@/lib/rod/sync-merge";
 import { useEffect, useState } from "react";
 import { Smartphone } from "lucide-react";
 import { toast } from "sonner";
@@ -57,7 +58,7 @@ export function TransferCard({ hasData }: { hasData: boolean }) {
                   return;
                 }
                 const { added, differing, fromCloud } = preview.report.total;
-                const text = `Объединить книги? Из облака добавится записей: ${added}.${fromCloud ? ` Обновится более новыми облачными: ${fromCloud}.` : ""}${differing ? ` Одних и тех же записей с разным содержимым: ${differing}, останется та, что правили позже (другая сохранится в копии).` : ""} Удаления не переносятся: удалённое на одном устройстве, но оставшееся на другом, вернётся. Обе прежние версии сохранятся копиями на этом устройстве.`;
+                const text = `Объединить книги? Из облака добавится записей: ${added}.${fromCloud ? ` Обновится более новыми облачными: ${fromCloud}.` : ""}${differing ? ` Одних и тех же записей с разным содержимым: ${differing}, останется та, что правили позже (другая сохранится в копии).` : ""}${describeRelations(preview.report)} Удаления не переносятся: удалённое на одном устройстве, но оставшееся на другом, вернётся. Обе прежние версии сохранятся копиями на этом устройстве.`;
                 if (window.confirm(text)) void syncNow("merge");
               })();
             }}
