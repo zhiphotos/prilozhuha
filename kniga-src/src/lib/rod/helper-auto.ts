@@ -2,8 +2,9 @@
  * Автоматический обмен книгой с родственниками: решения без сети и без хранилища, чтобы их можно было проверить сценариями.
  * Реальные запросы, хранилище и фото подставляет helper.ts.
  */
-import { HELPER_KEYS, applyReview, makeChangeSet, reviewChanges, type Book, type Change, type Decision } from "./helper-changes.ts";
+import { HELPER_KEYS, makeChangeSet, type Book } from "./helper-changes.ts";
 import { judge, mergeVerdicts, type Verdict } from "./helper-verdicts.ts";
+import { mergeList, valueEqual, type Rec } from "./merge-core.ts";
 
 export type AutoSession = { room: string; invite: string; who?: string; base: Book; baseAt?: number;
   /** Что помощник уже отправил (его книга в момент отправки). base остаётся версией владельца. Нет поля: ничего не ждёт решения (старые сессии). */
@@ -28,17 +29,6 @@ export type HelperResult = "no-session" | "no-who" | "waiting" | "idle" | "updat
 /** Неотправленное: отличие книги помощника от того, что он уже отправил (а если не отправлял, от версии владельца). */
 const pending = (session: AutoSession, current: Book) => makeChangeSet(session.sent ?? session.base, current).length;
 
-const listOf = (book: Book, key: string): { id: string }[] => (Array.isArray(book[key]) ? (book[key] as { id: string }[]) : []);
-
-/** Отправленные правки, которых нет в новой версии владельца: он их не принял (или принял не так). */
-export function notAccepted(base: Book, sent: Book, owner: Book): Change[] {
-  return makeChangeSet(base, sent).filter((c) => {
-    const rec = listOf(owner, c.key).find((r) => r.id === c.id);
-    if (c.kind === "remove") return Boolean(rec);
-    return JSON.stringify(rec ?? null) !== JSON.stringify(c.after ?? null);
-  });
-}
-
 /** Один обход помощника: отправить свои правки, потом забрать свежую версию владельца, ничего не затирая. */
 export async function helperRoundWith<S extends AutoSession>(d: HelperDeps<S>): Promise<HelperResult> {
   let session = d.session();
@@ -58,10 +48,24 @@ export async function helperRoundWith<S extends AutoSession>(d: HelperDeps<S>): 
   // Владелец выложил новую версию и ящик пуст: всё, что помощник отправлял и чего в ней нет, остаётся у него, а не затирается
   const judged = now.sent ? judge(now.base, now.sent, answer.base, Date.now(), now.verdicts) : { held: [], verdicts: [] };
   const held = judged.held;
-  const keep: Record<string, Decision> = Object.fromEntries(held.map((c) => [`${c.key}:${c.id}`, "accept" as Decision]));
-  const merged = held.length ? applyReview(answer.base, reviewChanges(answer.base, held), keep) : {};
+  // Версия владельца берётся целиком; поверх неё остаётся то, что помощник отправил и чего владелец не принял. Слияние делает merge-core:
+  // ours = книга помощника, theirs = версия владельца. Спорное остаётся значением помощника, значение владельца хранится в verdicts; чистые правки обеих сторон складываются.
   const patch: Record<string, unknown> = {};
-  for (const key of HELPER_KEYS) patch[key] = (merged as Record<string, unknown>)[key] ?? answer.base[key] ?? [];
+  const mine = d.lists();
+  for (const key of HELPER_KEYS) {
+    const owner = (answer.base[key] as Rec[] | undefined) ?? [];
+    if (!now.sent || !held.length) {
+      patch[key] = owner; // ничего не отправляли или всё принято: просто версия владельца
+      continue;
+    }
+    const result = mergeList(now.base[key], mine[key], owner);
+    const byId = new Map(owner.map((r) => [r.id, r]));
+    const removed = new Set(result.removals.map((m) => m.id)); // владелец убрал запись, которую помощник не менял: убираем и у него
+    const kept = new Map(result.merged.filter((r) => !removed.has(r.id)).map((r) => [r.id, r]));
+    // порядок как у владельца, записи только у помощника в конце; запись, совпавшая по значению с записью владельца, берётся его объектом (порядок ключей не создаёт ложных «правок»)
+    const ordered = [...owner.map((r) => r.id).filter((id) => kept.has(id)), ...[...kept.keys()].filter((id) => !byId.has(id))];
+    patch[key] = ordered.map((id) => (byId.has(id) && valueEqual(byId.get(id), kept.get(id)) ? byId.get(id)! : kept.get(id)!));
+  }
   d.setLists(patch);
   // отправленное, но не принятое ждёт решения помощника: само не уйдёт второй раз и не пропадёт
   d.saveSession({ ...now, base: answer.base, baseAt: answer.at, sent: held.length ? (patch as Book) : undefined, verdicts: mergeVerdicts(now.verdicts, judged.verdicts) });
