@@ -1,5 +1,5 @@
 import { NAME_HALF, reposition, type Spot } from "./anchor.ts";
-import { unionWordLower } from "./union-label.ts";
+import { twoLineWord, unionWordLower } from "./union-label.ts";
 import { yearNum } from "./kinship.ts";
 import { assignGenerations } from "./layout.ts";
 import type { Person, Union } from "./types.ts";
@@ -69,7 +69,7 @@ function glaze(x1: number, y1: number, x2: number, y2: number): string {
   return `M ${x1} ${y1} C ${x1 + dx * 0.2} ${y1 + dy * 0.42}, ${x2 - dx * 0.2} ${y1 + dy * 0.58}, ${x2} ${y2}`;
 }
 
-const STYLE: ThemeStyle = { frame: GZHEL_FRAME, caption: CAPTION, edge: 2, markDy: 8, spouse: (x1, y1, x2, y2) => glaze(x1, y1, x2, y2), fan: glaze };
+const STYLE: ThemeStyle = { twoLine: true, frame: GZHEL_FRAME, caption: CAPTION, edge: 2, markDy: 8, spouse: (x1, y1, x2, y2) => glaze(x1, y1, x2, y2), fan: glaze };
 
 export function layoutGzhel(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down", anchor?: ReadonlyMap<string, Spot>, fam?: AppLayout): GzhelSheet {
   const empty: GzhelSheet = { width: 720, height: 960, scale: 1, nodes: [], vines: [], marks: [], title: "РОД", kicker: "Гжель" };
@@ -126,7 +126,7 @@ export function layoutGzhel(people: Person[], unions: Union[], focusId: string, 
       const x2 = b.x - GZHEL_FRAME - 2;
       if (x2 > x1 + 8) {
         vines.push(glaze(x1, a.y, x2, b.y));
-        const word = unionWordLower(union.status);
+        const word = twoLineWord(unionWordLower(union.status));
         marks.push({ x: (a.x + b.x) / 2, y: a.y - 8, text: word });
       }
     }

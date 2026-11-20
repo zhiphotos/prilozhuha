@@ -6,13 +6,15 @@ import type { UnionStatus } from "./types.ts";
  * Для остальных статусов слова прежние; незнакомый статус остаётся «БРАК», как было.
  */
 export const COPARENTS_WORD = "ОБЩИЙ РЕБЁНОК";
+const UNKNOWN_WORD = "ПАРА";
 
 export function unionWord(status: UnionStatus): string {
   if (status === "divorced") return "РАЗВОД";
   if (status === "widowed") return "ВДОВСТВО";
   if (status === "partner") return "СОЮЗ";
   if (status === "coparents") return COPARENTS_WORD;
-  return "БРАК";
+  if (status === "married") return "БРАК";
+  return UNKNOWN_WORD; // статус не из списка: нейтральное «пара», а не выдумка про брак
 }
 
 /** То же словом строчными, как подписывают пары печатные темы (Богема, Камея, Гжель, Тайга). */
@@ -21,5 +23,17 @@ export function unionWordLower(status: UnionStatus | string): string {
   if (status === "widowed") return "вдов.";
   if (status === "partner") return "союз";
   if (status === "coparents") return COPARENTS_WORD.toLowerCase();
-  return "брак";
+  if (status === "married") return "брак";
+  return UNKNOWN_WORD.toLowerCase();
 }
+
+/**
+ * Длинная подпись в две строки (для «Гжели»: между рамками мало места). Строки разделены символом перевода строки;
+ * остальные слова короткие и остаются в одну строку. Рисуют такую подпись по строкам (см. markLines).
+ */
+export function twoLineWord(word: string): string {
+  return word === COPARENTS_WORD.toLowerCase() ? "общий\nребёнок" : word;
+}
+
+/** Строки подписи: у обычных слов одна, у двухстрочных две. */
+export const markLines = (text: string): string[] => text.split("\n");

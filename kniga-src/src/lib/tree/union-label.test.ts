@@ -11,7 +11,7 @@ import { layoutTaiga } from "./taiga.ts";
 import { layoutPoster } from "./poster.ts";
 import { buildLayout } from "./layout-engine.ts";
 import { pillSize } from "./scheme-paths.ts";
-import { COPARENTS_WORD, unionWord, unionWordLower } from "./union-label.ts";
+import { COPARENTS_WORD, markLines, twoLineWord, unionWord, unionWordLower } from "./union-label.ts";
 import type { TreeData, Union, UnionStatus } from "./types.ts";
 
 type P = RodPerson;
@@ -37,10 +37,10 @@ test("12а. единственный источник: слово «ОБЩИЙ �
   for (const s of ["married", "divorced", "widowed", "partner"] as UnionStatus[]) assert.notEqual(unionWord(s), COPARENTS_WORD, s);
 });
 
-test("12б. слова остальных статусов прежние, незнакомый статус остаётся «брак»", () => {
+test("12б. слова прежних статусов не изменились", () => {
   const was = (s: string) => (s === "divorced" ? "РАЗВОД" : s === "widowed" ? "ВДОВСТВО" : s === "partner" ? "СОЮЗ" : "БРАК");
   const wasLower = (s: string) => (s === "divorced" ? "развод" : s === "widowed" ? "вдов." : s === "partner" ? "союз" : "брак");
-  for (const s of ["married", "divorced", "widowed", "partner", "что-то-ещё"]) {
+  for (const s of ["married", "divorced", "widowed", "partner"]) {
     assert.equal(unionWord(s as UnionStatus), was(s), s);
     assert.equal(unionWordLower(s), wasLower(s), s);
   }
@@ -76,10 +76,11 @@ test("12д. четыре печатных вида: подпись «общий 
     const co = fn(t.people, t.unions, t.focusId);
     const mar = fn(t.people, m.unions, t.focusId);
     const texts = co.marks.map((x) => x.text).sort();
-    assert.ok(texts.includes("общий ребёнок"), `${name}: нет подписи`);
+    const want = name === "Gzhel" ? "общий\nребёнок" : "общий ребёнок"; // у «Гжели» подпись в две строки: между рамками тесно
+    assert.ok(texts.includes(want), `${name}: нет подписи`);
     assert.ok(texts.includes("брак"), `${name}: у настоящего брака слово прежнее`);
-    assert.equal(co.marks.filter((x) => x.text === "общий ребёнок").length, 1, name);
-    assert.equal(mar.marks.some((x) => x.text === "общий ребёнок"), false, name);
+    assert.equal(co.marks.filter((x) => x.text === want).length, 1, name);
+    assert.equal(mar.marks.some((x) => x.text.includes("общий")), false, name);
     assert.equal(xy(co.nodes), xy(mar.nodes), `${name}: координаты карточек`);
     assert.equal(JSON.stringify(co.vines), JSON.stringify(mar.vines), `${name}: линии`);
     assert.equal(JSON.stringify(co.marks.map((x) => [x.x, x.y]).sort()), JSON.stringify(mar.marks.map((x) => [x.x, x.y]).sort()), `${name}: места подписей`);
@@ -117,6 +118,7 @@ test("12ж. книга без «общего ребёнка» рисуется �
     const poster = layoutPoster(t.people, t.unions, t.focusId);
     assert.equal(poster.labels.length, 0, name);
     for (const fn of [layoutBoheme, layoutCameo, layoutGzhel, layoutTaiga]) assert.equal(fn(t.people, t.unions, t.focusId).marks.some((x) => x.text.includes("общий")), false, name);
+    for (const fn of [layoutBoheme, layoutCameo, layoutGzhel, layoutTaiga]) assert.equal(fn(t.people, t.unions, t.focusId).marks.some((x) => x.text.includes("пара")), false, `${name}: слова «пара» у обычных пар нет`);
   }
 });
 
@@ -125,4 +127,92 @@ test("12з. пара превращается в брак через явное 
   const t = treeFromPeople(married);
   assert.equal(pairOf(t, "М", "Д").status, "married");
   assert.equal(layoutPoster(t.people, t.unions, t.focusId).labels.length, 0);
+});
+
+/** Дерево, где у первой пары (Мария и Дмитрий) задан нужный статус, у второй (Анна и Иван) остаётся брак. */
+const withStatus = (status: string): TreeData => {
+  const t = tree();
+  return { ...t, unions: t.unions.map((u) => (u.partnerIds.includes("М") && u.partnerIds.includes("Д") ? ({ ...u, status } as Union) : u)) };
+};
+const STATUS_WORDS: [string, string, string][] = [
+  ["married", "БРАК", "брак"],
+  ["divorced", "РАЗВОД", "развод"],
+  ["widowed", "ВДОВСТВО", "вдов."],
+  ["partner", "СОЮЗ", "союз"],
+  ["coparents", "ОБЩИЙ РЕБЁНОК", "общий ребёнок"],
+];
+
+test("13а. все поддерживаемые статусы: слово на плашке и строчное слово верные", () => {
+  for (const [status, upper, lower] of STATUS_WORDS) {
+    assert.equal(unionWord(status as UnionStatus), upper, status);
+    assert.equal(unionWordLower(status), lower, status);
+  }
+});
+
+test("13б. незнакомый статус не превращается в «БРАК»: нейтральное «ПАРА»", () => {
+  for (const weird of ["", "что-то-ещё", "MARRIED", "unknown", "civil"]) {
+    assert.equal(unionWord(weird as UnionStatus), "ПАРА", weird);
+    assert.equal(unionWordLower(weird), "пара", weird);
+    assert.notEqual(unionWord(weird as UnionStatus), "БРАК", weird);
+    assert.notEqual(unionWordLower(weird), "брак", weird);
+  }
+  assert.equal(unionWord("married"), "БРАК", "настоящий брак по-прежнему «БРАК»");
+});
+
+test("13в. печатные темы: у каждого статуса на паре верная подпись, у второй пары (брак) остаётся «брак»", () => {
+  const themes = [["Boheme", layoutBoheme], ["Cameo", layoutCameo], ["Gzhel", layoutGzhel], ["Taiga", layoutTaiga]] as const;
+  for (const [status, , lower] of STATUS_WORDS) {
+    for (const [name, fn] of themes) {
+      const t = withStatus(status);
+      const texts = fn(t.people, t.unions, t.focusId).marks.map((x) => x.text);
+      const expected = name === "Gzhel" ? twoLineWord(lower) : lower;
+      assert.ok(texts.includes(expected), `${name}/${status}: нет «${expected}»`);
+      assert.ok(texts.includes("брак"), `${name}/${status}: у второй пары «брак»`);
+    }
+  }
+  for (const weird of ["что-то-ещё", ""]) {
+    for (const [name, fn] of themes) {
+      const t = withStatus(weird);
+      const texts = fn(t.people, t.unions, t.focusId).marks.map((x) => x.text);
+      assert.ok(texts.includes("пара"), `${name}/${weird}: нужно «пара»`);
+      assert.equal(texts.filter((x) => x === "брак").length, 1, `${name}/${weird}: «брак» только у настоящего брака`);
+    }
+  }
+});
+
+test("13г. «Схема»: у каждого статуса пара в раскладке с тем же статусом, слово берётся из union-label", () => {
+  for (const [status, upper] of STATUS_WORDS) {
+    const t = withStatus(status);
+    const L = buildLayout(t.people, t.unions, t.focusId);
+    const pair = L.spouses.find((s) => s.status === status);
+    assert.ok(pair, status);
+    assert.equal(unionWord(pair!.status), upper);
+  }
+});
+
+test("13д. «Афиша»: подпись только у coparents, у остальных статусов и у незнакомого её нет", () => {
+  for (const [status] of STATUS_WORDS) {
+    const t = withStatus(status);
+    const P = layoutPoster(t.people, t.unions, t.focusId);
+    assert.equal(P.labels.length, status === "coparents" ? 1 : 0, status);
+  }
+  const t = withStatus("что-то-ещё");
+  assert.equal(layoutPoster(t.people, t.unions, t.focusId).labels.length, 0);
+});
+
+test("13е. две строки только у «общего ребёнка» и только в «Гжели»; остальные слова в одну строку", () => {
+  assert.deepEqual(markLines(twoLineWord("общий ребёнок")), ["общий", "ребёнок"]);
+  for (const w of ["брак", "развод", "вдов.", "союз", "пара"]) assert.deepEqual(markLines(twoLineWord(w)), [w], w);
+  const t = tree();
+  const L = buildLayout(t.people, t.unions, t.focusId, "down", { engine: "family", ownerId: "М" });
+  const g = layoutGzhel(t.people, t.unions, t.focusId, "down", undefined, L);
+  assert.ok(g.marks.some((x) => x.text === "общий\nребёнок"), "Гжель в раскладке «пара в центре»: две строки");
+  for (const fn of [layoutBoheme, layoutCameo, layoutTaiga]) {
+    const o = fn(t.people, t.unions, t.focusId, "down", undefined, L);
+    assert.ok(o.marks.some((x) => x.text === "общий ребёнок"), "в других темах одна строка");
+    assert.equal(o.marks.some((x) => x.text.includes("\n")), false);
+  }
+  const cards = (m: { nodes: { id: string; x: number; y: number }[] }) => xy(m.nodes);
+  const plain = layoutGzhel(t.people, asMarried(t).unions, t.focusId, "down", undefined, L);
+  assert.equal(cards(g), cards(plain), "две строки не двигают карточки");
 });

@@ -1,6 +1,6 @@
 // Этап 4.4: линии, метки, ссылки и подписи групп для тем «Камея», «Гжель», «Богема», «Тайга» по геометрии семейной раскладки.
 // Люди стоят там же, где на «Схеме» (одним общим множителем, см. anchor.ts); эта функция лишь рисует связи так, как их рисует сама тема (своя кривая, своя рамка).
-import { unionWordLower } from "./union-label.ts";
+import { twoLineWord, unionWordLower } from "./union-label.ts";
 import type { AppLayout } from "./layout-engine.ts";
 import type { FamilyBus } from "./family-layout.ts";
 import { PLATE_GAP, PLATE_H, PORTRAIT_R } from "./metrics.ts";
@@ -19,6 +19,8 @@ export type ThemeStyle = {
   edge: number;
   /** На сколько выше центра стоит слово «брак» на прямой линии. */
   markDy: number;
+  /** Длинное слово «общий ребёнок» рисовать в две строки (у «Гжели» между рамками тесно). */
+  twoLine?: boolean;
   /** Брачная линия между соседями (в стиле темы). */
   spouse: (x1: number, y1: number, x2: number, y2: number) => string;
   /** Линия от родителей к ребёнку, если тема рисует веером; `null`: перекладина-ствол (как у «Камеи»). */
@@ -27,7 +29,7 @@ export type ThemeStyle = {
 
 type Node = { id: string; x: number; y: number };
 
-const wordOf = (status: string) => unionWordLower(status);
+const wordOf = (status: string, st?: { twoLine?: boolean }) => (st?.twoLine ? twoLineWord(unionWordLower(status)) : unionWordLower(status));
 
 /** Лишнее место над верхним рядом для дуг (в пикселях темы): нужно, чтобы дуга не уходила за край листа. */
 export function arcTopRoom(fam: Pick<AppLayout, "spouses">, st: ThemeStyle): number {
@@ -49,7 +51,7 @@ export function familyThemeLines(fam: AppLayout, nodes: Node[], scale: number, s
   // Брачные линии: прямые у соседей, дуга над рядом у далёких. Плашка-слово стоит на дуге рядом с «домашним» супругом, как на «Схеме».
   for (const s of fam.spouses) {
     const x1 = fx(s.x1), x2 = fx(s.x2), y1 = fy(s.y1), y2 = fy(s.y2);
-    const word = wordOf(s.status);
+    const word = wordOf(s.status, st);
     if (!s.curved) {
       const a = x1 <= x2 ? { x: x1, y: y1 } : { x: x2, y: y2 };
       const b = x1 <= x2 ? { x: x2, y: y2 } : { x: x1, y: y1 };
