@@ -18,6 +18,8 @@ export type Verdict = {
   theirs?: Rec;
   /** Конфликт: поля, которые изменили оба и по-разному. */
   fields?: string[];
+  /** Конфликт отправлен владельцу ещё раз: значения и сам факт конфликта остаются, пока он не решит. */
+  resent?: boolean;
 };
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
@@ -37,7 +39,7 @@ export const MAX_ACCEPTED = 20;
  * Принято: в версии владельца запись такая же, как у помощника. Конфликт: владелец сам менял эту запись и она отличается.
  * Не принято: владелец эту запись не менял и помощника не принял.
  */
-export function judge(base: Book, sent: Book, owner: Book, at: number): { held: Change[]; verdicts: Verdict[] } {
+export function judge(base: Book, sent: Book, owner: Book, at: number, prev: Verdict[] = []): { held: Change[]; verdicts: Verdict[] } {
   const held: Change[] = [];
   const verdicts: Verdict[] = [];
   for (const c of makeChangeSet(base, sent)) {
@@ -53,22 +55,37 @@ export function judge(base: Book, sent: Book, owner: Book, at: number): { held: 
     // правка записи спорна, только если владелец менял те же поля; добавление или удаление – если он сам трогал эту запись
     const clash = c.kind === "edit" ? fields.length > 0 : !same(theirs, recOf(base, c.key, c.id));
     if (clash) verdicts.push({ key: c.key, id: c.id, kind: c.kind, state: "conflict", at, mine, theirs, fields });
-    else verdicts.push({ key: c.key, id: c.id, kind: c.kind, state: "rejected", at, mine });
+    else {
+      // конфликт, о котором помощник уже знает, не превращается в обычный отказ после «Отправить снова»: значения владельца на тот момент хранятся
+      const old = prev.find((v) => v.key === c.key && v.id === c.id && v.state === "conflict");
+      if (old) verdicts.push({ ...old, at, mine, resent: undefined });
+      else verdicts.push({ key: c.key, id: c.id, kind: c.kind, state: "rejected", at, mine });
+    }
   }
   return { held, verdicts };
 }
 
-/** Новое решение заменяет прежнее по той же записи; принятые показываются только из последнего решения владельца. */
-export function mergeVerdicts(prev: Verdict[] | undefined, next: Verdict[]): Verdict[] {
-  const fresh = next.filter((v) => v.state === "accepted").slice(0, MAX_ACCEPTED);
-  const open = next.filter((v) => v.state !== "accepted");
+export const MAX_HISTORY = 50;
+
+/** Новое решение заменяет прежнее по той же записи. Принятое копится в истории (до 50), баннер берёт из неё только последнее решение. */
+export function mergeVerdicts(prev: Verdict[] | undefined, incoming: Verdict[]): Verdict[] {
+  // решения идут строго одно за другим, даже если часы показали то же время (или ушли назад): иначе «последнее решение» не определить
+  const floor = (prev ?? []).reduce((m, v) => Math.max(m, v.at), 0);
+  const next = incoming.map((v) => ({ ...v, at: Math.max(v.at, floor + 1) }));
   const stay = (prev ?? []).filter((v) => !next.some((n) => n.key === v.key && n.id === v.id));
-  const oldOpen = stay.filter((v) => v.state !== "accepted");
-  const oldAccepted = stay.filter((v) => v.state === "accepted");
-  return [...oldOpen, ...open, ...(fresh.length ? fresh : oldAccepted)];
+  const accepted = [...stay.filter((v) => v.state === "accepted"), ...next.filter((v) => v.state === "accepted")].slice(-MAX_HISTORY);
+  const open = [...stay.filter((v) => v.state !== "accepted"), ...next.filter((v) => v.state !== "accepted")];
+  return [...open, ...accepted];
 }
 
-/** После «Отправить снова» или «Сбросить» записи не принятого убираются, принятые остаются. */
+/** «Отправить снова»: обычный отказ снимается, конфликт остаётся и помечается как отправленный ещё раз. */
+export const markResent = (verdicts: Verdict[] | undefined, changes: Change[]): Verdict[] =>
+  (verdicts ?? []).flatMap((v) => {
+    if (v.state === "accepted" || !changes.some((c) => c.key === v.key && c.id === v.id)) return [v];
+    return v.state === "conflict" ? [{ ...v, resent: true }] : [];
+  });
+
+/** «Сбросить»: все не принятые записи убираются (это явное решение помощника), история принятого остаётся. */
 export const dropOpen = (verdicts: Verdict[] | undefined): Verdict[] => (verdicts ?? []).filter((v) => v.state === "accepted");
 
 export type Overview = {
@@ -76,7 +93,10 @@ export type Overview = {
   fresh: number;
   /** Отправлено, решения владельца ещё нет. */
   waiting: Change[];
+  /** Принято в последнем решении владельца; пока есть новая работа (неотправленное или ждущее решения), не показывается. */
   accepted: Verdict[];
+  /** Вся история принятого (до 50). */
+  history: Verdict[];
   rejected: Verdict[];
   conflicts: Verdict[];
 };
@@ -87,12 +107,19 @@ type SessionLike = { base: Book; sent?: Book; verdicts?: Verdict[] };
 export function overview(session: SessionLike, current: Book): Overview {
   const verdicts = session.verdicts ?? [];
   const sentChanges = session.sent ? makeChangeSet(session.base, session.sent) : [];
-  const decided = (c: Change) => verdicts.some((v) => v.key === c.key && v.id === c.id && v.state !== "accepted");
+  const alive = makeChangeSet(session.base, current); // записи помощника, которые всё ещё отличаются от версии владельца
+  const stillMine = (v: Verdict) => alive.some((c) => c.key === v.key && c.id === v.id);
+  const decided = (c: Change) => verdicts.some((v) => v.key === c.key && v.id === c.id && v.state !== "accepted" && !v.resent);
+  const fresh = makeChangeSet(session.sent ?? session.base, current).length;
+  const waiting = sentChanges.filter((c) => !decided(c) && !verdicts.some((v) => v.key === c.key && v.id === c.id && v.state === "conflict"));
+  const history = verdicts.filter((v) => v.state === "accepted");
+  const lastAt = history.reduce((m, v) => Math.max(m, v.at), 0);
   return {
-    fresh: makeChangeSet(session.sent ?? session.base, current).length,
-    waiting: sentChanges.filter((c) => !decided(c)),
-    accepted: verdicts.filter((v) => v.state === "accepted"),
-    rejected: verdicts.filter((v) => v.state === "rejected" && sentChanges.some((c) => c.key === v.key && c.id === v.id)),
-    conflicts: verdicts.filter((v) => v.state === "conflict" && sentChanges.some((c) => c.key === v.key && c.id === v.id)),
+    fresh,
+    waiting,
+    history,
+    accepted: fresh === 0 && waiting.length === 0 && !verdicts.some((v) => v.resent) ? history.filter((v) => v.at === lastAt) : [], // конфликт, отправленный снова, тоже новая отправка
+    rejected: verdicts.filter((v) => v.state === "rejected" && stillMine(v)),
+    conflicts: verdicts.filter((v) => v.state === "conflict" && stillMine(v)),
   };
 }

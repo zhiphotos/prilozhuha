@@ -7,6 +7,7 @@ import type { Verdict } from "@/lib/rod/helper-verdicts";
 import { Button, useNav } from "@/components/rod/chrome";
 import { useMedia } from "@/lib/rod/media";
 import { cn } from "@/lib/cn";
+import { useRod } from "@/lib/rod/store";
 
 function Thumb({ rec }: { rec?: Record<string, unknown> }) {
   const src = useMedia(typeof rec?.dataUrl === "string" ? rec.dataUrl : typeof rec?.photo === "string" ? rec.photo : undefined);
@@ -128,6 +129,8 @@ const verdictTitle = (v: Verdict) => `${KEYS[v.key]} «${label((v.theirs && v.ki
 export function HelperBar() {
   useSyncExternalStore(subscribeSession, readText); // экран обновляется, когда сессия изменилась: обход, решение владельца, перезапуск
   const session: HelperSession | null = helperSession();
+  // счётчик «Не отправлено» следит за самой книгой, а не только за сессией: правка видна сразу, без перехода на другой экран
+  for (const key of ["people", "places", "stories", "notes", "pages", "photos"] as const) useRod((state) => (state as unknown as Record<string, unknown>)[key]);
   const [busy, setBusy] = useState("");
   const [asking, setAsking] = useState(false);
   const [confirmDrop, setConfirmDrop] = useState(false);
@@ -137,6 +140,7 @@ export function HelperBar() {
   const view = helperOverview(session);
   const count = view.fresh;
   const held = view.rejected.length + view.conflicts.length;
+  const more = held > 0 || view.history.length > 0;
   const send = async () => {
     if (!who.trim()) return;
     setBusy("Отправляю…");
@@ -170,9 +174,9 @@ export function HelperBar() {
           {lines.map((line) => <li key={line}>{line}</li>)}
         </ul>
       ) : null}
-      {held ? (
+      {more ? (
         <div className="mt-2">
-          <button type="button" className="text-xs text-paper/70 underline" onClick={() => setOpen((v) => !v)}>{open ? "Скрыть подробности" : "Что именно не принято"}</button>
+          <button type="button" className="text-xs text-paper/70 underline" onClick={() => setOpen((v) => !v)}>{open ? "Скрыть подробности" : held ? "Что именно не принято" : "История решений"}</button>
           {open ? (
             <ul className="mt-1 grid gap-1.5 text-xs">
               {[...view.conflicts, ...view.rejected].map((v) => (
@@ -180,7 +184,7 @@ export function HelperBar() {
                   <p className="font-semibold">{verdictTitle(v)}</p>
                   {v.state === "conflict" ? (
                     <>
-                      <p className="mt-0.5 text-paper/80">Владелец сам изменил эту запись. Ваша правка не потеряна и не перезаписана, но решить, чья версия останется, нужно вместе.</p>
+                      <p className="mt-0.5 text-paper/80">Владелец сам изменил эту запись. Ваша правка не потеряна и не перезаписана, но решить, чья версия останется, нужно вместе.{v.resent ? " Вы отправили её владельцу снова, ждём его решения." : ""}</p>
                       {(v.fields ?? []).map((f) => (
                         <p key={f}><b>{FIELD[f] ?? f}:</b> у вас «{show(v.mine?.[f])}», у владельца «{show(v.theirs?.[f])}»</p>
                       ))}
@@ -190,16 +194,24 @@ export function HelperBar() {
               ))}
             </ul>
           ) : null}
-          <div className="mt-2 flex flex-wrap gap-2">
+          {open && view.history.length ? (
+            <div className="mt-2 text-xs text-paper/75">
+              <p className="font-semibold">Принято раньше: {view.history.length}</p>
+              <ul className="mt-0.5 grid gap-0.5">
+                {view.history.slice(-10).reverse().map((v) => <li key={`h:${v.key}:${v.id}`}>{verdictTitle(v)}</li>)}
+              </ul>
+            </div>
+          ) : null}
+          {held ? <div className="mt-2 flex flex-wrap gap-2">
             <Button variant="soft" onClick={() => { resendHeld(session); toast("Не принятые правки уйдут владельцу ещё раз", { duration: 5000 }); }}>Отправить снова</Button>
             {confirmDrop ? (
               <>
                 <Button onClick={() => { discardHeld(session); setConfirmDrop(false); toast("Не принятые правки сброшены, книга снова как у владельца", { duration: 5000 }); }}>Да, сбросить {held}</Button>
-                <Button variant="ghost" onClick={() => setConfirmDrop(false)}>Не надо</Button>
+                <button type="button" className="min-h-11 rounded-full border border-paper/70 px-4 text-sm font-semibold text-paper" onClick={() => setConfirmDrop(false)}>Не надо</button>
               </>
-            ) : <Button variant="ghost" onClick={() => setConfirmDrop(true)}>Сбросить</Button>}
-          </div>
-          {confirmDrop ? <p className="mt-1 text-xs text-paper/70">Сброс вернёт эти записи к версии владельца, ваши правки по ним пропадут.</p> : null}
+            ) : <button type="button" className="min-h-11 rounded-full border border-paper/70 px-4 text-sm font-semibold text-paper" onClick={() => setConfirmDrop(true)}>Сбросить</button>}
+          </div> : null}
+          {held && confirmDrop ? <p className="mt-1 text-xs text-paper/80">Сброс вернёт эти записи к версии владельца, ваши правки по ним пропадут.</p> : null}
         </div>
       ) : null}
       {asking || (busy && !who.trim()) ? (

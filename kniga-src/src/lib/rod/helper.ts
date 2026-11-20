@@ -2,7 +2,7 @@ import { API_BASE } from "@/lib/rod/config";
 import { helperRoundWith, publishIfChangedWith, signature } from "@/lib/rod/helper-auto";
 import { BASE_TOO_BIG, OFFLINE_TEXT, baseSize, failureStatus, getSyncStatus, setSyncStatus, statusOfRound } from "@/lib/rod/helper-status";
 import { HELPER_KEYS, applyReview, makeChangeSet, reviewChanges, type Book, type Change, type Decision, type ReviewItem } from "@/lib/rod/helper-changes";
-import { dropOpen, overview, type Overview, type Verdict } from "@/lib/rod/helper-verdicts";
+import { dropOpen, markResent, overview, type Overview, type Verdict } from "@/lib/rod/helper-verdicts";
 import { collectRefs } from "@/lib/rod/backup";
 import { hasMedia, mediaDataUrl, saveMediaAs } from "@/lib/rod/media";
 import { addProjectMeta, activeProjectId } from "@/lib/rod/projects";
@@ -180,7 +180,7 @@ export const helperChanges = (session: HelperSession): Change[] => makeChangeSet
 export const sentChanges = (session: HelperSession): Change[] => (session.sent ? makeChangeSet(session.base, session.sent) : []);
 
 /** Явное решение помощника: отправить не принятое владельцем ещё раз. */
-export const resendHeld = (session: HelperSession) => saveSession({ ...session, sent: undefined, verdicts: dropOpen(session.verdicts) });
+export const resendHeld = (session: HelperSession) => saveSession({ ...session, sent: undefined, verdicts: markResent(session.verdicts, makeChangeSet(session.base, lists())) });
 
 /** Явное решение помощника: отказаться от не принятых правок, книга снова равна версии владельца. */
 export function discardHeld(session: HelperSession): void {
@@ -199,8 +199,7 @@ export async function sendChanges(session: HelperSession, who: string, progress?
   await uploadMedia({ room: session.room, invite: session.invite }, fresh, progress);
   const answer = await post<{ ok?: boolean }>("/api/room-submit", { room: session.room, invite: session.invite, kind: "changes", from: { name: who, relation: "" }, changes });
   if (!answer.ok) throw new Error(answer.error || "Не получилось отправить.");
-  const resent = (v: Verdict) => v.state !== "accepted" && changes.some((c) => c.key === v.key && c.id === v.id); // по заново отправленному старого «не принято» уже нет
-  saveSession({ ...session, who, sent: lists(), verdicts: (session.verdicts ?? []).filter((v) => !resent(v)) }); // база остаётся версией владельца; следующая отправка покажет только новые правки
+  saveSession({ ...session, who, sent: lists(), verdicts: markResent(session.verdicts, changes) }); // база остаётся версией владельца; следующая отправка покажет только новые правки
   return changes.length;
 }
 

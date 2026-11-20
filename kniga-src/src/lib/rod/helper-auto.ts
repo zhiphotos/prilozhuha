@@ -56,7 +56,7 @@ export async function helperRoundWith<S extends AutoSession>(d: HelperDeps<S>): 
   const now = d.session();
   if (!now || now.room !== session.room || pending(now, d.lists())) return "skipped"; // за время загрузки что-то изменилось
   // Владелец выложил новую версию и ящик пуст: всё, что помощник отправлял и чего в ней нет, остаётся у него, а не затирается
-  const judged = now.sent ? judge(now.base, now.sent, answer.base, Date.now()) : { held: [], verdicts: [] };
+  const judged = now.sent ? judge(now.base, now.sent, answer.base, Date.now(), now.verdicts) : { held: [], verdicts: [] };
   const held = judged.held;
   const keep: Record<string, Decision> = Object.fromEntries(held.map((c) => [`${c.key}:${c.id}`, "accept" as Decision]));
   const merged = held.length ? applyReview(answer.base, reviewChanges(answer.base, held), keep) : {};

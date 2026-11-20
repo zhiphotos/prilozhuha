@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { helperRoundWith, publishIfChangedWith, signature, type AutoSession, type PollAnswer } from "./helper-auto.ts";
 import { statusOfRound } from "./helper-status.ts";
-import { dropOpen, overview } from "./helper-verdicts.ts";
+import { dropOpen, markResent, mergeVerdicts, overview, type Verdict } from "./helper-verdicts.ts";
 import { makeChangeSet, type Book, type Change } from "./helper-changes.ts";
 
 type Rec = { id: string; name: string };
@@ -591,14 +591,15 @@ test("46 «Отправить снова»: не принятое уходит �
   s.dismiss(s.inbox[0].id);
   s.publish({ ...empty(), people: [person("a", "A1"), person("b")] });
   await h.round();
-  h.session = { ...h.session!, sent: undefined, verdicts: dropOpen(h.session!.verdicts) }; // resendHeld
+  h.session = { ...h.session!, sent: undefined, verdicts: markResent(h.session!.verdicts, makeChangeSet(h.session!.base, h.lists as unknown as Book)) }; // resendHeld
   await h.round();
   await h.round();
   assert.equal(s.inbox.length, 1);
   const v = view(h);
   assert.equal(v.rejected.length, 0);
   assert.equal(v.waiting.length, 1);
-  assert.equal(v.accepted.length, 1);
+  assert.equal(v.accepted.length, 0); // идёт новая отправка: старое «принято» не показывается рядом с ней
+  assert.equal(v.history.length, 1); // но в истории остаётся
 });
 test("47 сброс: не принятые правки убраны, статусы «принято» остались", async () => {
   const s = withBook(["a", "b"]);
@@ -620,4 +621,138 @@ test("48 старая сессия без verdicts и sent: сводка пус�
   assert.equal(h.session?.verdicts, undefined);
   const v = view(h);
   assert.equal(v.fresh + v.waiting.length + v.accepted.length + v.rejected.length + v.conflicts.length, 0);
+});
+
+// ——— С-2б, исправления по браузерной проверке
+const conflictSetup = async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "Мамина версия");
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a", "Версия владельца")] });
+  await h.round();
+  return { s, h };
+};
+const resend = (h: Helper) => {
+  h.session = { ...h.session!, sent: undefined, verdicts: markResent(h.session!.verdicts, makeChangeSet(h.session!.base, h.lists as unknown as Book)) };
+};
+
+test("49 конфликт после «Отправить снова» остаётся конфликтом с обоими значениями и переживает перезапуск", async () => {
+  const { s, h } = await conflictSetup();
+  resend(h);
+  await h.round(); // ушло второй раз
+  assert.equal(s.inbox.length, 1);
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a", "Версия владельца")], places: [] }); // владелец ничего не менял заново
+  await h.round();
+  restart(h);
+  const v = view(h);
+  assert.equal(v.conflicts.length, 1);
+  assert.equal(v.rejected.length, 0);
+  assert.equal((v.conflicts[0].mine as Rec).name, "Мамина версия");
+  assert.equal((v.conflicts[0].theirs as Rec).name, "Версия владельца");
+  assert.deepEqual(v.conflicts[0].fields, ["name"]);
+  assert.equal(h.lists.people[0].name, "Мамина версия");
+});
+test("50 пока конфликт отправлен снова и ждёт, он помечен как отправленный ещё раз и не считается дважды", async () => {
+  const { h } = await conflictSetup();
+  resend(h);
+  await h.round();
+  const v = view(h);
+  assert.equal(v.conflicts.length, 1);
+  assert.equal(v.conflicts[0].resent, true);
+  assert.equal(v.waiting.length, 0);
+  assert.equal(v.accepted.length, 0); // отправлено снова: «принято» рядом не показываем
+});
+test("51 когда владелец принял спорную правку, конфликт заменяется на «принято»", async () => {
+  const { s, h } = await conflictSetup();
+  resend(h);
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a", "Мамина версия")] });
+  await h.round();
+  const v = view(h);
+  assert.equal(v.conflicts.length, 0);
+  assert.equal(v.history.length, 1);
+});
+test("52 «Принято» показывается только пока нет новой работы; история остаётся", async () => {
+  const s = withBook(["a", "b"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  await h.round();
+  s.accept(owner(s), s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a", "A1"), person("b")] });
+  await h.round();
+  assert.equal(view(h).accepted.length, 1);
+  edit(h, "b", "B1"); // новая правка
+  let v = view(h);
+  assert.equal(v.accepted.length, 0);
+  assert.equal(v.history.length, 1);
+  assert.equal(v.fresh, 1);
+  await h.round(); // и новая отправка
+  v = view(h);
+  assert.equal(v.accepted.length, 0);
+  assert.equal(v.waiting.length, 1);
+  assert.equal(v.history.length, 1);
+});
+test("53 после нового решения владельца «Принято» показывает только новое решение, прежнее уходит в историю", async () => {
+  const s = withBook(["a", "b"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  await h.round();
+  s.accept(owner(s), s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a", "A1"), person("b")] });
+  await h.round();
+  edit(h, "b", "B1");
+  await h.round();
+  s.accept(owner(s), s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a", "A1"), person("b", "B1")] });
+  await h.round();
+  restart(h);
+  const v = view(h);
+  assert.equal(v.accepted.length, 1);
+  assert.equal(v.accepted[0].id, "b");
+  assert.equal(v.history.length, 2);
+});
+test("54 счётчик «Не отправлено» считается сразу от текущей книги, без обхода и перехода", async () => {
+  const h = new Helper(withBook(["a", "b"]), "Мама");
+  assert.equal(view(h).fresh, 0);
+  edit(h, "a", "A1");
+  assert.equal(view(h).fresh, 1);
+  edit(h, "b", "B1");
+  assert.equal(view(h).fresh, 2);
+  edit(h, "a", "a"); // вернула как было
+  assert.equal(view(h).fresh, 1);
+});
+test("55 история решений ограничена, старые записи отбрасываются, не принятое не теряется", () => {
+  const acc = (i: number): Verdict => ({ key: "people", id: `p${i}`, kind: "edit", state: "accepted", at: i });
+  const open: Verdict = { key: "people", id: "z", kind: "edit", state: "rejected", at: 1 };
+  let list: Verdict[] = [open];
+  for (let i = 0; i < 60; i += 1) list = mergeVerdicts(list, [acc(i)]);
+  assert.equal(list.filter((v) => v.state === "accepted").length, 50);
+  assert.ok(list.some((v) => v.id === "z"));
+});
+test("56 принятая правка заново не отправляется ни после «Отправить снова», ни после перезапуска", async () => {
+  const s = withBook(["a", "b"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  edit(h, "b", "B1");
+  await h.round();
+  s.accept(owner(s), s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a", "A1"), person("b")] });
+  await h.round();
+  restart(h);
+  resend(h);
+  await h.round();
+  await h.round();
+  assert.equal(s.inbox.length, 1);
+  assert.deepEqual(s.inbox[0].changes.map((c) => c.id), ["b"]);
+});
+test("57 старая сессия с verdicts из прежней версии (без resent и history) читается без ошибок", () => {
+  const h = new Helper(withBook(["a"]), "Мама");
+  h.session = { ...h.session!, verdicts: [{ key: "people", id: "a", kind: "edit", state: "accepted", at: 1 }] } as never;
+  const v = view(h);
+  assert.equal(v.history.length, 1);
+  assert.equal(v.accepted.length, 1);
 });
