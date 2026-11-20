@@ -4,7 +4,7 @@ import { API_BASE } from "@/lib/rod/config";
 import { DATA_KEYS, applyBookData, collectRefs } from "@/lib/rod/backup";
 import { hasMedia, mediaDataUrl, saveMediaAs } from "@/lib/rod/media";
 import { deviceId } from "@/lib/rod/pay";
-import { MAIN_ID, activeProjectId, addProjectWithId, listProjects } from "@/lib/rod/projects";
+import { MAIN_ID, activeProjectId, addProjectWithId, clearLocalOnly, isLocalOnly, listProjects } from "@/lib/rod/projects";
 import { fingerprint, splitParts } from "@/lib/rod/sync-logic";
 import { describeRelations } from "@/lib/rod/sync-merge";
 import { cloudCheckFor, cloudHistoryFrom } from "@/lib/rod/cloud-check";
@@ -126,6 +126,7 @@ async function downloadMedia(refs: string[]) {
 
 /** Версия принята облаком, только если сервер подтвердил «committed» и потом показал ту же версию и тот же отпечаток. */
 function makeDeps(): Deps {
+  clearLocalOnly(activeProjectId()); // любая попытка синхронизации навсегда снимает признак «ни разу не синхронизировалась»
   return {
     call: (body) => call<Record<string, unknown>>(body),
     snapshot,
@@ -219,7 +220,7 @@ export async function checkCloudBeforeEdit(timeoutMs = 12000): Promise<CloudChec
   return cloudCheckFor({
     authorized: Boolean(API_BASE && useRod.getState().access?.token),
     // Без входа решает локальная история этой книги: отметка синхронизации и база последней синхронизации (выход их не стирает).
-    history: () => cloudHistoryFrom(() => localStorage.getItem(metaKey()), () => idbGet<string>(STATE_STORE, `kniga-sync-base:${activeProjectId()}`)),
+    history: () => cloudHistoryFrom(() => localStorage.getItem(metaKey()), () => idbGet<string>(STATE_STORE, `kniga-sync-base:${activeProjectId()}`), () => isLocalOnly(activeProjectId())),
     run: async () => {
       useSync.getState().setState({ busy: true, message: "Проверяю облако…" });
       const outcome = await syncSmart(makeDeps());

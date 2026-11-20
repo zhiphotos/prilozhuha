@@ -3,6 +3,7 @@ import { REMIND_AFTER_EDITS, editsSinceBackup, markReminded, resetEdits, shouldR
 // Резервная копия: вся книга с фотографиями в одном файле .kniga – его можно переложить на другое устройство.
 import { afterHydrate } from "@/lib/rod/boot";
 import { flushBook, useRod } from "@/lib/rod/store";
+import { activeProjectId, clearLocalOnly } from "@/lib/rod/projects";
 import { isMediaRef, mediaDataUrl, saveMedia } from "@/lib/rod/media";
 
 export const DATA_KEYS = ["onboarded", "audience", "dedicatee", "collector", "people", "places", "photos", "stories", "interviews", "aiChat", "aiChapters", "events", "documents", "notes", "pages", "trash", "doneLessons", "print", "moodboard", "back", "spine", "fonts", "userStickers", "plan"] as const;
@@ -118,6 +119,7 @@ export async function importBook(file: File): Promise<void> {
 
 /** Применяет данные книги, где ссылки на фото уже настоящие (синхронизация): ничего не переименовывает. */
 export function applyBookData(data: Record<string, unknown>): void {
+  clearLocalOnly(activeProjectId()); // данные пришли из копии или облака: происхождение книги больше не доказано как «только здесь»
   const defaults: Record<string, unknown> = { back: null, spine: { text: "", font: "script", size: 0 }, fonts: [], userStickers: [], plan: [] };
   const clean = { ...defaults, ...Object.fromEntries(DATA_KEYS.filter((key) => key in data).map((key) => [key, data[key]])) };
   // Комната родных: берём из облака, только если на этом устройстве её ещё нет (своя ссылка не перезаписывается).

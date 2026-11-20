@@ -31,9 +31,9 @@ export type CloudHistory = "never" | "synced" | "unknown";
 /**
  * Была ли эта книга когда-либо в облаке, по локальным отметкам: отметка синхронизации (localStorage) и база последней
  * синхронизации (IndexedDB). Выход из аккаунта эти отметки не стирает. «Не было» ставится только когда обе отметки
- * читаются и обе пусты. Нечитаемая, испорченная или пустая-но-существующая отметка даёт unknown, а не «не было».
+ * пусты И есть явный признак isLocalOnly (книга создана на этом устройстве, синхронизации не было). Нечитаемая, испорченная или пустая-но-существующая отметка даёт unknown, а не «не было».
  */
-export async function cloudHistoryFrom(readMetaRaw: () => string | null, readBase: () => Promise<string | null | undefined>): Promise<CloudHistory> {
+export async function cloudHistoryFrom(readMetaRaw: () => string | null, readBase: () => Promise<string | null | undefined>, isLocalOnly: () => boolean = () => false): Promise<CloudHistory> {
   try {
     const raw = readMetaRaw();
     if (raw !== null) {
@@ -42,7 +42,9 @@ export async function cloudHistoryFrom(readMetaRaw: () => string | null, readBas
     }
     const base = await readBase();
     if (base) return "synced";
-    return raw === null ? "never" : "unknown";
+    // Пустые отметки сами по себе ничего не доказывают: их мог стереть браузер. «Не было» только если есть явный признак,
+    // что книга создана здесь и ни разу не синхронизировалась (его не восстановить, если отметки стёрты уже после синхронизации).
+    return raw === null && isLocalOnly() ? "never" : "unknown";
   } catch {
     return "unknown";
   }

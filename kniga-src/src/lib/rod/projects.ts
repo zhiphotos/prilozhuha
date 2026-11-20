@@ -46,9 +46,36 @@ export function storageKeyFor(id: string): string {
   return id === MAIN_ID ? "kniga-roda" : `kniga-roda:${id}`;
 }
 
+/**
+ * Признак «книга создана на этом устройстве и ни разу не отправлялась в облако». Ставится только при создании новой книги
+ * здесь и только один раз; любая попытка синхронизации и любой ввод данных из копии или облака его снимают (назад не ставится).
+ * Первая книга («main») и книги из облака его не получают: у неё нет достоверного начала, поэтому для неё итог всегда unknown.
+ * Отсутствие признака не доказывает ничего, кроме «не знаем».
+ */
+const LOCAL_ONLY_PREFIX = "kniga-local-only:";
+export function isLocalOnly(id: string): boolean {
+  try {
+    return id !== MAIN_ID && localStorage.getItem(LOCAL_ONLY_PREFIX + id) === "1";
+  } catch {
+    return false;
+  }
+}
+export function clearLocalOnly(id: string) {
+  try {
+    localStorage.removeItem(LOCAL_ONLY_PREFIX + id);
+  } catch {
+    /* признак останется, но синхронизация и ввод данных всё равно прочитают отметки синхронизации */
+  }
+}
+
 export function addProjectMeta(name: string): ProjectMeta {
   const meta: ProjectMeta = { id: crypto.randomUUID().slice(0, 8), name: name.trim() || "Новая книга", createdAt: new Date().toISOString() };
   write(LIST_KEY, [...listProjects(), meta]);
+  try {
+    localStorage.setItem(LOCAL_ONLY_PREFIX + meta.id, "1");
+  } catch {
+    /* без признака итог будет unknown, это безопасно */
+  }
   return meta;
 }
 
@@ -65,5 +92,6 @@ export function renameProjectMeta(id: string, name: string) {
 }
 
 export function removeProjectMeta(id: string) {
+  clearLocalOnly(id);
   write(LIST_KEY, listProjects().filter((item) => item.id !== id));
 }

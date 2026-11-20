@@ -341,11 +341,13 @@ const ALL_CLOUD = ["checked", "no-cloud", "signed-out", "unknown", "failed", "co
 const REPLACE = parentsDiff(["мать", "отец"], ["мать", "друг"]);
 const ADD = parentsDiff(["мать"], ["мать", "друг"]);
 const never = { meta: () => null, base: async () => null };
+const localOnly = () => true; // явный признак: книга создана на этом устройстве и ни разу не синхронизировалась
 
 test("10а. книга никогда не синхронизировалась и токена нет: облачной копии нет, замена разрешена", async () => {
-  assert.equal(await cloudHistoryFrom(never.meta, never.base), "never");
+  assert.equal(await cloudHistoryFrom(never.meta, never.base, localOnly), "never");
+  assert.equal(await cloudHistoryFrom(never.meta, never.base), "unknown", "без явного признака пустые отметки ничего не доказывают");
   let called = 0;
-  const cloud = await cloudCheckFor({ authorized: false, history: () => cloudHistoryFrom(never.meta, never.base), run: async () => { called++; return { kind: "same" }; }, isBusy: () => false });
+  const cloud = await cloudCheckFor({ authorized: false, history: () => cloudHistoryFrom(never.meta, never.base, localOnly), run: async () => { called++; return { kind: "same" }; }, isBusy: () => false });
   assert.equal(cloud, "no-cloud");
   assert.equal(called, 0, "без входа сеть не трогаем");
   assert.equal(replacePolicy(REPLACE, cloud).allowed, true);
