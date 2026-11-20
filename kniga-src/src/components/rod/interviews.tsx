@@ -9,6 +9,7 @@ import { KIND_ORDER, KIND_TITLE, foundLine } from "@/lib/rod/interview-facts";
 import { plural } from "@/lib/rod/progress";
 import { useRod } from "@/lib/rod/store";
 import type { Interview, InterviewFact } from "@/lib/rod/types";
+import { Linkified } from "@/components/rod/linkified";
 
 const dateOf = (iso: string) => {
   const d = new Date(iso);
@@ -85,7 +86,7 @@ function FactCard({ interview, fact }: { interview: Interview; fact: InterviewFa
       </div>
       {fact.detail ? <p className="mt-1.5 text-[15px] leading-snug text-ink">{fact.detail}</p> : null}
       <blockquote className="mt-2 border-l-2 border-gold/60 pl-3 text-[15px] leading-snug text-ink/85">«{fact.quote}»</blockquote>
-      {fact.note ? <p className="mt-1.5 text-sm text-gold-ink">{fact.note}</p> : null}
+      {fact.note ? <p className="mt-1.5 text-sm text-gold-ink"><Linkified text={fact.note} /></p> : null}
       {fact.at !== undefined ? <p className="mt-2 text-sm font-semibold text-gold-ink">Послушайте запись на {clock(fact.at)}</p> : null}
       {edit ? (
         <div className="mt-3 grid gap-2">
