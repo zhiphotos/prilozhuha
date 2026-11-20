@@ -14,6 +14,7 @@ import { useTree } from "@/lib/tree/ui-store";
 import { parseTreeFile, planImport } from "@/lib/tree/treeFile.ts";
 
 import { guessSelf, linkDiffs, matchExisting, planGedImport, possibleSame } from "@/lib/tree/ged-match.ts";
+import { applyRepair, auditCopy, planRepair, revertRepair, type RepairChange } from "@/lib/tree/ged-repair.ts";
 
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -43,6 +44,61 @@ export function GedImportButton() {
     return { list, fresh: list.length - same, same, diffs: linkDiffs(people, list, matched), possible: possibleSame(people, list, matched) };
   }, [tree, table, selfKey, people]);
   const [updateLinks, setUpdateLinks] = useState(false);
+  // Адресное исправление связей: показывается до применения, каждое изменение включается отдельно, перед применением делается копия книги.
+  const repair = useMemo(() => (preview ? planRepair(people, preview.list) : null), [preview, people]);
+  const [off, setOff] = useState<Set<string>>(new Set());
+  // off хранит id изменений, у которых выбор перевёрнут относительно умолчания.
+  const chosen = (c: RepairChange) => c.selected !== off.has(c.id);
+  const toggle = (c: RepairChange) =>
+    setOff((prev) => {
+      const next = new Set(prev);
+      if (next.has(c.id)) next.delete(c.id);
+      else next.add(c.id);
+      return next;
+    });
+  const chosenIds = (list: RepairChange[]) => new Set(list.filter(chosen).map((c) => c.id));
+  const ownData = useMemo(() => {
+    if (!repair) return 0;
+    const byId = new Map(people.map((p) => [p.id, p]));
+    const realByKey = new Map(people.filter((p) => p.gedId).map((p) => [p.gedId!, p]));
+    return repair.verdicts.filter((v) => v.confidence === "high" && auditCopy(byId.get(v.id)!, realByKey.get(v.key)).length).length;
+  }, [repair, people]);
+  const applying = useRef(false);
+  const fixLinks = async () => {
+    // Повторное нажатие, пока идёт применение, ничего не делает; после применения план пересчитывается и применённых изменений в нём уже нет.
+    if (!repair || applying.current) return;
+    const ids = chosenIds(repair.changes);
+    if (!ids.size) return toast("Ничего не выбрано");
+    applying.current = true;
+    setBusy(true);
+    try {
+      try {
+        await backupLocalNow("Книга до исправления связей по файлу");
+      } catch {
+        toast("Не получилось сохранить резервную копию книги, поэтому ничего не исправлено. Сохраните копию на Главной и повторите.", { duration: 10000 });
+        return;
+      }
+      const result = applyRepair(useRod.getState().people, repair.changes, ids);
+      useRod.setState({ people: result.people });
+      setOff(new Set());
+      const journal = result.journal;
+      // Отмена возвращает только то, что поставило это исправление, и не трогает правки, сделанные после него.
+      toast(`Исправлено связей: ${result.applied}${result.skipped.length ? `, пропущено (связь уже другая): ${result.skipped.length}` : ""}. Людей не удалял и не объединял.`, {
+        duration: 20000,
+        action: {
+          label: "Отменить исправление",
+          onClick: () => {
+            const back = revertRepair(useRod.getState().people, journal);
+            useRod.setState({ people: back.people });
+            toast(`Отменено связей: ${back.reverted}${back.kept.length ? `. Оставлено как у вас: ${back.kept.length} (вы изменили их после исправления)` : ""}`, { duration: 12000 });
+          },
+        },
+      });
+    } finally {
+      applying.current = false;
+      setBusy(false);
+    }
+  };
 
   const pick = (file: File | undefined) => {
     if (!file) return;
@@ -187,6 +243,39 @@ export function GedImportButton() {
                   Заменить эти связи и подписи «Кем приходится» данными из файла
                 </label>
               </div>
+            ) : null}
+            {repair && repair.changes.length ? (
+              <details className="rounded-xl border border-ink/15 p-3 text-sm" data-testid="repair-preview">
+                <summary className="cursor-pointer font-semibold">
+                  Связи, оставшиеся на копиях без номера: исправить {chosenIds(repair.changes).size} из {repair.changes.length}
+                </summary>
+                <div className="mt-2 grid gap-2">
+                  <p className="text-xs text-muted">Это не «заменить всё»: меняются только перечисленные связи, у людей, которых файл подтверждает. Пустые копии не удаляются и не объединяются. Спорные случаи по умолчанию выключены.</p>
+                  {ownData ? <p className="text-xs font-semibold text-rose-deep">У {ownData} копий есть свои фото или заметки, которых нет у настоящей записи: удалять их нельзя, пока вы не сверите.</p> : null}
+                  <ul className="grid max-h-72 gap-2 overflow-auto">
+                    {repair.changes.map((c) => (
+                      <li key={c.id} className="flex items-start gap-2 rounded-lg border border-ink/15 p-2">
+                        <input type="checkbox" className="mt-1 size-5" checked={chosen(c)} onChange={() => toggle(c)} />
+                        <span>
+                          <b>{c.personName}</b> ({c.gedKey}){c.selected ? "" : " · нужен ваш выбор"}
+                          <br />
+                          <span className="text-muted">Было:</span> {c.before}
+                          <br />
+                          <span className="text-muted">Станет:</span> {c.after}
+                          <br />
+                          <span className="text-xs text-muted">{c.basis}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-muted">
+                    Остаются без изменений: {repair.verdicts.filter((v) => v.confidence === "medium" || v.confidence === "low").length} записей без номера, у которых мало доказательств, и все спорные тёзки.
+                  </p>
+                  <Button disabled={busy} onClick={() => void fixLinks()}>
+                    Исправить выбранные связи
+                  </Button>
+                </div>
+              </details>
             ) : null}
             <p className="text-xs text-muted">Перед загрузкой книга сохраняется на этом устройстве. После загрузки появится кнопка «Отменить загрузку».</p>
             <Button disabled={busy || !preview} onClick={() => void add()}>
