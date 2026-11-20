@@ -157,22 +157,22 @@ test("смешанная запись двух одноимённых: не ко
   assert.deepEqual(by(enabled.people, "k1").parents, ["h1", "mix"], "соседний ребёнок без отдельного выбора не тронут");
 });
 
-const S4b = indi("I50", "Гордей /Орлов/") + indi("I51", "Гордей /Орлов/") + indi("I52", "Гордей /Орлов/") + indi("I53", "Зоя /Орлова/", "F") + fam("F50", "I50", "", ["I51", "I52"]) + fam("F51", "I52", "", ["I53"]);
+const S4b = indi("I50", "Гордей /Орлов/") + indi("I51", "Гордей /Орлов/") + indi("I52", "Гордей /Орлов/") + indi("I53", "Ларна /Орлова/", "F") + fam("F50", "I50", "", ["I51", "I52"]) + fam("F51", "I52", "", ["I53"]);
 test("одноимённые отец и сыновья: план не меняет ни одной связи", () => {
-  const people = [real("z0", "I50", "Гордей", "Орлов", { gender: "m" }), real("z1", "I51", "Гордей", "Орлов", { gender: "m", parents: ["z0"] }), real("z2", "I52", "Гордей", "Орлов", { gender: "m", parents: ["z0"] }), real("zn", "I53", "Зоя", "Орлова", { gender: "f", parents: ["z0"] })];
+  const people = [real("z0", "I50", "Гордей", "Орлов", { gender: "m" }), real("z1", "I51", "Гордей", "Орлов", { gender: "m", parents: ["z0"] }), real("z2", "I52", "Гордей", "Орлов", { gender: "m", parents: ["z0"] }), real("zn", "I53", "Ларна", "Орлова", { gender: "f", parents: ["z0"] })];
   assert.equal(planRepair(people, load(S4b, "I51")).changes.length, 0);
 });
 
 // ---------- Ситуация 5: несколько супругов ----------
-const S5 = indi("I60", "Мартын /Седов/") + indi("I61", "Лада //", "F") + indi("I62", "Зина //", "F") + indi("I63", "Артём /Седов/") + indi("I64", "Вера /Седова/", "F") + fam("F60", "I60", "I61", ["I63"]) + fam("F61", "I60", "I62", ["I64"]);
+const S5 = indi("I60", "Мартын /Седов/") + indi("I61", "Лада //", "F") + indi("I62", "Тиора //", "F") + indi("I63", "Артём /Седов/") + indi("I64", "Мирела /Седова/", "F") + fam("F60", "I60", "I61", ["I63"]) + fam("F61", "I60", "I62", ["I64"]);
 const people5 = (): RodPerson[] => [
-  real("m", "I60", "Мартын", "Седов", { gender: "m", spouse: "ladaCopy", moreSpouses: [{ id: "zinaCopy", status: "married" }] }),
+  real("m", "I60", "Мартын", "Седов", { gender: "m", spouse: "ladaCopy", moreSpouses: [{ id: "tioraCopy", status: "married" }] }),
   real("lada", "I61", "Лада", "", { gender: "f", spouse: "m" }),
-  real("zina", "I62", "Зина", "", { gender: "f", spouse: "m" }),
+  real("tiora", "I62", "Тиора", "", { gender: "f", spouse: "m" }),
   real("son", "I63", "Артём", "Седов", { parents: ["m", "ladaCopy"] }),
-  real("dau", "I64", "Вера", "Седова", { gender: "f", parents: ["m", "zinaCopy"] }),
+  real("dau", "I64", "Мирела", "Седова", { gender: "f", parents: ["m", "tioraCopy"] }),
   rod("ladaCopy", "Лада", "", { gender: "f", spouse: "m" }),
-  rod("zinaCopy", "Зина", "", { gender: "f", spouse: "m" }),
+  rod("tioraCopy", "Тиора", "", { gender: "f", spouse: "m" }),
 ];
 test("несколько супругов: копия основного и копия дополнительного супруга заменяются на настоящие записи, порядок и статус сохраняются", () => {
   const list = load(S5, "I63");
@@ -181,16 +181,16 @@ test("несколько супругов: копия основного и ко
   assert.ok(kinds.includes("replaceSpouse") && kinds.includes("replaceMoreSpouse"), kinds.join(","));
   const done = applyRepair(people5(), plan.changes).people;
   assert.equal(by(done, "m").spouse, "lada");
-  assert.deepEqual(by(done, "m").moreSpouses, [{ id: "zina", status: "married" }]);
+  assert.deepEqual(by(done, "m").moreSpouses, [{ id: "tiora", status: "married" }]);
   assert.deepEqual(by(done, "son").parents, ["m", "lada"]);
-  assert.deepEqual(by(done, "dau").parents, ["m", "zina"]);
+  assert.deepEqual(by(done, "dau").parents, ["m", "tiora"]);
   assert.deepEqual(revertRepair(done, applyRepair(people5(), plan.changes).journal).people, people5());
 });
 
 // ---------- Ситуация 6: запись без связей и без даты; отсутствующий и неоднозначный номер ----------
 test("запись без связей и без даты: уверенность средняя, изменений нет, указано, чего не хватает", () => {
-  const list = load(indi("I70", "Харитон //") + indi("I71", "Ульяна /Сосновская/", "F") + fam("F70", "I70", "I71", []), "I71");
-  const people = [real("a", "I70", "Харитон", "", { gender: "m" }), rod("b", "Харитон", "", { gender: "m" }), real("c", "I71", "Ульяна", "Сосновская")];
+  const list = load(indi("I70", "Харитон //") + indi("I71", "Ориана /Сосновская/", "F") + fam("F70", "I70", "I71", []), "I71");
+  const people = [real("a", "I70", "Харитон", "", { gender: "m" }), rod("b", "Харитон", "", { gender: "m" }), real("c", "I71", "Ориана", "Сосновская")];
   const plan = planRepair(people, list);
   assert.equal(plan.verdicts.find((v) => v.id === "b")!.confidence, "medium");
   assert.equal(plan.changes.length, 0);

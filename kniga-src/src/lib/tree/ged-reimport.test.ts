@@ -40,7 +40,7 @@ test("однофамильцы без дат не склеиваются меж�
 });
 
 test("связи, которые отличаются, не считаются совпадением и попадают в список различий", () => {
-  const text = file(ged("I1", "Брунгильда /Пробина/", "1 FAMC @F1@\n") + ged("I2", "Модест /Пробин/") + ged("I3", "Вера /Пробина/") + `0 @F1@ FAM\n1 HUSB @I2@\n1 WIFE @I3@\n1 CHIL @I1@\n`);
+  const text = file(ged("I1", "Брунгильда /Пробина/", "1 FAMC @F1@\n") + ged("I2", "Модест /Пробин/") + ged("I3", "Мирела /Пробина/") + `0 @F1@ FAM\n1 HUSB @I2@\n1 WIFE @I3@\n1 CHIL @I1@\n`);
   const list = load(text, "I1");
   const current = list.map((p, i) => asRod(p, `u${i}`, p.key === "I1" ? { parents: ["чужой-1", "чужой-2"] } : {}));
   const matched = matchExisting(current, list);
@@ -53,18 +53,18 @@ test("повторная загрузка дописывает девичью ф
   const text = file(
     ged("I1", "Анна /Ветрова/", "2 SURN Ветрова\n1 SEX F\n1 FAMS @F1@\n") +
       ged("I2", "Борис /Ветров/", "1 SEX M\n1 FAMS @F1@\n") +
-      ged("I3", "Вера /Громова/", "2 SURN Лесная\n1 SEX F\n1 FAMC @F1@\n") +
+      ged("I3", "Мирела /Громова/", "2 SURN Лесная\n1 SEX F\n1 FAMC @F1@\n") +
       "0 @F1@ FAM\n1 HUSB @I2@\n1 WIFE @I1@\n1 CHIL @I3@\n",
   );
   const list = load(text, "I3");
-  const withMaiden = list.find((p) => p.firstName === "Вера");
+  const withMaiden = list.find((p) => p.firstName === "Мирела");
   assert.equal(withMaiden?.maidenName, "Лесная", "из файла читается девичья фамилия");
   const current = list.map((p, i) => asRod(p, `u${i}`));
-  const vera = current.find((c) => c.firstName === "Вера")!;
+  const mirela = current.find((c) => c.firstName === "Мирела")!;
   const anna = current.find((c) => c.firstName === "Анна")!;
   anna.maidenName = "Моя запись";
   const boris = current.find((c) => c.firstName === "Борис")!;
-  vera.parents = [boris.id, anna.id];
+  mirela.parents = [boris.id, anna.id];
   anna.spouse = boris.id;
   boris.spouse = anna.id;
   const before = current.map((c) => ({ id: c.id, parents: c.parents, spouse: c.spouse }));
@@ -72,7 +72,7 @@ test("повторная загрузка дописывает девичью ф
   assert.ok(plan.ok);
   if (!plan.ok) return;
   const after = new Map(plan.people.map((c) => [c.id, c]));
-  assert.equal(after.get(vera.id)?.maidenName, "Лесная", "пустая девичья фамилия дописана");
+  assert.equal(after.get(mirela.id)?.maidenName, "Лесная", "пустая девичья фамилия дописана");
   assert.equal(after.get(anna.id)?.maidenName, "Моя запись", "уже записанная не перезаписана");
   assert.deepEqual(before.map((b) => ({ id: b.id, parents: after.get(b.id)?.parents, spouse: after.get(b.id)?.spouse })), before, "связи остались как были");
   assert.equal(plan.added, 0, "новых людей нет");
