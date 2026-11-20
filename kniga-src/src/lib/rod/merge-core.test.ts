@@ -221,13 +221,17 @@ test("80 «Обе копией»: исходная запись сохраняе
   const out = decide([r.ours!], r, "copy");
   assert.equal(out.find((x) => x.id === "p")?.name, "Анна С.");
 });
-test("81 «Обе копией»: копия получает новый id (не совпадает с исходным), содержимое версии theirs с пометкой", () => {
+test("81 «Обе копией»: копия получает новый id (не совпадает с исходным), содержимое версии theirs; настоящее имя НЕ меняется, пометка отдельными полями", () => {
   const r = conflictAddAdd();
   const out = decide([r.ours!], r, "copy");
   assert.equal(out.length, 2);
   const copy = out.find((x) => x.id !== "p")!;
   assert.match(copy.id, /^p-c[0-9a-z]+$/);
-  assert.equal(copy.name, "Анна И. (от помощника)");
+  assert.equal(copy.name, "Анна И."); // настоящее поле имени чужой версии как есть
+  assert.equal(copy.copyOf, "p");
+  assert.equal(copy.copyLabel, "от помощника");
+  assert.equal(r.theirs!.name, "Анна И."); // входная версия не изменена
+  assert.equal("copyOf" in r.theirs!, false);
 });
 test("82 «Обе копией»: повторное применение того же решения не создаёт ещё одну копию", () => {
   const r = conflictAddAdd();
@@ -265,14 +269,101 @@ test("86 delete-edit: «ours» сохраняет запись, «theirs» уд�
   assert.deepEqual(decide([r.ours!], r, "theirs"), []);
   assert.deepEqual(decide([r.ours!], r, "copy"), [r.ours]);
 });
-test("87 конфликт полей: «theirs» берёт спорные поля их, неспорные остаются; «ours» не меняет; «copy» добавляет копию их версии", () => {
+test("87 конфликт полей: «theirs» берёт спорные поля их, остальное остаётся; «ours» оставляет наше в спорном, но чистое от них не теряется; «copy» добавляет копию их версии", () => {
   const r = m(P(), P({ name: "Анна С.", notes: "н" }), P({ name: "Анна И.", birthYear: "1951" }));
   const t = decide([r.ours!], r, "theirs")[0];
   assert.deepEqual([t.name, t.birthYear, t.notes, t.id], ["Анна И.", "1951", "н", "p"]);
-  assert.deepEqual(decide([r.ours!], r, "ours"), [r.ours]);
+  const o = decide([r.ours!], r, "ours")[0];
+  assert.deepEqual([o.name, o.birthYear, o.notes, o.id], ["Анна С.", "1951", "н", "p"]);
   const c = decide([r.ours!], r, "copy");
   assert.equal(c.length, 2);
   assert.equal(c[0].name, "Анна С.");
+});
+
+// ——— С-3б, уточнения: не терять непротиворечивые изменения ни одной стороны
+const abBase = (): Rec => P({ notes: "", place: "" });
+const abOurs = (): Rec => P({ notes: "наша заметка", name: "Анна С.", place: "" }); // у владельца: А (notes) и спорное Б (name)
+const abTheirs = (): Rec => P({ notes: "", name: "Анна И.", place: "Тула" }); // у помощника: спорное Б (name) и чистое В (place)
+test("88 пример: владелец менял А и Б, помощник Б и В. «Взять помощника»: А владельца сохранено, Б от помощника, В от помощника", () => {
+  const r = m(abBase(), abOurs(), abTheirs());
+  assert.deepEqual(r.fields.map((f) => f.field), ["name"]);
+  const t = decide([abOurs()], r, "theirs")[0];
+  assert.deepEqual([t.notes, t.name, t.place], ["наша заметка", "Анна И.", "Тула"]);
+});
+test("89 тот же пример, «Оставить моё»: А и Б владельца сохранены, чистое В помощника НЕ теряется", () => {
+  const r = m(abBase(), abOurs(), abTheirs());
+  const o = decide([abOurs()], r, "ours")[0];
+  assert.deepEqual([o.notes, o.name, o.place], ["наша заметка", "Анна С.", "Тула"]);
+});
+test("89б в предложении списка запись с конфликтом тоже содержит чистое от помощника", () => {
+  const r = mergeList([abBase()], [abOurs()], [abTheirs()]);
+  assert.equal(r.merged[0].place, "Тула");
+  assert.equal(r.merged[0].name, "Анна С."); // спорное остаётся нашим
+  assert.equal(r.conflicts.length, 1);
+});
+test("89в поле, которое владелец успел изменить уже ПОСЛЕ слияния, решение не затирает (ни «theirs», ни «ours»)", () => {
+  const r = m(abBase(), abOurs(), abTheirs());
+  const later = P({ notes: "дописал позже", name: "Анна С.", place: "Омск" });
+  for (const d of ["theirs", "ours"] as const) {
+    const out = decide([later], r, d)[0];
+    assert.equal(out.notes, "дописал позже", d);
+    assert.equal(out.place, "Омск", d); // чистое поле тоже менялось у нас после слияния: не перезаписано
+  }
+  assert.equal(decide([later], r, "theirs")[0].name, "Анна И."); // спорное по решению «theirs»
+});
+test("89г повторное применение «theirs» и «ours» к полям даёт тот же результат", () => {
+  const r = m(abBase(), abOurs(), abTheirs());
+  for (const d of ["theirs", "ours"] as const) {
+    const once = decide([abOurs()], r, d);
+    assert.deepEqual(decide(once, r, d), once);
+  }
+});
+
+// ——— С-3б, уточнения: безопасный id копии
+test("96 id копии занят ДРУГОЙ записью: копия не перезаписывает её и не теряется, получает следующий id", () => {
+  const r = conflictAddAdd();
+  const taken = copyOf(r.theirs!).id;
+  const other: Rec = { id: taken, name: "Совсем другая запись" };
+  const out = decide([r.ours!, other], r, "copy");
+  assert.equal(out.length, 3);
+  assert.deepEqual(out.find((x) => x.id === taken), other); // чужая запись не тронута
+  const placed = out.find((x) => x.id === `${taken}-2`)!;
+  assert.equal(placed.name, "Анна И.");
+  assert.equal(placed.copyOf, "p");
+});
+test("97 при коллизии повторное применение тоже идемпотентно (ровно одна копия, на -2)", () => {
+  const r = conflictAddAdd();
+  const taken = copyOf(r.theirs!).id;
+  const start: Rec[] = [r.ours!, { id: taken, name: "Другая" }];
+  const once = decide(start, r, "copy");
+  const twice = decide(once, r, "copy");
+  const thrice = decide(twice, r, "copy");
+  assert.equal(thrice.length, 3);
+  assert.deepEqual(thrice, once);
+});
+test("98 несколько подряд занятых id: копия берёт первый свободный, все чужие записи целы", () => {
+  const r = conflictAddAdd();
+  const id = copyOf(r.theirs!).id;
+  const others: Rec[] = [{ id, name: "1" }, { id: `${id}-2`, name: "2" }, { id: `${id}-3`, name: "3" }];
+  const out = decide([r.ours!, ...others], r, "copy");
+  assert.equal(out.length, 5);
+  assert.deepEqual(out.slice(0, 4), [r.ours, ...others.slice(0, 3)].map(clone).slice(0, 4));
+  assert.equal(out[4].id, `${id}-4`);
+});
+test("99 уже лежит ровно эта копия под основным id: ничего не добавляется", () => {
+  const r = conflictAddAdd();
+  const once = decide([r.ours!], r, "copy");
+  assert.equal(decide(once, r, "copy").length, 2);
+});
+test("99б копия никогда не перезаписывает исходную запись и не меняет её id", () => {
+  const r = conflictAddAdd();
+  const out = decide([r.ours!], r, "copy");
+  assert.deepEqual(out.find((x) => x.id === "p"), r.ours);
+});
+test("99в отпечаток 64-битный (два хэша), стабилен и различает близкие записи", () => {
+  assert.ok(fingerprint({ a: 1 }).length >= 10);
+  assert.notEqual(fingerprint({ a: 1 }), fingerprint({ a: 2 }));
+  assert.equal(fingerprint({ b: 1, a: 2 }), fingerprint({ a: 2, b: 1 }));
 });
 
 // ——— идемпотентность и порядок

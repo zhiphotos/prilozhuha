@@ -111,7 +111,7 @@ const recs = (v: unknown): Rec[] => (isRecs(v) ? v : []);
 
 export type ListMerge = {
   items: RecordMerge[];
-  /** Список ours с применёнными чистыми изменениями. Удаления и конфликты не применены. Порядок: записи ours, потом новые от theirs. */
+  /** Список ours с применёнными чистыми изменениями, в том числе чистыми полями записей с конфликтом других полей. Удаления и сами конфликтные значения не применены (там остаётся ours). Порядок: записи ours, потом новые от theirs. */
   merged: Rec[];
   conflicts: RecordMerge[];
   /** Предложения убрать записи (ждут подтверждения). */
@@ -129,7 +129,8 @@ export function mergeList(base: unknown, ours: unknown, theirs: unknown): ListMe
   const merged: Rec[] = [];
   for (const rec of recs(ours)) {
     const m = byId.get(rec.id)!;
-    merged.push(m.status === "take" && m.merged ? m.merged : clone(rec));
+    const clean = (m.status === "take" || (m.status === "conflict" && m.kind === "fields")) && m.merged; // чистое от theirs не теряется и при конфликте других полей
+    merged.push(clean ? (m.merged as Rec) : clone(rec));
   }
   for (const r of recs(theirs)) {
     const m = byId.get(r.id)!;
@@ -143,12 +144,17 @@ export function mergeBook(base: Book, ours: Book, theirs: Book, keys: readonly s
   return Object.fromEntries(keys.map((k) => [k, mergeList(base[k], ours[k], theirs[k])]));
 }
 
-/** Устойчивый короткий отпечаток содержимого (djb2 от стабильной записи). */
+/** Устойчивый отпечаток содержимого: два независимых 32-битных хэша (djb2 и FNV-1a) от стабильной записи. */
 export const fingerprint = (value: unknown): string => {
   const text = stableStringify(value);
-  let h = 5381;
-  for (let i = 0; i < text.length; i += 1) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
-  return (h >>> 0).toString(36);
+  let a = 5381;
+  let b = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    const c = text.charCodeAt(i);
+    a = ((a << 5) + a + c) | 0;
+    b = Math.imul(b ^ c, 0x01000193);
+  }
+  return `${(a >>> 0).toString(36)}${(b >>> 0).toString(36)}`;
 };
 
 export type Decision = "ours" | "theirs" | "copy";
@@ -156,12 +162,13 @@ export type Decision = "ours" | "theirs" | "copy";
 const put = (list: Rec[], rec: Rec): Rec[] => (list.some((r) => r.id === rec.id) ? list.map((r) => (r.id === rec.id ? rec : r)) : [...list, rec]);
 const drop = (list: Rec[], id: string): Rec[] => list.filter((r) => r.id !== id);
 
-/** Копия записи theirs: id из содержимого (повторное применение не создаёт второй копии), к названию добавляется пометка. */
+/**
+ * Копия записи theirs для решения «Обе копией». id из содержимого (не случайный).
+ * Настоящие поля name и title НЕ меняются: пометка лежит отдельными полями copyOf (id исходной записи) и copyLabel.
+ * Как показывать пометку человеку, решает экран, который потом подключит ядро.
+ */
 export function copyOf(theirs: Rec, label = "от помощника"): Rec {
-  const copy: Rec = { ...clone(theirs), id: `${theirs.id}-c${fingerprint(theirs)}` };
-  if ("title" in copy) copy.title = `${String(copy.title ?? "")} (${label})`.trim();
-  else if ("name" in copy) copy.name = `${String(copy.name ?? "")} (${label})`.trim();
-  return copy;
+  return { ...clone(theirs), id: `${theirs.id}-c${fingerprint(theirs)}`, copyOf: theirs.id, copyLabel: label };
 }
 
 /**
@@ -172,26 +179,48 @@ export function copyOf(theirs: Rec, label = "от помощника"): Rec {
  */
 export function decide(list: Rec[], m: RecordMerge, decision: Decision, label?: string): Rec[] {
   const current = list.map(clone);
-  if (decision === "ours") return current;
+  if (decision === "ours") {
+    if (m.status === "conflict" && m.kind === "fields" && m.merged) return put(current, applyFields(current.find((r) => r.id === m.id), m, false)); // наше остаётся в спорном, чистое от theirs не теряется
+    return current;
+  }
   if (decision === "copy") {
     if (!m.theirs) return current;
     const copy = copyOf(m.theirs, label);
-    const same = current.find((r) => r.id === copy.id);
-    return same ? current : [...current, copy]; // повтор: уже есть
+    // Копия никогда не перезаписывает чужую запись и не теряется: если такой id занят записью с другим содержимым, берётся следующий (-2, -3...).
+    // Если там уже лежит ровно эта копия, ничего не добавляется (повторное применение).
+    for (let n = 1; n < 1000; n += 1) {
+      const id = n === 1 ? copy.id : `${copy.id}-${n}`;
+      const taken = current.find((r) => r.id === id);
+      if (!taken) return [...current, { ...copy, id }];
+      if (valueEqual(taken, { ...copy, id })) return current;
+    }
+    throw new Error("merge-core: не удалось подобрать свободный id для копии");
   }
   // theirs
   if (m.status === "remove" || (m.status === "conflict" && m.kind === "delete-edit")) return drop(current, m.id);
-  if (m.status === "take") return m.merged ? put(current, clone(m.merged)) : current;
+  if (m.status === "take") return m.merged ? put(current, applyFields(current.find((r) => r.id === m.id), m, false)) : current;
   if (m.status === "conflict") {
-    if (m.kind === "fields" && m.ours && m.merged) {
-      const rec: Rec = { ...clone(m.merged) };
-      for (const c of m.fields) {
-        if (c.theirs === undefined) delete rec[c.field];
-        else rec[c.field] = clone(c.theirs);
-      }
-      return put(current, rec);
-    }
+    if (m.kind === "fields") return put(current, applyFields(current.find((r) => r.id === m.id), m, true));
     if ((m.kind === "add-add" || m.kind === "edit-after-delete") && m.theirs) return put(current, clone(m.theirs)); // тот же id
   }
   return current;
+}
+
+/**
+ * Чистые изменения слияния накладываются на ТЕКУЩУЮ запись, а не заменяют её: поле, которое после слияния успели изменить, не затирается.
+ * Спорные поля берутся у theirs только по решению «theirs».
+ */
+function applyFields(cur: Rec | undefined, m: RecordMerge, takeConflicts: boolean): Rec {
+  const rec: Rec = clone(cur ?? m.merged ?? (m.ours as Rec));
+  const names = new Set<string>();
+  for (const r of [m.base, m.ours, m.theirs, m.merged]) for (const k of Object.keys(r ?? {})) if (k !== "id") names.add(k);
+  for (const f of names) {
+    const conflict = m.fields.find((c) => c.field === f);
+    const target = conflict ? (takeConflicts ? conflict.theirs : undefined) : m.merged?.[f];
+    if (conflict && !takeConflicts) continue; // «ours»: спорное остаётся нашим
+    if (!conflict && !valueEqual(rec[f], m.ours?.[f])) continue; // поле изменили после слияния: не затираем
+    if (target === undefined) delete rec[f];
+    else rec[f] = clone(target);
+  }
+  return rec;
 }
