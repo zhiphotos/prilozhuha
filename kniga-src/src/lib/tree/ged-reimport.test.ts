@@ -77,3 +77,26 @@ test("повторная загрузка дописывает девичью ф
   assert.deepEqual(before.map((b) => ({ id: b.id, parents: after.get(b.id)?.parents, spouse: after.get(b.id)?.spouse })), before, "связи остались как были");
   assert.equal(plan.added, 0, "новых людей нет");
 });
+
+test("человек без фамилии находится по связям: повторная загрузка не добавляет второй экземпляр и возвращает номер", () => {
+  const body = `0 @I1@ INDI\n1 NAME Кондрат /Вишнев/\n0 @I2@ INDI\n1 NAME Агриппина //\n1 SEX F\n0 @F1@ FAM\n1 HUSB @I1@\n1 WIFE @I2@\n`;
+  const list = load(file(body), "I1");
+  const current: RodPerson[] = [
+    asRod(list.find((p) => p.key === "I1")!, "egor", { spouse: "evd" }),
+    { id: "evd", name: "Агриппина", firstName: "Агриппина", patronymic: "", lastName: "", relation: "Родственник", birthYear: "", maidenName: "", notes: "", spouse: "egor", gender: "f" },
+  ];
+  const plan = planGedImport(current, list, { updateLinks: false, uid: () => "new" });
+  assert.ok(plan.ok);
+  assert.equal(plan.added, 0);
+  assert.equal(plan.people.find((p) => p.id === "evd")!.gedId, "I2");
+});
+
+test("человек без фамилии не склеивается по одному имени, если его связи не совпадают с файлом", () => {
+  const body = `0 @I1@ INDI\n1 NAME Кондрат /Вишнев/\n0 @I2@ INDI\n1 NAME Агриппина //\n1 SEX F\n0 @F1@ FAM\n1 HUSB @I1@\n1 WIFE @I2@\n`;
+  const list = load(file(body), "I1");
+  const current: RodPerson[] = [
+    asRod(list.find((p) => p.key === "I1")!, "egor"),
+    { id: "other", name: "Агриппина", firstName: "Агриппина", patronymic: "", lastName: "", relation: "Родственник", birthYear: "", maidenName: "", notes: "", gender: "f" },
+  ];
+  assert.equal(planGedImport(current, list, { updateLinks: false, uid: () => "new" }).ok && matchExisting(current, list).has("I2"), false);
+});
