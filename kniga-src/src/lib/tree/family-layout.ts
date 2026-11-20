@@ -70,6 +70,47 @@ export type FamilyLayout = Omit<TreeLayout, "buses" | "spouses"> & {
   far: string[];
 };
 
+/**
+ * Крыло человека относительно центральной пары: -1 родня левого из пары, 1 родня правого, 0 нейтрален или спорен.
+ * Считается только по родословным связям (супруги, родители, дети), а не по тому, где человек оказался на листе:
+ * одновременный обход от обоих половин пары, человек относится к тому, до кого ближе; при равной близости (родня обеих сторон,
+ * браки двоюродных, повторяющиеся предки) крыла нет, такой человек ставится как раньше. Дети самой пары и их потомки нейтральны.
+ * Нужна, чтобы родня одной стороны не оказывалась в блоке другой из-за нехватки места или второго брака предка.
+ */
+export function wingsOf(unions: Union[], known: ReadonlySet<string>, pair: { leftId: string; rightId?: string }): Map<string, -1 | 0 | 1> {
+  const wing = new Map<string, -1 | 0 | 1>();
+  const right = pair.rightId;
+  if (!right || !known.has(right) || !known.has(pair.leftId)) return wing;
+  const neutral = new Set<string>();
+  const kidsOf = new Map<string, string[]>();
+  for (const u of unions) for (const p of u.partnerIds) for (const c of u.childIds) (kidsOf.get(p) ?? kidsOf.set(p, []).get(p)!).push(c);
+  const stack = unions.filter((u) => u.partnerIds.includes(pair.leftId) && u.partnerIds.includes(right)).flatMap((u) => u.childIds);
+  while (stack.length) {
+    const c = stack.pop()!;
+    if (neutral.has(c)) continue;
+    neutral.add(c);
+    for (const k of kidsOf.get(c) ?? []) stack.push(k);
+  }
+  const adj = new Map<string, Set<string>>();
+  for (const u of unions) {
+    const members = [...u.partnerIds, ...u.childIds].filter((id) => known.has(id) && !neutral.has(id));
+    for (const a of members) for (const b of members) if (a !== b) (adj.get(a) ?? adj.set(a, new Set()).get(a)!).add(b);
+  }
+  const dist = new Map<string, [number, number]>();
+  const walk = (start: string, k: 0 | 1, block: string) => {
+    const d = new Map<string, number>([[start, 0]]);
+    for (const queue = [start]; queue.length; ) {
+      const cur = queue.shift()!;
+      for (const o of adj.get(cur) ?? []) if (o !== block && !d.has(o)) { d.set(o, d.get(cur)! + 1); queue.push(o); }
+    }
+    for (const [id, v] of d) { const cur = dist.get(id) ?? [Infinity, Infinity]; cur[k] = v; dist.set(id, cur); }
+  };
+  walk(pair.leftId, 0, right);
+  walk(right, 1, pair.leftId);
+  for (const [id, [a, b]] of dist) wing.set(id, a < b ? -1 : b < a ? 1 : 0);
+  return wing;
+}
+
 export function layoutFamily(people: Person[], unionsIn: Union[], pair: { leftId: string; rightId?: string }): FamilyLayout {
   /** Союзы в порядке id: порядок входных данных не должен влиять ни на один шаг. */
   const unions = [...unionsIn].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
@@ -83,6 +124,9 @@ export function layoutFamily(people: Person[], unionsIn: Union[], pair: { leftId
   }
   const placed = new Set<string>();
   const detached = new Set<string>();
+  /** Крыло каждого человека (см. wingsOf): по нему, а не по координате, определяется «своя» сторона. */
+  const wing = wingsOf(unions, new Set(byId.keys()), pair);
+  const wingOf = (id: string): -1 | 0 | 1 => wing.get(id) ?? 0;
   /** Метка «связь с родителями далёкая» ставится только тому, у кого родители действительно есть в данных (иначе рисовать нечего). */
   const flagFar = (id: string) => {
     const u = parentUnion.get(id);
@@ -295,7 +339,24 @@ export function layoutFamily(people: Person[], unionsIn: Union[], pair: { leftId
       const l = level(id);
       (occ.get(l) ?? occ.set(l, []).get(l)!).push(x);
     }
+    // Крыло главнее места: человек левого крыла не встаёт правее человека правого крыла в том же ряду, и наоборот.
+    // Свободный слот ищется дальше, на своей стороне; у кого крыла нет (спорные, нейтральные), ограничений нет, как раньше.
+    const minR = new Map<number, number>(), maxL = new Map<number, number>();
+    for (const [id, x] of total.rel) {
+      const w = wingOf(id), l = level(id);
+      if (w === 1) minR.set(l, Math.min(minR.get(l) ?? Infinity, x));
+      if (w === -1) maxL.set(l, Math.max(maxL.get(l) ?? -Infinity, x));
+    }
+    const wingOk = (shift: number) => {
+      for (const [id, x] of sub.rel) {
+        const w = wingOf(id), l = level(id);
+        if (w === -1 && (minR.get(l) ?? Infinity) - GAP < x + shift) return false;
+        if (w === 1 && (maxL.get(l) ?? -Infinity) + GAP > x + shift) return false;
+      }
+      return true;
+    };
     const fits = (shift: number) => {
+      if (!wingOk(shift)) return false;
       for (const [id, x] of sub.rel) {
         const row = occ.get(level(id));
         if (!row) continue;
@@ -340,7 +401,7 @@ export function layoutFamily(people: Person[], unionsIn: Union[], pair: { leftId
     let changed = false;
     const ids = [...total.rel.keys()].sort((a, b) => total.rel.get(a)! - total.rel.get(b)! || (a < b ? -1 : 1));
     for (const id of ids) {
-      const side: -1 | 1 = total.rel.get(id)! < centreX ? -1 : 1;
+      const side: -1 | 1 = wingOf(id) !== 0 ? (wingOf(id) as -1 | 1) : total.rel.get(id)! < centreX ? -1 : 1;
       if (parentUnion.get(id) && parentUnion.get(id)!.partnerIds.some((q) => !placed.has(q))) {
         const sub = famUp(id, side);
         if (sub && sub.rel.size) {
@@ -359,7 +420,7 @@ export function layoutFamily(people: Person[], unionsIn: Union[], pair: { leftId
       for (const u of unionsOf.get(id) ?? []) {
         for (const q of u.partnerIds) {
           if (placed.has(q) || !byId.has(q)) continue;
-          const side: -1 | 1 = total.rel.get(id)! < centreX ? -1 : 1;
+          const side: -1 | 1 = wingOf(id) !== 0 ? (wingOf(id) as -1 | 1) : total.rel.get(id)! < centreX ? -1 : 1;
           const sub = descend(q);
           const own = total.rel.get(id)!;
           const shift = nearFree(sub, own + side * GAP);

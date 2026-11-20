@@ -1,0 +1,938 @@
+{
+ "seed28": [
+  {
+   "id": "W",
+   "gender": "f",
+   "parents": [
+    "wF1",
+    "wM2"
+   ],
+   "spouse": "H",
+   "moreSpouses": []
+  },
+  {
+   "id": "wF1",
+   "gender": "m",
+   "parents": [],
+   "spouse": "wM2",
+   "moreSpouses": []
+  },
+  {
+   "id": "wM2",
+   "gender": "f",
+   "parents": [],
+   "spouse": "wF1",
+   "moreSpouses": []
+  },
+  {
+   "id": "H",
+   "gender": "m",
+   "parents": [
+    "hF1",
+    "hM2"
+   ],
+   "spouse": "W",
+   "moreSpouses": []
+  },
+  {
+   "id": "hF1",
+   "gender": "m",
+   "parents": [
+    "hM4"
+   ],
+   "spouse": "hM2",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM2",
+   "gender": "f",
+   "parents": [
+    "hM23"
+   ],
+   "spouse": "hF1",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM4",
+   "gender": "f",
+   "parents": [
+    "hF13"
+   ],
+   "spouse": null,
+   "moreSpouses": [
+    "hX6"
+   ]
+  },
+  {
+   "id": "hX6",
+   "gender": "m",
+   "parents": [],
+   "spouse": "hM4",
+   "moreSpouses": []
+  },
+  {
+   "id": "hh8",
+   "gender": "m",
+   "parents": [
+    "hX6",
+    "hM4"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hF13",
+   "gender": "m",
+   "parents": [],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh16",
+   "gender": "f",
+   "parents": [
+    "hF13"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hhk18",
+   "gender": "m",
+   "parents": [
+    "hh16"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh19",
+   "gender": "m",
+   "parents": [
+    "hF13"
+   ],
+   "spouse": "hhs20",
+   "moreSpouses": []
+  },
+  {
+   "id": "hhs20",
+   "gender": "f",
+   "parents": [],
+   "spouse": "hh19",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM23",
+   "gender": "f",
+   "parents": [
+    "hF40",
+    "hM41"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh30",
+   "gender": "f",
+   "parents": [
+    "hM23"
+   ],
+   "spouse": "hhs31",
+   "moreSpouses": []
+  },
+  {
+   "id": "hhs31",
+   "gender": "m",
+   "parents": [],
+   "spouse": "hh30",
+   "moreSpouses": []
+  },
+  {
+   "id": "hF40",
+   "gender": "m",
+   "parents": [],
+   "spouse": "hM41",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM41",
+   "gender": "f",
+   "parents": [],
+   "spouse": "hF40",
+   "moreSpouses": [
+    "hX42"
+   ]
+  },
+  {
+   "id": "hX42",
+   "gender": "m",
+   "parents": [],
+   "spouse": "hM41",
+   "moreSpouses": []
+  },
+  {
+   "id": "hh43",
+   "gender": "f",
+   "parents": [
+    "hX42",
+    "hM41"
+   ],
+   "spouse": "hhs44",
+   "moreSpouses": []
+  },
+  {
+   "id": "hhs44",
+   "gender": "m",
+   "parents": [],
+   "spouse": "hh43",
+   "moreSpouses": []
+  },
+  {
+   "id": "hh46",
+   "gender": "m",
+   "parents": [
+    "hX42",
+    "hM41"
+   ],
+   "spouse": "hhs47",
+   "moreSpouses": []
+  },
+  {
+   "id": "hhs47",
+   "gender": "f",
+   "parents": [],
+   "spouse": "hh46",
+   "moreSpouses": []
+  }
+ ],
+ "seed18": [
+  {
+   "id": "W",
+   "gender": "f",
+   "parents": [
+    "wF1",
+    "wM2"
+   ],
+   "spouse": "H",
+   "moreSpouses": []
+  },
+  {
+   "id": "wF1",
+   "gender": "m",
+   "parents": [],
+   "spouse": "wM2",
+   "moreSpouses": []
+  },
+  {
+   "id": "wM2",
+   "gender": "f",
+   "parents": [
+    "wF33",
+    "wM34"
+   ],
+   "spouse": "wF1",
+   "moreSpouses": []
+  },
+  {
+   "id": "wF33",
+   "gender": "m",
+   "parents": [],
+   "spouse": "wM34",
+   "moreSpouses": []
+  },
+  {
+   "id": "wM34",
+   "gender": "f",
+   "parents": [
+    "wM51"
+   ],
+   "spouse": "wF33",
+   "moreSpouses": []
+  },
+  {
+   "id": "wM51",
+   "gender": "f",
+   "parents": [
+    "wF55",
+    "wM56"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "ws52",
+   "gender": "f",
+   "parents": [
+    "wM51"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "wF55",
+   "gender": "m",
+   "parents": [],
+   "spouse": "wM56",
+   "moreSpouses": []
+  },
+  {
+   "id": "wM56",
+   "gender": "f",
+   "parents": [],
+   "spouse": "wF55",
+   "moreSpouses": []
+  },
+  {
+   "id": "ws57",
+   "gender": "m",
+   "parents": [
+    "wF55",
+    "wM56"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "H",
+   "gender": "m",
+   "parents": [
+    "hF1",
+    "hM2"
+   ],
+   "spouse": "W",
+   "moreSpouses": []
+  },
+  {
+   "id": "hF1",
+   "gender": "m",
+   "parents": [
+    "hF4",
+    "hM5"
+   ],
+   "spouse": "hM2",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM2",
+   "gender": "f",
+   "parents": [
+    "hF34"
+   ],
+   "spouse": "hF1",
+   "moreSpouses": []
+  },
+  {
+   "id": "hF4",
+   "gender": "m",
+   "parents": [
+    "hM14"
+   ],
+   "spouse": "hM5",
+   "moreSpouses": [
+    "hX7"
+   ]
+  },
+  {
+   "id": "hM5",
+   "gender": "f",
+   "parents": [
+    "hF26"
+   ],
+   "spouse": "hF4",
+   "moreSpouses": []
+  },
+  {
+   "id": "hs6",
+   "gender": "f",
+   "parents": [
+    "hF4",
+    "hM5"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hX7",
+   "gender": "f",
+   "parents": [],
+   "spouse": "hF4",
+   "moreSpouses": []
+  },
+  {
+   "id": "hh9",
+   "gender": "m",
+   "parents": [
+    "hF4",
+    "hX7"
+   ],
+   "spouse": "hhs10",
+   "moreSpouses": []
+  },
+  {
+   "id": "hhs10",
+   "gender": "f",
+   "parents": [],
+   "spouse": "hh9",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM14",
+   "gender": "f",
+   "parents": [
+    "hF19"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hF19",
+   "gender": "m",
+   "parents": [],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh22",
+   "gender": "m",
+   "parents": [
+    "hF19"
+   ],
+   "spouse": "hhs23",
+   "moreSpouses": []
+  },
+  {
+   "id": "hhs23",
+   "gender": "f",
+   "parents": [],
+   "spouse": "hh22",
+   "moreSpouses": []
+  },
+  {
+   "id": "hhk24",
+   "gender": "m",
+   "parents": [
+    "hh22",
+    "hhs23"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh25",
+   "gender": "m",
+   "parents": [
+    "hF19"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hF26",
+   "gender": "m",
+   "parents": [
+    "hM30"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hM30",
+   "gender": "f",
+   "parents": [],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hs31",
+   "gender": "f",
+   "parents": [
+    "hM30"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hF34",
+   "gender": "m",
+   "parents": [
+    "hF45",
+    "hM46"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh41",
+   "gender": "m",
+   "parents": [
+    "hF34"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh44",
+   "gender": "f",
+   "parents": [
+    "hF34"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hF45",
+   "gender": "m",
+   "parents": [
+    "hM48"
+   ],
+   "spouse": "hM46",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM46",
+   "gender": "f",
+   "parents": [
+    "hF50",
+    "hM51"
+   ],
+   "spouse": "hF45",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM48",
+   "gender": "f",
+   "parents": [],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hs49",
+   "gender": "m",
+   "parents": [
+    "hM48"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hF50",
+   "gender": "m",
+   "parents": [],
+   "spouse": "hM51",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM51",
+   "gender": "f",
+   "parents": [],
+   "spouse": "hF50",
+   "moreSpouses": []
+  }
+ ],
+ "seed56": [
+  {
+   "id": "W",
+   "gender": "f",
+   "parents": [
+    "wF1",
+    "wM2"
+   ],
+   "spouse": "H",
+   "moreSpouses": []
+  },
+  {
+   "id": "wF1",
+   "gender": "m",
+   "parents": [],
+   "spouse": "wM2",
+   "moreSpouses": []
+  },
+  {
+   "id": "wM2",
+   "gender": "f",
+   "parents": [
+    "wM32"
+   ],
+   "spouse": "wF1",
+   "moreSpouses": []
+  },
+  {
+   "id": "wM32",
+   "gender": "f",
+   "parents": [],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "H",
+   "gender": "m",
+   "parents": [
+    "hF1",
+    "hM2"
+   ],
+   "spouse": "W",
+   "moreSpouses": []
+  },
+  {
+   "id": "hF1",
+   "gender": "m",
+   "parents": [
+    "hF12",
+    "hM13"
+   ],
+   "spouse": "hM2",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM2",
+   "gender": "f",
+   "parents": [
+    "hF35",
+    "hM36"
+   ],
+   "spouse": "hF1",
+   "moreSpouses": []
+  },
+  {
+   "id": "hF12",
+   "gender": "m",
+   "parents": [
+    "hF17"
+   ],
+   "spouse": "hM13",
+   "moreSpouses": [
+    "hX15"
+   ]
+  },
+  {
+   "id": "hM13",
+   "gender": "f",
+   "parents": [
+    "hF28",
+    "hM29"
+   ],
+   "spouse": "hF12",
+   "moreSpouses": []
+  },
+  {
+   "id": "hX15",
+   "gender": "f",
+   "parents": [],
+   "spouse": "hF12",
+   "moreSpouses": []
+  },
+  {
+   "id": "hF17",
+   "gender": "m",
+   "parents": [],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh22",
+   "gender": "m",
+   "parents": [
+    "hF17"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh25",
+   "gender": "f",
+   "parents": [
+    "hF17"
+   ],
+   "spouse": "hhs26",
+   "moreSpouses": []
+  },
+  {
+   "id": "hhs26",
+   "gender": "m",
+   "parents": [],
+   "spouse": "hh25",
+   "moreSpouses": []
+  },
+  {
+   "id": "hF28",
+   "gender": "m",
+   "parents": [],
+   "spouse": "hM29",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM29",
+   "gender": "f",
+   "parents": [],
+   "spouse": "hF28",
+   "moreSpouses": []
+  },
+  {
+   "id": "hF35",
+   "gender": "m",
+   "parents": [
+    "hM45"
+   ],
+   "spouse": "hM36",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM36",
+   "gender": "f",
+   "parents": [],
+   "spouse": "hF35",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM45",
+   "gender": "f",
+   "parents": [],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh48",
+   "gender": "f",
+   "parents": [
+    "hM45"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh51",
+   "gender": "m",
+   "parents": [
+    "hM45"
+   ],
+   "spouse": "hhs52",
+   "moreSpouses": []
+  },
+  {
+   "id": "hhs52",
+   "gender": "f",
+   "parents": [],
+   "spouse": "hh51",
+   "moreSpouses": []
+  }
+ ],
+ "seed17": [
+  {
+   "id": "W",
+   "gender": "f",
+   "parents": [
+    "wF1",
+    "wM2"
+   ],
+   "spouse": "H",
+   "moreSpouses": []
+  },
+  {
+   "id": "wF1",
+   "gender": "m",
+   "parents": [],
+   "spouse": "wM2",
+   "moreSpouses": []
+  },
+  {
+   "id": "wM2",
+   "gender": "f",
+   "parents": [],
+   "spouse": "wF1",
+   "moreSpouses": []
+  },
+  {
+   "id": "H",
+   "gender": "m",
+   "parents": [
+    "hF1",
+    "hM2"
+   ],
+   "spouse": "W",
+   "moreSpouses": []
+  },
+  {
+   "id": "hF1",
+   "gender": "m",
+   "parents": [
+    "hM6"
+   ],
+   "spouse": "hM2",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM2",
+   "gender": "f",
+   "parents": [
+    "hM51"
+   ],
+   "spouse": "hF1",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM6",
+   "gender": "f",
+   "parents": [
+    "hF28"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hF28",
+   "gender": "m",
+   "parents": [
+    "hF38",
+    "hM39"
+   ],
+   "spouse": null,
+   "moreSpouses": [
+    "hX31"
+   ]
+  },
+  {
+   "id": "hX31",
+   "gender": "f",
+   "parents": [],
+   "spouse": "hF28",
+   "moreSpouses": []
+  },
+  {
+   "id": "hh35",
+   "gender": "m",
+   "parents": [
+    "hF28",
+    "hX31"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hhk37",
+   "gender": "m",
+   "parents": [
+    "hh35"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hF38",
+   "gender": "m",
+   "parents": [],
+   "spouse": "hM39",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM39",
+   "gender": "f",
+   "parents": [],
+   "spouse": "hF38",
+   "moreSpouses": [
+    "hX41"
+   ]
+  },
+  {
+   "id": "hs40",
+   "gender": "m",
+   "parents": [
+    "hF38",
+    "hM39"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hX41",
+   "gender": "m",
+   "parents": [],
+   "spouse": "hM39",
+   "moreSpouses": []
+  },
+  {
+   "id": "hh42",
+   "gender": "f",
+   "parents": [
+    "hX41",
+    "hM39"
+   ],
+   "spouse": "hhs43",
+   "moreSpouses": []
+  },
+  {
+   "id": "hhs43",
+   "gender": "m",
+   "parents": [],
+   "spouse": "hh42",
+   "moreSpouses": []
+  },
+  {
+   "id": "hM51",
+   "gender": "f",
+   "parents": [
+    "hM79"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hM79",
+   "gender": "f",
+   "parents": [
+    "hF92"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh83",
+   "gender": "f",
+   "parents": [
+    "hM79"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hF92",
+   "gender": "m",
+   "parents": [],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh96",
+   "gender": "f",
+   "parents": [
+    "hF92"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh97",
+   "gender": "f",
+   "parents": [
+    "hF92"
+   ],
+   "spouse": null,
+   "moreSpouses": []
+  },
+  {
+   "id": "hh98",
+   "gender": "f",
+   "parents": [
+    "hF92"
+   ],
+   "spouse": "hhs99",
+   "moreSpouses": []
+  },
+  {
+   "id": "hhs99",
+   "gender": "m",
+   "parents": [],
+   "spouse": "hh98",
+   "moreSpouses": []
+  }
+ ]
+}
