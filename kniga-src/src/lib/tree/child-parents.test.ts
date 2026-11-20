@@ -17,7 +17,7 @@ g.document = { addEventListener() {}, removeEventListener() {}, visibilityState:
 
 const { useRod } = await import("../rod/store.ts");
 const { useTree } = await import("./ui-store.ts");
-const { parentVariants, commitExistingChild, previewChange, NEW_PARENT } = await import("./child-parents.ts");
+const { parentVariants, commitExistingChild, previewChange, cloudBlockMessage, NEW_PARENT } = await import("./child-parents.ts");
 const { parentsDiff, replacePolicy } = await import("./second-parent.ts");
 import type { CloudCheck } from "./second-parent.ts";
 type Person = ReturnType<typeof useRod.getState>["people"][number];
@@ -171,7 +171,7 @@ test("заглушки: у ребёнка заглушка и родитель, 
 });
 
 test("защита Б: проверка облака не удалась, замена и снятие блокируются, данные не меняются", () => {
-  for (const cloud of ["failed", "conflict", "busy", "timeout"] as CloudCheck[]) {
+  for (const cloud of ["failed", "conflict", "busy", "timeout", "signed-out", "unknown"] as CloudCheck[]) {
     world(["А", "И"]);
     const before = snapshot();
     const replace = parentVariants(now(), "А", "Р")!.variants[0]!;
@@ -185,7 +185,7 @@ test("защита Б: проверка облака не удалась, зам
 });
 
 test("защита Б: добавление без удаления разрешено и при неудачной проверке", () => {
-  for (const cloud of ["failed", "conflict", "busy", "timeout"] as CloudCheck[]) {
+  for (const cloud of ["failed", "conflict", "busy", "timeout", "signed-out", "unknown"] as CloudCheck[]) {
     world(["И"]);
     const add = parentVariants(now(), "А", "Р")!.variants.find((x) => x.id === "add")!;
     const res = commitExistingChild({ childId: "Р", variant: add, expected: state(), replaceConfirmed: false, cloud });
@@ -211,7 +211,7 @@ test("replacePolicy и parentsDiff только считают: данные и 
   assert.equal(parentsDiff(["А"], ["А", "С"]).destructive, false, "добавление не разрушительное");
   assert.equal(parentsDiff(["А", "И"], ["И", "А"]).unchanged, true);
   for (const cloud of ["checked", "no-cloud"] as CloudCheck[]) assert.equal(replacePolicy(d, cloud).allowed, true);
-  for (const cloud of ["failed", "conflict", "busy", "timeout"] as CloudCheck[]) assert.equal(replacePolicy(d, cloud).allowed, false);
+  for (const cloud of ["failed", "conflict", "busy", "timeout", "signed-out", "unknown"] as CloudCheck[]) assert.equal(replacePolicy(d, cloud).allowed, false);
   assert.equal(replacePolicy(parentsDiff(["А"], ["А", "С"]), "failed").allowed, true);
 });
 
@@ -231,4 +231,17 @@ test("новый человек во втором родителе отмеча�
   const p = previewChange(now(), "Р", v, { mode: "new", draft: { firstName: "Новый" } as never })!;
   assert.deepEqual(p.diff.added, [NEW_PARENT]);
   assert.equal(marriageFields(now()), marriages);
+});
+
+test("замена запрещена, если книга раньше синхронизировалась, а вход не выполнен (signed-out); сообщение просит войти", () => {
+  world(["А", "И"]);
+  const before = snapshot();
+  const v = parentVariants(now(), "А", "Р")!.variants[0]!;
+  const res = commitExistingChild({ childId: "Р", variant: v, pick: { mode: "existing", id: "С" }, expected: state(), replaceConfirmed: true, cloud: "signed-out" });
+  assert.equal(res.ok, false);
+  assert.equal("blocked" in res && res.blocked, "cloud-unchecked");
+  assert.ok(!res.ok && res.errors.join(" ").includes("не вошли"), "в сообщении причина: нужно войти");
+  assert.equal(snapshot(), before, "parents и parentsUnmarried не менялись");
+  assert.notEqual(cloudBlockMessage("signed-out"), cloudBlockMessage("failed"));
+  assert.ok(cloudBlockMessage("unknown").includes("есть ли у этой книги копия в облаке"));
 });

@@ -79,6 +79,14 @@ export function previewChange(people: RodPerson[], childId: string, variant: Par
   return { diff: parentsDiff(state.parents, afterParents(variant, pick)), state };
 }
 
+/** Понятное сообщение, почему замена или снятие заблокированы. */
+export function cloudBlockMessage(cloud: CloudCheck): string {
+  const tail = " Добавить родителя без замены можно прямо сейчас.";
+  if (cloud === "signed-out") return "Эта книга раньше синхронизировалась с облаком, а сейчас вы не вошли. Сначала войдите в аккаунт (Главная, Войти по почте) и проверьте облако, потом повторите." + tail;
+  if (cloud === "unknown") return "Не удалось понять, есть ли у этой книги копия в облаке. Сначала войдите в аккаунт и проверьте облако, потом повторите." + tail;
+  return "Не удалось проверить изменения на другом устройстве. Сначала проверьте облако: Главная, Книга, Синхронизировать. Потом повторите." + tail;
+}
+
 export type CommitArgs = {
   childId: string;
   variant: ParentVariant;
@@ -107,7 +115,7 @@ export function commitExistingChild(a: CommitArgs): CommitResult {
   const diff = parentsDiff(state?.parents ?? [], after);
   const policy = replacePolicy(diff, a.cloud);
   if (!policy.allowed) {
-    return { ok: false, errors: ["Не удалось проверить изменения на другом устройстве. Сначала проверьте облако: Главная, Книга, Синхронизировать. Потом повторите. Добавить родителя без замены можно прямо сейчас."], blocked: "cloud-unchecked" };
+    return { ok: false, errors: [cloudBlockMessage(a.cloud)], blocked: "cloud-unchecked" };
   }
   if (diff.destructive && !a.replaceConfirmed) return { ok: false, errors: ["Нужно подтвердить замену"], blocked: "not-confirmed" };
   return store.attachChildWithParents(a.variant.firstId, a.childId, second, {

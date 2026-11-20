@@ -24,3 +24,41 @@ export async function cloudCheckFrom(run: () => Promise<SyncOutcome>, isBusy: ()
   if (result.kind === "error") return "failed";
   return "checked";
 }
+
+/** Что известно локально о синхронизации этой книги. unknown: достоверно определить нельзя. */
+export type CloudHistory = "never" | "synced" | "unknown";
+
+/**
+ * Была ли эта книга когда-либо в облаке, по локальным отметкам: отметка синхронизации (localStorage) и база последней
+ * синхронизации (IndexedDB). Выход из аккаунта эти отметки не стирает. «Не было» ставится только когда обе отметки
+ * читаются и обе пусты. Нечитаемая, испорченная или пустая-но-существующая отметка даёт unknown, а не «не было».
+ */
+export async function cloudHistoryFrom(readMetaRaw: () => string | null, readBase: () => Promise<string | null | undefined>): Promise<CloudHistory> {
+  try {
+    const raw = readMetaRaw();
+    if (raw !== null) {
+      const meta = JSON.parse(raw) as { rev?: unknown; hash?: unknown; at?: unknown } | null;
+      if (Number(meta?.rev ?? 0) > 0 || (typeof meta?.at === "string" && meta.at) || (typeof meta?.hash === "string" && meta.hash)) return "synced";
+    }
+    const base = await readBase();
+    if (base) return "synced";
+    return raw === null ? "never" : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+/**
+ * Итог проверки облака. Вошёл (authorized): настоящая синхронизация. Не вошёл: решает история книги.
+ * Недоступное облако у вошедшего и «раньше синхронизировалась» у вышедшего НЕ считаются отсутствием облачной копии.
+ */
+export async function cloudCheckFor(input: { authorized: boolean; history: () => Promise<CloudHistory>; run: () => Promise<SyncOutcome>; isBusy: () => boolean; timeoutMs?: number }): Promise<CloudCheck> {
+  if (input.authorized) return cloudCheckFrom(input.run, input.isBusy, input.timeoutMs);
+  let history: CloudHistory;
+  try {
+    history = await input.history();
+  } catch {
+    history = "unknown";
+  }
+  return history === "never" ? "no-cloud" : history === "synced" ? "signed-out" : "unknown";
+}

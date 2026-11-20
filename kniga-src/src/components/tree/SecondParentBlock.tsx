@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useRod } from "@/lib/rod/store";
 import type { Person as RodPerson } from "@/lib/rod/types";
 import { checkCloudBeforeEdit } from "@/lib/rod/sync";
-import { NEW_PARENT, afterParents, commitExistingChild, parentVariants, previewChange, type ParentVariant } from "@/lib/tree/child-parents";
+import { NEW_PARENT, afterParents, cloudBlockMessage, commitExistingChild, parentVariants, previewChange, type ParentVariant } from "@/lib/tree/child-parents";
 import { currentParentsState, parentsDiff, secondParentOptions, type CloudCheck, type Confirmations, type Needs } from "@/lib/tree/second-parent";
 import { emptyDraft, type Draft, type StoreSecond } from "@/lib/tree/ui-store";
 
@@ -175,7 +175,7 @@ export function ExistingChildPanel({ first, childId, onDone, onCancel }: { first
     const again = fresh?.variants.find((v) => v.id === variant.id);
     if (!fresh || !sameVariant(again, variant)) { resetAll("После проверки облака данные изменились. Выберите вариант заново."); return; }
     if (result !== "checked" && result !== "no-cloud") {
-      setMessage("Не удалось проверить изменения на другом устройстве. Сначала проверьте облако: Главная, Книга, Синхронизировать. Потом повторите. Добавить родителя без замены можно прямо сейчас.");
+      setMessage(cloudBlockMessage(result));
       return;
     }
     setExpected({ parents: fresh.before, unmarried: fresh.unmarried });

@@ -156,8 +156,14 @@ export function parentsDiff(before: string[], after: string[]): ParentsDiff {
   return { before: b, after: a, kept: b.filter((id) => a.includes(id)), removed, added, destructive: removed.length > 0, unchanged: !removed.length && !added.length };
 }
 
-/** Итог проверки облака перед правкой связей (см. checkCloudBeforeEdit в sync.ts). no-cloud: вход не выполнен, облачной копии нет. */
-export type CloudCheck = "checked" | "no-cloud" | "failed" | "conflict" | "busy" | "timeout";
+/**
+ * Итог проверки облака перед правкой связей (см. checkCloudBeforeEdit в sync.ts).
+ * checked: вошли, синхронизация удалась. no-cloud: эта книга НИКОГДА не синхронизировалась, облачной копии нет.
+ * signed-out: книга раньше синхронизировалась, а сейчас вход не выполнен: проверка невозможна.
+ * unknown: по локальным отметкам нельзя достоверно сказать, есть ли облачная копия (считается, что может быть).
+ * failed, conflict, busy, timeout: вошли, но проверка не удалась.
+ */
+export type CloudCheck = "checked" | "no-cloud" | "signed-out" | "unknown" | "failed" | "conflict" | "busy" | "timeout";
 
 /**
  * Можно ли выполнять операцию. Замена и снятие существующего родителя разрешены, только если облако проверено

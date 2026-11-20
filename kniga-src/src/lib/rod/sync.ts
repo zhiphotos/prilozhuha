@@ -7,7 +7,7 @@ import { deviceId } from "@/lib/rod/pay";
 import { MAIN_ID, activeProjectId, addProjectWithId, listProjects } from "@/lib/rod/projects";
 import { fingerprint, splitParts } from "@/lib/rod/sync-logic";
 import { describeRelations } from "@/lib/rod/sync-merge";
-import { cloudCheckFrom } from "@/lib/rod/cloud-check";
+import { cloudCheckFor, cloudHistoryFrom } from "@/lib/rod/cloud-check";
 import type { CloudCheck } from "@/lib/tree/second-parent";
 import { PART, afterOpenCopy, previewMerge, restoreLocalBackup, restorePreviousCloud, syncCore, syncSmart, type Deps, type Meta, type SyncMode, type SyncOutcome } from "@/lib/rod/sync-engine";
 import { readBackup, saveBackup } from "@/lib/rod/sync-backup";
@@ -216,17 +216,19 @@ export async function syncNow(mode: SyncMode = "auto"): Promise<void> {
 }
 
 export async function checkCloudBeforeEdit(timeoutMs = 12000): Promise<CloudCheck> {
-  if (!API_BASE || !useRod.getState().access?.token) return "no-cloud";
-  return cloudCheckFrom(
-    async () => {
+  return cloudCheckFor({
+    authorized: Boolean(API_BASE && useRod.getState().access?.token),
+    // Без входа решает локальная история этой книги: отметка синхронизации и база последней синхронизации (выход их не стирает).
+    history: () => cloudHistoryFrom(() => localStorage.getItem(metaKey()), () => idbGet<string>(STATE_STORE, `kniga-sync-base:${activeProjectId()}`)),
+    run: async () => {
       useSync.getState().setState({ busy: true, message: "Проверяю облако…" });
       const outcome = await syncSmart(makeDeps());
       report(outcome, "auto");
       return outcome;
     },
-    () => useSync.getState().busy,
+    isBusy: () => useSync.getState().busy,
     timeoutMs,
-  );
+  });
 }
 
 /** Копия книги на этом устройстве до замены. Вызывать перед «Открыть копию» и перед восстановлением. */
