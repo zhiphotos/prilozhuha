@@ -215,7 +215,7 @@ export function planRepair(current: RodPerson[], list: ImportedPerson[]): Repair
         add({ kind: "parent-nameless", personId: x.id, personName: fullName(x), gedKey: key, before: "второй родитель не записан", after: `родитель: ${short(target, target.id)}`, basis: `в файле у ${key} родители ${[...fp].join(" + ")}; ${m} – супруг записанного родителя`, selected: true, op: { type: "addParent", to: target.id } });
       }
     }
-    // 3б. у человека родителей нет совсем, а в файле он ребёнок одного родителя (так у Евдокии после возврата номера): достраиваем связь
+    // 3б. у человека родителей нет совсем, а в файле он ребёнок одного родителя (так бывает после возврата номера записи без копии): достраиваем связь
     if (!(x.parents ?? []).length && fp.size === 1) {
       const m = [...fp][0]!;
       const target = realOf(m);
@@ -234,7 +234,7 @@ export function planRepair(current: RodPerson[], list: ImportedPerson[]): Repair
     for (const m of x.moreSpouses ?? []) swapSpouse(m.id, true);
   }
 
-  // 5. восстановление номера (человек без копии в списке, например Евдокия) и его связь с родителем из файла
+  // 5. восстановление номера (человек без копии в списке, например человек, записанный один раз без номера) и его связь с родителем из файла
   for (const v of verdicts) {
     if (v.confidence !== "restore") continue;
     const g = ix.byId.get(v.id)!;

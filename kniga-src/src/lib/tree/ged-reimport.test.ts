@@ -79,11 +79,11 @@ test("повторная загрузка дописывает девичью ф
 });
 
 test("человек без фамилии находится по связям: повторная загрузка не добавляет второй экземпляр и возвращает номер", () => {
-  const body = `0 @I1@ INDI\n1 NAME Егор /Жуков/\n0 @I2@ INDI\n1 NAME Евдокия //\n1 SEX F\n0 @F1@ FAM\n1 HUSB @I1@\n1 WIFE @I2@\n`;
+  const body = `0 @I1@ INDI\n1 NAME Кондрат /Вишнев/\n0 @I2@ INDI\n1 NAME Агриппина //\n1 SEX F\n0 @F1@ FAM\n1 HUSB @I1@\n1 WIFE @I2@\n`;
   const list = load(file(body), "I1");
   const current: RodPerson[] = [
     asRod(list.find((p) => p.key === "I1")!, "egor", { spouse: "evd" }),
-    { id: "evd", name: "Евдокия", firstName: "Евдокия", patronymic: "", lastName: "", relation: "Родственник", birthYear: "", maidenName: "", notes: "", spouse: "egor", gender: "f" },
+    { id: "evd", name: "Агриппина", firstName: "Агриппина", patronymic: "", lastName: "", relation: "Родственник", birthYear: "", maidenName: "", notes: "", spouse: "egor", gender: "f" },
   ];
   const plan = planGedImport(current, list, { updateLinks: false, uid: () => "new" });
   assert.ok(plan.ok);
@@ -92,11 +92,11 @@ test("человек без фамилии находится по связям:
 });
 
 test("человек без фамилии не склеивается по одному имени, если его связи не совпадают с файлом", () => {
-  const body = `0 @I1@ INDI\n1 NAME Егор /Жуков/\n0 @I2@ INDI\n1 NAME Евдокия //\n1 SEX F\n0 @F1@ FAM\n1 HUSB @I1@\n1 WIFE @I2@\n`;
+  const body = `0 @I1@ INDI\n1 NAME Кондрат /Вишнев/\n0 @I2@ INDI\n1 NAME Агриппина //\n1 SEX F\n0 @F1@ FAM\n1 HUSB @I1@\n1 WIFE @I2@\n`;
   const list = load(file(body), "I1");
   const current: RodPerson[] = [
     asRod(list.find((p) => p.key === "I1")!, "egor"),
-    { id: "other", name: "Евдокия", firstName: "Евдокия", patronymic: "", lastName: "", relation: "Родственник", birthYear: "", maidenName: "", notes: "", gender: "f" },
+    { id: "other", name: "Агриппина", firstName: "Агриппина", patronymic: "", lastName: "", relation: "Родственник", birthYear: "", maidenName: "", notes: "", gender: "f" },
   ];
   assert.equal(planGedImport(current, list, { updateLinks: false, uid: () => "new" }).ok && matchExisting(current, list).has("I2"), false);
 });
