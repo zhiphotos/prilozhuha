@@ -10,7 +10,7 @@ import { PaySheet } from "@/components/rod/lessons";
 import { GiftActions } from "@/components/rod/gift";
 import { LoginScreen } from "@/components/rod/login-screen";
 import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
-import { PROGRAM_PRICE } from "@/lib/rod/content";
+import { payNote, priceNow, saleBannerText } from "@/lib/rod/offer";
 import { exportBook } from "@/lib/rod/backup";
 import { useRod } from "@/lib/rod/store";
 
@@ -84,9 +84,10 @@ export function AccessSheet({ onClose, onBooks }: { onClose: () => void; onBooks
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-sm text-muted">Платёж один раз, без подписки.</p>
+            <SaleBanner />
+            <p className="mt-3 text-sm text-muted">{payNote()}</p>
             <Button className="btn-glass-green mt-4 h-auto min-h-12 w-full whitespace-normal py-3" onClick={() => setPay("buy")}>
-              <span className="text-center">Открыть полный доступ <span className="whitespace-nowrap">· {PROGRAM_PRICE}</span></span>
+              <span className="text-center">Открыть полный доступ <span className="whitespace-nowrap">· {priceNow()}</span></span>
             </Button>
             <div className="mt-3">
               <GiftActions />
@@ -101,6 +102,18 @@ export function AccessSheet({ onClose, onBooks }: { onClose: () => void; onBooks
   );
 }
 
+/** Плашка в дни акции для тех, у кого полного доступа нет. Вне акции ничего не рисует. */
+export function SaleBanner() {
+  const b = saleBannerText();
+  if (!b) return null;
+  return (
+    <div className="mt-4 rounded-2xl border border-gold-ink/35 bg-white/70 px-4 py-3 text-ink" role="note">
+      <p className="text-[15px] font-semibold leading-snug">{b.title}</p>
+      <p className="mt-1 text-sm leading-snug text-ink/80">{b.text}</p>
+    </div>
+  );
+}
+
 /** Спокойная строка-приглашение на «Главной» для тех, у кого полного доступа ещё нет: без списков и цветных заливок. */
 export function TariffCard({ onOpen }: { onOpen: () => void }) {
   return (
@@ -108,9 +121,9 @@ export function TariffCard({ onOpen }: { onOpen: () => void }) {
       <span className="min-w-0 flex-1">
         <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-burgundy">Полный доступ</span>
         <span className="mt-0.5 block text-[15px] font-semibold leading-snug text-ink">Вход, облако и до трёх книг</span>
-        <span className="mt-0.5 block text-sm text-muted">Один платёж, без подписки</span>
+        <span className="mt-0.5 block text-sm text-muted">{payNote()}</span>
       </span>
-      <span className="btn-glass-green shrink-0 rounded-full px-4 py-2 text-sm font-semibold">{PROGRAM_PRICE}</span>
+      <span className="btn-glass-green shrink-0 rounded-full px-4 py-2 text-sm font-semibold">{priceNow()}</span>
     </button>
   );
 }
@@ -208,7 +221,7 @@ export function TogetherCard({ onOpenFamily, onOpenTariff }: { onOpenFamily: () 
                 onOpenTariff();
               }}
             >
-              Открыть полный доступ · <span className="whitespace-nowrap">{PROGRAM_PRICE}</span>
+              Открыть полный доступ · <span className="whitespace-nowrap">{priceNow()}</span>
             </Button>
             <Button variant="ghost" onClick={() => setLocked(false)}>
               Не сейчас

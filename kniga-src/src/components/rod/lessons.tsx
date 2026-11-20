@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowRight, Check, ChevronLeft, ExternalLink, FileText, Library, Lock, Network, Play, ShoppingBag, Sparkles, Users, X } from "lucide-react";
 import { toast } from "sonner";
-import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson, type Lesson } from "@/lib/rod/content";
+import { LESSONS, PROGRAM_OLD_PRICE, findLesson, type Lesson } from "@/lib/rod/content";
+import { lessonPayNote, priceNow, showOldPrice } from "@/lib/rod/offer";
 import { FAQ } from "@/lib/rod/faq";
 import { AI_NOTE, FREE_NOTE, PITCH, PROGRAM_PERKS, PROGRAM_SOON } from "@/lib/rod/lesson-pitch";
 import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
@@ -373,8 +374,8 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
       {mode === "buy" && !started ? (
         <div className="mt-4 grid gap-3">
           <div className="rounded-3xl bg-[#1d3024] p-4 shadow-[0_20px_34px_-20px_rgba(20,22,15,0.8)]">
-            <Button className="min-h-14 w-full whitespace-nowrap !bg-[#e6cf9c] px-4 text-[1.1rem] !text-[#241a07] shadow-[0_12px_24px_-12px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.6)_inset] hover:!bg-[#c9ae74]" onClick={() => setStarted(true)}><ShoppingBag className="size-5" /> Купить за {PROGRAM_PRICE}</Button>
-            <p className="mt-3 text-center text-sm leading-snug text-[#f3f0e8]/85">Платите один раз, навсегда, без подписки и списаний</p>
+            <Button className="min-h-14 w-full whitespace-nowrap !bg-[#e6cf9c] px-4 text-[1.1rem] !text-[#241a07] shadow-[0_12px_24px_-12px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.6)_inset] hover:!bg-[#c9ae74]" onClick={() => setStarted(true)}><ShoppingBag className="size-5" /> Купить за {priceNow()}</Button>
+            <p className="mt-3 text-center text-sm leading-snug text-[#f3f0e8]/85">{lessonPayNote()}</p>
           </div>
           {live ? <GiftActions /> : null}
           {live ? <button type="button" className="text-left text-sm text-moss underline" onClick={() => setMode("restore")}>Уже оплатили? Войти по почте</button> : null}
@@ -519,7 +520,7 @@ export function PaySheet({ onClose, initialMode = "buy" }: { onClose: () => void
             <span>Хочу получать новости и предложения ({doc("consent-ads", "согласие на рассылку")}). Необязательно.</span>
           </label>
           <Button type="submit" disabled={busy || !validEmail || !terms || !pd} className="h-auto min-h-12 w-full whitespace-normal py-3">
-            {busy ? "Открываю оплату…" : `Оплатить ${PROGRAM_PRICE}`}
+            {busy ? "Открываю оплату…" : `Оплатить ${priceNow()}`}
           </Button>
           <p className="text-xs text-muted">Оплата на защищённой странице Альфа-Банка. Чек придёт на указанную почту.</p>
           <button type="button" className="text-left text-sm text-moss underline" onClick={() => setRegion(null)}>Назад к выбору</button>
@@ -614,14 +615,14 @@ function PayPitch({ onBuy }: { onBuy: () => void }) {
           <h3 className="display-title text-[2.1rem] leading-[1.08] text-[#e6cf9c]">Книга о вашей семье</h3>
           <p className="mt-1.5 text-[1.05rem] leading-snug text-[#f3f0e8]">от первого вопроса до печати</p>
           <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
-            <span className="text-[2.6rem] font-semibold leading-none text-[#e6cf9c]">{PROGRAM_PRICE}</span>
+            <span className="text-[2.6rem] font-semibold leading-none text-[#e6cf9c]">{priceNow()}</span>
             <span className="grid gap-0.5 leading-none">
-              <span className="text-base text-[#f3f0e8]/75 line-through decoration-[#e6cf9c]/70">{PROGRAM_OLD_PRICE}</span>
-              <span className="mt-1 w-fit rounded-md border border-[#c9ae74] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#e6cf9c]">скидка 49%</span>
+              {showOldPrice() ? <span className="text-base text-[#f3f0e8]/75 line-through decoration-[#e6cf9c]/70">{PROGRAM_OLD_PRICE}</span> : null}
+              {showOldPrice() ? <span className="mt-1 w-fit rounded-md border border-[#c9ae74] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#e6cf9c]">скидка 49%</span> : null}
             </span>
           </div>
-          <Button className="mt-5 min-h-14 w-full whitespace-nowrap !bg-[#e6cf9c] px-4 text-[1.1rem] !text-[#241a07] shadow-[0_12px_24px_-12px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.6)_inset] hover:!bg-[#c9ae74]" onClick={onBuy}><ShoppingBag className="size-5" /> Купить за {PROGRAM_PRICE}</Button>
-          <p className="mt-3 text-center text-sm leading-snug text-[#f3f0e8]/85">Платите один раз, навсегда, без подписки и списаний</p>
+          <Button className="mt-5 min-h-14 w-full whitespace-nowrap !bg-[#e6cf9c] px-4 text-[1.1rem] !text-[#241a07] shadow-[0_12px_24px_-12px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.6)_inset] hover:!bg-[#c9ae74]" onClick={onBuy}><ShoppingBag className="size-5" /> Купить за {priceNow()}</Button>
+          <p className="mt-3 text-center text-sm leading-snug text-[#f3f0e8]/85">{lessonPayNote()}</p>
         </div>
       </div>
       <p className="story-hand !mb-3 !mt-6">что вы получите</p>
@@ -663,9 +664,9 @@ function PayPitch({ onBuy }: { onBuy: () => void }) {
 function PriceTag({ big = false }: { big?: boolean }) {
   return (
     <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <span className={cn("font-semibold leading-tight text-ink", big ? "text-[2.1rem]" : "text-[1.9rem]")}>{PROGRAM_PRICE}</span>
-      <span className="text-lg text-muted line-through decoration-rose-deep/70">{PROGRAM_OLD_PRICE}</span>
-      <span className="rounded-full bg-rose-deep px-2.5 py-0.5 text-xs font-semibold text-paper">скидка</span>
+      <span className={cn("font-semibold leading-tight text-ink", big ? "text-[2.1rem]" : "text-[1.9rem]")}>{priceNow()}</span>
+      {showOldPrice() ? <span className="text-lg text-muted line-through decoration-rose-deep/70">{PROGRAM_OLD_PRICE}</span> : null}
+      {showOldPrice() ? <span className="rounded-full bg-rose-deep px-2.5 py-0.5 text-xs font-semibold text-paper">скидка</span> : null}
     </p>
   );
 }
@@ -829,7 +830,7 @@ function LockedLesson({ lesson, onBack, onBuy, onNext, onMore, widget = false }:
             </button>
           ) : null}
           <div className="mt-1">
-            <GoldTicket onClick={onBuy}>Купить уроки и полный доступ в приложение за {PROGRAM_PRICE}</GoldTicket>
+            <GoldTicket onClick={onBuy}>Купить уроки и полный доступ в приложение за {priceNow()}</GoldTicket>
             <div className="mt-3">
               <GiftActions dark />
             </div>
