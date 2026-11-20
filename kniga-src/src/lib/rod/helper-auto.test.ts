@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { helperRoundWith, publishIfChangedWith, signature, type AutoSession, type PollAnswer } from "./helper-auto.ts";
 import { statusOfRound } from "./helper-status.ts";
+import { dropOpen, overview } from "./helper-verdicts.ts";
 import { makeChangeSet, type Book, type Change } from "./helper-changes.ts";
 
 type Rec = { id: string; name: string };
@@ -484,4 +485,139 @@ test("39 отправленное остаётся ждать, пока влад
   assert.equal(await h.round(), "idle");
   assert.equal(names(h.lists.people), "a,x");
   assert.ok(h.session?.sent);
+});
+
+// ——— С-2б: статусы решений владельца, переживающие перезапуск
+const owner = (s: Server) => clone(s.base);
+const view = (h: Helper) => overview(h.session as never, h.lists as unknown as Book);
+const restart = (h: Helper) => {
+  h.session = JSON.parse(JSON.stringify(h.session));
+  h.lists = JSON.parse(JSON.stringify(h.lists));
+};
+const edit = (h: Helper, id: string, name: string) => {
+  h.lists.people.find((p) => p.id === id)!.name = name;
+};
+
+test("40 отправлено и ждёт решения: видно как «ждёт», не как «без правок»", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  await h.round();
+  const v = view(h);
+  assert.equal(v.fresh, 0);
+  assert.equal(v.waiting.length, 1);
+  assert.equal(v.rejected.length + v.conflicts.length + v.accepted.length, 0);
+});
+test("41 принято: статус «принято» остаётся после перезапуска", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  await h.round();
+  s.accept(owner(s), s.inbox[0].id); // владелец разобрал присланное
+  s.publish({ ...empty(), people: [person("a", "A1")] });
+  assert.equal(await h.round(), "updated");
+  restart(h);
+  const v = view(h);
+  assert.equal(v.accepted.length, 1);
+  assert.equal(v.waiting.length, 0);
+  assert.equal(v.rejected.length, 0);
+});
+test("42 не принято: счётчик и статус сохраняются после перезапуска, правка цела", async () => {
+  const s = withBook(["a", "b"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a"), person("b"), person("c")] });
+  assert.equal(await h.round(), "held");
+  restart(h);
+  const v = view(h);
+  assert.equal(v.rejected.length, 1);
+  assert.equal(v.conflicts.length, 0);
+  assert.equal(v.waiting.length, 0);
+  assert.equal(h.lists.people.find((p) => p.id === "a")?.name, "A1");
+});
+test("43 владелец сам изменил то же поле: конфликт с двумя значениями, правка помощника не затёрта", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "Мамина версия");
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a", "Версия владельца")] });
+  assert.equal(await h.round(), "held");
+  restart(h);
+  const v = view(h);
+  assert.equal(v.conflicts.length, 1);
+  assert.equal(v.rejected.length, 0);
+  assert.deepEqual(v.conflicts[0].fields, ["name"]);
+  assert.equal((v.conflicts[0].mine as Rec).name, "Мамина версия");
+  assert.equal((v.conflicts[0].theirs as Rec).name, "Версия владельца");
+  assert.equal(h.lists.people[0].name, "Мамина версия");
+  await h.round();
+  await h.round();
+  assert.equal(s.inbox.length, 0); // сама заново не уходит
+});
+test("44 владелец изменил другое поле той же записи: это «не принято», а не конфликт", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [{ id: "a", name: "a", extra: 1 } as Rec] });
+  await h.round();
+  assert.equal(view(h).conflicts.length, 0); // имя владелец не менял
+  assert.equal(view(h).rejected.length, 1);
+});
+test("45 часть принята, часть нет: принятое и не принятое считаются отдельно", async () => {
+  const s = withBook(["a", "b"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  edit(h, "b", "B1");
+  await h.round();
+  s.accept(owner(s), s.inbox[0].id); // разобрано: ящик пуст
+  s.publish({ ...empty(), people: [person("a", "A1"), person("b")] });
+  await h.round();
+  const v = view(h);
+  assert.equal(v.accepted.length, 1);
+  assert.equal(v.rejected.length, 1);
+  assert.equal(h.lists.people.find((p) => p.id === "b")?.name, "B1");
+});
+test("46 «Отправить снова»: не принятое уходит один раз, принятое остаётся принятым", async () => {
+  const s = withBook(["a", "b"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  edit(h, "b", "B1");
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a", "A1"), person("b")] });
+  await h.round();
+  h.session = { ...h.session!, sent: undefined, verdicts: dropOpen(h.session!.verdicts) }; // resendHeld
+  await h.round();
+  await h.round();
+  assert.equal(s.inbox.length, 1);
+  const v = view(h);
+  assert.equal(v.rejected.length, 0);
+  assert.equal(v.waiting.length, 1);
+  assert.equal(v.accepted.length, 1);
+});
+test("47 сброс: не принятые правки убраны, статусы «принято» остались", async () => {
+  const s = withBook(["a", "b"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  edit(h, "b", "B1");
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a", "A1"), person("b")] });
+  await h.round();
+  h.lists = clone(h.session!.base) as unknown as Lists; // discardHeld
+  h.session = { ...h.session!, sent: undefined, verdicts: dropOpen(h.session!.verdicts) };
+  const v = view(h);
+  assert.equal(v.fresh + v.waiting.length + v.rejected.length + v.conflicts.length, 0);
+  assert.equal(v.accepted.length, 1);
+});
+test("48 старая сессия без verdicts и sent: сводка пустая, ничего не ломается", async () => {
+  const h = new Helper(withBook(["a"]), "Мама");
+  assert.equal(h.session?.verdicts, undefined);
+  const v = view(h);
+  assert.equal(v.fresh + v.waiting.length + v.accepted.length + v.rejected.length + v.conflicts.length, 0);
 });

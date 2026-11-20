@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Check, Users } from "lucide-react";
 import { toast } from "sonner";
 import { defaultDecision, summarize, type Change, type Decision, type ReviewItem } from "@/lib/rod/helper-changes";
-import { helperChanges, helperSession, joinAsHelper, leaveHelper, rememberWho, reviewIncoming, applyIncoming, sendChanges, type HelperSession } from "@/lib/rod/helper";
+import { discardHeld, helperOverview, helperSession, joinAsHelper, leaveHelper, rememberWho, resendHeld, reviewIncoming, applyIncoming, sendChanges, subscribeSession, type HelperSession } from "@/lib/rod/helper";
+import type { Verdict } from "@/lib/rod/helper-verdicts";
 import { Button, useNav } from "@/components/rod/chrome";
 import { useMedia } from "@/lib/rod/media";
 import { cn } from "@/lib/cn";
@@ -112,21 +113,36 @@ export function HelperJoin({ room, invite }: { room: string; invite: string }) {
   );
 }
 
+const sessionText = () => localStorage.getItem("kniga-helper") ?? "";
+const readText = () => {
+  try {
+    return sessionText();
+  } catch {
+    return "";
+  }
+};
+
+const verdictTitle = (v: Verdict) => `${KEYS[v.key]} «${label((v.theirs && v.kind === "remove" ? v.theirs : v.mine) as Record<string, unknown> | undefined)}»`;
+
 /** Помощник: плашка с отправкой правок. Видна только тому, кто открыл книгу по ссылке помощника. */
 export function HelperBar() {
-  const [session, setSession] = useState<HelperSession | null>(() => helperSession());
+  useSyncExternalStore(subscribeSession, readText); // экран обновляется, когда сессия изменилась: обход, решение владельца, перезапуск
+  const session: HelperSession | null = helperSession();
   const [busy, setBusy] = useState("");
   const [asking, setAsking] = useState(false);
+  const [confirmDrop, setConfirmDrop] = useState(false);
+  const [open, setOpen] = useState(false);
   const [who, setWho] = useState(() => helperSession()?.who ?? "");
   if (!session) return null;
-  const count = helperChanges(session).length;
+  const view = helperOverview(session);
+  const count = view.fresh;
+  const held = view.rejected.length + view.conflicts.length;
   const send = async () => {
     if (!who.trim()) return;
     setBusy("Отправляю…");
     try {
       rememberWho(who.trim());
       const n = await sendChanges(helperSession() ?? session, who.trim(), (d, t) => setBusy(`Фото ${d} из ${t}…`));
-      setSession(helperSession());
       setAsking(false);
       toast(`Отправлено правок: ${n}. Хозяйка книги их посмотрит.`, { duration: 6000 });
     } catch (error) {
@@ -135,13 +151,57 @@ export function HelperBar() {
       setBusy("");
     }
   };
+  const lines = [
+    count ? `Не отправлено: ${count}` : "",
+    view.waiting.length ? `Отправлено, ждёт решения владельца: ${view.waiting.length}` : "",
+    view.accepted.length ? `Принято владельцем: ${view.accepted.length}` : "",
+    view.rejected.length ? `Не принято, сохранено у вас: ${view.rejected.length}` : "",
+    view.conflicts.length ? `Конфликт с правкой владельца: ${view.conflicts.length}` : "",
+  ].filter(Boolean);
   return (
     <div className="fixed inset-x-3 bottom-20 z-40 mx-auto max-w-md rounded-2xl bg-[#14160f] p-3 pl-4 text-sm text-paper shadow-lg">
       <div className="flex items-center gap-2">
-        <span className="flex-1 leading-tight">Вы помощник: {session.name}. {count ? `Правок: ${count}` : "Пока без правок"}</span>
+        <span className="flex-1 leading-tight">Вы помощник: {session.name}.{lines.length ? "" : " Пока без правок"}</span>
         {asking ? null : <Button disabled={!count} onClick={() => (who.trim() ? void send() : setAsking(true))}>Отправить</Button>}
-        <button type="button" aria-label="Закрыть режим помощника" className="px-2 text-paper/60" onClick={() => { leaveHelper(); setSession(null); }}>×</button>
+        <button type="button" aria-label="Закрыть режим помощника" className="px-2 text-paper/60" onClick={() => { leaveHelper(); }}>×</button>
       </div>
+      {lines.length ? (
+        <ul role="status" className="mt-1 grid gap-0.5 text-xs text-paper/85">
+          {lines.map((line) => <li key={line}>{line}</li>)}
+        </ul>
+      ) : null}
+      {held ? (
+        <div className="mt-2">
+          <button type="button" className="text-xs text-paper/70 underline" onClick={() => setOpen((v) => !v)}>{open ? "Скрыть подробности" : "Что именно не принято"}</button>
+          {open ? (
+            <ul className="mt-1 grid gap-1.5 text-xs">
+              {[...view.conflicts, ...view.rejected].map((v) => (
+                <li key={`${v.key}:${v.id}`} className="rounded-lg bg-white/10 p-2">
+                  <p className="font-semibold">{verdictTitle(v)}</p>
+                  {v.state === "conflict" ? (
+                    <>
+                      <p className="mt-0.5 text-paper/80">Владелец сам изменил эту запись. Ваша правка не потеряна и не перезаписана, но решить, чья версия останется, нужно вместе.</p>
+                      {(v.fields ?? []).map((f) => (
+                        <p key={f}><b>{FIELD[f] ?? f}:</b> у вас «{show(v.mine?.[f])}», у владельца «{show(v.theirs?.[f])}»</p>
+                      ))}
+                    </>
+                  ) : <p className="mt-0.5 text-paper/80">Владелец эту правку не принял. Она осталась у вас.</p>}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button variant="soft" onClick={() => { resendHeld(session); toast("Не принятые правки уйдут владельцу ещё раз", { duration: 5000 }); }}>Отправить снова</Button>
+            {confirmDrop ? (
+              <>
+                <Button onClick={() => { discardHeld(session); setConfirmDrop(false); toast("Не принятые правки сброшены, книга снова как у владельца", { duration: 5000 }); }}>Да, сбросить {held}</Button>
+                <Button variant="ghost" onClick={() => setConfirmDrop(false)}>Не надо</Button>
+              </>
+            ) : <Button variant="ghost" onClick={() => setConfirmDrop(true)}>Сбросить</Button>}
+          </div>
+          {confirmDrop ? <p className="mt-1 text-xs text-paper/70">Сброс вернёт эти записи к версии владельца, ваши правки по ним пропадут.</p> : null}
+        </div>
+      ) : null}
       {asking || (busy && !who.trim()) ? (
         <div className="mt-2 flex gap-2">
           <input autoFocus className="field min-h-11 flex-1 !bg-white/95 !text-ink" value={who} onChange={(event) => setWho(event.target.value)} placeholder="Как вас подписать? Например, Мама" />

@@ -2,6 +2,7 @@ import { API_BASE } from "@/lib/rod/config";
 import { helperRoundWith, publishIfChangedWith, signature } from "@/lib/rod/helper-auto";
 import { BASE_TOO_BIG, OFFLINE_TEXT, baseSize, failureStatus, getSyncStatus, setSyncStatus, statusOfRound } from "@/lib/rod/helper-status";
 import { HELPER_KEYS, applyReview, makeChangeSet, reviewChanges, type Book, type Change, type Decision, type ReviewItem } from "@/lib/rod/helper-changes";
+import { dropOpen, overview, type Overview, type Verdict } from "@/lib/rod/helper-verdicts";
 import { collectRefs } from "@/lib/rod/backup";
 import { hasMedia, mediaDataUrl, saveMediaAs } from "@/lib/rod/media";
 import { addProjectMeta, activeProjectId } from "@/lib/rod/projects";
@@ -104,7 +105,7 @@ export async function publishBase(progress?: (done: number, total: number) => vo
 }
 
 const KEY = "kniga-helper";
-export type HelperSession = { room: string; invite: string; name: string; base: Book; project: string; who?: string; baseAt?: number; sent?: Book };
+export type HelperSession = { room: string; invite: string; name: string; base: Book; project: string; who?: string; baseAt?: number; sent?: Book; verdicts?: Verdict[] };
 
 export function helperSession(): HelperSession | null {
   try {
@@ -115,6 +116,12 @@ export function helperSession(): HelperSession | null {
     return null;
   }
 }
+const sessionListeners = new Set<() => void>();
+/** Экран помощника обновляется, когда сессия изменилась (обход, отправка, решение владельца). */
+export const subscribeSession = (listener: () => void): (() => void) => {
+  sessionListeners.add(listener);
+  return () => void sessionListeners.delete(listener);
+};
 const saveSession = (session: HelperSession | null) => {
   try {
     if (session) localStorage.setItem(KEY, JSON.stringify(session));
@@ -122,7 +129,11 @@ const saveSession = (session: HelperSession | null) => {
   } catch {
     /* без сохранения помощник просто откроет ссылку ещё раз */
   }
+  for (const listener of sessionListeners) listener();
 };
+
+/** Что с правками помощника: не отправлено, ждёт решения, принято, не принято, конфликт. */
+export const helperOverview = (session: HelperSession): Overview => overview(session, lists());
 
 export const rememberWho = (who: string) => {
   const session = helperSession();
@@ -169,7 +180,7 @@ export const helperChanges = (session: HelperSession): Change[] => makeChangeSet
 export const sentChanges = (session: HelperSession): Change[] => (session.sent ? makeChangeSet(session.base, session.sent) : []);
 
 /** Явное решение помощника: отправить не принятое владельцем ещё раз. */
-export const resendHeld = (session: HelperSession) => saveSession({ ...session, sent: undefined });
+export const resendHeld = (session: HelperSession) => saveSession({ ...session, sent: undefined, verdicts: dropOpen(session.verdicts) });
 
 /** Явное решение помощника: отказаться от не принятых правок, книга снова равна версии владельца. */
 export function discardHeld(session: HelperSession): void {
@@ -177,7 +188,7 @@ export function discardHeld(session: HelperSession): void {
   for (const key of HELPER_KEYS) patch[key] = session.base[key] ?? [];
   useRod.setState(patch);
   flushBook();
-  saveSession({ ...session, sent: undefined });
+  saveSession({ ...session, sent: undefined, verdicts: dropOpen(session.verdicts) });
 }
 
 export async function sendChanges(session: HelperSession, who: string, progress?: (done: number, total: number) => void): Promise<number> {
@@ -188,7 +199,8 @@ export async function sendChanges(session: HelperSession, who: string, progress?
   await uploadMedia({ room: session.room, invite: session.invite }, fresh, progress);
   const answer = await post<{ ok?: boolean }>("/api/room-submit", { room: session.room, invite: session.invite, kind: "changes", from: { name: who, relation: "" }, changes });
   if (!answer.ok) throw new Error(answer.error || "Не получилось отправить.");
-  saveSession({ ...session, who, sent: lists() }); // база остаётся версией владельца; следующая отправка покажет только новые правки
+  const resent = (v: Verdict) => v.state !== "accepted" && changes.some((c) => c.key === v.key && c.id === v.id); // по заново отправленному старого «не принято» уже нет
+  saveSession({ ...session, who, sent: lists(), verdicts: (session.verdicts ?? []).filter((v) => !resent(v)) }); // база остаётся версией владельца; следующая отправка покажет только новые правки
   return changes.length;
 }
 
