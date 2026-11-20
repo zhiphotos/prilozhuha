@@ -21,6 +21,7 @@ import { TreeTab } from "@/components/rod/tree-tab";
 import { Cut } from "@/components/rod/botanica";
 import { MediaImg } from "@/components/rod/media-img";
 import { Button, Field, ScreenFrame, TopBar, useNav } from "@/components/rod/chrome";
+import { Linkified } from "@/components/rod/linkified";
 
 const TABS: { id: ArchiveTab; label: string }[] = [
   { id: "people", label: "Люди" },
@@ -533,7 +534,7 @@ function PlaceCard({ place }: { place: Place }) {
       </button>
       <p className="pr-10 text-lg font-semibold text-ink">{place.name}</p>
       {place.years ? <p className="text-sm text-rose-deep">{place.years}</p> : null}
-      {place.note ? <p className="mt-1 text-sm text-muted">{place.note}</p> : null}
+      {place.note ? <p className="mt-1 text-sm text-muted"><Linkified text={place.note} /></p> : null}
       {named.length ? <p className="mt-1 text-sm text-ink/80">Здесь: {named.join(", ")}</p> : null}
       {place.attachments?.length ? (
         <ul className="mt-2 flex flex-wrap gap-2">
@@ -649,7 +650,7 @@ function DocsPane() {
             <p className="text-sm text-muted">
               {doc.kind}
               {doc.year ? ` · ${doc.year}` : ""}
-              {doc.note ? ` · ${doc.note}` : ""}
+              {doc.note ? <> · <Linkified text={doc.note} /></> : null}
             </p>
             <Attachments scan items={doc.attachments ?? []} onChange={(next) => updateDocument(doc.id, { attachments: next })} title={doc.attachments?.length ? `Страницы и сканы: ${doc.attachments.length}` : "Скан или фото"} empty="Файлов пока нет." limitText="К одному документу" />
             <button type="button" className="mt-2 text-sm text-muted underline" onClick={() => removeDocument(doc.id)}>

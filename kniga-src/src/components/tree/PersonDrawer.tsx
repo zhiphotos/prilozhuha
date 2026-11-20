@@ -60,6 +60,7 @@ function DeathField({ value, onChange }: { value: string | undefined; onChange: 
 
 import { BRANCH_PALETTE, applySideColors, setBranchColor, sideColors, useBranchColors } from "@/lib/tree/branch-colors";
 import { useCardFields } from "@/lib/tree/card-fields";
+import { Linkified } from "@/components/rod/linkified";
 
 export function PersonDrawer({ onNewBook }: { onNewBook: () => void }) {
   const selectedId = useTree((s) => s.selectedId);
@@ -227,7 +228,7 @@ function FamilySheet({
 
   return (
     <>
-      {person.note && <p className="text-base leading-relaxed">{person.note}</p>}
+      {person.note && <p className="whitespace-pre-line text-base leading-relaxed"><Linkified text={person.note} /></p>}
       <p className="text-sm text-muted">Нового человека добавляют к этому: нажмите, кем он приходится. Предка по архивам ищут отдельно: фамилия сама по себе ничего не доказывает.</p>
       <button type="button" className="min-h-12 rounded-2xl bg-gold px-3 text-sm font-semibold text-ink" onClick={onSearch}>
         Искать предков
