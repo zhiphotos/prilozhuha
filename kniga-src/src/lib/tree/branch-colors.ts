@@ -46,8 +46,52 @@ export function useBranchColors(): Record<string, string> {
   );
 }
 
-/** Цвет ветви человека: свой, а если не задан, ближайшего предка с цветом. */
+/** Человек и все его предки по родителям: «линия родства» вверх. Супруги, братья, сёстры и потомки в неё не входят. */
+export function ancestryOf(unions: Union[], id: string): Set<string> {
+  const line = new Set<string>([id]);
+  const queue = [id];
+  for (let i = 0; i < queue.length; i++) {
+    for (const u of unions) {
+      if (!u.childIds.includes(queue[i]!)) continue;
+      for (const parent of u.partnerIds) if (!line.has(parent)) { line.add(parent); queue.push(parent); }
+    }
+  }
+  return line;
+}
+
+// Цвет «только этому человеку» хранится в том же выборе под ключом «=номер»: потомки его не наследуют, формат .tree не затронут.
+const EXACT = "=";
+
+/** Красит только линию родства человека (он сам и его предки), прежние цвета остальных не меняются. */
+export function setLineColor(unions: Union[], id: string, color: string | null) {
+  const next = { ...current };
+  for (const x of ancestryOf(unions, id)) {
+    if (color) next[EXACT + x] = color;
+    else delete next[EXACT + x];
+  }
+  current = next;
+  try {
+    localStorage.setItem(KEY, JSON.stringify(current));
+  } catch {
+    // выбор останется до закрытия страницы
+  }
+  for (const l of listeners) l();
+}
+
+/** Убирает все цвета «только этому человеку»; цвета ветвей остаются. */
+export function clearLineColors() {
+  current = Object.fromEntries(Object.entries(current).filter(([k]) => !k.startsWith(EXACT)));
+  try {
+    localStorage.setItem(KEY, JSON.stringify(current));
+  } catch {
+    // выбор останется до закрытия страницы
+  }
+  for (const l of listeners) l();
+}
+
+/** Цвет ветви человека: цвет «только ему», затем свой, а если не задан, ближайшего предка с цветом. */
 export function branchColorOf(people: Person[], unions: Union[], id: string, colors: Record<string, string> = current): string | undefined {
+  if (colors[EXACT + id]) return colors[EXACT + id];
   const seen = new Set<string>();
   let level = [id];
   for (let depth = 0; depth < 20 && level.length; depth++) {
