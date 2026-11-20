@@ -9,6 +9,7 @@ import test from "node:test";
 import { cloudText, restoreLocalBackup, syncCore, type Deps, type Meta, type Reply } from "./sync-engine.ts";
 import { fingerprint, pruneKeys } from "./sync-logic.ts";
 import { relationRefProblems } from "./relation-links.ts";
+import { withoutPerson } from "../tree/auto-links.ts";
 
 const { makeToken } = await import("../../../../kniga-api/lib/token.js");
 const handler = (await import("../../../../kniga-api/lib/routes/sync.js")).default;
@@ -152,10 +153,50 @@ test("6г. резервные копии и восстановление: усы
   assert.deepEqual(B.person("ребёнок")?.caredBy, link.caredBy);
 });
 
-test("6д. человека удалили на одном устройстве, на другом он нужен как усыновитель: после объединения он ВОЗВРАЩАЕТСЯ, битых ссылок нет", async () => {
-  const withLink = baseBook();
-  (withLink.people[4] as Rec).adoptedBy = structuredClone(link.adoptedBy);
-  const { B } = await conflictOf(withLink, (b) => { b.people.push(man("A-new")); }, (b) => { b.people = b.people.filter((p) => p.id !== "усыновитель"); (b.people.find((p) => p.id === "ребёнок") as Rec).adoptedBy = undefined; });
+// Удаление человека (усыновителя) на одном устройстве, ссылка на него на другом. Удаление делаем настоящей функцией приложения withoutPerson.
+const delBase = () => ({ people: [man("мать"), man("усыновитель"), man("ребёнок", { parents: ["мать"], adoptedBy: [{ id: "усыновитель" }] }), man("другой", { notes: "" })] });
+const noDup = (d: Device) => { const ids = d.book.people.map((p) => p.id); assert.equal(new Set(ids).size, ids.length, "дубликатов людей нет"); };
+const delOn = (b: Book) => { b.people = withoutPerson(b.people as never, "усыновитель") as never; };
+
+test("6д-1. удалили на A (ссылка снялась у ребёнка), на B менялся другой человек: после объединения у B человек и ссылка так, как решает общая логика, без дубликатов и битых ссылок", async () => {
+  const { A, B } = await conflictOf(delBase(), delOn, (b) => { b.people.find((p) => p.id === "другой")!.notes = "правка B"; });
+  const r = await B.sync("merge");
+  assert.equal(r.kind, "merged");
+  noDup(B);
+  assert.deepEqual(relationRefProblems(B.book.people as never), [], "битых ссылок нет");
+  assert.ok(B.person("усыновитель"), "удаление не переносится: человек остаётся, пока он есть на этом устройстве");
+  assert.equal(B.person("ребёнок")?.adoptedBy, undefined, "снятая на A ссылка не возвращается: ребёнок на B не менялся, берётся версия A");
+  assert.equal(B.person("другой")?.notes, "правка B");
+  const cloud = await cloudBook(A);
+  assert.equal(new Set(cloud.people.map((p) => p.id)).size, cloud.people.length, "в облаке дубликатов нет");
+});
+
+test("6д-2. удалили на B, на A менялся другой человек: человек ВОЗВРАЩАЕТСЯ из облака без дубликата, ссылка остаётся снятой (так её снял сам B)", async () => {
+  const { B } = await conflictOf(delBase(), (b) => { b.people.find((p) => p.id === "другой")!.notes = "правка A"; }, delOn);
+  const r = await B.sync("merge");
+  assert.equal(r.kind, "merged");
+  noDup(B);
+  assert.ok(B.person("усыновитель"), "человек вернулся (защита от потери данных)");
+  assert.equal(B.person("ребёнок")?.adoptedBy, undefined, "ребёнок менялся на B (ссылка снята удалением), версия B остаётся");
+  assert.equal(B.person("другой")?.notes, "правка A");
+  assert.deepEqual(relationRefProblems(B.book.people as never), []);
+  assert.equal(B.book.people.length, 4, "людей столько же, сколько было: ничего не продублировано и не потеряно");
+});
+
+test("6д-3. удалили на B, а у ребёнка на A правка в той же карточке: остаётся карточка B, версия A с ссылкой лежит в копии, человек возвращается, без дубликатов", async () => {
+  const { B } = await conflictOf(delBase(), (b) => { b.people.find((p) => p.id === "ребёнок")!.notes = "заметка A"; }, delOn);
   await B.sync("merge");
+  noDup(B);
+  assert.ok(B.person("усыновитель"));
+  assert.deepEqual(relationRefProblems(B.book.people as never), []);
+  const copy = JSON.parse(B.backups.get(B.backupKey(/Облачная книга до объединения/)!)!.text) as Book;
+  assert.deepEqual(copy.people.find((p) => p.id === "ребёнок")?.adoptedBy, [{ id: "усыновитель" }], "ссылка не потеряна безвозвратно: она в копии облака");
+});
+
+test("6д-4. ссылка есть на A, а человека на B удалили НЕ снимая ссылку у ребёнка в карточке A: после объединения ссылка указывает на существующего человека", async () => {
+  const { B } = await conflictOf(delBase(), (b) => { b.people.find((p) => p.id === "ребёнок")!.notes = "заметка A"; }, (b) => { b.people = b.people.filter((p) => p.id !== "усыновитель"); });
+  await B.sync("merge");
+  noDup(B);
+  assert.ok(B.person("усыновитель"), "человек вернулся, поэтому ссылка из карточки A не повисла");
   assert.deepEqual(relationRefProblems(B.book.people as never), []);
 });
