@@ -58,6 +58,8 @@ function DeathField({ value, onChange }: { value: string | undefined; onChange: 
   );
 }
 
+import { AttachmentGallery } from "@/components/rod/attachments";
+import { useRod } from "@/lib/rod/store";
 import { BRANCH_PALETTE, applySideColors, setBranchColor, sideColors, useBranchColors } from "@/lib/tree/branch-colors";
 import { useCardFields } from "@/lib/tree/card-fields";
 
@@ -119,6 +121,7 @@ function UnionEditor({ union, people }: { union: Union; people: Person[] }) {
 
 function PersonBody({ person, people, unions, focusId, onNewBook }: { person: Person; people: Person[]; unions: Union[]; focusId: string; onNewBook: () => void }) {
   const cardFields = useCardFields();
+  const ownFiles = useRod((st) => st.people.find((x) => x.id === person.id)?.attachments);
   const [mode, setMode] = useState<"view" | "edit" | "add">("view");
   const [intent, setIntent] = useState<Intent | null>(null);
   const [search, setSearch] = useState(false);
@@ -171,6 +174,8 @@ function PersonBody({ person, people, unions, focusId, onNewBook }: { person: Pe
         <p className="col-span-2 -mt-1 text-xs text-muted">Изменения записываются сразу, кнопка закрывает карточку.</p>
       </div>
       )}
+
+      {mode === "view" && ownFiles?.length ? <AttachmentGallery items={ownFiles} title="Фото и документы человека" /> : null}
 
       {mode === "view" && cardFields.branches ? <BranchPicker personId={person.id} /> : null}
 

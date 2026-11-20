@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { Camera, Paperclip, ScanLine } from "lucide-react";
 import { Scanner } from "@/components/rod/scanner";
@@ -9,7 +10,7 @@ import type { Attachment } from "@/lib/rod/types";
 const MAX_FILE = 15 * 1024 * 1024;
 const MAX_ITEMS = 30;
 
-function Thumb({ item, onRemove, onCaption }: { item: Attachment; onRemove: () => void; onCaption: (caption: string) => void }) {
+function Thumb({ item, images, onRemove, onCaption, onCaptionFor }: { item: Attachment; images: Attachment[]; onRemove: () => void; onCaption: (caption: string) => void; onCaptionFor?: (id: string, caption: string) => void }) {
   const src = useMedia(item.kind === "image" ? item.ref : undefined);
   const [big, setBig] = useState(false);
   const open = async () => {
@@ -37,22 +38,106 @@ function Thumb({ item, onRemove, onCaption }: { item: Attachment; onRemove: () =
       <button type="button" aria-label="Убрать" onClick={onRemove} className="text-xs text-muted underline">
         Убрать
       </button>
-      {big ? (
-        <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-3 bg-black/85 p-4" onClick={() => setBig(false)}>
-          <img src={src} alt={item.caption || item.name} className="max-h-[72svh] max-w-full rounded-xl object-contain" />
-          <input
-            className="field w-full max-w-md text-center"
-            value={item.caption ?? ""}
-            placeholder="Подпись к фото"
-            maxLength={200}
-            onClick={(event) => event.stopPropagation()}
-            onChange={(event) => onCaption(event.target.value)}
-          />
-          <button type="button" className="rounded-full bg-white/90 px-6 py-2 text-sm text-ink" onClick={() => setBig(false)}>
-            Закрыть
-          </button>
-        </div>
+      {big ? <PhotoViewer items={images} startId={item.id} onClose={() => setBig(false)} onCaption={onCaptionFor} /> : null}
+    </li>
+  );
+}
+
+
+/**
+ * Просмотр фото на весь экран: рисуется в корне страницы (иначе карточка с размытием или сдвигом становится «рамкой» для fixed и фото центруется по всей её длине),
+ * листается кнопками, стрелками клавиатуры и свайпом.
+ */
+export function PhotoViewer({ items, startId, onClose, onCaption }: { items: Attachment[]; startId: string; onClose: () => void; onCaption?: (id: string, caption: string) => void }) {
+  const [index, setIndex] = useState(() => Math.max(0, items.findIndex((x) => x.id === startId)));
+  const current = items[Math.min(index, items.length - 1)];
+  const src = useMedia(current?.ref);
+  const touchX = useRef<number | null>(null);
+  const go = (delta: number) => setIndex((i) => Math.min(items.length - 1, Math.max(0, i + delta)));
+  useEffect(() => {
+    const key = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowLeft") go(-1);
+      if (event.key === "ArrowRight") go(1);
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.length]);
+  if (!current || typeof document === "undefined") return null;
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[90] flex flex-col items-center justify-center gap-3 bg-black/90 p-4"
+      onClick={onClose}
+      onTouchStart={(event) => { touchX.current = event.touches[0]?.clientX ?? null; }}
+      onTouchEnd={(event) => {
+        const start = touchX.current;
+        touchX.current = null;
+        const end = event.changedTouches[0]?.clientX;
+        if (start == null || end == null || Math.abs(end - start) < 50) return;
+        go(end < start ? 1 : -1);
+      }}
+    >
+      <img src={src} alt={current.caption || current.name} className="max-h-[72svh] max-w-full rounded-xl object-contain" onClick={(event) => event.stopPropagation()} />
+      {onCaption ? (
+        <input className="field w-full max-w-md text-center" value={current.caption ?? ""} placeholder="Подпись к фото" maxLength={200} onClick={(event) => event.stopPropagation()} onChange={(event) => onCaption(current.id, event.target.value)} />
+      ) : current.caption ? (
+        <p className="max-w-md text-center text-sm text-white/90">{current.caption}</p>
       ) : null}
+      <div className="flex items-center gap-3" onClick={(event) => event.stopPropagation()}>
+        <button type="button" aria-label="Предыдущее фото" disabled={index <= 0} className="grid size-11 place-items-center rounded-full bg-white/90 text-xl text-ink disabled:opacity-30" onClick={() => go(-1)}>
+          ‹
+        </button>
+        <span className="min-w-14 text-center text-sm text-white">{items.length > 1 ? `${index + 1} из ${items.length}` : ""}</span>
+        <button type="button" aria-label="Следующее фото" disabled={index >= items.length - 1} className="grid size-11 place-items-center rounded-full bg-white/90 text-xl text-ink disabled:opacity-30" onClick={() => go(1)}>
+          ›
+        </button>
+        <button type="button" className="rounded-full bg-white/90 px-6 py-2 text-sm text-ink" onClick={onClose}>
+          Закрыть
+        </button>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/** Только просмотр: фото и файлы человека в его карточке на древе. */
+export function AttachmentGallery({ items, title = "Фото и документы" }: { items: Attachment[]; title?: string }) {
+  const images = items.filter((x) => x.kind === "image");
+  const [open, setOpen] = useState<string | null>(null);
+  if (!items.length) return null;
+  return (
+    <section className="mt-4">
+      <h3 className="font-sans text-base font-semibold text-ink">{title}</h3>
+      <ul className="mt-2 flex flex-wrap gap-2">
+        {items.map((item) => (
+          <GalleryThumb key={item.id} item={item} onOpen={() => (item.kind === "image" ? setOpen(item.id) : void openFile(item))} />
+        ))}
+      </ul>
+      {open ? <PhotoViewer items={images} startId={open} onClose={() => setOpen(null)} /> : null}
+    </section>
+  );
+}
+
+async function openFile(item: Attachment) {
+  const blob = await mediaBlob(item.ref);
+  if (!blob) return toast("Файл не найден на этом устройстве");
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = item.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+function GalleryThumb({ item, onOpen }: { item: Attachment; onOpen: () => void }) {
+  const src = useMedia(item.kind === "image" ? item.ref : undefined);
+  return (
+    <li className="flex w-20 flex-col items-center gap-1 text-center">
+      <button type="button" onClick={onOpen} aria-label={item.kind === "image" ? "Открыть фото крупно" : `Открыть файл ${item.name}`} className="grid size-20 place-items-center overflow-hidden rounded-xl bg-ink/5">
+        {item.kind === "image" ? <img src={src} alt={item.caption || item.name} className="size-20 object-cover" /> : <Paperclip className="size-7 text-muted" />}
+      </button>
+      <span className="line-clamp-2 w-full break-words text-[11px] leading-tight text-muted">{item.caption || item.name}</span>
     </li>
   );
 }
@@ -100,6 +185,8 @@ export function Attachments({ items, onChange, title = "Фото и файлы �
             <Thumb
               key={item.id}
               item={item}
+              images={items.filter((x) => x.kind === "image")}
+              onCaptionFor={(id, caption) => onChange(items.map((x) => (x.id === id ? { ...x, caption } : x)))}
               onCaption={(caption) => onChange(items.map((x) => (x.id === item.id ? { ...x, caption } : x)))}
               onRemove={() => {
                 dropMedia(item.ref);
