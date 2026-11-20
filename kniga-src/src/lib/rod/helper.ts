@@ -1,5 +1,6 @@
 import { API_BASE } from "@/lib/rod/config";
 import { helperRoundWith, publishIfChangedWith, signature } from "@/lib/rod/helper-auto";
+import { BASE_TOO_BIG, baseSize, errorText, setSyncStatus, statusOfRound } from "@/lib/rod/helper-status";
 import { HELPER_KEYS, applyReview, makeChangeSet, reviewChanges, type Book, type Change, type Decision, type ReviewItem } from "@/lib/rod/helper-changes";
 import { collectRefs } from "@/lib/rod/backup";
 import { hasMedia, mediaDataUrl, saveMediaAs } from "@/lib/rod/media";
@@ -76,6 +77,8 @@ export async function publishBase(progress?: (done: number, total: number) => vo
   const room = useRod.getState().room;
   if (!room) throw new Error("Не получилось создать ссылку.");
   const base = lists();
+  const check = baseSize(base);
+  if (!check.ok) throw new Error(BASE_TOO_BIG(check)); // сервер такую книгу не примет, говорим об этом сразу
   const auth: Auth = { room: room.id, ownerKey: room.ownerKey };
   const known = new Set(onlyNew ? readPublished()?.media ?? [] : []);
   const refs = [...refsOf(base)];
@@ -201,9 +204,16 @@ export function startHelperSync(): void {
     if (helperSyncBusy || navigator.onLine === false) return;
     helperSyncBusy = true;
     void publishIfChanged()
-      .catch(() => undefined)
+      .then((published) => {
+        if (published) setSyncStatus("ok", "Версия для помощников обновлена");
+      })
+      .catch((error: unknown) => setSyncStatus("error", errorText(error))) // раньше ошибка выкладки пропадала молча
       .then(() => helperRound())
-      .catch(() => undefined)
+      .then((result) => {
+        const shown = result ? statusOfRound(result) : null;
+        if (shown) setSyncStatus(shown.state, shown.text);
+      })
+      .catch((error: unknown) => setSyncStatus("error", errorText(error)))
       .finally(() => {
         helperSyncBusy = false;
       });
