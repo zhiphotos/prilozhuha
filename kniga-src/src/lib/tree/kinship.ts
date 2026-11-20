@@ -66,7 +66,7 @@ export function praPrefix(count: number, _sep = ""): string {
   return count > 4 ? `пра${power}` : "пра".repeat(count);
 }
 
-function ancestorTitle(dist: number, gender: Gender): string {
+export function ancestorTitle(dist: number, gender: Gender): string {
   if (dist <= 0) return "Я";
   if (dist === 1) return gender === "m" ? "Отец" : gender === "f" ? "Мать" : "Родитель";
   if (dist === 2) return gender === "m" ? "Дедушка" : gender === "f" ? "Бабушка" : "Предок";
@@ -76,7 +76,7 @@ function ancestorTitle(dist: number, gender: Gender): string {
   return `Предок (${dist})`;
 }
 
-function descendantTitle(dist: number, gender: Gender): string {
+export function descendantTitle(dist: number, gender: Gender): string {
   if (dist === 1) return gender === "m" ? "Сын" : gender === "f" ? "Дочь" : "Ребёнок";
   if (dist === 2) return gender === "m" ? "Внук" : gender === "f" ? "Внучка" : "Внук";
   const pra = praPrefix(Math.max(0, dist - 2), " ");
@@ -185,7 +185,7 @@ function elderWord(up: number, g: Gender): string {
   return pra + (g === "f" ? "бабушка" : "дедушка");
 }
 
-function collateralTitle(index: Index, dFocus: number, dOther: number, other: string, half: boolean): string {
+export function collateralTitle(index: Index, dFocus: number, dOther: number, other: string, half: boolean): string {
   const g = genderOf(index, other);
   if (dOther < dFocus) {
     // Человек старше меня на несколько поколений: назван по тому, на сколько поколений он выше, а не только по степени родства.
