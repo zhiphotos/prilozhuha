@@ -7,6 +7,8 @@ import { deviceId } from "@/lib/rod/pay";
 import { MAIN_ID, activeProjectId, addProjectWithId, listProjects } from "@/lib/rod/projects";
 import { fingerprint, splitParts } from "@/lib/rod/sync-logic";
 import { describeRelations } from "@/lib/rod/sync-merge";
+import { cloudCheckFrom } from "@/lib/rod/cloud-check";
+import type { CloudCheck } from "@/lib/tree/second-parent";
 import { PART, afterOpenCopy, previewMerge, restoreLocalBackup, restorePreviousCloud, syncCore, syncSmart, type Deps, type Meta, type SyncMode, type SyncOutcome } from "@/lib/rod/sync-engine";
 import { readBackup, saveBackup } from "@/lib/rod/sync-backup";
 import { STATE_STORE, idbGet, idbSet } from "@/lib/rod/idb";
@@ -211,6 +213,20 @@ export async function syncNow(mode: SyncMode = "auto"): Promise<void> {
   if (mode === "auto") await adoptCloudBooks().catch(() => undefined);
   // Автоматический запуск не задаёт вопросов: при конфликте объединяет сам. Ручные «Оставить мою / облачную / Объединить» работают как раньше.
   report(mode === "auto" ? await syncSmart(makeDeps()) : await syncCore(makeDeps(), mode), mode);
+}
+
+export async function checkCloudBeforeEdit(timeoutMs = 12000): Promise<CloudCheck> {
+  if (!API_BASE || !useRod.getState().access?.token) return "no-cloud";
+  return cloudCheckFrom(
+    async () => {
+      useSync.getState().setState({ busy: true, message: "Проверяю облако…" });
+      const outcome = await syncSmart(makeDeps());
+      report(outcome, "auto");
+      return outcome;
+    },
+    () => useSync.getState().busy,
+    timeoutMs,
+  );
 }
 
 /** Копия книги на этом устройстве до замены. Вызывать перед «Открыть копию» и перед восстановлением. */

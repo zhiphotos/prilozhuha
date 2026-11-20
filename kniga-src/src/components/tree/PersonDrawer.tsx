@@ -1,6 +1,6 @@
 import { ageText } from "@/lib/rod/age";
 import { DateInput } from "@/components/rod/date-input";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Camera } from "lucide-react";
 import { toast } from "sonner";
 import { AncestorGate } from "@/components/tree/AncestorGate";
@@ -11,6 +11,10 @@ import { fileToPhoto } from "@/lib/tree/photo";
 import { CircleCrop } from "@/components/rod/circle-crop";
 import { draftFrom, emptyDraft, useTree, type Draft, type RelKind } from "@/lib/tree/ui-store";
 import type { Person, Union, UnionStatus } from "@/lib/tree/types";
+import { ExistingChildPanel, NeedsNotice, SecondParentPicker } from "@/components/tree/SecondParentBlock";
+import { useChildSubmit } from "@/components/tree/use-child-submit";
+import { useRod } from "@/lib/rod/store";
+import type { StoreSecond } from "@/lib/tree/ui-store";
 
 const STATUSES: { id: UnionStatus; label: string }[] = [
   { id: "married", label: "Брак" },
@@ -249,7 +253,7 @@ function FamilySheet({
         <button
           type="button"
           className="min-h-12 rounded-2xl bg-ink px-3 text-sm font-semibold text-sheet"
-          onClick={() => onAdd("son", family.marriages.length === 1 ? family.marriages[0]!.union.id : undefined)}
+          onClick={() => onAdd("son")}
         >
           Добавить ребёнка
         </button>
@@ -425,11 +429,14 @@ function AddRelative({
   intent: Intent;
   onCancel: () => void;
 }) {
-  const [unionId, setUnionId] = useState(intent.unionId ?? "");
   const [error, setError] = useState<string | null>(null);
-  const mine = unions.filter((u) => u.partnerIds.includes(person.id));
-  const needsChoice = (intent.kind === "son" || intent.kind === "daughter") && mine.length > 1 && !intent.unionId;
-  const chosenUnion = intent.unionId || unionId || undefined;
+  const isChild = intent.kind === "son" || intent.kind === "daughter";
+  // Для ребёнка семья больше не выбирается молча: второго родителя выбирает или подтверждает человек в блоке «Второй родитель».
+  const chosenUnion = isChild ? undefined : intent.unionId || undefined;
+  const [second, setSecond] = useState<StoreSecond | null>(null);
+  const [pickedChild, setPickedChild] = useState<string | null>(null);
+  const firstRod = useRod((s) => s.people.find((p) => p.id === person.id));
+  const childSubmit = useChildSubmit(() => onCancel());
   const [link, setLink] = useState(false);
   const [query, setQuery] = useState("");
   const [startYear, setStartYear] = useState("");
@@ -456,19 +463,6 @@ function AddRelative({
     <div className="flex flex-col gap-3">
       <p className="font-serif text-2xl leading-none">{ROLE[intent.kind]}</p>
       <p className="text-sm text-muted">К {displayName(person)}. Можно записать нового или выбрать того, кто уже есть в древе.</p>
-      {needsChoice && (
-        <div className="flex flex-col gap-2">
-          <p className="text-xs tracking-widest text-muted uppercase">В какой семье ребёнок</p>
-          {mine.map((union) => {
-            const spouse = union.partnerIds.map((id) => people.find((p) => p.id === id)).find((p) => p && p.id !== person.id);
-            return (
-              <button key={union.id} type="button" className={`min-h-12 rounded-2xl border px-3 text-left ${unionId === union.id ? "border-ink bg-ink text-sheet" : "border-line bg-white"}`} onClick={() => setUnionId(union.id)}>
-                {spouse ? `С ${displayName(spouse)}` : "Без супруга"}
-              </button>
-            );
-          })}
-        </div>
-      )}
       <div className="grid grid-cols-2 gap-2">
         <button type="button" className={`min-h-11 rounded-2xl border ${!link ? "border-ink bg-ink text-sheet" : "border-line bg-white"}`} onClick={() => setLink(false)}>
           Новый человек
@@ -490,7 +484,9 @@ function AddRelative({
           ))}
         </div>
       )}
-      {link ? (
+      {link && isChild && pickedChild && firstRod ? (
+        <ExistingChildPanel first={firstRod} childId={pickedChild} onDone={() => onCancel()} onCancel={() => setPickedChild(null)} />
+      ) : link ? (
         <div className="flex flex-col gap-2">
           <label className="field">
             Найти
@@ -508,8 +504,9 @@ function AddRelative({
                     setError("Сначала укажите пол в карточке этого человека");
                     return;
                   }
-                  if (needsChoice && !chosenUnion) {
-                    setError("Выберите, в какой семье ребёнок");
+                  if (isChild) {
+                    setError(null);
+                    setPickedChild(candidate.id);
                     return;
                   }
                   const message = useTree.getState().attachRelative(person.id, kind, candidate.id, chosenUnion, { startYear, status });
@@ -531,18 +528,30 @@ function AddRelative({
           initial={{ ...emptyDraft(gender), lastName: inherited }}
           lockGender={intent.kind === "father" || intent.kind === "mother"}
           submitLabel="Положить в древо"
-          error={error}
+          error={error ?? childSubmit.error}
           onCancel={onCancel}
+          submitDisabled={isChild && (!second || childSubmit.busy)}
+          extra={
+            isChild ? (
+              <div className="flex flex-col gap-2">
+                <SecondParentPicker firstId={person.id} value={second} onChange={(v) => { setSecond(v); childSubmit.reset(); }} />
+                {childSubmit.needs ? <NeedsNotice needs={childSubmit.needs} onConfirm={childSubmit.confirm} /> : null}
+                {!second ? <p className="text-xs text-muted">Выберите второго родителя или нажмите «Неизвестно», тогда кнопка записи включится.</p> : null}
+              </div>
+            ) : null
+          }
           onSubmit={(draft) => {
             if (flexible && intent.kind !== "spouse" && draft.gender === "u") {
               setError("Укажите, мужчина это или женщина");
               return;
             }
-            if (needsChoice && !chosenUnion) {
-              setError("Выберите, в какой семье ребёнок");
+            const kind = resolveKind(draft.gender);
+            if (isChild) {
+              if (!second || (kind !== "son" && kind !== "daughter")) return;
+              setError(null);
+              void childSubmit.run(person.id, kind, draft, second);
               return;
             }
-            const kind = resolveKind(draft.gender);
             const message = useTree.getState().addRelative(person.id, kind, draft, chosenUnion, { startYear, status });
             setError(message);
           }}
@@ -559,6 +568,8 @@ function PersonForm({
   onCancel,
   lockGender = false,
   error,
+  extra,
+  submitDisabled = false,
 }: {
   initial: Draft;
   submitLabel: string;
@@ -566,6 +577,9 @@ function PersonForm({
   onCancel: () => void;
   lockGender?: boolean;
   error?: string | null;
+  /** Блок под полями (например, «Второй родитель»). */
+  extra?: ReactNode;
+  submitDisabled?: boolean;
 }) {
   const [draft, setDraft] = useState(initial);
   const [cropping, setCropping] = useState<File | null>(null);
@@ -642,12 +656,13 @@ function PersonForm({
           }}
         />
       ) : null}
+      {extra}
       {error && <p className="text-sm text-role">{error}</p>}
       <div className="grid grid-cols-2 gap-2">
         <button type="button" className="min-h-11 rounded-2xl border border-line" onClick={onCancel}>
           Отмена
         </button>
-        <button type="submit" className="min-h-11 rounded-2xl bg-ink font-semibold text-sheet">
+        <button type="submit" disabled={submitDisabled} className="min-h-11 rounded-2xl bg-ink font-semibold text-sheet disabled:opacity-40">
           {submitLabel}
         </button>
       </div>

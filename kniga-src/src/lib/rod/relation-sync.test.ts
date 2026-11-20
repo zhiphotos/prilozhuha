@@ -11,6 +11,8 @@ import { fingerprint, pruneKeys } from "./sync-logic.ts";
 import { relationRefProblems } from "./relation-links.ts";
 import { describeRelations } from "./sync-merge.ts";
 import { withoutPerson } from "../tree/auto-links.ts";
+import { cloudCheckFrom } from "./cloud-check.ts";
+import { parentsDiff, replacePolicy } from "../tree/second-parent.ts";
 
 const { makeToken } = await import("../../../../kniga-api/lib/token.js");
 const handler = (await import("../../../../kniga-api/lib/routes/sync.js")).default;
@@ -288,4 +290,49 @@ test("8. отметка «общий ребёнок» едет на второе
   await B2.sync("merge");
   const k = B2.person("К")!;
   assert.equal(Boolean(k.parentsUnmarried), (k.parents as string[]).length === 2, "отметка есть тогда и только тогда, когда записан второй родитель");
+});
+
+test("9а. проверка облака перед правкой связей: итоги checked, conflict, failed, timeout, busy", async () => {
+  const idle = () => false;
+  assert.equal(await cloudCheckFrom(async () => ({ kind: "same" }), idle), "checked");
+  assert.equal(await cloudCheckFrom(async () => ({ kind: "downloaded", rev: 2 }), idle), "checked");
+  assert.equal(await cloudCheckFrom(async () => ({ kind: "conflict", reason: "both-changed" }), idle), "conflict");
+  assert.equal(await cloudCheckFrom(async () => ({ kind: "error", message: "нет сети" }), idle), "failed");
+  assert.equal(await cloudCheckFrom(async () => { throw new Error("сеть оборвалась"); }, idle), "failed");
+  assert.equal(await cloudCheckFrom(() => new Promise(() => {}), idle, 120), "timeout");
+  assert.equal(await cloudCheckFrom(async () => ({ kind: "same" }), () => true, 160), "busy");
+});
+
+test("9б. настоящий движок: второе устройство сменило родителей, первое получает их проверкой облака", async () => {
+  const order = `kr-chk-${++seq}-12345678`;
+  const A = new Device(order, "dev-aaaaaaaa");
+  const B = new Device(order, "dev-bbbbbbbb");
+  A.book = { pages: [], photos: [], places: [], ...structuredClone(baseBook()) } as Book;
+  assert.equal((await A.sync()).kind, "uploaded");
+  assert.equal((await B.sync()).kind, "downloaded");
+  B.person("ребёнок")!.parents = ["мать", "друг"];
+  assert.equal((await B.sync()).kind, "uploaded");
+  assert.deepEqual(A.person("ребёнок")?.parents, ["мать", "отец"], "до проверки на A старые родители");
+  assert.equal(await cloudCheckFrom(() => A.sync("auto"), () => false), "checked");
+  assert.deepEqual(A.person("ребёнок")?.parents, ["мать", "друг"], "после проверки A видит свежее состояние, экран строится по нему");
+});
+
+test("9в. настоящий движок: обе копии менялись, проверка возвращает conflict и замена блокируется", async () => {
+  const { B } = await conflictOf(baseBook(), (b) => { b.people.find((p) => p.id === "ребёнок")!.parents = ["мать", "друг"]; }, (b) => { b.people.find((p) => p.id === "ребёнок")!.parents = ["мать", "усыновитель"]; });
+  const cloud = await cloudCheckFrom(() => B.sync("auto"), () => false);
+  assert.equal(cloud, "conflict");
+  const diff = parentsDiff(["мать", "отец"], ["мать", "усыновитель"]);
+  assert.equal(replacePolicy(diff, cloud).allowed, false, "замена и снятие блокируются");
+  assert.equal(replacePolicy(parentsDiff(["мать"], ["мать", "усыновитель"]), cloud).allowed, true, "добавление разрешено");
+});
+
+test("9г. ограничение слияния (фиксируем как есть): parents на двух устройствах, остаётся одна версия, обе лежат в копиях, какие именно родители различались, не показывается", async () => {
+  const { B } = await conflictOf(baseBook(), (b) => { b.people.find((p) => p.id === "ребёнок")!.parents = ["мать", "друг"]; }, (b) => { b.people.find((p) => p.id === "ребёнок")!.parents = ["мать", "усыновитель"]; });
+  const r = await B.sync("merge");
+  assert.equal(r.kind, "merged");
+  const kept = JSON.stringify(B.person("ребёнок")?.parents);
+  assert.ok(kept === JSON.stringify(["мать", "друг"]) || kept === JSON.stringify(["мать", "усыновитель"]), "в итоге одна из двух версий целиком");
+  const texts = [...B.backups.values()].map((b) => b.text).join("\n");
+  assert.ok(texts.includes("друг") && texts.includes("усыновитель"), "обе версии сохранены резервными копиями");
+  if (r.kind === "merged") assert.equal(JSON.stringify(r.report).includes("parents"), false, "в отчёте нет сведений о том, какие родители различались");
 });
