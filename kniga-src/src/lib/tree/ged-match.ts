@@ -76,6 +76,33 @@ export function matchExisting(current: RodPerson[], list: ImportedPerson[]): Map
     taken.add(found.id);
     matched.set(p.key, found);
   }
+  // Второй проход: люди без фамилии (имя или имя и отчество) по имени не находятся, и при повторной загрузке добавлялись бы вторым экземпляром.
+  // Находим их по связям: та же запись без номера, у которой супруг, родитель или ребёнок уже найдены и совпадают с файлом. Единственный кандидат, без противоречий.
+  const keyOfId = new Map<string, string>();
+  for (const [k, c] of matched) keyOfId.set(c.id, k);
+  const kidKeys = new Map<string, Set<string>>();
+  for (const q of list) for (const k of q.parentKeys) kidKeys.set(k, (kidKeys.get(k) ?? new Set()).add(q.key));
+  const normFull = (x: string) => x.trim().toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " ");
+  const fullOf = (c: RodPerson) => normFull([c.firstName, c.patronymic, c.lastName].map((x) => (x ?? "").trim()).filter(Boolean).join(" ") || c.name);
+  for (const p of list) {
+    if (matched.has(p.key) || !p.source || p.lastName.trim()) continue;
+    const want = normFull([p.firstName, p.patronymic].filter(Boolean).join(" "));
+    if (!want || /^без имени$/.test(want)) continue;
+    const spouseKeys = new Set([p.spouseKey, ...(p.moreSpouses ?? []).map((m) => m.key)].filter((x): x is string => Boolean(x)));
+    const parentKeys = new Set(p.parentKeys);
+    const kids = kidKeys.get(p.key) ?? new Set<string>();
+    const hits = current.filter((c) => {
+      if (taken.has(c.id) || c.gedId || fullOf(c) !== want || !yearsAgree(c.birthYear, p.birthYear) || (c.gender && p.gender && c.gender !== p.gender)) return false;
+      const around = [...(c.parents ?? []), ...(c.spouse ? [c.spouse] : []), ...(c.moreSpouses ?? []).map((m) => m.id), ...current.filter((o) => (o.parents ?? []).includes(c.id)).map((o) => o.id)];
+      const known = around.map((id) => keyOfId.get(id)).filter((k): k is string => Boolean(k));
+      const agree = known.filter((k) => spouseKeys.has(k) || parentKeys.has(k) || kids.has(k));
+      return agree.length > 0 && agree.length === known.length;
+    });
+    if (hits.length !== 1) continue;
+    taken.add(hits[0]!.id);
+    matched.set(p.key, hits[0]!);
+    keyOfId.set(hits[0]!.id, p.key);
+  }
   return matched;
 }
 
