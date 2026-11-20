@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { publishIfChangedWith, type HelperResult } from "./helper-auto.ts";
-import { BASE_TOO_BIG, MAX_BASE_CHARS, baseSize, errorText, getSyncStatus, resetSyncStatus, setSyncStatus, statusOfRound, subscribeSyncStatus } from "./helper-status.ts";
+import { BASE_TOO_BIG, MAX_BASE_CHARS, baseSize, errorText, failureStatus, getSyncStatus, isNetworkError, OFFLINE_TEXT, resetSyncStatus, setSyncStatus, statusOfRound, subscribeSyncStatus } from "./helper-status.ts";
 import type { Book } from "./helper-changes.ts";
 
 const book = (n: number): Book => ({ people: Array.from({ length: n }, (_, i) => ({ id: `p${i}`, name: `Имя ${i}` })), places: [], stories: [], notes: [], pages: [], photos: [] }) as unknown as Book;
@@ -70,4 +70,15 @@ test("15д. ошибка выкладки не глотается: из publishI
   await assert.rejects(fail, /Сервер не ответил/);
   assert.equal(errorText(new Error("Сервер не ответил.")), "Сервер не ответил.");
   assert.match(errorText("что-то"), /Повторю/);
+});
+
+test("15е. обрыв связи: «ждёт», по-русски, без «Failed to fetch»; ошибка сервера и слишком большая книга остаются «не получилось»", () => {
+  for (const e of [new TypeError("Failed to fetch"), new TypeError("Load failed"), new Error("NetworkError when attempting to fetch resource.")]) {
+    assert.equal(isNetworkError(e), true);
+    assert.deepEqual(failureStatus(e), { state: "waiting", text: OFFLINE_TEXT });
+  }
+  assert.ok(!/fetch/i.test(OFFLINE_TEXT));
+  assert.equal(isNetworkError(new Error("Сервер не ответил.")), false);
+  assert.deepEqual(failureStatus(new Error("Сервер не ответил.")), { state: "error", text: "Сервер не ответил." });
+  assert.equal(failureStatus(new Error(BASE_TOO_BIG(baseSize({ ...book(0), notes: ["x".repeat(MAX_BASE_CHARS + 10)] } as unknown as Book)))).state, "error");
 });

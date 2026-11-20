@@ -7,7 +7,7 @@ import { useMedia } from "@/lib/rod/media";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { ChangesCard } from "@/components/rod/helper-ui";
 import { publishBase } from "@/lib/rod/helper";
-import { getSyncStatus, subscribeSyncStatus } from "@/lib/rod/helper-status";
+import { failureStatus, getSyncStatus, subscribeSyncStatus } from "@/lib/rod/helper-status";
 
 const KIND = { story: "Воспоминание", answer: "Ответ на вопрос", photo: "Фото", changes: "Правки" } as const;
 
@@ -36,7 +36,7 @@ export function FamilySheet({ onClose }: { onClose: () => void }) {
       await job();
       if (ok) toast(ok);
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Не получилось.", { duration: 6000 });
+      toast(error instanceof Error ? failureStatus(error).text : "Не получилось.", { duration: 6000 }); // обрыв связи по-русски, а не «Failed to fetch»
     } finally {
       setBusy(false);
       setProgress("");

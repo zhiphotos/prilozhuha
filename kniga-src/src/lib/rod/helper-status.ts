@@ -42,6 +42,20 @@ export function subscribeSyncStatus(listener: () => void): () => void {
 
 export const resetSyncStatus = () => setSyncStatus("off", "", 0);
 
+export const OFFLINE_TEXT = "Нет связи с сервером. Отправлю, как только она появится";
+
+/** Обрыв связи браузер называет по-английски («Failed to fetch», «Load failed», «NetworkError»): это не ошибка книги, а просто нет сети. */
+export function isNetworkError(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  const message = error instanceof Error ? error.message : "";
+  return /failed to fetch|load failed|networkerror|network request failed/i.test(message);
+}
+
+/** Что показать после неудачи: нет сети – «ждёт» (повторится само), всё остальное – «не получилось» с причиной. */
+export function failureStatus(error: unknown): { state: SyncState; text: string } {
+  return isNetworkError(error) ? { state: "waiting", text: OFFLINE_TEXT } : { state: "error", text: errorText(error) };
+}
+
 /** Понятный текст ошибки: сеть и сервер говорят по-разному. */
 export function errorText(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
