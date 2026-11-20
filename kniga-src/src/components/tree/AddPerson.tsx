@@ -2,7 +2,9 @@ import { DateInput } from "@/components/rod/date-input";
 import { useState } from "react";
 import { inflectSurname } from "@/lib/tree/fill";
 import { displayName } from "@/lib/tree/kinship";
-import { emptyDraft, useTree, type RelKind } from "@/lib/tree/ui-store";
+import { NeedsNotice, SecondParentPicker } from "@/components/tree/SecondParentBlock";
+import { useChildSubmit } from "@/components/tree/use-child-submit";
+import { emptyDraft, useTree, type RelKind, type StoreSecond } from "@/lib/tree/ui-store";
 import type { Gender } from "@/lib/tree/types";
 
 type Role = { kind: RelKind | "grandfather" | "grandmother" | "aunt" | "uncle"; label: string; gender: Gender };
@@ -40,7 +42,6 @@ export function AddPerson({
   const [maidenName, setMaidenName] = useState("");
   const [patronymic, setPatronymic] = useState("");
   const [birthYear, setBirthYear] = useState("");
-  const [unionId, setUnionId] = useState("");
   const [picking, setPicking] = useState(false);
   const [anchorQuery, setAnchorQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -49,8 +50,13 @@ export function AddPerson({
   const role = ROLES.find((item) => item.kind === kind);
   const gender: Gender = kind === "spouse" ? spouseGender : (role?.gender ?? "u");
   const suggested = anchor && kind && kind !== "spouse" && kind !== "grandfather" && kind !== "grandmother" && kind !== "aunt" && kind !== "uncle" ? inflectSurname(anchor.lastName, gender === "u" ? "m" : gender) : "";
-  const marriages = anchor ? unions.filter((u) => u.partnerIds.includes(anchor.id)) : [];
-  const needsFamily = (kind === "son" || kind === "daughter") && marriages.length > 1;
+  const isChild = kind === "son" || kind === "daughter";
+  const [second, setSecond] = useState<StoreSecond | null>(null);
+  const childSubmit = useChildSubmit((id) => {
+    const made = useTree.getState().people.find((p) => p.id === id);
+    useTree.getState().selectPerson(null);
+    onAdded(id, made?.firstName ?? "");
+  });
 
   const submit = () => {
     if (!anchor || !kind) {
@@ -59,10 +65,6 @@ export function AddPerson({
     }
     if (!firstName.trim()) {
       setError("Напишите имя");
-      return;
-    }
-    if (needsFamily && !unionId) {
-      setError("Выберите, с кем этот ребёнок");
       return;
     }
     const before = new Set(people.map((p) => p.id));
@@ -95,8 +97,17 @@ export function AddPerson({
       else onClose();
       return;
     }
-    const only = marriages.length === 1 ? marriages[0]?.id : undefined;
-    const message = useTree.getState().addRelative(anchor.id, kind as RelKind, draft, unionId || only);
+    if (isChild) {
+      // Ребёнок: второй родитель выбирается или подтверждается явно, брак не подставляется сам.
+      if (!second) {
+        setError("Выберите второго родителя или нажмите «Неизвестно»");
+        return;
+      }
+      setError(null);
+      void childSubmit.run(anchor.id, kind === "daughter" ? "daughter" : "son", draft, second);
+      return;
+    }
+    const message = useTree.getState().addRelative(anchor.id, kind as RelKind, draft);
     if (message) {
       setError(message);
       return;
@@ -142,7 +153,6 @@ export function AddPerson({
                     onClick={() => {
                       setAnchorId(p.id);
                       setError(null);
-                      setUnionId("");
                       setPicking(false);
                       setAnchorQuery("");
                     }}
@@ -191,24 +201,12 @@ export function AddPerson({
               ))}
             </div>
           )}
-          {needsFamily && (
+          {isChild && anchor ? (
             <div className="flex flex-col gap-2">
-              <p className="text-xs tracking-widest text-muted uppercase">С кем этот ребёнок</p>
-              {marriages.map((union) => {
-                const spouse = union.partnerIds.map((id) => people.find((p) => p.id === id)).find((p) => p && anchor && p.id !== anchor.id);
-                return (
-                  <button
-                    key={union.id}
-                    type="button"
-                    className={`min-h-12 rounded-2xl border px-3 text-left ${unionId === union.id ? "border-ink bg-ink text-sheet" : "border-line bg-white"}`}
-                    onClick={() => setUnionId(union.id)}
-                  >
-                    {spouse ? `С ${displayName(spouse)}` : "Без второго родителя"}
-                  </button>
-                );
-              })}
+              <SecondParentPicker firstId={anchor.id} value={second} onChange={(v) => { setSecond(v); childSubmit.reset(); }} />
+              {childSubmit.needs ? <NeedsNotice needs={childSubmit.needs} onConfirm={childSubmit.confirm} /> : null}
             </div>
-          )}
+          ) : null}
           <div>
             <p className="text-xs tracking-widest text-muted uppercase">3. Как зовут</p>
             <div className="mt-2 grid gap-3">
@@ -236,13 +234,13 @@ export function AddPerson({
               </label>
             </div>
           </div>
-          {error && <p className="text-sm text-role">{error}</p>}
+          {(error ?? childSubmit.error) && <p className="text-sm text-role">{error ?? childSubmit.error}</p>}
         </div>
         <footer className="grid grid-cols-2 gap-2 border-t border-line px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button type="button" className="min-h-12 rounded-2xl border border-line" onClick={onClose}>
             Отмена
           </button>
-          <button type="button" className="min-h-12 rounded-2xl bg-ink font-semibold text-sheet" onClick={submit}>
+          <button type="button" disabled={isChild && (!second || childSubmit.busy)} className="min-h-12 rounded-2xl bg-ink font-semibold text-sheet disabled:opacity-40" onClick={submit}>
             Добавить в древо
           </button>
         </footer>

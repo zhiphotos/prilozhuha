@@ -18,6 +18,13 @@ export type Confirmations = {
   replaceParents?: boolean;
   /** Пользователь подтвердил, что новый человек не совпадает с похожим. */
   notDuplicate?: boolean;
+  /**
+   * Защита от устаревшего подтверждения: родители существующего ребёнка, которые пользователь видел на экране.
+   * Не совпали с тем, что записано сейчас: ничего не пишется, возвращается needs.stale. Без поля проверки нет (как в 3а).
+   */
+  expectedParents?: string[];
+  /** То же для отметки parentsUnmarried, которую пользователь видел на экране. */
+  expectedUnmarried?: boolean;
 };
 
 const ghost = (id: string) => id.startsWith("__");
@@ -110,8 +117,63 @@ export type PlanInput = {
   newId: () => string;
 };
 
-export type Needs = { warnings?: string[]; replaceParents?: string[]; similar?: string[] };
+export type Needs = {
+  warnings?: string[];
+  replaceParents?: string[];
+  similar?: string[];
+  /** Родители или отметка изменились после показа экрана подтверждения: старое подтверждение недействительно. */
+  stale?: boolean;
+  /** Актуальное состояние ребёнка на момент отказа (для нового предварительного просмотра). */
+  current?: { parents: string[]; unmarried: boolean };
+};
 export type PlanResult = { ok: true; people: RodPerson[]; childId: string; secondId?: string } | { ok: false; errors: string[]; needs?: Needs };
+
+/** Родители без служебных заглушек, без повторов (порядок сохраняется). */
+export function realParents(parents?: string[]): string[] {
+  return [...new Set((parents ?? []).filter((id) => !ghost(id)))];
+}
+
+/** Что записано у ребёнка сейчас: настоящие родители и отметка «общий ребёнок». Ничего не меняет. */
+export function currentParentsState(people: RodPerson[], childId: string): { parents: string[]; unmarried: boolean } | null {
+  const kid = people.find((p) => p.id === childId);
+  if (!kid) return null;
+  return { parents: realParents(kid.parents), unmarried: Boolean((kid as { parentsUnmarried?: boolean }).parentsUnmarried) };
+}
+
+const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((id) => b.includes(id));
+
+export type ParentsDiff = { before: string[]; after: string[]; kept: string[]; removed: string[]; added: string[]; destructive: boolean; unchanged: boolean };
+
+/**
+ * Что изменится в списке родителей: кто остаётся, кто снимается, кто добавляется. Только расчёт, данные не меняет.
+ * destructive: хотя бы один из нынешних родителей пропадает. Заглушки не считаются родителями.
+ */
+export function parentsDiff(before: string[], after: string[]): ParentsDiff {
+  const b = realParents(before);
+  const a = realParents(after);
+  const removed = b.filter((id) => !a.includes(id));
+  const added = a.filter((id) => !b.includes(id));
+  return { before: b, after: a, kept: b.filter((id) => a.includes(id)), removed, added, destructive: removed.length > 0, unchanged: !removed.length && !added.length };
+}
+
+/**
+ * Итог проверки облака перед правкой связей (см. checkCloudBeforeEdit в sync.ts).
+ * checked: вошли, синхронизация удалась. no-cloud: эта книга НИКОГДА не синхронизировалась, облачной копии нет.
+ * signed-out: книга раньше синхронизировалась, а сейчас вход не выполнен: проверка невозможна.
+ * unknown: по локальным отметкам нельзя достоверно сказать, есть ли облачная копия (считается, что может быть).
+ * failed, conflict, busy, timeout: вошли, но проверка не удалась.
+ */
+export type CloudCheck = "checked" | "no-cloud" | "signed-out" | "unknown" | "failed" | "conflict" | "busy" | "timeout";
+
+/**
+ * Можно ли выполнять операцию. Замена и снятие существующего родителя разрешены, только если облако проверено
+ * или его нет совсем. Добавление без удаления связей разрешено всегда. Только расчёт, данные не меняет.
+ */
+export function replacePolicy(diff: ParentsDiff, cloud: CloudCheck): { allowed: boolean; reason?: "cloud-unchecked" } {
+  if (!diff.destructive) return { allowed: true };
+  if (cloud === "checked" || cloud === "no-cloud") return { allowed: true };
+  return { allowed: false, reason: "cloud-unchecked" };
+}
 
 /**
  * Записывает ребёнка с родителями ОДНИМ результатом (список людей целиком) или отказывает, ничего не меняя.
@@ -147,6 +209,16 @@ export function planChildWithParents(input: PlanInput): PlanResult {
   }
   if (secondId && secondId === firstId) errors.push("Второй родитель не может быть первым");
   if (errors.length) return { ok: false, errors };
+
+  // Устаревшее подтверждение: пользователь видел одних родителей и одну отметку, а записаны другие. Ничего не пишем.
+  if (child.mode === "existing" && (confirm.expectedParents !== undefined || confirm.expectedUnmarried !== undefined)) {
+    const now = currentParentsState(people, child.id);
+    if (now) {
+      const parentsChanged = confirm.expectedParents !== undefined && !sameSet(realParents(confirm.expectedParents), now.parents);
+      const flagChanged = confirm.expectedUnmarried !== undefined && confirm.expectedUnmarried !== now.unmarried;
+      if (parentsChanged || flagChanged) return { ok: false, errors: [], needs: { stale: true, current: now, replaceParents: now.parents } };
+    }
+  }
 
   // Мягкие предупреждения: можно подтвердить.
   if (secondId) {

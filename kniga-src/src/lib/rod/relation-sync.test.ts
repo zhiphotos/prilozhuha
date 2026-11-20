@@ -11,6 +11,8 @@ import { fingerprint, pruneKeys } from "./sync-logic.ts";
 import { relationRefProblems } from "./relation-links.ts";
 import { describeRelations } from "./sync-merge.ts";
 import { withoutPerson } from "../tree/auto-links.ts";
+import { cloudCheckFrom, cloudCheckFor, cloudHistoryFrom } from "./cloud-check.ts";
+import { parentsDiff, replacePolicy } from "../tree/second-parent.ts";
 
 const { makeToken } = await import("../../../../kniga-api/lib/token.js");
 const handler = (await import("../../../../kniga-api/lib/routes/sync.js")).default;
@@ -288,4 +290,140 @@ test("8. отметка «общий ребёнок» едет на второе
   await B2.sync("merge");
   const k = B2.person("К")!;
   assert.equal(Boolean(k.parentsUnmarried), (k.parents as string[]).length === 2, "отметка есть тогда и только тогда, когда записан второй родитель");
+});
+
+test("9а. проверка облака перед правкой связей: итоги checked, conflict, failed, timeout, busy", async () => {
+  const idle = () => false;
+  assert.equal(await cloudCheckFrom(async () => ({ kind: "same" }), idle), "checked");
+  assert.equal(await cloudCheckFrom(async () => ({ kind: "downloaded", rev: 2 }), idle), "checked");
+  assert.equal(await cloudCheckFrom(async () => ({ kind: "conflict", reason: "both-changed" }), idle), "conflict");
+  assert.equal(await cloudCheckFrom(async () => ({ kind: "error", message: "нет сети" }), idle), "failed");
+  assert.equal(await cloudCheckFrom(async () => { throw new Error("сеть оборвалась"); }, idle), "failed");
+  assert.equal(await cloudCheckFrom(() => new Promise(() => {}), idle, 120), "timeout");
+  assert.equal(await cloudCheckFrom(async () => ({ kind: "same" }), () => true, 160), "busy");
+});
+
+test("9б. настоящий движок: второе устройство сменило родителей, первое получает их проверкой облака", async () => {
+  const order = `kr-chk-${++seq}-12345678`;
+  const A = new Device(order, "dev-aaaaaaaa");
+  const B = new Device(order, "dev-bbbbbbbb");
+  A.book = { pages: [], photos: [], places: [], ...structuredClone(baseBook()) } as Book;
+  assert.equal((await A.sync()).kind, "uploaded");
+  assert.equal((await B.sync()).kind, "downloaded");
+  B.person("ребёнок")!.parents = ["мать", "друг"];
+  assert.equal((await B.sync()).kind, "uploaded");
+  assert.deepEqual(A.person("ребёнок")?.parents, ["мать", "отец"], "до проверки на A старые родители");
+  assert.equal(await cloudCheckFrom(() => A.sync("auto"), () => false), "checked");
+  assert.deepEqual(A.person("ребёнок")?.parents, ["мать", "друг"], "после проверки A видит свежее состояние, экран строится по нему");
+});
+
+test("9в. настоящий движок: обе копии менялись, проверка возвращает conflict и замена блокируется", async () => {
+  const { B } = await conflictOf(baseBook(), (b) => { b.people.find((p) => p.id === "ребёнок")!.parents = ["мать", "друг"]; }, (b) => { b.people.find((p) => p.id === "ребёнок")!.parents = ["мать", "усыновитель"]; });
+  const cloud = await cloudCheckFrom(() => B.sync("auto"), () => false);
+  assert.equal(cloud, "conflict");
+  const diff = parentsDiff(["мать", "отец"], ["мать", "усыновитель"]);
+  assert.equal(replacePolicy(diff, cloud).allowed, false, "замена и снятие блокируются");
+  assert.equal(replacePolicy(parentsDiff(["мать"], ["мать", "усыновитель"]), cloud).allowed, true, "добавление разрешено");
+});
+
+test("9г. ограничение слияния (фиксируем как есть): parents на двух устройствах, остаётся одна версия, обе лежат в копиях, какие именно родители различались, не показывается", async () => {
+  const { B } = await conflictOf(baseBook(), (b) => { b.people.find((p) => p.id === "ребёнок")!.parents = ["мать", "друг"]; }, (b) => { b.people.find((p) => p.id === "ребёнок")!.parents = ["мать", "усыновитель"]; });
+  const r = await B.sync("merge");
+  assert.equal(r.kind, "merged");
+  const kept = JSON.stringify(B.person("ребёнок")?.parents);
+  assert.ok(kept === JSON.stringify(["мать", "друг"]) || kept === JSON.stringify(["мать", "усыновитель"]), "в итоге одна из двух версий целиком");
+  const texts = [...B.backups.values()].map((b) => b.text).join("\n");
+  assert.ok(texts.includes("друг") && texts.includes("усыновитель"), "обе версии сохранены резервными копиями");
+  if (r.kind === "merged") assert.equal(JSON.stringify(r.report).includes("parents"), false, "в отчёте нет сведений о том, какие родители различались");
+});
+
+const ALL_CLOUD = ["checked", "no-cloud", "signed-out", "unknown", "failed", "conflict", "busy", "timeout"] as const;
+const REPLACE = parentsDiff(["мать", "отец"], ["мать", "друг"]);
+const ADD = parentsDiff(["мать"], ["мать", "друг"]);
+const never = { meta: () => null, base: async () => null };
+const localOnly = () => true; // явный признак: книга создана на этом устройстве и ни разу не синхронизировалась
+
+test("10а. книга никогда не синхронизировалась и токена нет: облачной копии нет, замена разрешена", async () => {
+  assert.equal(await cloudHistoryFrom(never.meta, never.base, localOnly), "never");
+  assert.equal(await cloudHistoryFrom(never.meta, never.base), "unknown", "без явного признака пустые отметки ничего не доказывают");
+  let called = 0;
+  const cloud = await cloudCheckFor({ authorized: false, history: () => cloudHistoryFrom(never.meta, never.base, localOnly), run: async () => { called++; return { kind: "same" }; }, isBusy: () => false });
+  assert.equal(cloud, "no-cloud");
+  assert.equal(called, 0, "без входа сеть не трогаем");
+  assert.equal(replacePolicy(REPLACE, cloud).allowed, true);
+});
+
+test("10б. книга раньше синхронизировалась, затем вышли из аккаунта: проверка невозможна, замена запрещена", async () => {
+  const cases: [string, () => string | null, () => Promise<string | null>][] = [
+    ["отметка с версией", () => JSON.stringify({ rev: 3, hash: "h", at: "t" }), async () => null],
+    ["отметка только со временем", () => JSON.stringify({ rev: 0, hash: "", at: "2026-11-01T10:00:00Z" }), async () => null],
+    ["только база последней синхронизации", () => null, async () => "{}"],
+  ];
+  for (const [name, meta, base] of cases) {
+    assert.equal(await cloudHistoryFrom(meta, base), "synced", name);
+    let called = 0;
+    const cloud = await cloudCheckFor({ authorized: false, history: () => cloudHistoryFrom(meta, base), run: async () => { called++; return { kind: "same" }; }, isBusy: () => false });
+    assert.equal(cloud, "signed-out", name);
+    assert.equal(called, 0, "без входа сеть не трогаем");
+    assert.equal(replacePolicy(REPLACE, cloud).allowed, false, name);
+  }
+});
+
+test("10б2. настоящий движок: книга выгружена в облако, отметки остались после выхода, замена запрещена", async () => {
+  const A = new Device(`kr-out-${++seq}-12345678`, "dev-aaaaaaaa");
+  A.book = { pages: [], photos: [], places: [], ...structuredClone(baseBook()) } as Book;
+  assert.equal((await A.sync()).kind, "uploaded");
+  const cloud = await cloudCheckFor({ authorized: false, history: () => cloudHistoryFrom(() => JSON.stringify(A.meta), async () => A.base), run: async () => ({ kind: "same" }), isBusy: () => false });
+  assert.equal(cloud, "signed-out");
+  assert.equal(replacePolicy(REPLACE, cloud).allowed, false);
+});
+
+test("10в. вошёл, но облако недоступно или синхронизация не удалась: замена запрещена", async () => {
+  const runs: [string, () => Promise<never | { kind: "error"; message: string } | { kind: "conflict"; reason: "both-changed" }>][] = [
+    ["ошибка", async () => ({ kind: "error", message: "нет сети" })],
+    ["исключение", async () => { throw new Error("сеть оборвалась"); }],
+    ["конфликт", async () => ({ kind: "conflict", reason: "both-changed" })],
+  ];
+  for (const [name, run] of runs) {
+    const cloud = await cloudCheckFor({ authorized: true, history: () => cloudHistoryFrom(never.meta, never.base), run: run as never, isBusy: () => false });
+    assert.notEqual(cloud, "no-cloud", `${name}: недоступное облако не считается отсутствием копии`);
+    assert.equal(replacePolicy(REPLACE, cloud).allowed, false, name);
+  }
+  const timeout = await cloudCheckFor({ authorized: true, history: async () => "never", run: () => new Promise(() => {}), isBusy: () => false, timeoutMs: 100 });
+  assert.equal(timeout, "timeout");
+  assert.equal(replacePolicy(REPLACE, timeout).allowed, false);
+  const busy = await cloudCheckFor({ authorized: true, history: async () => "never", run: async () => ({ kind: "same" }), isBusy: () => true, timeoutMs: 120 });
+  assert.equal(busy, "busy");
+  assert.equal(replacePolicy(REPLACE, busy).allowed, false);
+});
+
+test("10в2. вошёл и синхронизация удалась: замена разрешена; вошёл при пустой истории всё равно делает настоящую проверку", async () => {
+  let called = 0;
+  const cloud = await cloudCheckFor({ authorized: true, history: async () => "never", run: async () => { called++; return { kind: "same" }; }, isBusy: () => false });
+  assert.equal(cloud, "checked");
+  assert.equal(called, 1);
+  assert.equal(replacePolicy(REPLACE, cloud).allowed, true);
+});
+
+test("10г. нельзя достоверно определить историю: считаем, что облачная копия может быть, замена запрещена", async () => {
+  const cases: [string, () => string | null, () => Promise<string | null>][] = [
+    ["испорченная отметка", () => "{не json", async () => null],
+    ["отметка есть, но пустая", () => JSON.stringify({ rev: 0, hash: "", at: "" }), async () => null],
+    ["хранилище не читается", () => { throw new Error("доступ закрыт"); }, async () => null],
+    ["база не читается", () => null, async () => { throw new Error("IndexedDB недоступна"); }],
+  ];
+  for (const [name, meta, base] of cases) {
+    assert.equal(await cloudHistoryFrom(meta, base), "unknown", name);
+    const cloud = await cloudCheckFor({ authorized: false, history: () => cloudHistoryFrom(meta, base), run: async () => ({ kind: "same" }), isBusy: () => false });
+    assert.equal(cloud, "unknown", name);
+    assert.equal(replacePolicy(REPLACE, cloud).allowed, false, name);
+  }
+  const thrown = await cloudCheckFor({ authorized: false, history: async () => { throw new Error("сбой"); }, run: async () => ({ kind: "same" }), isBusy: () => false });
+  assert.equal(thrown, "unknown", "сбой чтения истории не равен «облака нет»");
+});
+
+test("10д. добавление без удаления существующих родителей разрешено во всех ситуациях", () => {
+  for (const cloud of ALL_CLOUD) assert.equal(replacePolicy(ADD, cloud).allowed, true, cloud);
+  const only = ALL_CLOUD.filter((cloud) => replacePolicy(REPLACE, cloud).allowed);
+  assert.deepEqual([...only], ["checked", "no-cloud"], "замену разрешают только эти два итога");
 });
