@@ -109,7 +109,8 @@ export function matchExisting(current: RodPerson[], list: ImportedPerson[]): Map
 /** Человек из файла, который, скорее всего, и есть тот, кто уже записан как «я»: по имени (и фамилии, если она есть). */
 export function guessSelf(tree: TreeData, current: RodPerson[]): string {
   const me = current.find((c) => /^(я|сам|сама)$/i.test(c.relation.trim()));
-  if (!me) return tree.focusId;
+  // В книге ещё нет «я»: выбор из файла (первый человек или «домашний» у программы) ничего не говорит о том, кто загружает файл, и чужой «Я» ломает все подписи родства. Человек выбирает себя сам.
+  if (!me) return "";
   const first = (me.firstName ?? me.name.split(/\s+/)[0] ?? "").trim().toLowerCase().replace(/ё/g, "е");
   const last = (me.lastName ?? me.name.split(/\s+/).slice(1).join(" ")).trim().toLowerCase().replace(/ё/g, "е");
   const norm = (x: string) => x.trim().toLowerCase().replace(/ё/g, "е");
