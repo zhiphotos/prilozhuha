@@ -80,3 +80,15 @@ test("5б. настоящий цикл для старой книги: файл 
   await importBook(new File([text], "x.kniga"));
   assert.equal(JSON.stringify(useRod.getState().people), before);
 });
+
+test("5в. настоящий цикл .kniga: отметка «общий ребёнок» (parentsUnmarried) сохраняется вместе с родителями", async () => {
+  const people = [man("М"), man("Д"), man("К", { parents: ["М", "Д"], parentsUnmarried: true })];
+  useRod.setState({ people: JSON.parse(JSON.stringify(people)) as Person[] });
+  const before = JSON.stringify(useRod.getState().people);
+  await exportBook();
+  const text = await (saved as Blob).text();
+  useRod.setState({ people: [] });
+  await importBook(new File([text], "x.kniga"));
+  assert.equal(JSON.stringify(useRod.getState().people), before);
+  assert.equal(useRod.getState().people.find((p) => p.id === "К")?.parentsUnmarried, true);
+});

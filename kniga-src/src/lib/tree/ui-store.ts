@@ -8,6 +8,7 @@ import type { Person as RodPerson } from "@/lib/rod/types";
 import type { UnionFacts } from "./fill.ts";
 import { toast } from "sonner";
 import { flipSpouse, moveBranch, type Patch } from "./arrange.ts";
+import { planChildWithParents, type Confirmations, type Needs, type SecondParentChoice } from "./second-parent.ts";
 import { setLayoutSpread } from "./layout.ts";
 import type { LayoutEngine } from "./layout-engine.ts";
 import { SELF_ID, roleOf, treeFromPeople } from "./from-people.ts";
@@ -36,6 +37,9 @@ export type Draft = {
   /** Место рождения. */
   birthPlace?: string;
 };
+
+export type StoreSecond = Exclude<SecondParentChoice, { mode: "new" }> | { mode: "new"; draft: Draft };
+export type ChildResult = { ok: true; childId: string } | { ok: false; errors: string[]; needs?: Needs };
 
 export function emptyDraft(gender: Gender = "u"): Draft {
   return { firstName: "", patronymic: "", lastName: "", gender, birthYear: "", deathYear: "", note: "", photo: "" };
@@ -88,6 +92,10 @@ type State = {
   setUnionYears: (id: string, startYear: string, endYear: string) => void;
   addRelative: (fromId: string, kind: RelKind, draft: Draft, unionId?: string, facts?: UnionFacts) => string | null;
   attachRelative: (fromId: string, kind: RelKind, existingId: string, unionId?: string, facts?: UnionFacts) => string | null;
+  /** Новый ребёнок с родителями: второй родитель только по явному выбору (подтверждённый партнёр, другой человек, новый, неизвестно). Брак и союз не создаются. */
+  addChildWithParents: (fromId: string, kind: "son" | "daughter", draft: Draft, second: StoreSecond, confirm?: Confirmations) => Promise<ChildResult>;
+  /** Существующий человек становится ребёнком; уже записанные родители заменяются только с подтверждением. */
+  attachChildWithParents: (fromId: string, childId: string, second: StoreSecond, confirm?: Confirmations) => ChildResult;
   removePerson: (id: string) => void;
 };
 
@@ -166,7 +174,7 @@ function withoutHidden(data: TreeData): TreeData {
 }
 
 const photoUrls = new Map<string, string>();
-const STATUS_BACK: Record<UnionStatus, "married" | "divorced" | "partners" | "widowed"> = { married: "married", divorced: "divorced", widowed: "widowed", partner: "partners" };
+const STATUS_BACK: Record<UnionStatus, "married" | "divorced" | "partners" | "widowed"> = { married: "married", divorced: "divorced", widowed: "widowed", partner: "partners", coparents: "partners" }; // кнопки статуса «Общий ребёнок» нет, запись брачной связи из него не создаётся
 
 /** Список «Люди» с готовыми адресами фото: источник правды остаётся там. */
 function currentPeople(): RodPerson[] {
@@ -176,6 +184,8 @@ function currentPeople(): RodPerson[] {
     return url ? { ...p, photo: url } : { ...p, photo: undefined };
   });
 }
+
+let childBusy = false;
 
 function realId(id: string): boolean {
   return !id.startsWith("__");
@@ -427,6 +437,43 @@ export const useTree = create<State>((set, get) => {
       }
       set({ selectedId: other.id, unionId: null, roster: false });
       return null;
+    },
+    addChildWithParents: async (fromId, kind, draft, second, confirm) => {
+      if (childBusy) return { ok: false, errors: ["Подождите, запись ещё идёт"] };
+      if (!draft.firstName.trim()) return { ok: false, errors: ["Введите имя"] };
+      if (!realId(fromId)) return { ok: false, errors: ["Сначала заполните это место, потом добавляйте родню"] };
+      childBusy = true;
+      try {
+        const base = rod(fromId);
+        const gender: "m" | "f" = kind === "son" ? "m" : "f";
+        const toPerson = (d: Draft, relation: string, g: "m" | "f" | undefined, photo?: string): Omit<RodPerson, "id"> => {
+          const parts = { firstName: d.firstName.trim(), patronymic: d.patronymic.trim(), lastName: d.lastName.trim() };
+          return { name: composeName(parts), ...parts, relation, birthYear: d.birthYear, deathYear: d.deathYear || undefined, maidenName: d.maidenName?.trim() ?? "", birthPlace: d.birthPlace?.trim() || undefined, notes: d.note, gender: g, photo } as Omit<RodPerson, "id">;
+        };
+        const childPhoto = await storedPhoto(draft.photo);
+        let choice: SecondParentChoice;
+        if (second.mode === "new") {
+          const g = genderOf(second.draft.gender);
+          choice = { mode: "new", person: toPerson(second.draft, "", g, await storedPhoto(second.draft.photo)) };
+        } else choice = second;
+        const relation = relationFor(kind, baseRoleOf(fromId), gender);
+        const result = planChildWithParents({ people: useRod.getState().people, firstId: fromId, child: { mode: "new", person: toPerson(draft, relation, gender, childPhoto) }, second: choice, confirm, newId: () => crypto.randomUUID() });
+        if (!result.ok) return result;
+        useRod.setState({ people: syncRelations(result.people) });
+        set({ selectedId: result.childId, unionId: null, roster: false });
+        void base;
+        return { ok: true, childId: result.childId };
+      } finally {
+        childBusy = false;
+      }
+    },
+    attachChildWithParents: (fromId, childId, second, confirm) => {
+      if (second.mode === "new") return { ok: false, errors: ["Нового человека добавляйте через форму ребёнка"] };
+      const result = planChildWithParents({ people: useRod.getState().people, firstId: fromId, child: { mode: "existing", id: childId }, second, confirm, newId: () => crypto.randomUUID() });
+      if (!result.ok) return result;
+      useRod.setState({ people: syncRelations(result.people) });
+      set({ selectedId: childId, unionId: null, roster: false });
+      return { ok: true, childId };
     },
     removePerson: (id) => {
       if (realId(id)) useRod.getState().removePerson(id);

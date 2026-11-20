@@ -1,6 +1,7 @@
 export type Gender = "m" | "f" | "u";
 
-export type UnionStatus = "married" | "divorced" | "widowed" | "partner";
+/** «coparents»: «Общий ребёнок», у двоих есть общий ребёнок, а записи о браке или союзе нет. Брака и союза не означает. */
+export type UnionStatus = "married" | "divorced" | "widowed" | "partner" | "coparents";
 
 export type Person = {
   id: string;
