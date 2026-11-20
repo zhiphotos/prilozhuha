@@ -1,4 +1,5 @@
 import { FramedFace } from "@/components/tree/FramedFace";
+import { markLines } from "@/lib/tree/union-label";
 import { cardLine } from "@/lib/tree/card-fields";
 import { SheetTitle } from "@/components/tree/SheetTitle";
 import { useMemo } from "react";
@@ -30,8 +31,12 @@ export function GzhelView({ sheet, people, unions, focusId, homeId, selectedId, 
           ))}
         </g>
         {sheet.marks.map((mark, i) => (
-          <text key={i} x={mark.x} y={mark.y} textAnchor="middle" fill={INK} fontFamily="var(--font-serif)" fontSize={13} fontStyle="italic">
-            {mark.text}
+          <text key={i} x={mark.x} y={mark.y} textAnchor="middle" fill={INK} fontFamily="var(--font-serif)" fontSize={markLines(mark.text).length > 1 ? 11 : 13} fontStyle="italic">
+            {markLines(mark.text).map((line, k, all) => (
+              <tspan key={k} x={mark.x} dy={all.length > 1 ? (k === 0 ? -12 : 12) : 0}>
+                {line}
+              </tspan>
+            ))}
           </text>
         ))}
         <FamilyOverlay sheet={sheet} byId={byId} ink={INK} stroke={"#2a6fbe"} strokeWidth={1.7} frame={GZHEL_FRAME} />

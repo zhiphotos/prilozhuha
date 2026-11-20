@@ -1,4 +1,5 @@
 import { childTrunk } from "@/lib/tree/trunk";
+import { COPARENTS_WORD } from "./union-label.ts";
 import { reposition, type Spot } from "./anchor.ts";
 import { assignGenerations } from "./layout.ts";
 import { fullName, kinship, yearNum, yearsOf } from "./kinship.ts";
@@ -15,6 +16,8 @@ export type PosterSheet = {
   nodes: PosterNode[];
   links: string[];
   rings: { x: number; y: number }[];
+  /** Подпись пары без брака («ОБЩИЙ РЕБЁНОК»), центр плашки. Колец у такой пары нет, чтобы не изображать брак. */
+  labels: { x: number; y: number; text: string }[];
   title: string;
   titleX: number;
   titleY: number;
@@ -91,7 +94,7 @@ function rowUnits(ids: string[], unions: Union[], people: Map<string, Person>): 
 }
 
 export function layoutPoster(people: Person[], unions: Union[], focusId: string, flow: "down" | "up" = "down", anchor?: ReadonlyMap<string, Spot>): PosterSheet {
-  const empty = { width: SHEET_W, height: SHEET_H, cardW: 160, cardH: CARD_H, nodes: [] as PosterNode[], links: [] as string[], rings: [] as { x: number; y: number }[], title: "РОД", titleX: SHEET_W / 2, titleY: SHEET_H * 0.64 };
+  const empty = { width: SHEET_W, height: SHEET_H, cardW: 160, cardH: CARD_H, nodes: [] as PosterNode[], links: [] as string[], rings: [] as { x: number; y: number }[], labels: [] as { x: number; y: number; text: string }[], title: "РОД", titleX: SHEET_W / 2, titleY: SHEET_H * 0.64 };
   if (!people.length) return empty;
   const gen = assignGenerations(people, unions);
   const byId = new Map(people.map((p) => [p.id, p]));
@@ -132,6 +135,7 @@ export function layoutPoster(people: Person[], unions: Union[], focusId: string,
   const at = new Map(nodes.map((n) => [n.id, n]));
   const links: string[] = [];
   const rings: { x: number; y: number }[] = [];
+  const labels: { x: number; y: number; text: string }[] = [];
   for (const union of unions) {
     const partners = union.partnerIds.map((id) => at.get(id)).filter((n): n is PosterNode => Boolean(n));
     const kids = union.childIds.map((id) => at.get(id)).filter((n): n is PosterNode => Boolean(n));
@@ -142,8 +146,11 @@ export function layoutPoster(people: Person[], unions: Union[], focusId: string,
       const x2 = b.x - b.w / 2;
       if (x2 > x1 + 10) {
         links.push(`M ${x1} ${y} H ${x2}`);
-        rings.push({ x: (x1 + x2) / 2, y });
+        if (union.status !== "coparents") rings.push({ x: (x1 + x2) / 2, y });
       }
+      // Подпись пары без брака. Карточки пары на «Афише» часто стоят вплотную, линии между ними нет, поэтому плашка висит над парой
+      // (при «Снизу вверх» под парой: сверху к родителям идёт линия детей). Центр плашки: середина между карточками.
+      if (union.status === "coparents") labels.push({ x: (a.x + b.x) / 2, y: flow === "up" ? y + CARD_H / 2 + 16 : y - CARD_H / 2 - 16, text: COPARENTS_WORD });
     }
     if (!partners.length || !kids.length) continue;
     const upward = kids[0]!.y < partners[0]!.y;
@@ -159,5 +166,5 @@ export function layoutPoster(people: Person[], unions: Union[], focusId: string,
   let titleY = height * 0.64;
   if (nodes.some((n) => Math.abs(n.x - width / 2) < n.w * 0.6 && Math.abs(n.y - titleY) < CARD_H)) titleY = height * 0.68;
   const cardW = nodes.reduce((m, n) => Math.max(m, n.w), 120);
-  return { width, height, cardW, cardH: CARD_H, nodes, links, rings, title, titleX: width / 2, titleY };
+  return { width, height, cardW, cardH: CARD_H, nodes, links, rings, labels, title, titleX: width / 2, titleY };
 }

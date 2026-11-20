@@ -1,4 +1,5 @@
 import { childTrunk } from "@/lib/tree/trunk";
+import { unionWordLower } from "./union-label.ts";
 import { NAME_HALF, reposition, type Spot } from "./anchor.ts";
 import { yearNum } from "./kinship.ts";
 import { assignGenerations } from "./layout.ts";
@@ -125,7 +126,7 @@ export function layoutCameo(people: Person[], unions: Union[], focusId: string, 
       const x2 = b.x - FRAME - 2;
       if (x2 > x1 + 8) {
         vines.push(wave(x1, x2, a.y));
-        const word = union.status === "divorced" ? "развод" : union.status === "widowed" ? "вдов." : union.status === "partner" ? "союз" : "брак";
+        const word = unionWordLower(union.status);
         marks.push({ x: (a.x + b.x) / 2, y: a.y - 8, text: word });
       }
     }

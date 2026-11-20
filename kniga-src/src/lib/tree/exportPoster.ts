@@ -1,5 +1,6 @@
 import { exportLayout, schemeAnchor } from "./scheme.ts";
 import { busColorIndex, busHops, BUS_PALETTE, foreignEntries } from "./bus-look.ts";
+import { markLines, unionWord } from "./union-label.ts";
 import { busLinkPath, busPath, busIsFar, pillLabel, pillPoint, pillSize, refLinkPath, spousePath, type SchemeBus, type SchemeSpouse } from "./scheme-paths.ts";
 import { buildJpegPdf } from "../rod/pdf.ts";
 import { fitText, fullName, kinship, nameLines, yearsOf } from "./kinship.ts";
@@ -32,10 +33,7 @@ function lineColor(status: UnionStatus, dark: boolean): string {
 }
 
 function pillText(status: UnionStatus): string {
-  if (status === "divorced") return "РАЗВОД";
-  if (status === "widowed") return "ВДОВСТВО";
-  if (status === "partner") return "СОЮЗ";
-  return "БРАК";
+  return unionWord(status);
 }
 
 async function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -377,7 +375,7 @@ function drawWork(ctx: CanvasRenderingContext2D, prep: WorkPrep, sheetW: number,
     }
     ctx.setLineDash([]);
     const text = pillText(link.status);
-    const w = text.length > 7 ? 112 : 78;
+    const w = text.length > 12 ? 106 : text.length > 7 ? 112 : 78;
     const mx = (link.x1 + link.x2) / 2;
     const py = link.bracketY ?? link.y1;
     ctx.fillStyle = tone.pill;
@@ -821,7 +819,14 @@ async function renderFramed(
   for (const d of sheet.vines) ctx.stroke(new Path2D(d));
   ctx.globalAlpha = 1;
   ctx.font = 'italic 12px "Cormorant Garamond", serif';
-  for (const mark of sheet.marks) ctx.fillText(mark.text, mark.x, mark.y);
+  for (const mark of sheet.marks) {
+    const lines = markLines(mark.text);
+    if (lines.length === 1) { ctx.fillText(mark.text, mark.x, mark.y); continue; }
+    ctx.save();
+    ctx.font = 'italic 10.5px "Cormorant Garamond", serif';
+    lines.forEach((line, k) => ctx.fillText(line, mark.x, mark.y + (k === 0 ? -11 : 11)));
+    ctx.restore();
+  }
   if (sheet.far?.length) {
     ctx.save();
     ctx.globalAlpha = 0.85;
