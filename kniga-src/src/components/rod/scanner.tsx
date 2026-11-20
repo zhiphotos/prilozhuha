@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { Camera, Images, X } from "lucide-react";
 import { toast } from "sonner";
@@ -68,7 +69,7 @@ export function Scanner({ onDone, onClose }: { onDone: (ref: string, mode: ScanM
     }, 30);
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[70] flex flex-col bg-night/95 p-3 text-paper">
       <div className="flex items-center justify-between pb-2 pt-[max(0.25rem,env(safe-area-inset-top))]">
         <p className="display-title text-[0.95rem]">Сканер</p>
@@ -151,6 +152,7 @@ export function Scanner({ onDone, onClose }: { onDone: (ref: string, mode: ScanM
       )}
       <input ref={gallery} type="file" accept="image/*" className="sr-only" onChange={(event) => { load(event.target.files?.[0]); event.target.value = ""; }} />
       <input ref={camera} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(event) => { load(event.target.files?.[0]); event.target.value = ""; }} />
-    </div>
+    </div>,
+    document.body,
   );
 }
