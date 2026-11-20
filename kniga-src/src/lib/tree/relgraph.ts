@@ -162,22 +162,30 @@ export function resolveBranch(personId: string, rootId: string, g: RelationshipG
 
 /** Проверка исходных записей «Люди» (до сборки древа): ловит то, что сборка тихо отбрасывает. Данные не меняет. */
 export function validatePeopleLinks(people: { id: string; name: string; parents?: string[]; spouse?: string; siblingOf?: string; moreSpouses?: { id: string }[] }[]): string[] {
+  return validatePeopleLinksWithIds(people).map((x) => x.text);
+}
+
+/** То же, но с номером человека, чья запись вызвала замечание: по нему замечание ведёт к нужной карточке. */
+export function validatePeopleLinksWithIds(people: { id: string; name: string; parents?: string[]; spouse?: string; siblingOf?: string; moreSpouses?: { id: string }[] }[]): { text: string; id: string }[] {
   const byId = new Map(people.map((p) => [p.id, p]));
   if (!byId.has("__self")) byId.set("__self", { id: "__self", name: "Я" } as (typeof people)[number]);
   const name = (id: string) => byId.get(id)?.name ?? id;
-  const out: string[] = [];
+  const out: { text: string; id: string }[] = [];
+  let current = "";
+  const push = (text: string) => out.push({ text, id: current });
   for (const p of people) {
+    current = p.id;
     const par = p.parents ?? [];
-    if (par.includes(p.id)) out.push(`«${p.name}» записан(а) родителем самому себе: откройте карточку, поле «Чей ребёнок».`);
-    for (const id of par) if (id !== p.id && (p.spouse === id || byId.get(id)?.spouse === p.id)) out.push(`«${p.name}»: родитель «${name(id)}» одновременно записан(а) супругом, проверьте поле «Чей ребёнок».`);
+    if (par.includes(p.id)) push(`«${p.name}» записан(а) родителем самому себе: откройте карточку, поле «Чей ребёнок».`);
+    for (const id of par) if (id !== p.id && (p.spouse === id || byId.get(id)?.spouse === p.id)) push(`«${p.name}»: родитель «${name(id)}» одновременно записан(а) супругом, проверьте поле «Чей ребёнок».`);
     // Ссылки на людей, которых нет в списке: сборка древа их молча пропускает, поэтому показываем отдельно (ничего не удаляем).
-    for (const id of par) if (id !== p.id && !byId.has(id)) out.push(`«${p.name}»: родитель с id ${id} не найден среди записей. Связь не используется, проверьте поле «Чей ребёнок».`);
-    if (par.length > 2) out.push(`«${p.name}»: указано больше двух родителей, в древе используются первые два.`);
-    if (p.spouse === p.id) out.push(`«${p.name}» записан(а) супругом самому себе.`);
-    else if (p.spouse && !byId.has(p.spouse)) out.push(`«${p.name}»: супруг(а) с id ${p.spouse} не найден(а) среди записей. Связь не используется.`);
-    for (const m of p.moreSpouses ?? []) if (m.id && !byId.has(m.id)) out.push(`«${p.name}»: ещё один супруг(а) с id ${m.id} не найден(а) среди записей. Связь не используется.`);
-    if (p.siblingOf === p.id) out.push(`«${p.name}» записан(а) братом или сестрой самому себе.`);
-    else if (p.siblingOf && !byId.has(p.siblingOf)) out.push(`«${p.name}»: брат или сестра, чей id ${p.siblingOf}, не найден(а) среди записей. Связь не используется, поле «Брат или сестра» нужно выбрать заново.`);
+    for (const id of par) if (id !== p.id && !byId.has(id)) push(`«${p.name}»: родитель с id ${id} не найден среди записей. Связь не используется, проверьте поле «Чей ребёнок».`);
+    if (par.length > 2) push(`«${p.name}»: указано больше двух родителей, в древе используются первые два.`);
+    if (p.spouse === p.id) push(`«${p.name}» записан(а) супругом самому себе.`);
+    else if (p.spouse && !byId.has(p.spouse)) push(`«${p.name}»: супруг(а) с id ${p.spouse} не найден(а) среди записей. Связь не используется.`);
+    for (const m of p.moreSpouses ?? []) if (m.id && !byId.has(m.id)) push(`«${p.name}»: ещё один супруг(а) с id ${m.id} не найден(а) среди записей. Связь не используется.`);
+    if (p.siblingOf === p.id) push(`«${p.name}» записан(а) братом или сестрой самому себе.`);
+    else if (p.siblingOf && !byId.has(p.siblingOf)) push(`«${p.name}»: брат или сестра, чей id ${p.siblingOf}, не найден(а) среди записей. Связь не используется, поле «Брат или сестра» нужно выбрать заново.`);
   }
   return out;
 }

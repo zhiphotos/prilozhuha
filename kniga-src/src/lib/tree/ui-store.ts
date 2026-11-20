@@ -11,7 +11,7 @@ import { setLayoutSpread } from "./layout.ts";
 import type { LayoutEngine } from "./layout-engine.ts";
 import { SELF_ID, roleOf, treeFromPeople } from "./from-people.ts";
 import { freezeParentsOf } from "./freeze.ts";
-import { buildRelationshipGraph, validateGraph, validatePeopleLinks } from "./relgraph.ts";
+import { buildRelationshipGraph, validateGraph, validatePeopleLinksWithIds } from "./relgraph.ts";
 import type { TreeScope } from "./scope.ts";
 import type { TreeStyle } from "./styles.ts";
 import type { Gender, Person, TreeData, Union, UnionStatus } from "./types.ts";
@@ -47,6 +47,8 @@ export function draftFrom(person: Person): Draft {
 type State = {
   /** Замечания к связям: показываем, молча не исправляем. */
   issues: string[];
+  /** Те же замечания с номерами людей: по ним строки плашки ведут к карточкам. */
+  issueItems: { text: string; ids: string[] }[];
   people: Person[];
   unions: Union[];
   /** Центр дерева: только состояние экрана, в книгу не записывается и после перезагрузки возвращается к записи «я». */
@@ -239,10 +241,17 @@ function applyPatches(patches: Patch[]) {
   }
 }
 
-function issuesOf(data: ReturnType<typeof treeFromPeople>): string[] {
+function issueItemsOf(data: ReturnType<typeof treeFromPeople>): { text: string; ids: string[] }[] {
   const name = (id: string) => data.people.find((p) => p.id === id)?.firstName || "?";
-  const found = validateGraph(buildRelationshipGraph(data), data.focusId).map((i) => `${i.message} (${[...new Set(i.ids)].map(name).join(", ")})`);
-  return [...validatePeopleLinks(currentPeople()), ...found, ...(data.ambiguous ?? []).map((a) => a.message)];
+  const found = validateGraph(buildRelationshipGraph(data), data.focusId).map((i) => ({ text: `${i.message} (${[...new Set(i.ids)].map(name).join(", ")})`, ids: [...new Set(i.ids)] }));
+  return [
+    ...validatePeopleLinksWithIds(currentPeople()).map((x) => ({ text: x.text, ids: [x.id] })),
+    ...found,
+    ...(data.ambiguous ?? []).map((a) => ({ text: a.message, ids: [a.id] })),
+  ];
+}
+function issuesOf(data: ReturnType<typeof treeFromPeople>): string[] {
+  return issueItemsOf(data).map((x) => x.text);
 }
 
 export const useTree = create<State>((set, get) => {
@@ -253,7 +262,7 @@ export const useTree = create<State>((set, get) => {
   const rebuild = () => {
     const data = withoutHidden(treeFromPeople(currentPeople()));
     const focus = data.people.some((p) => p.id === get().focusId) ? get().focusId : data.focusId;
-    set({ people: data.people, unions: data.unions, focusId: focus, homeId: data.focusId, issues: issuesOf(data) });
+    set({ people: data.people, unions: data.unions, focusId: focus, homeId: data.focusId, issues: issuesOf(data), issueItems: issueItemsOf(data) });
   };
   useRod.subscribe(rebuild);
 
@@ -263,6 +272,7 @@ export const useTree = create<State>((set, get) => {
   return {
     ...ui,
     issues: issuesOf(initial),
+    issueItems: issueItemsOf(initial),
     people: initial.people,
     unions: initial.unions,
     focusId: initial.focusId,
