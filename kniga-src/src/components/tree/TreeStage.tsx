@@ -307,6 +307,8 @@ export function TreeStage(props: Props) {
 
   const onPointerDown = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest?.("[data-ui], button, a, input, textarea")) return;
+    // Firefox и Edge при перетаскивании мышью начинают выделять текст на карточках: сбрасываем выделение, иначе оно мешает двигать.
+    window.getSelection?.()?.removeAllRanges();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     setGesturing(true);
@@ -424,8 +426,9 @@ export function TreeStage(props: Props) {
     <>
       <div
         ref={wrap}
-        className={`tree-viewport absolute inset-0 overflow-hidden${style === "carved" ? " is-carved" : ""}${style === "cameo" ? " is-cameo" : ""}${style === "gzhel" ? " is-gzhel" : ""}${style === "boheme" ? " is-boheme" : ""}${style === "taiga" ? " is-taiga" : ""}`}
+        className={`tree-viewport absolute inset-0 select-none overflow-hidden${style === "carved" ? " is-carved" : ""}${style === "cameo" ? " is-cameo" : ""}${style === "gzhel" ? " is-gzhel" : ""}${style === "boheme" ? " is-boheme" : ""}${style === "taiga" ? " is-taiga" : ""}`}
         onPointerDown={onPointerDown}
+        onDragStart={(e) => e.preventDefault()}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={(e) => onPointerUp(e, true)}
