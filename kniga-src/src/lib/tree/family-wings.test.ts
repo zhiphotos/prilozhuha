@@ -50,7 +50,7 @@ test("14б. родня обеих сторон (двоюродные браки)
 });
 
 test("14в. четыре минимальных дерева из разбора (второй брак предка уезжал на чужую сторону): стороны разделены, люди на месте", () => {
-  const data = json<Record<string, Parameters<typeof fromMin>[0]>>("family-wings-min.json");
+  const data = json<Record<string, Parameters<typeof fromMin>[0]>>("wings/family-wings-min.json");
   for (const [name, rows] of Object.entries(data)) {
     const ps = fromMin(rows);
     const { t, L } = lay(ps);
@@ -94,7 +94,7 @@ test("14е. порядок людей в файле не влияет; заме�
 });
 
 test("14ж. где раньше стороны не смешивались, раскладка совпадает до пикселя (эталон снят со старой раскладки)", () => {
-  const gold = json<Record<string, string>>("family-wings-golden.json");
+  const gold = json<Record<string, string>>("wings/family-wings-golden.json");
   const keys = Object.keys(gold);
   assert.ok(keys.length >= 50);
   for (const key of keys) {
@@ -139,7 +139,7 @@ test("14и. ручные сдвиги карточек: у каждого чел
 });
 
 test("14к. ветка, которой не нашлось места рядом, отодвинута на свою сторону, но связана с родителем линией (шина или пометка «далёкая»)", () => {
-  const rows = json<Record<string, Parameters<typeof fromMin>[0]>>("family-wings-min.json");
+  const rows = json<Record<string, Parameters<typeof fromMin>[0]>>("wings/family-wings-min.json");
   for (const [name, r] of Object.entries(rows)) {
     const ps = fromMin(r);
     const { t, L } = lay(ps);
