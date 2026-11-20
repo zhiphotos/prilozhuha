@@ -1,6 +1,7 @@
 import { syncRelations, onParentAdded, onSiblingSet, onSpouseAdded, parentLimitMessage, parentsForUnion, siblingLinks, type Patch as AutoPatch } from "@/lib/tree/auto-links";
 import { create } from "zustand";
 import { composeName } from "@/lib/rod/person";
+import { renameRelationRefs } from "@/lib/rod/relation-links";
 import { isMediaRef, resolveMedia, saveMedia } from "@/lib/rod/media";
 import { useRod } from "@/lib/rod/store";
 import type { Person as RodPerson } from "@/lib/rod/types";
@@ -302,13 +303,13 @@ export const useTree = create<State>((set, get) => {
           const created = createPerson(draft, "Я", {}, photo);
           const fix = (v: string) => (v === SELF_ID ? created : v);
           useRod.setState((st) => ({
-            people: st.people.map((q) => q.id === created ? q : {
+            people: st.people.map((q) => q.id === created ? q : renameRelationRefs({
               ...q,
               ...(q.spouse === SELF_ID ? { spouse: created } : {}),
               ...(q.siblingOf === SELF_ID ? { siblingOf: created } : {}),
               ...(q.parents?.includes(SELF_ID) ? { parents: q.parents.map(fix) } : {}),
               ...(q.moreSpouses?.some((m) => m.id === SELF_ID) ? { moreSpouses: q.moreSpouses.map((m) => (m.id === SELF_ID ? { ...m, id: created } : m)) } : {}),
-            }),
+            }, SELF_ID, created)),
           }));
           set({ selectedId: created });
           return;

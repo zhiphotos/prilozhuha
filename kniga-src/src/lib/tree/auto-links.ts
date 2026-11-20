@@ -1,3 +1,4 @@
+import { withoutRelationRefs } from "../rod/relation-links.ts";
 import type { Person as RodPerson } from "../rod/types.ts";
 import { treeFromPeople } from "./from-people.ts";
 import { kinship } from "./kinship.ts";
@@ -53,7 +54,7 @@ export function withoutPerson(people: RodPerson[], id: string): RodPerson[] {
       if (next.spouse === id) next = { ...next, spouse: undefined };
       if (next.moreSpouses?.some((m) => m.id === id)) next = { ...next, moreSpouses: next.moreSpouses.filter((m) => m.id !== id) };
       if (next.siblingOf === id) next = { ...next, siblingOf: undefined };
-      return next;
+      return withoutRelationRefs(next, id); // усыновители и опекуны: ссылок на удалённого не остаётся
     });
 }
 

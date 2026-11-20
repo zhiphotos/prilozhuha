@@ -26,6 +26,10 @@ export type Person = {
   spouse?: string;
   /** Статус пары: в браке, развелись, живут вместе без брака. */
   spouseStatus?: "married" | "divorced" | "partners" | "widowed";
+  /** Усыновители этого человека (юридическое родительство). Хранятся отдельно от `parents` (биологических родителей) и их не заменяют и не удаляют. Нет поля: усыновления нет. */
+  adoptedBy?: AdoptionLink[];
+  /** Опекуны и приёмные семьи без усыновления: забота, а не родство. Хранятся отдельно от `parents` и `adoptedBy`. Нет поля: опеки нет. */
+  caredBy?: CareLink[];
   /** Остальные браки человека (у него может быть несколько супругов, `spouse` хранит один). */
   moreSpouses?: { id: string; status?: "married" | "divorced" | "partners" | "widowed"; from?: string; to?: string }[];
   /** Человек загружен из файла: связи берём только из ссылок, а не угадываем по слову «кем приходится». */
@@ -48,6 +52,11 @@ export type Person = {
   /** Дополнительные фото и файлы, прикреплённые к человеку: старые снимки, документы, выписки, вырезки. */
   attachments?: Attachment[];
 };
+
+/** Усыновитель или удочеритель (id человека из «Людей»), при желании год усыновления. */
+export type AdoptionLink = { id: string; year?: string };
+/** Опекун или приёмная семья без усыновления, при желании годы. */
+export type CareLink = { id: string; role: "guardian" | "foster"; from?: string; to?: string };
 
 export type Place = {
   id: string;
