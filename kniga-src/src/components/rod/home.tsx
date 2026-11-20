@@ -20,7 +20,7 @@ import { changedSinceBackup, exportBook, lastBackupAt } from "@/lib/rod/backup";
 import { ShareInvite } from "@/components/rod/share-invite";
 import { InstallBanner, InstallCard, InstallSheet } from "@/components/rod/install-hint";
 import { TransferCard } from "@/components/rod/transfer-card";
-import { AccessSheet, CloudNote, ProfileButton, TariffCard, TogetherCard } from "@/components/rod/access";
+import { AccessSheet, CloudNote, ProfileButton, SaleBanner, TariffCard, TogetherCard } from "@/components/rod/access";
 import { FamilySheet } from "@/components/rod/family-sheet";
 import { PaySheet } from "@/components/rod/lessons";
 import { ProjectsSheet } from "@/components/rod/projects-sheet";
@@ -271,7 +271,7 @@ export function HomeScreen() {
           </Button>
         ) : null}
       </section>
-      {!data.programOpen ? <TariffCard onOpen={() => setTariff(true)} /> : null}
+      {!data.programOpen ? <><SaleBanner /><TariffCard onOpen={() => setTariff(true)} /></> : null}
 
       <RemindersCard />
       <BackupCard hasData={total > 0 || data.pages.length > 1} />

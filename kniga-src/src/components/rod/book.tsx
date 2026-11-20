@@ -19,7 +19,7 @@ import { TemplateOrbit, type OrbitItem } from "@/components/rod/template-orbit";
 import { COMING, COMING_DONE, PreviewVideo, SLIDES } from "@/components/rod/unlock-carousel";
 import { PaySheet } from "@/components/rod/lessons";
 import { AI_NOTE } from "@/lib/rod/lesson-pitch";
-import { PROGRAM_PRICE } from "@/lib/rod/content";
+import { payNote, priceNow } from "@/lib/rod/offer";
 import { ReelButton } from "@/components/rod/reel-modal";
 import { BookDesk } from "@/components/rod/book-desk";
 import { ContentsSheet, filledCount } from "@/components/rod/contents-sheet";
@@ -854,7 +854,7 @@ function TemplateStage({ pages, meta, onUnlock }: { pages: BookPage[]; meta: { d
       added: false,
       info: true,
       images: pick.images?.map(asset),
-      cta: slide.price ? `Открыть полный доступ · ${PROGRAM_PRICE}` : undefined,
+      cta: slide.price ? `Открыть полный доступ · ${priceNow()}` : undefined,
       extra: slide.video ? (
         <div className="aspect-video overflow-hidden rounded-xl bg-night">
           <PreviewVideo src={slide.video.src} poster={slide.video.poster} />
@@ -884,9 +884,9 @@ function SoonBlock({ onBuy }: { onBuy: () => void }) {
   return (
     <section className="mb-6">
       <Button variant="primary" className="btn-glass-green h-auto min-h-12 w-full whitespace-normal py-3" onClick={onBuy}>
-        <span className="text-center">Купить мини-уроки и полный доступ в приложение <span className="whitespace-nowrap">· {PROGRAM_PRICE}</span></span>
+        <span className="text-center">Купить мини-уроки и полный доступ в приложение <span className="whitespace-nowrap">· {priceNow()}</span></span>
       </Button>
-      <p className="mt-2 text-center text-xs text-muted">Один платёж, без подписки</p>
+      <p className="mt-2 text-center text-xs text-muted">{payNote()}</p>
       <div className="mt-5 rounded-2xl bg-white/60 p-4">
         <button type="button" onClick={() => setMore((v) => !v)} aria-expanded={more} className="flex min-h-11 w-full items-center justify-between gap-3 text-left">
           <span>
