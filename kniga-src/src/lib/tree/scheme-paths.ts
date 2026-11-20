@@ -102,8 +102,8 @@ export function pillPoint(link: SchemeSpouse): { x: number; y: number } {
 
 /** Размер плашки брака (как рисует экран): ширина по длине слова, высота 24. */
 export function pillSize(status: SpouseLink["status"], arrow = false): { w: number; h: number } {
-  const len = status === "divorced" ? 6 : status === "widowed" ? 8 : 4;
-  return { w: (len > 7 ? 112 : len > 4 ? 88 : 72) + (arrow ? 8 : 0), h: 24 };
+  const len = status === "divorced" ? 6 : status === "widowed" ? 8 : status === "coparents" ? 13 : 4;
+  return { w: (len > 12 ? 106 : len > 7 ? 112 : len > 4 ? 88 : 72) + (arrow ? 8 : 0), h: 24 };
 }
 
 /** Текст плашки. У плашки на длинной дуге рядом со словом стрелка в сторону второго супруга: плашка у начала дуги не должна читаться как брак с соседней карточкой. */

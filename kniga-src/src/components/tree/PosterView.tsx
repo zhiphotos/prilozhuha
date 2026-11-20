@@ -31,6 +31,11 @@ export function PosterView({ poster, people, unions, focusId, selectedId, marked
           </g>
         ))}
       </svg>
+      {poster.labels.map((label, i) => (
+        <div key={`label-${i}`} className="glass-plaque pointer-events-none absolute flex items-center justify-center whitespace-nowrap px-3" style={{ left: label.x - 56, top: label.y - 11, width: 112, height: 22 }}>
+          <span className="text-[9px] font-semibold tracking-[0.12em] text-neutral-800">{label.text}</span>
+        </div>
+      ))}
       <div className="glass-plaque pointer-events-none absolute flex items-center justify-center px-4" style={{ left: poster.titleX - 86, top: poster.titleY - 16, width: 172, height: 32 }}>
         <span className="text-[11px] font-medium tracking-[0.22em] text-neutral-800">{poster.title}</span>
       </div>

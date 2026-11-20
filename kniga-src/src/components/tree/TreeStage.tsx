@@ -1,4 +1,5 @@
 import { busHops, busColorIndex, foreignEntries, BUS_PALETTE } from "@/lib/tree/bus-look";
+import { unionWord } from "@/lib/tree/union-label";
 import { busIsFar, busLinkPath, busPath, pillLabel, pillPoint, pillSize, refLinkPath, spousePath, type SchemeBus } from "@/lib/tree/scheme-paths";
 import { applyShifts } from "@/lib/tree/offsets";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -82,10 +83,7 @@ function lineColor(status: UnionStatus): string {
 }
 
 function pillText(status: UnionStatus): string {
-  if (status === "divorced") return "РАЗВОД";
-  if (status === "widowed") return "ВДОВСТВО";
-  if (status === "partner") return "СОЮЗ";
-  return "БРАК";
+  return unionWord(status);
 }
 
 function Flower({ motif }: { motif: { x: number; y: number; r: number; rot: number } }) {

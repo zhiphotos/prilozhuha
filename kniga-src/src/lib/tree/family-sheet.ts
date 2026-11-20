@@ -1,5 +1,6 @@
 // Этап 4.4: линии, метки, ссылки и подписи групп для тем «Камея», «Гжель», «Богема», «Тайга» по геометрии семейной раскладки.
 // Люди стоят там же, где на «Схеме» (одним общим множителем, см. anchor.ts); эта функция лишь рисует связи так, как их рисует сама тема (своя кривая, своя рамка).
+import { unionWordLower } from "./union-label.ts";
 import type { AppLayout } from "./layout-engine.ts";
 import type { FamilyBus } from "./family-layout.ts";
 import { PLATE_GAP, PLATE_H, PORTRAIT_R } from "./metrics.ts";
@@ -26,8 +27,7 @@ export type ThemeStyle = {
 
 type Node = { id: string; x: number; y: number };
 
-const WORD = { divorced: "развод", widowed: "вдов.", partner: "союз", married: "брак" } as Record<string, string>;
-const wordOf = (status: string) => WORD[status] ?? "брак";
+const wordOf = (status: string) => unionWordLower(status);
 
 /** Лишнее место над верхним рядом для дуг (в пикселях темы): нужно, чтобы дуга не уходила за край листа. */
 export function arcTopRoom(fam: Pick<AppLayout, "spouses">, st: ThemeStyle): number {

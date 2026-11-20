@@ -1,4 +1,5 @@
 import { NAME_HALF, reposition, type Spot } from "./anchor.ts";
+import { unionWordLower } from "./union-label.ts";
 import { yearNum } from "./kinship.ts";
 import { assignGenerations } from "./layout.ts";
 import type { Person, Union } from "./types.ts";
@@ -123,7 +124,7 @@ export function layoutBoheme(people: Person[], unions: Union[], focusId: string,
       const x2 = b.x - BOHEME_FRAME - 4;
       if (x2 > x1 + 8) {
         vines.push(vine(x1, a.y, x2, b.y));
-        const word = union.status === "divorced" ? "развод" : union.status === "widowed" ? "вдов." : union.status === "partner" ? "союз" : "брак";
+        const word = unionWordLower(union.status);
         marks.push({ x: (a.x + b.x) / 2, y: a.y - 10, text: word });
       }
     }
