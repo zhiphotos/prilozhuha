@@ -9,6 +9,7 @@ import test from "node:test";
 import { cloudText, restoreLocalBackup, syncCore, type Deps, type Meta, type Reply } from "./sync-engine.ts";
 import { fingerprint, pruneKeys } from "./sync-logic.ts";
 import { relationRefProblems } from "./relation-links.ts";
+import { describeRelations } from "./sync-merge.ts";
 import { withoutPerson } from "../tree/auto-links.ts";
 
 const { makeToken } = await import("../../../../kniga-api/lib/token.js");
@@ -131,13 +132,85 @@ test("6б. конфликт (с основой, как в приложении):
   assert.deepEqual((await cloudBook(A)).people.find((p) => p.id === "ребёнок")?.adoptedBy, link.adoptedBy);
 });
 
-test("6в. конфликт в ОДНОЙ карточке: усыновление на A, заметка на B. Остаётся карточка этого устройства, версия облака с усыновлением лежит в копии (известное ограничение объединения, как в сценарии 4)", async () => {
+test("6в. конфликт в ОДНОЙ карточке: усыновление на A, заметка на B. Сохраняется и то и другое (связи сливаются отдельно от карточки), в отчёте «добавлено 1»", async () => {
   const { B } = await conflictOf(baseBook(), (b) => { b.people.find((p) => p.id === "ребёнок")!.adoptedBy = structuredClone(link.adoptedBy); }, (b) => { b.people.find((p) => p.id === "ребёнок")!.notes = "заметка на B"; });
-  await B.sync("merge");
-  assert.equal(B.person("ребёнок")?.notes, "заметка на B");
-  assert.equal(B.person("ребёнок")?.adoptedBy, undefined, "усыновление в итоговую карточку не попало");
+  const r = await B.sync("merge");
+  assert.equal(r.kind, "merged");
+  assert.equal(B.person("ребёнок")?.notes, "заметка на B", "правка карточки на B сохранена");
+  assert.deepEqual(B.person("ребёнок")?.adoptedBy, link.adoptedBy, "усыновление с A тоже в рабочей книге");
+  assert.deepEqual(r.kind === "merged" && r.report.relations, { added: 1, removed: 0, toResolve: 0 });
   const cloudCopy = JSON.parse(B.backups.get(B.backupKey(/Облачная книга до объединения/)!)!.text) as Book;
-  assert.deepEqual(cloudCopy.people.find((p) => p.id === "ребёнок")?.adoptedBy, link.adoptedBy, "но не потеряно: оно в резервной копии");
+  assert.deepEqual(cloudCopy.people.find((p) => p.id === "ребёнок")?.adoptedBy, link.adoptedBy, "и версия облака лежит в копии, как раньше");
+});
+
+const merged = async (d: Device) => { const x = await d.sync("merge"); assert.equal(x.kind, "merged"); return x.kind === "merged" ? x.report : (undefined as never); };
+const kid = (b: Book) => b.people.find((p) => p.id === "ребёнок")! as Rec;
+const ids = (v: unknown) => (v as { id: string }[] | undefined)?.map((x) => x.id).sort();
+const withLink = () => { const b = baseBook(); (b.people[4] as Rec).adoptedBy = [{ id: "усыновитель", year: "1999" }]; return b; };
+
+test("7а. разные усыновители, добавленные на двух устройствах, объединяются по id без дубликатов (с основой)", async () => {
+  const { B } = await conflictOf(baseBook(), (b) => { kid(b).adoptedBy = [{ id: "усыновитель" }]; }, (b) => { kid(b).adoptedBy = [{ id: "опекунша" }]; });
+  const rep = await merged(B);
+  assert.deepEqual(ids(B.person("ребёнок")?.adoptedBy), ["опекунша", "усыновитель"]);
+  assert.deepEqual(rep.relations, { added: 1, removed: 0, toResolve: 0 });
+});
+
+test("7б. один и тот же усыновитель добавлен на обоих устройствах: одна запись", async () => {
+  const { B } = await conflictOf(baseBook(), (b) => { kid(b).adoptedBy = [{ id: "усыновитель", year: "1999" }]; }, (b) => { kid(b).adoptedBy = [{ id: "усыновитель", year: "1999" }]; kid(b).notes = "B"; });
+  await merged(B);
+  assert.deepEqual(B.person("ребёнок")?.adoptedBy, [{ id: "усыновитель", year: "1999" }]);
+});
+
+test("7в. опека сливается так же, как усыновление, и не смешивается с ним", async () => {
+  const { B } = await conflictOf(baseBook(), (b) => { kid(b).caredBy = [{ id: "опекунша", role: "guardian" }]; }, (b) => { kid(b).adoptedBy = [{ id: "усыновитель" }]; kid(b).notes = "B"; });
+  await merged(B);
+  assert.deepEqual(B.person("ребёнок")?.caredBy, [{ id: "опекунша", role: "guardian" }]);
+  assert.deepEqual(B.person("ребёнок")?.adoptedBy, [{ id: "усыновитель" }]);
+  assert.equal(B.person("ребёнок")?.notes, "B");
+});
+
+test("7г. связь снята на одном устройстве, на другом правили заметку: снятие учтено (с основой), заметка сохранена", async () => {
+  const { B } = await conflictOf(withLink(), (b) => { kid(b).adoptedBy = undefined; }, (b) => { kid(b).notes = "B"; });
+  const rep = await merged(B);
+  assert.equal(B.person("ребёнок")?.adoptedBy, undefined, "снятая на A связь не вернулась");
+  assert.equal(B.person("ребёнок")?.notes, "B");
+  assert.deepEqual(rep.relations, { added: 0, removed: 1, toResolve: 0 });
+});
+
+test("7д. связь снята здесь, а в облаке её изменили (год): остаётся, случай уходит в «нужно проверить»", async () => {
+  const { B } = await conflictOf(withLink(), (b) => { kid(b).adoptedBy = [{ id: "усыновитель", year: "2005" }]; kid(b).notes = "A"; }, (b) => { kid(b).adoptedBy = undefined; kid(b).notes = "B"; });
+  const rep = await merged(B);
+  assert.deepEqual(B.person("ребёнок")?.adoptedBy, [{ id: "усыновитель", year: "2005" }], "изменённая в облаке связь не пропала молча");
+  assert.equal(rep.relations?.toResolve, 1);
+});
+
+test("7е. основы нет: понять, снята связь или добавлена, нельзя. Сохраняются обе версии, случай явно в отчёте, молча ничего не возвращается и не пропадает", async () => {
+  const { B } = await conflictOf(withLink(), (b) => { kid(b).notes = "A"; }, (b) => { kid(b).adoptedBy = undefined; kid(b).notes = "B"; });
+  B.base = null; // основа потеряна
+  const rep = await merged(B);
+  assert.deepEqual(B.person("ребёнок")?.adoptedBy, [{ id: "усыновитель", year: "1999" }], "связь сохранена: отличить намеренное снятие нельзя");
+  assert.equal(rep.relations?.toResolve, 1, "случай показан в отчёте");
+  assert.match(describeRelations(rep), /Нужно проверить связей усыновления и опеки: 1/);
+  const cloudCopy = JSON.parse(B.backups.get(B.backupKey(/Облачная книга до объединения/)!)!.text) as Book;
+  assert.deepEqual(kid(cloudCopy)?.adoptedBy, [{ id: "усыновитель", year: "1999" }]);
+  const mineCopy = JSON.parse(B.backups.get(B.backupKey(/Книга на этом устройстве до объединения/)!)!.text) as Book;
+  assert.equal(kid(mineCopy)?.adoptedBy, undefined, "и версия устройства (без связи) лежит в своей копии");
+});
+
+test("7ж. возвращение удалённого человека из облака отражено в отчёте", async () => {
+  const { B } = await conflictOf(withLink(), (b) => { b.people.find((p) => p.id === "другой")!.notes = "A"; }, (b) => { b.people = withoutPerson(b.people as never, "усыновитель") as never; });
+  const rep = await merged(B);
+  assert.ok(B.person("усыновитель"), "человек вернулся");
+  assert.deepEqual(rep.returned, { people: 1 });
+  assert.match(describeRelations(rep), /Вернулись из облака люди, удалённые на этом устройстве: 1/);
+});
+
+test("7з. без связей усыновления и опеки отчёт не получает новых строк", async () => {
+  const { B } = await conflictOf(baseBook(), (b) => { b.people.find((p) => p.id === "другой")!.notes = "A"; }, (b) => { b.people.find((p) => p.id === "другой")!.notes = "B"; });
+  const rep = await merged(B);
+  assert.equal(rep.relations, undefined);
+  assert.equal(rep.returned, undefined);
+  assert.equal(describeRelations(rep), "");
 });
 
 test("6г. резервные копии и восстановление: усыновители и опекуны возвращаются байт в байт", async () => {

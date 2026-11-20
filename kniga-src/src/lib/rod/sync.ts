@@ -6,6 +6,7 @@ import { hasMedia, mediaDataUrl, saveMediaAs } from "@/lib/rod/media";
 import { deviceId } from "@/lib/rod/pay";
 import { MAIN_ID, activeProjectId, addProjectWithId, listProjects } from "@/lib/rod/projects";
 import { fingerprint, splitParts } from "@/lib/rod/sync-logic";
+import { describeRelations } from "@/lib/rod/sync-merge";
 import { PART, afterOpenCopy, previewMerge, restoreLocalBackup, restorePreviousCloud, syncCore, syncSmart, type Deps, type Meta, type SyncMode, type SyncOutcome } from "@/lib/rod/sync-engine";
 import { readBackup, saveBackup } from "@/lib/rod/sync-backup";
 import { STATE_STORE, idbGet, idbSet } from "@/lib/rod/idb";
@@ -175,7 +176,7 @@ function report(outcome: SyncOutcome, mode: SyncMode) {
     const { added, differing, fromCloud } = outcome.report.total;
     const kept = differing ? ` Записей с разным содержимым: ${differing}. Оставлены те, что правили позже; другие версии лежат в копиях.` : "";
     if (mode === "auto" && (added || differing || fromCloud)) toast("Объединила изменения с двух устройств. Обе версии сохранены копиями, ничего не потеряно.", { duration: 6000 });
-    ui.setState({ busy: false, conflict: false, message: `Книги объединены: из облака добавлено записей: ${added}${fromCloud ? `, обновлено более новыми: ${fromCloud}` : ""}.${kept} Удалённое на одном устройстве, но оставшееся на другом, вернулось. Обе прежние версии сохранены копиями на этом устройстве. Если книга открыта на других устройствах, нажмите «Синхронизировать сейчас» и там: они возьмут объединённую.` });
+    ui.setState({ busy: false, conflict: false, message: `Книги объединены: из облака добавлено записей: ${added}${fromCloud ? `, обновлено более новыми: ${fromCloud}` : ""}.${kept}${describeRelations(outcome.report)} Удалённое на одном устройстве, но оставшееся на другом, вернулось. Обе прежние версии сохранены копиями на этом устройстве. Если книга открыта на других устройствах, нажмите «Синхронизировать сейчас» и там: они возьмут объединённую.` });
   } else {
     ui.setState({ busy: false, conflict: false, message: MESSAGES[outcome.kind] });
   }
