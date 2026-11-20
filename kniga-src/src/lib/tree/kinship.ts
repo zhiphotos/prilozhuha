@@ -292,6 +292,7 @@ function spouseTitle(index: Index, union: Union, other: string): string {
   if (union.status === "divorced") return g === "f" ? "Бывшая жена" : "Бывший муж";
   if (union.status === "widowed") return g === "f" ? "Покойная жена" : "Покойный муж";
   if (union.status === "partner") return g === "f" ? "Спутница" : "Спутник";
+  if (union.status === "coparents") return g === "f" ? "Мать ребёнка" : g === "m" ? "Отец ребёнка" : "Родитель ребёнка"; // брака нет: только общий ребёнок
   return g === "f" ? "Жена" : "Муж";
 }
 

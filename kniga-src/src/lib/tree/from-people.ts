@@ -266,9 +266,13 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
     if (gg.length && grands.length === 1) addChild(gg.slice(0, 2).map((p) => p.id), grands[0]!.id);
     else if (gg.length && grands.length > 1) for (const p of gg) ambiguous.push({ id: p.id, message: `«${p.name}»: укажите в карточке, чей это родитель (бабушки или дедушки).` });
   }
+  // Пары, у которых есть запись о браке или союзе: только им статус задаёт запись, а не общий ребёнок.
+  const recorded = new Set<string>();
+  const markRecorded = (a: string, b: string) => recorded.add([a, b].sort().join("|"));
   // Супруги.
   for (const p of people) {
     if (!p.spouse || !known.has(p.spouse)) continue;
+    markRecorded(p.id, p.spouse);
     const u = unionFor([p.id, p.spouse]);
     u.status = STATUS[p.spouseStatus ?? "married"] ?? "married";
     if (p.unionFrom) u.startYear = p.unionFrom;
@@ -278,6 +282,7 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
   for (const p of people) {
     for (const m of p.moreSpouses ?? []) {
       if (!known.has(m.id)) continue;
+      markRecorded(p.id, m.id);
       const u = unionFor([p.id, m.id]);
       u.status = STATUS[m.status ?? "married"] ?? "married";
       if (m.from) u.startYear = m.from;
@@ -286,12 +291,19 @@ export function treeFromPeople(people: RodPerson[], selfName = "Я"): TreeData {
   }
   const spouseOfSelf = people.find((p) => !p.fromFile && roleOf(p.relation) === "spouse") ?? people.find((p) => roleOf(p.relation) === "spouse" && p.spouse === selfId);
   if (spouseOfSelf && !unions.some((u) => u.partnerIds.includes(spouseOfSelf.id))) unionFor([selfId, spouseOfSelf.id]);
+  if (spouseOfSelf) markRecorded(selfId, spouseOfSelf.id);
   // Дети, у которых есть супруг «меня», уходят в общий союз.
   // Для людей из файла связи точные: ребёнок с одним родителем остаётся с одним (жена бывает второй, а не мать).
   if (spouseOfSelf && !selfRec?.fromFile) {
     const solo = unions.find((u) => u.partnerIds.length === 1 && u.partnerIds[0] === selfId);
     const pair = unions.find((u) => u.partnerIds.includes(selfId) && u.partnerIds.includes(spouseOfSelf.id));
     if (solo && pair) { pair.childIds.push(...solo.childIds); unions.splice(unions.indexOf(solo), 1); }
+  }
+  // «Общий ребёнок»: пара собрана только из детей, записи о браке или союзе нет, и у всех её детей стоит отметка parentsUnmarried. Старые книги без отметки не затрагиваются.
+  const rodById = new Map(people.map((q) => [q.id, q]));
+  for (const u of unions) {
+    if (u.partnerIds.length !== 2 || !u.childIds.length || recorded.has([...u.partnerIds].sort().join("|"))) continue;
+    if (u.childIds.every((c) => rodById.get(c)?.parentsUnmarried === true)) u.status = "coparents";
   }
   return { people: out, unions, focusId: selfId, ambiguous };
 }

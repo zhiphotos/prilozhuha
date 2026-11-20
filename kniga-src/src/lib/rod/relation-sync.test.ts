@@ -273,3 +273,19 @@ test("6д-4. ссылка есть на A, а человека на B удали
   assert.ok(B.person("усыновитель"), "человек вернулся, поэтому ссылка из карточки A не повисла");
   assert.deepEqual(relationRefProblems(B.book.people as never), []);
 });
+
+test("8. отметка «общий ребёнок» едет на второе устройство вместе с родителями; при конфликте в одной карточке они остаются вместе", async () => {
+  const order = `kr-co-${++seq}-12345678`;
+  const A = new Device(order, "dev-aaaaaaaa");
+  const B = new Device(order, "dev-bbbbbbbb");
+  A.book = { pages: [], photos: [], places: [], people: [man("М"), man("Д"), man("К", { parents: ["М", "Д"], parentsUnmarried: true })] } as Book;
+  assert.equal((await A.sync()).kind, "uploaded");
+  assert.equal((await B.sync()).kind, "downloaded");
+  assert.equal(B.person("К")?.parentsUnmarried, true);
+  assert.deepEqual(B.person("К")?.parents, ["М", "Д"]);
+  // конфликт в одной карточке: целиком выбирается одна версия, родители и отметка не расходятся
+  const { B: B2 } = await conflictOf({ people: [man("М"), man("Д"), man("Е"), man("К", { parents: ["М"] })] }, (b) => { const k = b.people.find((p) => p.id === "К")!; k.parents = ["М", "Д"]; k.parentsUnmarried = true; }, (b) => { b.people.find((p) => p.id === "К")!.notes = "заметка B"; });
+  await B2.sync("merge");
+  const k = B2.person("К")!;
+  assert.equal(Boolean(k.parentsUnmarried), (k.parents as string[]).length === 2, "отметка есть тогда и только тогда, когда записан второй родитель");
+});
