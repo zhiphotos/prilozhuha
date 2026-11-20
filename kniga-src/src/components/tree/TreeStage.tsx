@@ -12,6 +12,7 @@ import { TaigaView } from "@/components/tree/TaigaView";
 import { PosterView } from "@/components/tree/PosterView";
 import { fitText, isDeceased, kinship, nameLines, yearsOf } from "@/lib/tree/kinship";
 import { lineageUnionIds } from "@/lib/tree/lineage";
+import type { KinshipPath } from "@/lib/tree/kinship-path";
 import { halfUnionIds } from "@/lib/tree/half-unions";
 import { centerDecision } from "@/lib/tree/camera";
 import { MAX_ZOOM, MIN_ZOOM, PLATE_GAP, PLATE_H, PLATE_W, PORTRAIT_R } from "@/lib/tree/metrics";
@@ -47,6 +48,8 @@ type Props = {
   selectedId: string | null;
   /** Люди, отмеченные для схемы: на каждом кольцо. */
   marked?: ReadonlySet<string>;
+  /** Цепочка родства между двумя людьми: подсвечивается, остальное притушено. Только показ. */
+  kinPath?: KinshipPath | null;
   centerReq: { id: string; n: number } | null;
   fitReq: number;
   radius: number | null;
@@ -111,7 +114,7 @@ function Leaf({ motif }: { motif: { x: number; y: number; r: number; rot: number
 export function TreeStage(props: Props) {
   // Сводные братья и сёстры: у родителя несколько союзов с детьми, детей от следующих союзов ведём пунктиром.
   const halfUnions = useMemo(() => halfUnionIds(props.unions, props.people), [props.unions, props.people]);
-  const { layout: baseLayout, people, unions, focusId, selectedId, marked, centerReq, fitReq, radius, onRadius, onSelectPerson, onSelectUnion, onClear, onLocate, onJump, style, onStyle, stylesLocked, poster, cameo, gzhel, boheme, taiga, flow, onFlow, onMovePerson, onResetMoves } = props;
+  const { layout: baseLayout, people, unions, focusId, selectedId, marked, kinPath, centerReq, fitReq, radius, onRadius, onSelectPerson, onSelectUnion, onClear, onLocate, onJump, style, onStyle, stylesLocked, poster, cameo, gzhel, boheme, taiga, flow, onFlow, onMovePerson, onResetMoves } = props;
   // Перетаскивание карточки: пока палец на экране, линии пересчитываются на лету; сдвиг запоминается, когда палец отпущен.
   const [moveMode, setMoveMode] = useState(false);
   const [live, setLive] = useState<{ id: string; dx: number; dy: number } | null>(null);
@@ -126,6 +129,7 @@ export function TreeStage(props: Props) {
   useEffect(() => {
     if (selectedId) setLitId(selectedId);
   }, [selectedId]);
+  const kinActive = Boolean(kinPath && kinPath.kind !== "none" && kinPath.people.size);
   const lit = useMemo(() => (litId && people.some((person) => person.id === litId) ? lineageUnionIds(unions, litId) : null), [unions, litId, people]);
   const wrap = useRef<HTMLDivElement>(null);
   const cardFields = useCardFields();
@@ -138,6 +142,7 @@ export function TreeStage(props: Props) {
   const drag = useRef<{ x: number; y: number; cx: number; cy: number; moved: boolean } | null>(null);
   const pinch = useRef<{ dist: number; k: number } | null>(null);
   const byId = new Map(people.map((p) => [p.id, p]));
+  const kinNode = new Map(layout.nodes.map((n) => [n.id, n]));
   const homeId = useTree((s) => s.homeId);
   const rels = useMemo(() => relationsFrom(people, unions, focusId, homeId), [people, unions, focusId, homeId]);
   const [kinOpen, setKinOpen] = useState(false);
@@ -443,7 +448,7 @@ export function TreeStage(props: Props) {
             <PosterView poster={poster} people={people} unions={unions} focusId={focusId} selectedId={selectedId} marked={marked} />
           ) : (
             <svg width={layout.width} height={layout.height} role="img" aria-label="Родословное древо">
-              <g fill="none" stroke="var(--color-blood)" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+              <g fill="none" stroke="var(--color-blood)" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" opacity={kinActive ? 0.22 : 1}>
                 {layout.buses.map((bus, i) => (
                   <path key={`${bus.unionId}:${i}`} d={style === "carved" ? carvedBusPath(bus) : busPath(bus, busLook?.hops.get(i))} stroke={busLook ? BUS_PALETTE[busLook.colors[i] ?? 0] : undefined} strokeDasharray={halfUnions.has(bus.unionId) ? "7 6" : undefined} />
                 ))}
@@ -451,9 +456,11 @@ export function TreeStage(props: Props) {
               <g fill="none" stroke="var(--color-blood)" strokeWidth={1.6} strokeOpacity={0.4} strokeDasharray="2 9" strokeLinecap="round">
                 {style === "carved" ? null : layout.buses.map((bus, i) => (busIsFar(bus) ? <path key={`far-${bus.unionId}:${i}`} d={busLinkPath(bus)} stroke={busLook ? BUS_PALETTE[busLook.colors[i] ?? 0] : undefined} {...(busLook ? { strokeWidth: 2.2, strokeOpacity: 0.85, strokeDasharray: "4 7" } : {})} /> : null))}
               </g>
+              <g opacity={kinActive ? 0.22 : 1}>
               {layout.spouses.map((link) => (
                 <path key={link.unionId} d={style === "carved" ? carvedSpousePath(link) : spousePath(link)} fill="none" stroke={lineColor(link.status)} strokeWidth={2.4} strokeLinecap="round" strokeDasharray={link.status === "divorced" ? "6 7" : undefined} />
               ))}
+              </g>
               {layout.refLinks?.length ? (
                 // Карточка-ссылка: тот же человек, показанный рядом с супругом. Пунктир ведёт к его основной карточке.
                 <g fill="none" stroke="var(--color-gold)" strokeWidth={2.2} strokeDasharray="9 7" strokeLinecap="round" opacity={0.9}>
@@ -462,7 +469,23 @@ export function TreeStage(props: Props) {
                   ))}
                 </g>
               ) : null}
-              {lit && lit.size > 0 ? (
+              {kinActive && kinPath ? (
+                // Цепочка родства: только связи между выбранными людьми (для общих родителей и предков показаны все кратчайшие пути).
+                <g fill="none" stroke="var(--color-gold)" strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" pointerEvents="none">
+                  {kinPath.parentLinks.map((l) => {
+                    const bus = layout.buses.find((b) => b.unionId === l.unionId && b.xs.some((x) => Math.abs(x - (kinNode.get(l.childId)?.x ?? Infinity)) < 2));
+                    const at = kinNode.get(l.childId);
+                    if (!bus || !at) return null;
+                    const i = bus.xs.findIndex((x) => Math.abs(x - at.x) < 2);
+                    const one: SchemeBus = { ...(bus as SchemeBus), xs: [bus.xs[i]!], dropXs: (bus as SchemeBus).dropXs ? [(bus as SchemeBus).dropXs![i]!] : undefined, childTops: bus.childTops ? [bus.childTops[i]!] : undefined, jogY: (bus as SchemeBus).jogY ? [(bus as SchemeBus).jogY![i] ?? null] : undefined };
+                    return <path key={`kin-${l.unionId}-${l.childId}-${l.parentId}`} d={busPath(one)} />;
+                  })}
+                  {layout.spouses.filter((link) => kinPath.marriages.has(link.unionId)).map((link) => (
+                    <path key={`kin-s-${link.unionId}`} d={style === "carved" ? carvedSpousePath(link) : spousePath(link)} />
+                  ))}
+                </g>
+              ) : null}
+              {lit && lit.size > 0 && !kinActive ? (
                 // Выбранный человек: подсвечены его линия родства вверх (родители, братья и сёстры, предки), его браки и потомки.
                 <g fill="none" stroke="var(--color-gold)" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} pointerEvents="none">
                   {layout.buses.filter((bus) => lit.has(bus.unionId)).map((bus) => (
@@ -492,8 +515,10 @@ export function TreeStage(props: Props) {
                 const top = node.y + PORTRAIT_R + PLATE_GAP;
                 const initials = `${person.firstName[0] ?? ""}${person.lastName[0] ?? ""}`.toUpperCase();
                 const roleSize = role.length > 26 ? 8.5 : role.length > 18 ? 9.5 : 11;
+                const inKin = kinActive && kinPath!.people.has(person.id);
                 return (
-                  <g key={node.id}>
+                  <g key={node.id} opacity={kinActive && !inKin ? 0.3 : 1}>
+                    {inKin && <circle cx={node.x} cy={node.y} r={PORTRAIT_R + 9} fill="none" stroke="var(--color-gold)" strokeWidth={5} />}
                     {(selectedId === person.id || focusId === person.id || marked?.has(person.id)) && <circle cx={node.x} cy={node.y} r={PORTRAIT_R + 6} fill="none" stroke="var(--color-gold)" strokeWidth={marked?.has(person.id) ? 4 : selectedId === person.id ? 2.5 : 1.6} />}
                     {marked?.has(person.id) && (
                       <g>

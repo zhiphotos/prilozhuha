@@ -216,6 +216,8 @@ function FamilySheet({
   onSearch: () => void;
 }) {
   const setFocus = useTree((s) => s.setFocus);
+  const startKin = useTree((s) => s.startKin);
+  const setKinTo = useTree((s) => s.setKinTo);
   const homeId = useTree((s) => s.homeId);
   const removePerson = useTree((s) => s.removePerson);
   const setUnionStatus = useTree((s) => s.setUnionStatus);
@@ -360,6 +362,14 @@ function FamilySheet({
         <button type="button" className="min-h-11 rounded-2xl border border-line bg-white px-3 text-sm font-semibold" onClick={onEdit}>
           Править карточку
         </button>
+        <button type="button" className="min-h-11 rounded-2xl border border-line bg-white px-3 text-sm font-semibold" onClick={() => startKin(person.id)}>
+          Показать родство с…
+        </button>
+        {homeId !== person.id ? (
+          <button type="button" className="min-h-11 rounded-2xl border border-line bg-white px-3 text-sm font-semibold" onClick={() => { startKin(homeId); setKinTo(person.id); }}>
+            Показать родство со мной
+          </button>
+        ) : null}
         <button type="button" className="min-h-11 rounded-2xl border border-line bg-white px-3 text-sm font-semibold" onClick={() => setFocus(person.id)} disabled={focusId === person.id}>
           {focusId === person.id ? "Центр дерева" : "Сделать центром дерева"}
         </button>

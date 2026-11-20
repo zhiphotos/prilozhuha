@@ -10,6 +10,7 @@ import { PersonDrawer } from "@/components/tree/PersonDrawer";
 import { TreeStage } from "@/components/tree/TreeStage";
 import { StylePreview } from "@/components/tree/StylePreview";
 import { GedImportButton, hasPendingGedFile } from "@/components/rod/ged-import";
+import { findKinshipPath } from "@/lib/tree/kinship-path";
 import { TreeFileButton } from "@/components/rod/tree-file";
 import { SchemePick } from "@/components/rod/scheme-pick";
 import { Hint } from "@/components/rod/hint";
@@ -90,6 +91,11 @@ function TreeScreen() {
   const unionOpen = useTree((s) => s.unionId);
   const roster = useTree((s) => s.roster);
   const selectPerson = useTree((s) => s.selectPerson);
+  const kin = useTree((s) => s.kin);
+  const setKinTo = useTree((s) => s.setKinTo);
+  const clearKin = useTree((s) => s.clearKin);
+  // Цепочка родства между двумя людьми: считается по связям, только на экране.
+  const kinPath = useMemo(() => (kin.from && kin.to ? findKinshipPath(unions, kin.from, kin.to) : null), [kin, unions]);
   const selectUnion = useTree((s) => s.selectUnion);
   const setRoster = useTree((s) => s.setRoster);
   const setTheme = useTree((s) => s.setTheme);
@@ -308,6 +314,7 @@ function TreeScreen() {
         focusId={focusId}
         selectedId={pickMode ? null : selectedId}
         marked={pickMode ? picked : undefined}
+        kinPath={kinPath}
         centerReq={centerReq}
         radius={radius}
         fitReq={fitReq}
@@ -315,7 +322,7 @@ function TreeScreen() {
           setRadius(next);
           setCenterReq({ id: focusId, n: Date.now() });
         }}
-        onSelectPerson={(id) => (pickMode ? togglePicked(id) : selectPerson(id))}
+        onSelectPerson={(id) => (pickMode ? togglePicked(id) : kin.from && !kin.to ? (id === kin.from ? undefined : setKinTo(id)) : selectPerson(id))}
         onSelectUnion={(id) => selectUnion(id)}
         onLocate={() => {
           selectPerson(null);
@@ -665,6 +672,27 @@ function TreeScreen() {
         />
       )}
       <PersonDrawer onNewBook={() => undefined} />
+      {kin.from ? (
+        <div role="status" className="pointer-events-auto absolute inset-x-0 bottom-[5.25rem] z-30 mx-auto flex w-[min(34rem,calc(100vw-1.5rem))] flex-wrap items-center gap-1.5 rounded-2xl bg-black/75 px-2.5 py-2 text-xs text-white backdrop-blur-md">
+          {(() => {
+            const name = (id: string | null) => {
+              const p = people.find((x) => x.id === id);
+              return p ? [p.firstName, p.lastName].filter(Boolean).join(" ") : "";
+            };
+            if (!kin.to) return <p className="basis-full text-sm">Родство с {name(kin.from)}: нажмите на второго человека на древе.</p>;
+            if (!kinPath || kinPath.kind === "none") return <p className="basis-full text-sm">Связи в древе не найдено.</p>;
+            return (
+              <p className="basis-full text-sm">
+                {kinPath.kind === "marriage" ? "Через брак" : "По родителям и детям"}: {kinPath.steps} {kinPath.steps === 1 ? "связь" : kinPath.steps < 5 ? "связи" : "связей"}. {kinPath.chain.map(name).join(" → ")}
+              </p>
+            );
+          })()}
+          <span className="flex-1" />
+          <button type="button" className="min-h-9 rounded-full bg-white/15 px-3 font-semibold" onClick={() => clearKin()}>
+            {kin.to ? "Сбросить" : "Отмена"}
+          </button>
+        </div>
+      ) : null}
       {pickMode && !schemeOpen && (
         <div className="pointer-events-auto absolute inset-x-0 bottom-[5.25rem] z-30 mx-auto flex w-[min(34rem,calc(100vw-1.5rem))] flex-wrap items-center gap-1.5 rounded-2xl bg-black/75 px-2.5 py-2 text-xs backdrop-blur-md">
           <p className="basis-full text-sm">{picked.size ? `Отмечено: ${picked.size}. Ещё нажмите на людей или жмите «Далее».` : "Нажмите на человека на древе: у него появится галочка."}</p>
