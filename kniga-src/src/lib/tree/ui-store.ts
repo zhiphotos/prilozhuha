@@ -65,6 +65,11 @@ type State = {
   selectedId: string | null;
   unionId: string | null;
   roster: boolean;
+  /** Цепочка родства между двумя людьми: только состояние экрана, в книгу не пишется и не сохраняется. */
+  kin: { from: string | null; to: string | null };
+  startKin: (from: string) => void;
+  setKinTo: (to: string) => void;
+  clearKin: () => void;
   selectPerson: (id: string | null) => void;
   selectUnion: (id: string | null) => void;
   setRoster: (open: boolean) => void;
@@ -270,6 +275,10 @@ export const useTree = create<State>((set, get) => {
     selectedId: null,
     unionId: null,
     roster: false,
+    kin: { from: null, to: null },
+    startKin: (from) => set({ kin: { from, to: null }, selectedId: null, unionId: null, roster: false }),
+    setKinTo: (to) => set({ kin: { from: get().kin.from, to } }),
+    clearKin: () => set({ kin: { from: null, to: null } }),
     selectPerson: (id) => set({ selectedId: id, unionId: null, roster: false }),
     selectUnion: (id) => set({ unionId: id, selectedId: null, roster: false }),
     setRoster: (roster) => set({ roster, selectedId: roster ? null : get().selectedId, unionId: null }),
