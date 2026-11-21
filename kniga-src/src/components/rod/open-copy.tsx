@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/cn";
 import { importBook } from "@/lib/rod/backup";
+import { openCopyFlow } from "@/lib/rod/open-copy-flow";
 import { backupLocalNow, markImportedCopy } from "@/lib/rod/sync";
 
 /** Что сказать человеку, если копия не открылась. */
@@ -20,12 +21,9 @@ export function OpenCopyButton({ className, onDone }: { className?: string; onDo
     if (!file) return;
     setBusy(true);
     const note = toast.loading("Загружаю копию…");
-    void backupLocalNow("Книга до открытия копии из файла")
-      .catch(() => undefined)
-      .then(() => importBook(file))
+    void openCopyFlow({ backup: () => backupLocalNow("Книга до открытия копии из файла"), importFile: () => importBook(file), markImported: markImportedCopy })
       .then(() => {
         toast.success("Книга загружена из копии", { id: note });
-        void markImportedCopy();
         onDone?.();
       })
       .catch((error: unknown) => toast.error(reason(error), { id: note, duration: 8000 }))

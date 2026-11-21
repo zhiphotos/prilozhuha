@@ -173,3 +173,12 @@ test("41 унаследованные имена проходят цикл им�
   }
   assert.equal(sizes.size, 1);
 });
+
+test("50 открытие копии с бракованным фото: ошибка импорта не оставляет частично заменённую книгу", async () => {
+  reset();
+  useRod.setState({ people: [{ id: "старый" }] as never, ext: { kept: 1 } });
+  const snap = before();
+  const file = new File([JSON.stringify({ app: "kniga-roda", version: 1, data: { people: [{ id: "новый" }], pages: [] }, media: { "media:x": "не data url !!!" } })], "a.kniga");
+  await assert.rejects(importBook(file));
+  assert.equal(before(), snap);
+});

@@ -7,7 +7,7 @@ import { hasMedia, mediaDataUrl, saveMediaAs } from "@/lib/rod/media";
 import { deviceId } from "@/lib/rod/pay";
 import { MAIN_ID, activeProjectId, addProjectWithId, listProjects } from "@/lib/rod/projects";
 import { fingerprint, splitParts } from "@/lib/rod/sync-logic";
-import { PART, afterOpenCopy, previewMerge, restoreLocalBackup, restorePreviousCloud, syncCore, syncSmart, type Deps, type Meta, type SyncMode, type SyncOutcome } from "@/lib/rod/sync-engine";
+import { PART, STAMP_FAILED_MESSAGE, afterOpenCopy, previewMerge, restoreLocalBackup, restorePreviousCloud, syncCore, syncSmart, type Deps, type Meta, type SyncMode, type SyncOutcome } from "@/lib/rod/sync-engine";
 import { readBackup, saveBackup } from "@/lib/rod/sync-backup";
 import { STATE_STORE, idbGet, idbSet } from "@/lib/rod/idb";
 import { flushBook, useRod } from "@/lib/rod/store";
@@ -21,6 +21,8 @@ const metaKey = () => {
   const id = activeProjectId();
   return id === MAIN_ID ? META : `${META}:${id}`;
 };
+/** Две ячейки базы: «a» это прежний ключ (старые устройства), «b» рядом. */
+const baseKey = (slot: "a" | "b") => (slot === "a" ? `kniga-sync-base:${activeProjectId()}` : `kniga-sync-base-b:${activeProjectId()}`);
 const bookName = () => listProjects().find((item) => item.id === activeProjectId())?.name ?? "";
 
 
@@ -43,7 +45,7 @@ export const useSync = create<SyncState>((set) => ({
 function readMeta(): Meta {
   try {
     const raw = JSON.parse(localStorage.getItem(metaKey()) ?? "null") as Partial<Meta> | null;
-    return { rev: Number(raw?.rev ?? 0), hash: String(raw?.hash ?? ""), at: String(raw?.at ?? ""), size: typeof raw?.size === "number" ? raw.size : undefined };
+    return { rev: Number(raw?.rev ?? 0), hash: String(raw?.hash ?? ""), at: String(raw?.at ?? ""), size: typeof raw?.size === "number" ? raw.size : undefined, baseHash: typeof raw?.baseHash === "string" ? raw.baseHash : undefined };
   } catch {
     return { rev: 0, hash: "", at: "" };
   }
@@ -143,11 +145,8 @@ function makeDeps(): Deps {
     saveBackup,
     readBackup,
     now: () => new Date().toISOString(),
-    saveBase: (text) => idbSet(STATE_STORE, `kniga-sync-base:${activeProjectId()}`, text),
-    readBase: async () => {
-      const text = await idbGet<string>(STATE_STORE, `kniga-sync-base:${activeProjectId()}`);
-      return text ? (JSON.parse(text) as Record<string, unknown>) : null;
-    },
+    saveBase: (text, slot) => idbSet(STATE_STORE, baseKey(slot), text),
+    readBase: async (slot) => (await idbGet<string>(STATE_STORE, baseKey(slot))) || null,
   };
 }
 
@@ -172,7 +171,7 @@ function report(outcome: SyncOutcome, mode: SyncMode) {
   } else if (outcome.kind === "error") {
     ui.setState({ busy: false, message: outcome.message });
     // Данные из более новой версии не поместились или нельзя безопасно сохранить: книга и облако не тронуты, человек должен это увидеть, а не только строку в панели.
-    if (outcome.message === EXT_OVERFLOW_MESSAGE || outcome.message === EXT_UNSAFE_MESSAGE) toast.error(outcome.message, { id: "ext-refused", duration: 20000 });
+    if (outcome.message === EXT_OVERFLOW_MESSAGE || outcome.message === EXT_UNSAFE_MESSAGE || outcome.message === STAMP_FAILED_MESSAGE) toast.error(outcome.message, { id: "sync-refused", duration: 20000 });
   } else if (outcome.kind === "merged") {
     const { added, differing, fromCloud } = outcome.report.total;
     const kept = differing ? ` Записей с разным содержимым: ${differing}. Оставлены те, что правили позже; другие версии лежат в копиях.` : "";
