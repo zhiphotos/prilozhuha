@@ -3,9 +3,17 @@ import { REMIND_AFTER_EDITS, editsSinceBackup, markReminded, resetEdits, shouldR
 // Резервная копия: вся книга с фотографиями в одном файле .kniga – его можно переложить на другое устройство.
 import { afterHydrate } from "@/lib/rod/boot";
 import { flushBook, useRod } from "@/lib/rod/store";
-import { isMediaRef, mediaDataUrl, saveMedia } from "@/lib/rod/media";
+import { MEDIA_REF_LENGTH, isMediaRef, mediaDataUrl, saveMedia } from "@/lib/rod/media";
+import { readExt, withExt } from "@/lib/rod/ext";
 
 export const DATA_KEYS = ["onboarded", "audience", "dedicatee", "collector", "people", "places", "photos", "stories", "interviews", "aiChat", "aiChapters", "events", "documents", "notes", "pages", "trash", "doneLessons", "print", "moodboard", "back", "spine", "fonts", "userStickers", "plan"] as const;
+
+/** Данные книги для копии и облака: известные ключи, при необходимости room, и чужие ключи из более новых версий. */
+export function bookData(state: ReturnType<typeof useRod.getState>, withRoom = false): Record<string, unknown> {
+  const data: Record<string, unknown> = Object.fromEntries(DATA_KEYS.map((key) => [key, state[key]]));
+  if (withRoom && state.room) data.room = state.room;
+  return withExt(data, state.ext);
+}
 
 export function collectRefs(value: unknown, into: Set<string>) {
   if (typeof value === "string") {
@@ -63,7 +71,7 @@ export function remindBackup(): void {
 export async function exportBook(): Promise<"shared" | "downloaded" | "cancelled"> {
   flushBook();
   const state = useRod.getState();
-  const data = Object.fromEntries(DATA_KEYS.map((key) => [key, state[key]]));
+  const data = bookData(state);
   const refs = new Set<string>();
   collectRefs(data, refs);
   const media: Record<string, string> = {};
@@ -104,6 +112,8 @@ export async function exportBook(): Promise<"shared" | "downloaded" | "cancelled
 export async function importBook(file: File): Promise<void> {
   const parsed = JSON.parse(await file.text()) as { app?: string; data?: Record<string, unknown>; media?: Record<string, string> };
   if (parsed.app !== "kniga-roda" || !parsed.data) throw new Error("Это не копия Книги рода");
+  // Сначала проверяем, помещаются ли чужие данные (с ссылками нужной длины): до сохранения фото и до любых изменений книги.
+  readExt(replaceRefs(parsed.data, new Map(Object.keys(parsed.media ?? {}).map((ref) => [ref, "m".repeat(MEDIA_REF_LENGTH)]))) as Record<string, unknown>, DATA_KEYS, {});
   const map = new Map<string, string>();
   for (const [ref, dataUrl] of Object.entries(parsed.media ?? {})) {
     if (dataUrl) map.set(ref, await saveMedia(dataUrl));
@@ -111,7 +121,7 @@ export async function importBook(file: File): Promise<void> {
   const data = replaceRefs(parsed.data, map) as Record<string, unknown>;
   const defaults: Record<string, unknown> = { back: null, spine: { text: "", font: "script", size: 0 }, fonts: [], userStickers: [], plan: [] };
   const clean = { ...defaults, ...Object.fromEntries(DATA_KEYS.filter((key) => key in data).map((key) => [key, data[key]])) };
-  useRod.setState(clean);
+  useRod.setState({ ...clean, ext: readExt(data, DATA_KEYS, {}) });
   afterHydrate();
   flushBook();
 }
@@ -123,7 +133,7 @@ export function applyBookData(data: Record<string, unknown>): void {
   // Комната родных: берём из облака, только если на этом устройстве её ещё нет (своя ссылка не перезаписывается).
   const cloudRoom = data.room as { id?: string; ownerKey?: string; inviteKey?: string; name?: string } | undefined;
   if (!useRod.getState().room && cloudRoom?.id && cloudRoom.ownerKey && cloudRoom.inviteKey) Object.assign(clean, { room: { id: cloudRoom.id, ownerKey: cloudRoom.ownerKey, inviteKey: cloudRoom.inviteKey, name: cloudRoom.name ?? "" } });
-  useRod.setState(clean);
+  useRod.setState({ ...clean, ext: readExt(data, DATA_KEYS, useRod.getState().ext ?? {}) });
   afterHydrate();
   flushBook();
 }

@@ -5,6 +5,8 @@ import { MEDIA_STORE, idbDelete, idbGet, idbSet } from "@/lib/rod/idb";
 // Старые записи с data:URL продолжают работать как есть.
 
 const PREFIX = "media:";
+/** Длина новой ссылки на фото (префикс и UUID): нужна, чтобы заранее посчитать размер книги до сохранения фото. */
+export const MEDIA_REF_LENGTH = PREFIX.length + 36;
 const urls = new Map<string, string>();
 const pending = new Map<string, Promise<string>>();
 

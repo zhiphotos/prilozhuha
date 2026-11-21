@@ -180,7 +180,7 @@ export function GedImportButton() {
     setBusy(false);
     setTree(null);
     setTable(null);
-    toast(`Добавлено людей: ${fix.length}. Уже были в списке: ${updated.size}${updateLinks ? ", связи обновлены по файлу" : ", их связи и подписи не менялись"}.${preview.list.length > 80 ? " Показала вашу линию; всех родственников можно включить в «Расширенных»." : ""}`, { duration: 20000, action: { label: "Отменить загрузку", onClick: () => void restoreBackup(backupKey).then((ok) => toast(ok ? "Загрузка отменена, книга как была" : "Копия не нашлась")) } });
+    toast(`Добавлено людей: ${fix.length}. Уже были в списке: ${updated.size}${updateLinks ? ", связи обновлены по файлу" : ", их связи и подписи не менялись"}.${preview.list.length > 80 ? " Показала вашу линию; всех родственников можно включить в «Расширенных»." : ""}`, { duration: 20000, action: { label: "Отменить загрузку", onClick: () => void restoreBackup(backupKey).then((ok) => toast(ok ? "Загрузка отменена, книга как была" : "Копия не нашлась")).catch((error: unknown) => toast.error(error instanceof Error && error.message ? error.message : "Не получилось отменить загрузку. Книга не изменена.", { duration: 20000 })) } });
   };
 
   return (

@@ -92,7 +92,8 @@ export function TransferCard({ hasData }: { hasData: boolean }) {
                   variant="soft"
                   onClick={() => {
                     if (!window.confirm("Вернуть книгу из этой копии? Текущая книга сначала сохранится как отдельная копия.")) return;
-                    void restoreBackup(item.key).then((ok) => toast(ok ? "Книга возвращена из копии" : "Копия не прочиталась"));
+                    void restoreBackup(item.key).then((ok) => toast(ok ? "Книга возвращена из копии" : "Копия не прочиталась"))
+                      .catch((error: unknown) => toast.error(error instanceof Error && error.message ? error.message : "Не получилось вернуть книгу из копии. Книга не изменена.", { duration: 20000 }));
                   }}
                 >
                   Вернуть
