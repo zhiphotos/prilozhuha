@@ -1,4 +1,4 @@
-import { decideOpenCopy, decideSync, splitParts } from "./sync-logic.ts";
+import { decideOpenCopy, decideSync, fingerprint, splitParts } from "./sync-logic.ts";
 import { mergeBooks, type MergeReport } from "./sync-merge.ts";
 
 // Ядро синхронизации без браузерных зависимостей: всё внешнее (сеть, хранилище, книга, резервные копии) передаётся снаружи.
@@ -6,7 +6,16 @@ import { mergeBooks, type MergeReport } from "./sync-merge.ts";
 
 export const PART = 700_000;
 
-export type Meta = { rev: number; hash: string; at: string; /** «Вес» книги при последней успешной синхронизации: по нему замечаем, что книга внезапно стала намного меньше. */ size?: number };
+/** База хранится в двух ячейках: новая пишется в ту, на которую метка не указывает, и становится текущей одной записью метки. Так неудачная запись никогда не портит прежнюю согласованную пару. */
+export type BaseSlot = "a" | "b";
+const SLOTS: BaseSlot[] = ["a", "b"];
+
+export type Meta = { rev: number; hash: string; at: string; /** «Вес» книги при последней успешной синхронизации: по нему замечаем, что книга внезапно стала намного меньше. */ size?: number;
+  /**
+   * Отпечаток текста «базы», которая относится к этой метке. Есть: база доверяется только при совпадении отпечатка.
+   * Пустая строка: базы для этой метки нет (книгу заменили, база старая). Поля нет (метка старой версии): база доверяется как раньше.
+   */
+  baseHash?: string };
 export type Reply = { status: number; data: Record<string, unknown> & { error?: string } };
 export type Snapshot = { text: string; hash: string; refs: string[] };
 
@@ -26,8 +35,9 @@ export type Deps = {
   readBackup: (key: string) => Promise<Record<string, unknown> | null>;
   now: () => string;
   /** Книга в том виде, как она была при последней успешной синхронизации: по ней видно, что менялось здесь, а что в облаке. Необязательна. */
-  saveBase?: (text: string) => Promise<void>;
-  readBase?: () => Promise<Record<string, unknown> | null>;
+  saveBase?: (text: string, slot: BaseSlot) => Promise<void>;
+  /** Текст базы в ячейке как он был записан (движок сверяет его отпечаток с меткой и только потом разбирает). */
+  readBase?: (slot: BaseSlot) => Promise<string | null>;
 };
 
 export type SyncMode = "auto" | "mine" | "cloud" | "merge";
@@ -71,12 +81,67 @@ function weightOfText(text: string): number {
 }
 /** Книга меньше этого размера не считается «большой»: защита её не касается, чтобы не мешать тем, кто только начинает. */
 export const SHRINK_MIN = 6;
-/** Метка синхронизации: версия, отпечаток, время и размер книги на этот момент. */
-function stamp(deps: Deps, rev: number, hash: string) {
-  const text = deps.snapshot().text;
-  deps.writeMeta({ rev, hash, at: deps.now(), size: weightOfText(text) });
-  // Запоминаем книгу этой версии: без ожидания и без последствий, если не вышло (тогда объединение решает по времени правки).
-  void deps.saveBase?.(text).catch(() => undefined);
+/** Локальные служебные данные синхронизации (метка и база) не удалось сохранить. Облачная операция при этом могла завершиться. */
+export const STAMP_FAILED_MESSAGE = "Облачная операция могла завершиться, но служебные данные синхронизации на этом устройстве сохранить не удалось (возможно, не хватает места). Ваши правки на устройстве целы, ничего не потеряно. Нажмите «Синхронизировать» ещё раз.";
+export class StampError extends Error {
+  constructor() {
+    super(STAMP_FAILED_MESSAGE);
+    this.name = "StampError";
+  }
+}
+
+/**
+ * Какая ячейка базы относится к метке. Метка с baseHash: та, чей отпечаток совпал; пустой baseHash: никакая.
+ * Метка старой версии без baseHash: ячейка «a» (там база и лежала), как раньше.
+ */
+async function currentBase(deps: Deps, meta: Meta): Promise<{ slot: BaseSlot; text: string } | null> {
+  if (!deps.readBase) return null;
+  for (const slot of SLOTS) {
+    const text = await deps.readBase(slot).catch(() => null);
+    if (!text) continue;
+    if (meta.baseHash === undefined ? slot === "a" : fingerprint(text) === meta.baseHash) return { slot, text };
+  }
+  return null;
+}
+
+/** База, которой можно доверять при объединении (см. currentBase). Недостоверная база не используется: объединение решает по времени правки. */
+export async function trustedBase(deps: Deps, meta: Meta): Promise<Record<string, unknown> | null> {
+  const current = await currentBase(deps, meta);
+  if (!current) return null;
+  try {
+    return JSON.parse(current.text) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Метка синхронизации и база для версии, которая ТОЧНО ушла в облако (или пришла из него): sent. Книга здесь не читается:
+ * правка, сделанная во время отправки, не попадает ни в базу, ни в метку и остаётся несинхронизированной.
+ * Порядок: база в свободную ячейку (с ожиданием), потом метка (она же переключает ячейку), потом проверка метки чтением обратно. Не удалось: StampError, метка не объявляет успеха, прежняя пара цела.
+ * Проверка чтением обратно ловит только то, что запись не применилась в этом сеансе; гарантией сохранности при сбое питания она не является.
+ * Рассогласование базы и метки (закрыли приложение между шагами) обнаруживается по baseHash и безопасно.
+ */
+async function stamp(deps: Deps, rev: number, sent: { text: string; hash: string }): Promise<void> {
+  const baseHash = deps.saveBase ? fingerprint(sent.text) : undefined;
+  try {
+    if (deps.saveBase) {
+      const current = await currentBase(deps, deps.readMeta());
+      // Пишем в ячейку, на которую метка не указывает: прежняя согласованная пара метка плюс база остаётся нетронутой до самой записи метки.
+      const target: BaseSlot = current?.slot === "a" ? "b" : "a";
+      if (!current) {
+        // Базы, которой можно доверять, нет: то, что лежит в ячейке, перед заменой сохраняем копией (сначала копия, потом замена).
+        const old = await deps.readBase?.(target).catch(() => null);
+        if (old && old !== sent.text) await deps.saveBackup("Служебная база синхронизации до замены (не совпадала с отметкой)", old);
+      }
+      await deps.saveBase(sent.text, target);
+    }
+    deps.writeMeta({ rev, hash: sent.hash, at: deps.now(), size: weightOfText(sent.text), baseHash });
+    const written = deps.readMeta();
+    if (written.rev !== rev || written.hash !== sent.hash || written.baseHash !== baseHash) throw new Error("метка не записалась");
+  } catch {
+    throw new StampError();
+  }
 }
 
 /**
@@ -134,7 +199,7 @@ async function upload(deps: Deps, cloudRev: number): Promise<{ ok: true; rev: nu
       const head = await deps.call({ op: "head" });
       if (head.status === 200 && head.data.hash && head.data.hash === snap.hash) {
         const rev = num(head.data.rev) || cloudRev + 1;
-        stamp(deps, rev, snap.hash);
+        await stamp(deps, rev, snap);
         return { ok: true, rev };
       }
       return { ok: false };
@@ -146,7 +211,7 @@ async function upload(deps: Deps, cloudRev: number): Promise<{ ok: true; rev: nu
   const check = await deps.call({ op: "head" });
   const hashBad = typeof check.data.hash === "string" && check.data.hash !== snap.hash;
   if (check.status !== 200 || num(check.data.rev) !== committedRev || hashBad) throw new Error("Не удалось убедиться, что книга сохранилась в облаке. Изменения остались на этом устройстве.");
-  stamp(deps, committedRev, snap.hash);
+  await stamp(deps, committedRev, snap);
   return { ok: true, rev: committedRev };
 }
 
@@ -157,7 +222,8 @@ async function download(deps: Deps, rev: number, parts: number, backupLocal: boo
   await deps.downloadMedia(deps.collectRefs(data));
   if (backupLocal) await deps.saveBackup("Книга на этом устройстве до замены облачной", deps.snapshot().text);
   deps.applyBook(data);
-  stamp(deps, rev, deps.snapshot().hash);
+  // Снимок снимается один раз, сразу после применения: метка, размер и база берутся из него, а не из более поздней книги.
+  await stamp(deps, rev, deps.snapshot());
 }
 
 /** Обе версии как данные: облачная скачивается целиком и проверяется, версия этого устройства берётся из снимка. */
@@ -174,7 +240,7 @@ export async function previewMerge(deps: Deps): Promise<{ ok: true; report: Merg
     const head = await deps.call({ op: "head" });
     if (head.status !== 200) throw fail(head, "Облако не ответило.");
     const { cloudData, localData } = await bothVersions(deps, num(head.data.rev), num(head.data.parts) || 1);
-    return { ok: true, report: mergeBooks(localData, cloudData, await deps.readBase?.().catch(() => null)).report };
+    return { ok: true, report: mergeBooks(localData, cloudData, await trustedBase(deps, deps.readMeta())).report };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "Не получилось сравнить версии." };
   }
@@ -187,7 +253,7 @@ export async function previewMerge(deps: Deps): Promise<{ ok: true; report: Merg
  */
 async function mergeFlow(deps: Deps, cloudRev: number, parts: number): Promise<SyncOutcome> {
   const { cloudData, localText, localData } = await bothVersions(deps, cloudRev, parts);
-  const { data, report } = mergeBooks(localData, cloudData, await deps.readBase?.().catch(() => null));
+  const { data, report } = mergeBooks(localData, cloudData, await trustedBase(deps, deps.readMeta()));
   await deps.downloadMedia(deps.collectRefs(cloudData));
   await deps.saveBackup("Книга на этом устройстве до объединения", localText);
   await deps.saveBackup("Облачная книга до объединения", JSON.stringify(cloudData));
@@ -208,7 +274,7 @@ export async function syncCore(deps: Deps, mode: SyncMode = "auto"): Promise<Syn
     const snap = deps.snapshot();
     // В облаке уже лежит ровно эта книга (запись прошла, а ответ потерялся): принимаем облачную версию как свою, конфликта нет.
     if (cloudRev > 0 && head.data.hash && head.data.hash === snap.hash) {
-      stamp(deps, cloudRev, snap.hash);
+      await stamp(deps, cloudRev, snap);
       return { kind: "same" };
     }
     const dirty = meta.rev === 0 && deps.isEmpty() ? false : snap.hash !== meta.hash;
@@ -274,7 +340,9 @@ export async function afterOpenCopy(deps: Deps): Promise<SyncOutcome> {
     if (head.status !== 200) throw fail(head, "Облако не ответило.");
     const meta = deps.readMeta();
     const cloudRev = num(head.data.rev);
-    deps.writeMeta({ rev: decideOpenCopy({ cloudRev, baseRev: meta.rev }) === "upload" ? cloudRev : meta.rev, hash: "", at: meta.at });
+    const rev = decideOpenCopy({ cloudRev, baseRev: meta.rev }) === "upload" ? cloudRev : meta.rev;
+    // База описывает облако на версии meta.rev: если версия сменилась, старая база к новой не относится (baseHash пустой = «базы нет»).
+    deps.writeMeta({ rev, hash: "", at: meta.at, baseHash: rev === meta.rev ? meta.baseHash : "" });
     return await syncCore(deps, "auto");
   } catch (error) {
     return { kind: "error", message: error instanceof Error ? error.message : "Не получилось синхронизировать." };
@@ -297,7 +365,9 @@ export async function restorePreviousCloud(deps: Deps): Promise<SyncOutcome> {
     await deps.downloadMedia(deps.collectRefs(data));
     await deps.saveBackup("Книга до возврата к предыдущей облачной версии", deps.snapshot().text);
     deps.applyBook(data);
-    deps.writeMeta({ rev: num(head.data.rev), hash: "", at: deps.readMeta().at });
+    const before = deps.readMeta();
+    const rev = num(head.data.rev);
+    deps.writeMeta({ rev, hash: "", at: before.at, baseHash: rev === before.rev ? before.baseHash : "" });
     return await syncCore(deps, "auto");
   } catch (error) {
     return { kind: "error", message: error instanceof Error ? error.message : "Не получилось вернуть предыдущую версию." };
