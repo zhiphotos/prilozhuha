@@ -1,5 +1,6 @@
 import { API_BASE } from "@/lib/rod/config";
 import { helperRoundWith, publishIfChangedWith, signature } from "@/lib/rod/helper-auto";
+import { BASE_TOO_BIG, OFFLINE_TEXT, baseSize, failureStatus, getSyncStatus, setSyncStatus, statusOfRound } from "@/lib/rod/helper-status";
 import { HELPER_KEYS, applyReview, makeChangeSet, reviewChanges, type Book, type Change, type Decision, type ReviewItem } from "@/lib/rod/helper-changes";
 import { collectRefs } from "@/lib/rod/backup";
 import { hasMedia, mediaDataUrl, saveMediaAs } from "@/lib/rod/media";
@@ -71,11 +72,13 @@ const readPublished = (): Published | null => {
 };
 /** Владелец: выложить текущую версию книги (люди, места, истории, заметки, страницы, фото), чтобы помощники взяли её за основу.
  *  С onlyNew выкладываются только ещё не отправленные фото: так работает автоматическая выкладка. Кнопка выкладывает всё. */
-export async function publishBase(progress?: (done: number, total: number) => void, onlyNew = false): Promise<void> {
+async function publishBaseNow(progress?: (done: number, total: number) => void, onlyNew = false): Promise<void> {
   if (!useRod.getState().room) await createRoom("Наша семья");
   const room = useRod.getState().room;
   if (!room) throw new Error("Не получилось создать ссылку.");
   const base = lists();
+  const check = baseSize(base);
+  if (!check.ok) throw new Error(BASE_TOO_BIG(check)); // сервер такую книгу не примет, говорим об этом сразу
   const auth: Auth = { room: room.id, ownerKey: room.ownerKey };
   const known = new Set(onlyNew ? readPublished()?.media ?? [] : []);
   const refs = [...refsOf(base)];
@@ -86,6 +89,17 @@ export async function publishBase(progress?: (done: number, total: number) => vo
     localStorage.setItem(PUB_KEY, JSON.stringify({ sig: signature(base), media: refs } satisfies Published));
   } catch {
     /* без записи книга просто выложится ещё раз */
+  }
+}
+
+export async function publishBase(progress?: (done: number, total: number) => void, onlyNew = false): Promise<void> {
+  try {
+    await publishBaseNow(progress, onlyNew);
+    setSyncStatus("ok", "Версия для помощников обновлена");
+  } catch (error) {
+    const shown = failureStatus(error);
+    setSyncStatus(shown.state, shown.text); // и при нажатии кнопки причина остаётся на экране, а не только во всплывающей подсказке
+    throw error;
   }
 }
 
@@ -198,13 +212,39 @@ export function startHelperSync(): void {
   if (helperSyncStarted || typeof document === "undefined") return;
   helperSyncStarted = true;
   const run = () => {
-    if (helperSyncBusy || navigator.onLine === false) return;
+    if (navigator.onLine === false) return void setSyncStatus("waiting", OFFLINE_TEXT);
+    if (helperSyncBusy) return;
     helperSyncBusy = true;
+    let failed = false;
+    let reported = false;
+    const report = (state: Parameters<typeof setSyncStatus>[0], text: string) => {
+      reported = true;
+      setSyncStatus(state, text);
+    };
     void publishIfChanged()
-      .catch(() => undefined)
+      .then((published) => {
+        if (published) report("ok", "Версия для помощников обновлена");
+      })
+      .catch((error: unknown) => {
+        const shown = failureStatus(error); // раньше ошибка выкладки пропадала молча
+        failed = true;
+        report(shown.state, shown.text);
+      })
       .then(() => helperRound())
-      .catch(() => undefined)
+      .then((result) => {
+        const shown = result ? statusOfRound(result) : null;
+        if (shown) report(shown.state, shown.text);
+      })
+      .catch((error: unknown) => {
+        const shown = failureStatus(error);
+        failed = true;
+        report(shown.state, shown.text);
+      })
       .finally(() => {
+        // связь вернулась, обмен прошёл без сбоев и сообщать больше нечего: убираем прежнее «нет связи»
+        // (то же для прежней ошибки: если книга снова в порядке и выкладывать нечего, «не получилось» не должно висеть вечно)
+        const old = getSyncStatus();
+        if (!failed && !reported && (old.text === OFFLINE_TEXT || old.state === "error")) setSyncStatus("ok", old.text === OFFLINE_TEXT ? "Связь восстановлена, всё отправлено" : "Всё отправлено, прежней ошибки больше нет");
         helperSyncBusy = false;
       });
   };

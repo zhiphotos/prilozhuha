@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Copy, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { accept, createRoom, dismiss, fetchInbox, inviteLink, rotateInvite, type Incoming } from "@/lib/rod/family";
@@ -7,6 +7,7 @@ import { useMedia } from "@/lib/rod/media";
 import { Button, Sheet } from "@/components/rod/chrome";
 import { ChangesCard } from "@/components/rod/helper-ui";
 import { publishBase } from "@/lib/rod/helper";
+import { failureStatus, getSyncStatus, subscribeSyncStatus } from "@/lib/rod/helper-status";
 
 const KIND = { story: "Воспоминание", answer: "Ответ на вопрос", photo: "Фото", changes: "Правки" } as const;
 
@@ -17,6 +18,7 @@ export function FamilySheet({ onClose }: { onClose: () => void }) {
   const [items, setItems] = useState<Incoming[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
+  const sync = useSyncExternalStore(subscribeSyncStatus, getSyncStatus, getSyncStatus);
 
   const load = useCallback(() => {
     void fetchInbox().then(setItems).catch(() => setItems([]));
@@ -34,7 +36,7 @@ export function FamilySheet({ onClose }: { onClose: () => void }) {
       await job();
       if (ok) toast(ok);
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Не получилось.", { duration: 6000 });
+      toast(error instanceof Error ? failureStatus(error).text : "Не получилось.", { duration: 6000 }); // обрыв связи по-русски, а не «Failed to fetch»
     } finally {
       setBusy(false);
       setProgress("");
@@ -76,6 +78,12 @@ export function FamilySheet({ onClose }: { onClose: () => void }) {
           <Button className="mt-2" variant="soft" disabled={busy} onClick={() => void run(() => publishBase((d, t) => setProgress(`Фото ${d} из ${t}…`)), "Версия для помощников обновлена")}>
             {progress || "Открыть книгу для правок"}
           </Button>
+          {sync.state !== "off" ? (
+            <p role="status" className={`mt-2 text-xs ${sync.state === "error" ? "font-semibold text-red-700" : "text-muted"}`}>
+              {sync.state === "error" ? "Не получилось: " : sync.state === "waiting" ? "Ждёт: " : "Готово: "}
+              {sync.text}
+            </p>
+          ) : null}
 
           <h3 className="mt-6 text-base font-semibold text-ink">Прислали родственники</h3>
           {items === null ? <p className="mt-2 text-sm text-muted">Смотрю…</p> : null}
