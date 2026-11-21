@@ -1,4 +1,5 @@
 import { needsMaidenName } from "@/lib/rod/person";
+import { CopyBadge } from "@/components/rod/copy-badge";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeftRight, BookOpen, Check, Copy, GripHorizontal, Undo2, Lock, ChevronLeft, ChevronRight, ChevronDown, Download, Palette, Plus, Printer, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -684,6 +685,7 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
                   >
                     <GripHorizontal className="size-4 shrink-0" />
                     <span className="truncate">{index}. {page.title}</span>
+                    <CopyBadge rec={page} />
                   </span>
                   <button type="button" aria-label="Позже" disabled={index >= pages.length - 1} onClick={() => move(page.id, index + 1)} className="grid size-9 place-items-center rounded-full bg-white/80 text-ink disabled:opacity-30">
                     <ChevronRight className="size-4" />
@@ -693,6 +695,7 @@ function PageGrid({ pages, meta, onOpen, onAdd }: { pages: BookPage[]; meta: { d
                 <p className="mt-2 flex items-baseline gap-1.5 text-sm text-ink">
                   <span className="tabular-nums text-muted">{page.kind === "cover" ? "◆" : index}</span>
                   <span className="truncate font-medium">{page.kind === "cover" ? "Обложка" : page.title}</span>
+                  <CopyBadge rec={page} />
                 </p>
               )}
             </li>

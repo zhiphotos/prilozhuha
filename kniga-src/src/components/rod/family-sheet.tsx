@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Copy, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { groupIncoming } from "@/lib/rod/group-incoming";
 import { accept, createRoom, dismiss, fetchInbox, inviteLink, rotateInvite, type Incoming } from "@/lib/rod/family";
 import { useRod } from "@/lib/rod/store";
 import { useMedia } from "@/lib/rod/media";
@@ -89,7 +90,7 @@ export function FamilySheet({ onClose }: { onClose: () => void }) {
           {items === null ? <p className="mt-2 text-sm text-muted">Смотрю…</p> : null}
           {items?.length === 0 ? <p className="mt-2 text-sm text-muted">Пока ничего. Когда кто-то ответит, это появится здесь.</p> : null}
           <ul className="mt-2 grid gap-2.5">
-            {items?.map((item) => (
+            {groupIncoming(items ?? []).map(({ item, ids }) => (
               <li key={item.id} className="rounded-2xl bg-white/70 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gold-ink">
                   {KIND[item.kind]} · {item.from.name}
@@ -104,8 +105,8 @@ export function FamilySheet({ onClose }: { onClose: () => void }) {
                       who={item.from.name}
                       onDone={() =>
                         void run(async () => {
-                          await dismiss([item.id]);
-                          setItems((list) => list?.filter((x) => x.id !== item.id) ?? null);
+                          await dismiss(ids);
+                          setItems((list) => list?.filter((x) => !ids.includes(x.id)) ?? null);
                         })
                       }
                     />

@@ -43,16 +43,18 @@ test("одно поле у обоих: конфликт, по умолчанию
   assert.equal((out.people as Record<string, unknown>[])[0].birthYear, "1921");
 });
 
-test("конфликт страницы: можно оставить копию рядом", () => {
+test("конфликт страницы: можно оставить копию рядом; название не меняется, пометка копии отдельными полями (С-3г, решение Б)", () => {
   const b: Book = { pages: [{ id: "pg1", title: "Страница", x: 1 }] };
   const owner: Book = { pages: [{ id: "pg1", title: "Моя", x: 1 }] };
   const ch = makeChangeSet(b, { pages: [{ id: "pg1", title: "Мамина", x: 1 }] });
   const items = reviewChanges(owner, ch);
   const out = applyReview(owner, items, { "pages:pg1": "copy" }, "от Мамы");
-  const pages = out.pages as { id: string; title: string }[];
+  const pages = out.pages as { id: string; title: string; copyOf?: string; copyLabel?: string }[];
   assert.equal(pages.length, 2);
   assert.equal(pages[0].title, "Моя");
-  assert.equal(pages[1].title, "Мамина (от Мамы)");
+  assert.equal(pages[1].title, "Мамина"); // название как у помощника, без «(от Мамы)»
+  assert.equal(pages[1].copyOf, "pg1");
+  assert.equal(pages[1].copyLabel, "от Мамы");
   assert.notEqual(pages[1].id, "pg1");
 });
 
@@ -64,12 +66,15 @@ test("удаление помощника только предлагается"
   assert.deepEqual((applyReview(base, items, { "people:b": "accept" }).people as { id: string }[]).map((p) => p.id), ["a"]);
 });
 
-test("владелец уже удалил запись, которую помощник правил: возвращается как правка помощника", () => {
+test("владелец уже удалил запись, которую помощник правил: конфликт, сама не возвращается (С-3г)", () => {
   const owner: Book = { people: [P("b", { birthYear: "1950" })] };
   const ch = makeChangeSet(base, { people: [P("a", { notes: "новое" }), P("b", { birthYear: "1950" })] });
   const items = reviewChanges(owner, ch);
-  assert.equal(items[0].state, "gone");
+  assert.equal(items[0].state, "conflict");
+  assert.equal(items[0].conflictKind, "edit-after-delete");
   assert.equal(summarize(items).edited, 1);
+  assert.equal(summarize(items).conflicts, 1);
+  assert.equal(applyReview(owner, items, {}).people, undefined); // по умолчанию ничего не меняется
 });
 
 test("повторная отправка тех же правок ничего не дублирует", () => {
