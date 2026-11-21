@@ -29,6 +29,8 @@ class Device {
   seq = 0;
   /** Правка «пока идёт отправка» (после снимка книги, до записи метки): имитация того, что человек продолжает работать. */
   duringUpload?: () => void;
+  /** Старая версия приложения: собирает и применяет только известные ключи (как DATA_KEYS в snapshot() и applyBookData()). */
+  legacy = false;
   readonly order: string;
   readonly id: string;
   constructor(order: string, id: string) {
@@ -45,7 +47,7 @@ class Device {
     return {
       call: (body) => this.send(body),
       snapshot: () => {
-        const text = JSON.stringify(this.book);
+        const text = JSON.stringify(this.legacy ? { people: this.book.people, pages: this.book.pages } : this.book);
         return { text, hash: fingerprint(text), refs: [] };
       },
       readMeta: () => this.meta,
@@ -54,7 +56,7 @@ class Device {
       uploadMedia: async () => { this.duringUpload?.(); this.duringUpload = undefined; },
       downloadMedia: async () => {},
       collectRefs: () => [],
-      applyBook: (data) => { this.book = { ...(data as Book) }; },
+      applyBook: (data) => { this.book = this.legacy ? { people: data.people as Rec[], pages: data.pages as Rec[] } : { ...(data as Book) }; },
       saveBackup: async (label, text, protect) => {
         const key = `k${String(++this.seq).padStart(6, "0")}`;
         this.backups.set(key, { label, text });
@@ -255,4 +257,41 @@ test("Э11 совместимость версий: старый mergeBooks пр
   const base = { people: [{ id: "p", name: "w" }], pages: [] };
   const { data } = mergeBooks({ people: [plain], pages: [] }, { people: [withMark], pages: [] }, base);
   assert.equal(("_conflict" in (data.people as Rec[])[0]), false);
+});
+
+test("Э12 старое устройство стирает неизвестный ключ верхнего уровня в облаке (то, чего нельзя допустить для очереди конфликтов и отметок удалений)", async () => {
+  const order = newOrder();
+  const a = new Device(order, "dev-a-000001");
+  const c = new Device(order, "dev-c-000003");
+  c.legacy = true;
+  a.add("p");
+  a.book.ext_queue = [{ id: "q1" }];
+  await a.sync();
+  assert.deepEqual((await cloudBook(a)).ext_queue, [{ id: "q1" }]);
+  await c.sync(); // скачало: ключ отброшен
+  c.add("c1");
+  await c.sync(); // отправило книгу без ключа
+  assert.equal((await cloudBook(a)).ext_queue, undefined, "ключ в облаке стёрт");
+});
+
+test("Э13 «читатель» (устройство без фильтра по ключам) сохраняет ключ, сам чинит облако после старого устройства и по пропаже метки видит, что старое устройство ещё работает", async () => {
+  const order = newOrder();
+  const a = new Device(order, "dev-a-000001");
+  const b = new Device(order, "dev-b-000002");
+  const c = new Device(order, "dev-c-000003");
+  c.legacy = true;
+  a.add("p");
+  a.book.ext_canary = { v: 1 };
+  await a.sync();
+  await b.sync();
+  assert.deepEqual(b.book.ext_canary, { v: 1 }, "читатель B получил и хранит ключ");
+  await c.sync();
+  c.add("c1");
+  await c.sync();
+  assert.equal((await cloudBook(a)).ext_canary, undefined, "старое устройство стёрло метку в облаке: так читатель замечает его присутствие");
+  a.add("a1");
+  const out = await a.smart();
+  assert.equal(out.kind, "merged");
+  assert.deepEqual((await cloudBook(a)).ext_canary, { v: 1 }, "A вернул ключ в облако при следующей синхронизации");
+  assert.ok((await cloudBook(a)).people.some((p) => p.id === "c1") && (await cloudBook(a)).people.some((p) => p.id === "a1"));
 });
