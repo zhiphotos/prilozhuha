@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { EXT_LIMIT, EXT_OVERFLOW_MESSAGE, ExtOverflowError, KNOWN_EXTRA, pickExt, readExt, withExt } from "./ext.ts";
+import { EXT_LIMIT, EXT_OVERFLOW_MESSAGE, EXT_UNSAFE_MESSAGE, ExtOverflowError, ExtUnsafeKeyError, KNOWN_EXTRA, pickExt, readExt, withExt } from "./ext.ts";
 
 const KNOWN = ["people", "pages", "spine"] as const;
 
@@ -52,9 +52,10 @@ test("08 заменяемое значение, которое не влезае
   assert.deepEqual(r.ext, { shelf: "старое" });
   assert.deepEqual(r.dropped, ["shelf"]);
 });
-test("09 опасные ключи и не-JSON значения не берутся", () => {
+test("09 не-JSON значения (функция, undefined) не данные и пропускаются; опасные имена не пропускаются молча, а отдаются в unsafe", () => {
   const data = JSON.parse('{"__proto__":{"x":1},"constructor":2,"prototype":3,"ok":1}') as Record<string, unknown>;
   const r = pickExt({ ...data, fn: () => 1, undef: undefined }, KNOWN, {});
+  assert.deepEqual(r.unsafe.sort(), ["__proto__", "constructor", "prototype"]);
   assert.deepEqual(r.ext, { ok: 1 });
   assert.equal(({} as Record<string, unknown>).x, undefined);
 });
@@ -115,4 +116,55 @@ test("25 без чужих ключей readExt возвращает текущ�
 });
 test("26 известные ключи и room не могут попасть в ext и не считаются в лимит", () => {
   assert.deepEqual(readExt({ people: "я".repeat(EXT_LIMIT * 2), room: "я".repeat(EXT_LIMIT * 2) }, KNOWN, {}), {});
+});
+
+// ——— особые имена
+const INHERITED = ["toString", "valueOf", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "toLocaleString", "__defineGetter__", "__lookupGetter__"];
+const parse = (o: object) => JSON.parse(JSON.stringify(o)) as Record<string, unknown>;
+test("30 унаследованные от Object имена (toString, valueOf, hasOwnProperty…) сохраняются как обычные ключи без ошибки", () => {
+  const incoming = Object.fromEntries(INHERITED.map((k, i) => [k, { n: i }]));
+  const ext = readExt(parse({ people: [], ...incoming }), KNOWN, {});
+  for (const k of INHERITED) assert.ok(Object.prototype.hasOwnProperty.call(ext, k), k);
+  assert.deepEqual(ext, incoming);
+  const sent = withExt({ people: [] }, ext);
+  for (const k of INHERITED) assert.deepEqual(Object.getOwnPropertyDescriptor(sent, k)?.value, incoming[k], k);
+  assert.deepEqual(JSON.parse(JSON.stringify(sent)), { people: [], ...incoming });
+});
+test("31 замена и повтор для унаследованных имён: значение заменяется, ключ один, размер не растёт", () => {
+  const first = readExt(parse({ toString: "a" }), KNOWN, {});
+  const second = readExt(parse({ toString: "b", valueOf: 1 }), KNOWN, first);
+  assert.deepEqual(second, { toString: "b", valueOf: 1 });
+  assert.deepEqual(readExt(parse({ toString: "b", valueOf: 1 }), KNOWN, second), second);
+});
+test("32 известное имя в данных, совпадающее с унаследованным: withExt не принимает унаследованное за «уже есть»", () => {
+  const out = withExt({ people: [] }, parse({ toString: "x" }));
+  assert.equal(Object.getOwnPropertyDescriptor(out, "toString")?.value, "x");
+});
+test("33 опасные имена: явный отказ ExtUnsafeKeyError с понятным текстом до любых изменений, соседние годные ключи тоже не берутся", () => {
+  for (const key of ["__proto__", "constructor", "prototype"]) {
+    const data = JSON.parse(`{"people":[],"good":1,${JSON.stringify(key)}:{"x":1}}`) as Record<string, unknown>;
+    const current = { kept: 1 };
+    try {
+      readExt(data, KNOWN, current);
+      assert.fail(`${key}: должен был отказать`);
+    } catch (error) {
+      assert.ok(error instanceof ExtUnsafeKeyError, key);
+      assert.equal((error as Error).message, EXT_UNSAFE_MESSAGE);
+      assert.match((error as Error).message, /Обновите приложение/);
+      assert.match((error as Error).message, /не изменена/);
+      assert.deepEqual((error as ExtUnsafeKeyError).keys, [key]);
+    }
+    assert.deepEqual(current, { kept: 1 });
+  }
+});
+test("34 прототип не меняется ни при каких именах; Object.prototype чист", () => {
+  const before = Object.getOwnPropertyNames(Object.prototype).sort().join();
+  const ext = readExt(parse({ toString: 1, valueOf: 2 }), KNOWN, {});
+  const out = withExt({ people: [] }, ext);
+  assert.equal(Object.getPrototypeOf(ext), Object.prototype);
+  assert.equal(Object.getPrototypeOf(out), Object.prototype);
+  assert.equal(Object.getOwnPropertyNames(Object.prototype).sort().join(), before);
+  assert.equal(typeof ({} as { toString: unknown }).toString, "function");
+  assert.throws(() => readExt(JSON.parse('{"__proto__":{"polluted":1}}'), KNOWN, {}), ExtUnsafeKeyError);
+  assert.equal(({} as Record<string, unknown>).polluted, undefined);
 });

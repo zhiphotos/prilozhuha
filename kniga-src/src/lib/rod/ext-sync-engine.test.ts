@@ -6,7 +6,7 @@ process.env.ACCESS_SECRET = "s".repeat(40);
 import assert from "node:assert/strict";
 import test from "node:test";
 import { restoreLocalBackup, syncCore, type Deps, type Meta, type Reply } from "./sync-engine.ts";
-import { ExtOverflowError } from "./ext.ts";
+import { EXT_UNSAFE_MESSAGE, ExtOverflowError, readExt } from "./ext.ts";
 import { fingerprint } from "./sync-logic.ts";
 
 const { makeToken } = await import("../../../../kniga-api/lib/token.js");
@@ -19,6 +19,7 @@ class Device {
   meta: Meta = { rev: 0, hash: "", at: "" };
   ops: string[] = [];
   backups = new Map<string, string>();
+  strict = false; // настоящая проверка чужих ключей
   refuse = false; // имитация настоящего applyBookData при превышении
   applied = 0;
   readonly order: string;
@@ -49,6 +50,7 @@ class Device {
       collectRefs: () => [],
       applyBook: (data) => {
         if (this.refuse) throw new ExtOverflowError(["later"]);
+        if (this.strict) readExt(data, ["people", "pages"], {});
         this.applied += 1;
         this.book = { people: data.people as { id: string }[], pages: data.pages as unknown[] };
       },
@@ -109,4 +111,24 @@ test("03 восстановление из локальной копии при 
   await assert.rejects(restoreLocalBackup(a.deps(), key), ExtOverflowError);
   assert.deepEqual(a.book.people, [{ id: "p1" }]);
   assert.equal(JSON.stringify(a.meta), metaBefore);
+});
+
+test("04 в облаке ключ __proto__: и скачивание, и объединение отказывают явно, не теряют его молча и не загружают урезанное в облако", async () => {
+  const [a, b] = pair();
+  a.book = JSON.parse('{"people":[{"id":"p1"}],"pages":[],"__proto__":{"x":1}}');
+  assert.equal((await syncCore(a.deps())).kind, "uploaded");
+  b.strict = true;
+  const out = await syncCore(b.deps());
+  assert.equal(out.kind, "error");
+  assert.equal((out as { message: string }).message, EXT_UNSAFE_MESSAGE);
+  assert.deepEqual(b.book, { people: [], pages: [] });
+  assert.equal(b.meta.rev, 0);
+  assert.equal(pushes(b), 0);
+  // объединение: у b тоже есть правка
+  b.book = { people: [{ id: "p3" }], pages: [] };
+  const merged = await syncCore(b.deps(), "merge");
+  assert.equal(merged.kind, "error");
+  assert.equal((merged as { message: string }).message, EXT_UNSAFE_MESSAGE);
+  assert.deepEqual(b.book.people, [{ id: "p3" }]);
+  assert.equal(pushes(b), 0);
 });

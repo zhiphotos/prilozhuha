@@ -10,7 +10,7 @@ g.document = { addEventListener() {}, removeEventListener() {}, visibilityState:
 
 const { useRod } = await import("./store.ts");
 const { DATA_KEYS, applyBookData, importBook, bookData } = await import("./backup.ts");
-const { ExtOverflowError, EXT_LIMIT } = await import("./ext.ts");
+const { ExtOverflowError, ExtUnsafeKeyError, EXT_LIMIT } = await import("./ext.ts");
 const snapshotData = (state: ReturnType<typeof useRod.getState>) => bookData(state, true);
 
 const reset = () => useRod.setState({ people: [], pages: [], room: null, ext: {} });
@@ -101,4 +101,75 @@ test("24 известные ключи нельзя подменить чере�
   const out = bookData(useRod.getState());
   assert.deepEqual(out.people, [{ id: "реальный" }]);
   assert.notEqual(out.pages, "подмена");
+});
+
+// ——— повторные циклы и особые случаи
+const { mergeBooks } = await import("./sync-merge.ts");
+const FUTURE = { shelf: { a: [1, { z: "я" }], n: null }, later: "v2", ext: { свой: 1 } };
+
+test("30 цикл импорт, синхронизация (через слияние), экспорт, повторный импорт ×3: значения те же, ключей не больше, ext не растёт", async () => {
+  reset();
+  let file = new File([JSON.stringify({ app: "kniga-roda", version: 1, data: { people: [{ id: "p" }], ...FUTURE }, media: {} })], "a.kniga");
+  let sizes: number[] = [];
+  let first = "";
+  for (let n = 0; n < 3; n += 1) {
+    await importBook(file);
+    const sent = JSON.stringify(bookData(useRod.getState(), true)); // отправка в облако
+    const cloud = JSON.parse(sent) as Record<string, unknown>;
+    const merged = mergeBooks(JSON.parse(sent), cloud, JSON.parse(sent)).data; // объединение с облаком
+    applyBookData(merged); // применение
+    applyBookData(cloud); // и обычное скачивание
+    const exported = JSON.stringify(bookData(useRod.getState()));
+    if (!first) first = exported;
+    assert.equal(exported, first);
+    assert.deepEqual(Object.keys(useRod.getState().ext), ["shelf", "later", "ext"]);
+    assert.deepEqual(useRod.getState().ext, FUTURE);
+    sizes.push(JSON.stringify(useRod.getState().ext).length);
+    file = new File([JSON.stringify({ app: "kniga-roda", version: 1, data: JSON.parse(exported), media: {} })], "b.kniga");
+  }
+  assert.equal(new Set(sizes).size, 1);
+});
+test("31 неизвестный ключ с именем ext не смешивается со служебным полем: лежит внутри ext и возвращается наверх под своим именем", () => {
+  reset();
+  applyBookData({ people: [], ext: { a: 1 } });
+  assert.deepEqual(useRod.getState().ext, { ext: { a: 1 } });
+  assert.deepEqual(bookData(useRod.getState()).ext, { a: 1 });
+});
+
+test("40 опасные имена через applyBookData и importBook: явный отказ, книга и ext как были (в том числе соседние годные ключи)", async () => {
+  for (const key of ["__proto__", "constructor", "prototype"]) {
+    reset();
+    useRod.setState({ people: [{ id: "старый" }] as never, ext: { kept: 1 } });
+    const snap = before();
+    const raw = `{"people":[{"id":"новый"}],"good":1,${JSON.stringify(key)}:{"x":1}}`;
+    assert.throws(() => applyBookData(JSON.parse(raw)), (e: unknown) => e instanceof ExtUnsafeKeyError, key);
+    assert.equal(before(), snap, key);
+    const file = new File([`{"app":"kniga-roda","version":1,"data":${raw},"media":{"media:abc":"data:image/png;base64,AAAA"}}`], "a.kniga");
+    await assert.rejects(importBook(file), (e: unknown) => e instanceof ExtUnsafeKeyError, key);
+    assert.equal(before(), snap, key);
+    assert.equal(({} as Record<string, unknown>).x, undefined);
+  }
+});
+test("41 унаследованные имена проходят цикл импорт, отправка, объединение, скачивание, экспорт, повторный импорт ×3 без потерь и роста", async () => {
+  reset();
+  const FUT = { toString: { a: 1 }, valueOf: [1, 2], hasOwnProperty: "я", later: null };
+  let file = new File([JSON.stringify({ app: "kniga-roda", version: 1, data: { people: [], ...FUT }, media: {} })], "a.kniga");
+  let first = "";
+  const sizes = new Set<number>();
+  for (let n = 0; n < 3; n += 1) {
+    await importBook(file);
+    const sent = JSON.stringify(bookData(useRod.getState(), true));
+    const cloud = JSON.parse(sent) as Record<string, unknown>;
+    const merged = mergeBooks(JSON.parse(sent), cloud, JSON.parse(sent)).data;
+    applyBookData(merged);
+    applyBookData(cloud);
+    const exported = JSON.stringify(bookData(useRod.getState()));
+    if (!first) first = exported;
+    assert.equal(exported, first);
+    assert.deepEqual(Object.keys(useRod.getState().ext), ["toString", "valueOf", "hasOwnProperty", "later"]);
+    assert.deepEqual(JSON.parse(JSON.stringify(useRod.getState().ext)), FUT);
+    sizes.add(JSON.stringify(useRod.getState().ext).length);
+    file = new File([JSON.stringify({ app: "kniga-roda", version: 1, data: JSON.parse(exported), media: {} })], "b.kniga");
+  }
+  assert.equal(sizes.size, 1);
 });
