@@ -13,7 +13,7 @@ import { PosterView } from "@/components/tree/PosterView";
 import { fitText, isDeceased, kinship, nameLines, yearsOf } from "@/lib/tree/kinship";
 import { lineageUnionIds } from "@/lib/tree/lineage";
 import { halfUnionIds } from "@/lib/tree/half-unions";
-import { centerDecision } from "@/lib/tree/camera";
+import { cameraUntouched, centerDecision, resizeDecision, type Box } from "@/lib/tree/camera";
 import { MAX_ZOOM, MIN_ZOOM, PLATE_GAP, PLATE_H, PLATE_W, PORTRAIT_R } from "@/lib/tree/metrics";
 import type { CameoSheet } from "@/lib/tree/cameo";
 import { FRAME } from "@/lib/tree/cameo";
@@ -210,10 +210,28 @@ export function TreeStage(props: Props) {
   useEffect(() => {
     const auto = autoCam.current;
     const c = camNow.current;
-    if (auto && (Math.abs(auto.x - c.x) > 0.5 || Math.abs(auto.y - c.y) > 0.5 || Math.abs(auto.k - c.k) > 0.001)) return;
+    if (!cameraUntouched(auto, c)) return;
     fit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sheet.w, sheet.h]);
+
+  // Размер рабочей области меняется уже после открытия (поворот, боковая панель, окно): без этого древо остаётся сдвинутым.
+  const boxSeen = useRef<Box | null>(null);
+  const fitNow = useRef(fit);
+  fitNow.current = fit; // свежая подгонка (с актуальным листом и стилем), а не замкнутая на момент открытия
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      const next = { w: el.clientWidth, h: el.clientHeight };
+      const prev = boxSeen.current;
+      boxSeen.current = next;
+      if (!prev) return; // первое измерение: подгонка при открытии уже выполнена
+      if (resizeDecision(prev, next, autoCam.current, camNow.current)) fitNow.current();
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const centerDone = useRef(0);
   useEffect(() => {
