@@ -9,7 +9,7 @@ process.env.ACCESS_SECRET = "s".repeat(40);
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import test from "node:test";
-import { STAMP_FAILED_MESSAGE, afterOpenCopy, cloudText, restoreLocalBackup, restorePreviousCloud, syncCore, syncSmart, trustedBase, weightOf, type Deps, type Meta, type Reply } from "./sync-engine.ts";
+import { STAMP_FAILED_MESSAGE, afterOpenCopy, cloudText, restoreLocalBackup, restorePreviousCloud, syncCore, syncSmart, trustedBase, type Deps, type Meta, type Reply } from "./sync-engine.ts";
 import { openCopyFlow } from "./open-copy-flow.ts";
 import { fingerprint, pruneKeys } from "./sync-logic.ts";
 
