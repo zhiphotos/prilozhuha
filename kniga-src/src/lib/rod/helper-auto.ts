@@ -3,10 +3,13 @@
  * Реальные запросы, хранилище и фото подставляет helper.ts.
  */
 import { HELPER_KEYS, applyReview, makeChangeSet, reviewChanges, type Book, type Change, type Decision } from "./helper-changes.ts";
+import { judge, mergeVerdicts, type Verdict } from "./helper-verdicts.ts";
 
 export type AutoSession = { room: string; invite: string; who?: string; base: Book; baseAt?: number;
   /** Что помощник уже отправил (его книга в момент отправки). base остаётся версией владельца. Нет поля: ничего не ждёт решения (старые сессии). */
-  sent?: Book };
+  sent?: Book;
+  /** Решения владельца по отправленному: принято, не принято, конфликт. Хранятся в сессии, поэтому переживают перезапуск. */
+  verdicts?: Verdict[] };
 export type PollAnswer = { ok?: boolean; same?: boolean; base?: Book; at?: number; waiting?: number };
 
 export interface HelperDeps<S extends AutoSession> {
@@ -53,14 +56,15 @@ export async function helperRoundWith<S extends AutoSession>(d: HelperDeps<S>): 
   const now = d.session();
   if (!now || now.room !== session.room || pending(now, d.lists())) return "skipped"; // за время загрузки что-то изменилось
   // Владелец выложил новую версию и ящик пуст: всё, что помощник отправлял и чего в ней нет, остаётся у него, а не затирается
-  const held = now.sent ? notAccepted(now.base, now.sent, answer.base) : [];
+  const judged = now.sent ? judge(now.base, now.sent, answer.base, Date.now(), now.verdicts) : { held: [], verdicts: [] };
+  const held = judged.held;
   const keep: Record<string, Decision> = Object.fromEntries(held.map((c) => [`${c.key}:${c.id}`, "accept" as Decision]));
   const merged = held.length ? applyReview(answer.base, reviewChanges(answer.base, held), keep) : {};
   const patch: Record<string, unknown> = {};
   for (const key of HELPER_KEYS) patch[key] = (merged as Record<string, unknown>)[key] ?? answer.base[key] ?? [];
   d.setLists(patch);
   // отправленное, но не принятое ждёт решения помощника: само не уйдёт второй раз и не пропадёт
-  d.saveSession({ ...now, base: answer.base, baseAt: answer.at, sent: held.length ? (patch as Book) : undefined });
+  d.saveSession({ ...now, base: answer.base, baseAt: answer.at, sent: held.length ? (patch as Book) : undefined, verdicts: mergeVerdicts(now.verdicts, judged.verdicts) });
   return held.length ? "held" : "updated";
 }
 
