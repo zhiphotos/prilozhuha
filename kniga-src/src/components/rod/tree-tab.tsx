@@ -45,6 +45,7 @@ function TreeScreen() {
   useEffect(() => warmPhotos(), [rodPeople]);
   const people = useTree((s) => s.people);
   const issues = useTree((s) => s.issues);
+  const issueItems = useTree((s) => s.issueItems);
   const unions = useTree((s) => s.unions);
   const focusId = useTree((s) => s.focusId);
   const homeId = useTree((s) => s.homeId);
@@ -181,7 +182,22 @@ function TreeScreen() {
   const [toolsOpen, setToolsOpen] = useState(() => hasPendingGedFile());
   const [scopeOpen, setScopeOpen] = useState(false);
   /** Подсказка про связи закрыта крестиком: снова покажется, только если список замечаний изменился. */
-  const [hiddenIssues, setHiddenIssues] = useState("");
+  // Закрытая плашка не возвращается при каждом открытии древа: запоминаем, какой набор замечаний закрыт; новое замечание покажет её снова.
+  const [hiddenIssues, setHiddenIssuesState] = useState(() => {
+    try {
+      return localStorage.getItem("kr-hidden-issues") ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const setHiddenIssues = (value: string) => {
+    setHiddenIssuesState(value);
+    try {
+      localStorage.setItem("kr-hidden-issues", value);
+    } catch {
+      /* без хранилища плашка закрывается до перезагрузки */
+    }
+  };
   const [scopeShift, setScopeShift] = useState(0);
   // Меню длиннее экрана телефона: высота до низа экрана, дальше листается пальцем.
   const [scopeMax, setScopeMax] = useState(480);
@@ -290,9 +306,27 @@ function TreeScreen() {
           </button>
           <b>Нужно уточнить связи ({issues.length}):</b>
           <ul className="mt-1 list-disc pl-4">
-            {issues.slice(0, 5).map((text) => (
-              <li key={text}>{text}</li>
-            ))}
+            {issueItems.slice(0, 5).map((item) => {
+              const target = item.ids.find((id) => people.some((p) => p.id === id));
+              return (
+                <li key={item.text}>
+                  {target ? (
+                    <button
+                      type="button"
+                      className="text-left underline decoration-ink/30 underline-offset-2"
+                      onClick={() => {
+                        selectPerson(target);
+                        setCenterReq({ id: target, n: Date.now() });
+                      }}
+                    >
+                      {item.text}
+                    </button>
+                  ) : (
+                    item.text
+                  )}
+                </li>
+              );
+            })}
           </ul>
           {issues.length > 5 ? <p className="mt-1 text-ink/60">И ещё {issues.length - 5}.</p> : null}
         </div>
