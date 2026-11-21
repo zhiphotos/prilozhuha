@@ -201,14 +201,14 @@ test("J3 владелец менял то же поле по-другому: con
 test("J4 владелец менял другое поле: rejected, не conflict", () => {
   assert.equal(verdictOf(P(), P({ name: "Анна Иванова" }), P({ notes: "x" })).state, "rejected");
 });
-test("J5 владелец принял правку И дописал другое поле: judge говорит rejected (запись не равна правке целиком)", () => {
+test("J5 владелец принял правку И дописал другое поле: judge говорит accepted (С-3в: проверяются только поля, которые менял помощник)", () => {
   const v = verdictOf(P(), P({ birthYear: "1951" }), P({ birthYear: "1951", notes: "дописал" }));
-  assert.equal(v.state, "rejected"); // РАСХОЖДЕНИЕ с R: там такая правка была бы «clean/already» по полям, то есть принята
-  assert.equal(v.held, 1);
+  assert.equal(v.state, "accepted"); // было rejected (расхождение 2 из С-3а), исправлено подключением merge-core
+  assert.equal(v.held, 0);
 });
-test("J6 то же значение, но другой порядок ключей верхнего уровня: judge говорит rejected", () => {
+test("J6 то же значение, но другой порядок ключей верхнего уровня: judge говорит accepted (С-3в, расхождение 3)", () => {
   const owner: Rec = { birthYear: "1951", name: "Анна", id: "p" };
-  assert.equal(verdictOf(P(), P({ birthYear: "1951" }), owner).state, "rejected"); // РАСХОЖДЕНИЕ: правка по смыслу принята
+  assert.equal(verdictOf(P(), P({ birthYear: "1951" }), owner).state, "accepted");
 });
 test("J7 добавление: владелец принял (запись равна) — accepted; владелец не принял — rejected; у владельца своя запись с тем же id — conflict", () => {
   assert.equal(verdictOf(undefined, P(), P()).state, "accepted");

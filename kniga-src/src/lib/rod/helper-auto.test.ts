@@ -3,6 +3,7 @@ import test from "node:test";
 import { helperRoundWith, publishIfChangedWith, signature, type AutoSession, type PollAnswer } from "./helper-auto.ts";
 import { statusOfRound } from "./helper-status.ts";
 import { dropOpen, markResent, mergeVerdicts, overview, type Verdict } from "./helper-verdicts.ts";
+import { stableStringify } from "./merge-core.ts";
 import { makeChangeSet, type Book, type Change } from "./helper-changes.ts";
 
 type Rec = { id: string; name: string };
@@ -755,4 +756,186 @@ test("57 старая сессия с verdicts из прежней версии 
   const v = view(h);
   assert.equal(v.history.length, 1);
   assert.equal(v.accepted.length, 1);
+});
+
+// ——— С-3в: judge и обход помощника работают на merge-core
+const two = (people: string[]) => {
+  const s = withBook(people);
+  return { s, a: new Helper(s, "Мама"), b: new Helper(s, "Папа") };
+};
+const rec = (h: Helper, id: string) => h.lists.people.find((p) => p.id === id) as Record<string, unknown>;
+const ownerBook = (s: Server) => clone(s.base).people as Record<string, unknown>[];
+
+test("58 владелец принял правку и дописал другое поле: принято, нет «не принято» и нет повторной отправки", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [{ id: "a", name: "A1", notes: "дописал владелец" } as Rec] });
+  assert.equal(await h.round(), "updated");
+  assert.equal(view(h).rejected.length, 0);
+  assert.equal(view(h).history.length, 1);
+  assert.equal(rec(h, "a").notes, "дописал владелец");
+  await h.round();
+  assert.equal(s.inbox.length, 0);
+});
+test("59 владелец принял правку, но записал ключи в другом порядке: принято, ложных правок нет", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [{ name: "A1", id: "a" } as Rec] });
+  assert.equal(await h.round(), "updated");
+  assert.equal(makeChangeSet(h.session!.base, h.lists as unknown as Book).length, 0);
+  assert.equal(h.session!.sent, undefined);
+});
+test("60 чистые правки обеих сторон складываются у помощника, непринятое не пропадает и не уходит снова", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  h.lists.people[0] = { id: "a", name: "A", mine: "моё" } as Rec; // помощник добавил поле
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [{ id: "a", name: "A", owner: "поле владельца" } as Rec] }); // владелец не принял, но менял другое
+  assert.equal(await h.round(), "held");
+  assert.equal(rec(h, "a").mine, "моё");
+  assert.equal(rec(h, "a").owner, "поле владельца");
+  await h.round();
+  await h.round();
+  assert.equal(s.inbox.length, 0);
+});
+test("61 конфликт поля: у помощника его значение, чистая правка владельца сложена, значение владельца в verdicts, всё переживает перезапуск", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  h.lists.people[0] = { id: "a", name: "Мама-версия", year: "1951" } as Rec;
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [{ id: "a", name: "Версия владельца", notes: "н" } as Rec] });
+  assert.equal(await h.round(), "held");
+  restart(h);
+  const v = view(h);
+  assert.equal(v.conflicts.length, 1);
+  assert.deepEqual(v.conflicts[0].fields, ["name"]);
+  assert.equal((v.conflicts[0].theirs as Rec).name, "Версия владельца");
+  assert.equal(rec(h, "a").name, "Мама-версия");
+  assert.equal(rec(h, "a").year, "1951");
+  assert.equal(rec(h, "a").notes, "н");
+});
+test("62 владелец удалил запись, которую правил помощник: запись у помощника остаётся, конфликт, повторной отправки нет", async () => {
+  const s = withBook(["a", "b"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("b")] });
+  assert.equal(await h.round(), "held");
+  assert.equal(rec(h, "a").name, "A1");
+  assert.equal(view(h).conflicts.length, 1);
+  await h.round();
+  assert.equal(s.inbox.length, 0);
+});
+test("63 владелец удалил запись, которую помощник не менял: у помощника она тоже убирается (при другой его правке)", async () => {
+  const s = withBook(["a", "b"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a"), { id: "c", name: "C" } as Rec] }); // b убран, c добавлен, правка a не принята
+  assert.equal(await h.round(), "held");
+  assert.deepEqual(h.lists.people.map((p) => p.id).sort(), ["a", "c"]);
+  assert.equal(rec(h, "a").name, "A1");
+});
+test("64 два помощника правят одно поле: владелец принял правку Мамы, у Папы остаются его значение и конфликт со значением Мамы", async () => {
+  const { s, a, b } = two(["x"]);
+  edit(a, "x", "От мамы");
+  edit(b, "x", "От папы");
+  b.lists.people[0] = { id: "x", name: "От папы", папа: "1" } as Rec;
+  await a.round();
+  await b.round();
+  assert.equal(s.inbox.length, 2);
+  s.accept(owner(s), s.inbox.find((i) => i.who === "Мама")!.id); // принять Маму
+  s.dismiss(s.inbox[0].id); // вторая запись (Папы) решена как «не принята»
+  s.inbox = [];
+  s.publish({ ...empty(), people: [person("x", "От мамы")] });
+  assert.equal(await a.round(), "updated");
+  assert.equal(await b.round(), "held");
+  const v = view(b);
+  assert.equal(v.conflicts.length, 1);
+  assert.equal((v.conflicts[0].theirs as Rec).name, "От мамы");
+  assert.equal(rec(b, "x").name, "От папы");
+  assert.equal(rec(b, "x").папа, "1");
+});
+test("65 два помощника правят разные записи, владелец принял обе: у обоих версия владельца, повторных отправок нет", async () => {
+  const { s, a, b } = two(["x", "y"]);
+  edit(a, "x", "X-мама");
+  edit(b, "y", "Y-папа");
+  await a.round();
+  await b.round();
+  s.inbox = [];
+  s.publish({ ...empty(), people: [person("x", "X-мама"), person("y", "Y-папа")] });
+  assert.equal(await a.round(), "updated");
+  assert.equal(await b.round(), "updated");
+  assert.equal(stableStringify(a.lists.people), stableStringify(ownerBook(s)));
+  assert.equal(stableStringify(b.lists.people), stableStringify(ownerBook(s)));
+  await a.round();
+  await b.round();
+  assert.equal(s.inbox.length, 0);
+});
+test("66 владелец меняет запись ещё раз после первого слияния: конфликт сохраняется, значения владельца обновляются", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "Мама");
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a", "Владелец 1")] });
+  await h.round();
+  s.publish({ ...empty(), people: [person("a", "Владелец 2")] });
+  assert.equal(await h.round(), "held");
+  const v = view(h);
+  assert.equal(v.conflicts.length, 1);
+  assert.equal((v.conflicts[0].theirs as Rec).name, "Владелец 2");
+  assert.equal(rec(h, "a").name, "Мама");
+});
+test("67 списки целиком, неизвестные поля, родственные связи, усыновление и фото не теряются при слиянии", async () => {
+  const s = withBook(["a"]);
+  s.publish({ ...empty(), people: [{ id: "a", name: "A", parents: ["p1"], adoptedBy: ["q1"], photos: ["f1"] } as Rec] });
+  const h = new Helper(s, "Мама");
+  h.lists.people[0] = { id: "a", name: "A", parents: ["p1", "p2"], adoptedBy: ["q1"], photos: ["f1", "f2"], futureH: { z: 1 } } as Rec;
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [{ id: "a", name: "A", parents: ["p1"], adoptedBy: ["q1", "q2"], photos: ["f1"], futureO: [1] } as Rec] });
+  await h.round();
+  const r = rec(h, "a");
+  assert.deepEqual(r.parents, ["p1", "p2"]);
+  assert.deepEqual(r.adoptedBy, ["q1", "q2"]);
+  assert.deepEqual(r.photos, ["f1", "f2"]);
+  assert.deepEqual(r.futureH, { z: 1 });
+  assert.deepEqual(r.futureO, [1]);
+  assert.equal(r.id, "a");
+});
+test("68 старая сессия без verdicts: обход работает как раньше", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "A1");
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a")] });
+  h.session = JSON.parse(JSON.stringify({ ...h.session, verdicts: undefined }));
+  assert.equal(await h.round(), "held");
+  assert.equal(view(h).rejected.length, 1);
+});
+test("69 два обхода подряд с одной и той же версией владельца ничего не меняют и ничего не шлют", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  edit(h, "a", "Мама");
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a", "Владелец")] });
+  await h.round();
+  const snap = JSON.stringify([h.lists, h.session]);
+  assert.equal(await h.round(), "idle");
+  assert.equal(await h.round(), "idle");
+  assert.equal(JSON.stringify([h.lists, h.session]), snap);
+  assert.equal(s.inbox.length, 0);
 });

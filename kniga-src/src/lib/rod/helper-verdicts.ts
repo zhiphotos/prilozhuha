@@ -4,6 +4,7 @@
  * Не принятые правки здесь только описываются: сами они остаются в книге помощника, ничего не удаляется и не перезаписывается.
  */
 import { makeChangeSet, type Book, type Change, type HelperKey, type Rec } from "./helper-changes.ts";
+import { mergeRecord, valueEqual } from "./merge-core.ts";
 
 export type VerdictState = "accepted" | "rejected" | "conflict";
 export type Verdict = {
@@ -22,40 +23,43 @@ export type Verdict = {
   resent?: boolean;
 };
 
-const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 const listOf = (book: Book, key: string): Rec[] => (Array.isArray(book[key]) ? (book[key] as Rec[]) : []);
 const recOf = (book: Book, key: string, id: string): Rec | undefined => listOf(book, key).find((r) => r.id === id);
 
-/** Поля, которые менял и помощник, и владелец, и теперь значения разные. */
-export function conflictFields(before: Rec | undefined, mine: Rec | undefined, theirs: Rec | undefined): string[] {
-  const names = new Set([...Object.keys(before ?? {}), ...Object.keys(mine ?? {}), ...Object.keys(theirs ?? {})]);
-  return [...names].filter((f) => !same(before?.[f], mine?.[f]) && !same(before?.[f], theirs?.[f]) && !same(mine?.[f], theirs?.[f]));
-}
-
 export const MAX_ACCEPTED = 20;
 
+/** Поля записи, которые изменил сам помощник (до отправки и после). */
+const helperFields = (c: Change): string[] => {
+  const names = new Set([...Object.keys(c.before ?? {}), ...Object.keys(c.after ?? {})]);
+  names.delete("id");
+  return [...names].filter((f) => !valueEqual(c.before?.[f], c.after?.[f]));
+};
+
 /**
- * Сверка отправленного с новой версией владельца.
- * Принято: в версии владельца запись такая же, как у помощника. Конфликт: владелец сам менял эту запись и она отличается.
- * Не принято: владелец эту запись не менял и помощника не принял.
+ * Сверка отправленного с новой версией владельца. Слияние решает merge-core: ours = запись помощника, theirs = запись владельца, base = версия, которую помощник получил.
+ * Принято: владелец взял то, что изменил помощник (по полям, остальные его правки не мешают; порядок ключей не важен).
+ * Конфликт: ядро нашло спор (то же поле по-разному, одинаковый id у разных добавлений, удаление против правки).
+ * Не принято: спора нет, но владелец взятое не принял.
  */
 export function judge(base: Book, sent: Book, owner: Book, at: number, prev: Verdict[] = []): { held: Change[]; verdicts: Verdict[] } {
   const held: Change[] = [];
   const verdicts: Verdict[] = [];
   for (const c of makeChangeSet(base, sent)) {
     const theirs = recOf(owner, c.key, c.id);
-    const accepted = c.kind === "remove" ? !theirs : same(theirs, c.after);
+    const merge = mergeRecord(c.id, recOf(base, c.key, c.id), c.after, theirs);
+    const accepted =
+      c.kind === "remove" ? !theirs : c.kind === "add" ? Boolean(theirs) && valueEqual(theirs, c.after) : Boolean(theirs) && helperFields(c).every((f) => valueEqual(theirs?.[f], c.after?.[f]));
     const mine = c.after ?? c.before;
     if (accepted) {
       verdicts.push({ key: c.key, id: c.id, kind: c.kind, state: "accepted", at, mine });
       continue;
     }
     held.push(c);
-    const fields = c.kind === "edit" ? conflictFields(c.before, c.after, theirs) : [];
-    // правка записи спорна, только если владелец менял те же поля; добавление или удаление – если он сам трогал эту запись
-    const clash = c.kind === "edit" ? fields.length > 0 : !same(theirs, recOf(base, c.key, c.id));
-    if (clash) verdicts.push({ key: c.key, id: c.id, kind: c.kind, state: "conflict", at, mine, theirs, fields });
-    else {
+    if (merge.status === "conflict") {
+      // спорные поля из ядра; если владелец убрал запись, которую правил помощник, показываются поля, изменённые помощником
+      const fields = merge.kind === "fields" ? merge.fields.map((f) => f.field) : merge.kind === "delete-edit" && c.kind === "edit" ? helperFields(c) : [];
+      verdicts.push({ key: c.key, id: c.id, kind: c.kind, state: "conflict", at, mine, theirs, fields });
+    } else {
       // конфликт, о котором помощник уже знает, не превращается в обычный отказ после «Отправить снова»: значения владельца на тот момент хранятся
       const old = prev.find((v) => v.key === c.key && v.id === c.id && v.state === "conflict");
       if (old) verdicts.push({ ...old, at, mine, resent: undefined });
