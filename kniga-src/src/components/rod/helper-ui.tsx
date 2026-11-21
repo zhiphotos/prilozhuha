@@ -32,7 +32,13 @@ export function ChangesCard({ changes, who, onDone }: { changes: Change[]; who: 
   const total = summarize(items);
   const open = items.filter((i) => i.state !== "already");
   const apply = () => {
-    applyIncoming(items, choice, who);
+    const stale = applyIncoming(changes, items, choice, who);
+    if (stale.length) {
+      setItems(stale);
+      setChoice({});
+      toast("Часть предложений не применена: запись изменилась");
+      return;
+    }
     toast("Правки применены");
     onDone();
   };
@@ -52,6 +58,7 @@ export function ChangesCard({ changes, who, onDone }: { changes: Change[]; who: 
             </p>
             {i.kind === "add" ? <Thumb rec={i.theirs as Record<string, unknown>} /> : null}
             {i.kind === "edit" && i.state !== "conflict" && i.touched.length ? <p className="mt-0.5 text-xs text-muted">{i.touched.map((f) => FIELD[f] ?? f).join(", ")}</p> : null}
+            {i.changedSince ? <p className="mt-0.5 text-xs text-ink/80">Вы изменили эту запись после того, как пришло предложение. Теперь значения расходятся: выберите, что оставить. Ничего не потеряно.</p> : null}
             {i.state === "gone" ? <p className="mt-0.5 text-xs text-muted">Вы эту запись уже убрали, помощник её правил. Можно вернуть с его правкой.</p> : null}
             {i.wasPublished ? <p className="mt-0.5 text-xs text-ink/80">Эту запись вы раньше выкладывали для помощников, а сейчас её у вас нет. Сама она не вернётся: вернуть её можно, только нажав «Принять».</p> : null}
             {i.state === "conflict" && i.conflictKind === "edit-after-delete" ? <p className="mt-0.5 text-xs text-ink/80">Вы эту запись убрали, а помощник её правил. Она не вернётся, пока вы сами не решите.</p> : null}

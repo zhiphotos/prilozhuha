@@ -1,7 +1,7 @@
 import { API_BASE } from "@/lib/rod/config";
 import { helperRoundWith, publishIfChangedWith, signature } from "@/lib/rod/helper-auto";
 import { BASE_TOO_BIG, OFFLINE_TEXT, baseSize, failureStatus, getSyncStatus, setSyncStatus, statusOfRound } from "@/lib/rod/helper-status";
-import { HELPER_KEYS, applyReview, makeChangeSet, rememberPublished, reviewChanges, type Book, type Change, type Decision, type PublishedIds, type ReviewItem } from "@/lib/rod/helper-changes";
+import { HELPER_KEYS, applyReviewChecked, makeChangeSet, rememberPublished, reviewChanges, type Book, type Change, type Decision, type PublishedIds, type ReviewItem } from "@/lib/rod/helper-changes";
 import { dropOpen, markResent, overview, type Overview, type Verdict } from "@/lib/rod/helper-verdicts";
 import { collectRefs } from "@/lib/rod/backup";
 import { hasMedia, mediaDataUrl, saveMediaAs } from "@/lib/rod/media";
@@ -297,11 +297,14 @@ export async function reviewIncoming(changes: Change[]): Promise<ReviewItem[]> {
   return reviewChanges(useRod.getState() as unknown as Book, changes, { published: readPublished()?.ids });
 }
 
-export function applyIncoming(items: ReviewItem[], decisions: Record<string, Decision>, who: string): void {
-  const patch = applyReview(useRod.getState() as unknown as Book, items, decisions, `от помощника «${who}»`);
-  if (!Object.keys(patch).length) return;
-  useRod.setState(patch as Record<string, unknown>);
-  flushBook();
+/** Применяет решения владельца. Возвращает предложения, по которым запись изменилась, пока он решал: они не применены и показаны заново как спор. */
+export function applyIncoming(changes: Change[], items: ReviewItem[], decisions: Record<string, Decision>, who: string): ReviewItem[] {
+  const { patch, stale } = applyReviewChecked(useRod.getState() as unknown as Book, changes, items, decisions, `от помощника «${who}»`, { published: readPublished()?.ids });
+  if (Object.keys(patch).length) {
+    useRod.setState(patch as Record<string, unknown>);
+    flushBook();
+  }
+  return stale;
 }
 
 export { type Decision, type ReviewItem };

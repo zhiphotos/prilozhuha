@@ -39,6 +39,8 @@ export type ReviewItem = {
   conflictKind?: ConflictKind;
   /** Добавление записи, которую владелец раньше выкладывал помощникам, а сейчас её у него нет: показывается как новое предложение, по умолчанию «Не надо». */
   wasPublished?: boolean;
+  /** Владелец изменил эту запись после того, как предложение было показано: разбор сделан заново, спор виден с обеими версиями. */
+  changedSince?: boolean;
 };
 
 export type Decision = "accept" | "reject" | "theirs" | "mine" | "copy";
@@ -125,6 +127,39 @@ export function applyReview(mine: Book, items: ReviewItem[], decisions: Record<s
     if (stableStringify(next) !== stableStringify(before)) out[key] = next;
   }
   return out;
+}
+
+/**
+ * Применение с проверкой «не изменилась ли запись, пока владелец решал».
+ * Если запись владельца после показа карточки изменилась, а решение было «принять» (или «версия помощника»), оно не применяется молча:
+ * предложение сверяется заново с текущей записью, и если теперь есть спор, оно возвращается в `stale` с обеими версиями.
+ * Решения «оставить моё» и «копией» безопасны и применяются как есть. Остальные предложения применяются обычным образом.
+ */
+export function applyReviewChecked(
+  mine: Book,
+  changes: Change[],
+  items: ReviewItem[],
+  decisions: Record<string, Decision>,
+  label = "от помощника",
+  opts: { published?: PublishedIds } = {},
+): { patch: Partial<Record<HelperKey, Rec[]>>; stale: ReviewItem[] } {
+  const stale: ReviewItem[] = [];
+  const ok: ReviewItem[] = [];
+  for (const item of items) {
+    const cur = list(mine, item.key).find((r) => r.id === item.id);
+    const drifted = item.state !== "already" && stableStringify(cur ?? null) !== stableStringify(item.mine ?? null);
+    const decision = decisions[`${item.key}:${item.id}`] ?? defaultDecision(item);
+    if (!drifted || decision === "reject" || decision === "mine" || decision === "copy") {
+      ok.push(item);
+      continue;
+    }
+    const change = changes.find((c) => c.key === item.key && c.id === item.id);
+    const fresh = change ? reviewChanges(mine, [change], opts)[0] : undefined;
+    if (fresh && fresh.state === "conflict") stale.push({ ...fresh, changedSince: true });
+    else if (fresh) ok.push(fresh); // спора нет: либо уже совпало, либо чисто накладывается на текущую запись
+  }
+  const patch = applyReview(mine, ok, decisions, label);
+  return { patch, stale };
 }
 
 export const summarize = (items: ReviewItem[]) => ({
