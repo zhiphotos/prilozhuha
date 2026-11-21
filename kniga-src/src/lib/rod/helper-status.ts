@@ -68,6 +68,8 @@ export function statusOfRound(result: HelperResult): { state: SyncState; text: s
   switch (result) {
     case "updated":
       return { state: "ok", text: "Получена свежая версия от владельца" };
+    case "held":
+      return { state: "waiting", text: "Владелец не принял часть ваших правок. Они сохранены у вас, ничего не пропало" };
     case "idle":
       return { state: "ok", text: "Всё получено, новых изменений нет" };
     case "waiting":

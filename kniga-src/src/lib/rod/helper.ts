@@ -104,7 +104,7 @@ export async function publishBase(progress?: (done: number, total: number) => vo
 }
 
 const KEY = "kniga-helper";
-export type HelperSession = { room: string; invite: string; name: string; base: Book; project: string; who?: string; baseAt?: number };
+export type HelperSession = { room: string; invite: string; name: string; base: Book; project: string; who?: string; baseAt?: number; sent?: Book };
 
 export function helperSession(): HelperSession | null {
   try {
@@ -162,17 +162,33 @@ export async function joinAsHelper(room: string, invite: string, progress?: (tex
   saveSession({ room, invite, name: answer.name ?? "Семья", base: answer.base, project, baseAt: answer.at });
 }
 
-export const helperChanges = (session: HelperSession): Change[] => makeChangeSet(session.base, lists());
+/** Новые, ещё не отправленные правки. */
+export const helperChanges = (session: HelperSession): Change[] => makeChangeSet(session.sent ?? session.base, lists());
+
+/** Отправленные правки, по которым у владельца ещё нет решения или он их не принял: у помощника они сохранены. */
+export const sentChanges = (session: HelperSession): Change[] => (session.sent ? makeChangeSet(session.base, session.sent) : []);
+
+/** Явное решение помощника: отправить не принятое владельцем ещё раз. */
+export const resendHeld = (session: HelperSession) => saveSession({ ...session, sent: undefined });
+
+/** Явное решение помощника: отказаться от не принятых правок, книга снова равна версии владельца. */
+export function discardHeld(session: HelperSession): void {
+  const patch: Record<string, unknown> = {};
+  for (const key of HELPER_KEYS) patch[key] = session.base[key] ?? [];
+  useRod.setState(patch);
+  flushBook();
+  saveSession({ ...session, sent: undefined });
+}
 
 export async function sendChanges(session: HelperSession, who: string, progress?: (done: number, total: number) => void): Promise<number> {
   const changes = helperChanges(session);
   if (!changes.length) throw new Error("Правок пока нет.");
-  const known = refsOf(session.base);
+  const known = new Set([...refsOf(session.base), ...refsOf(session.sent ?? {})]);
   const fresh = [...refsOf(changes.map((c) => c.after))].filter((ref) => !known.has(ref));
   await uploadMedia({ room: session.room, invite: session.invite }, fresh, progress);
   const answer = await post<{ ok?: boolean }>("/api/room-submit", { room: session.room, invite: session.invite, kind: "changes", from: { name: who, relation: "" }, changes });
   if (!answer.ok) throw new Error(answer.error || "Не получилось отправить.");
-  saveSession({ ...session, who, base: lists() }); // следующая отправка покажет только новые правки
+  saveSession({ ...session, who, sent: lists() }); // база остаётся версией владельца; следующая отправка покажет только новые правки
   return changes.length;
 }
 

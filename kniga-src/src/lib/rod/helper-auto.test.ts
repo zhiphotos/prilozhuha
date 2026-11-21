@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { helperRoundWith, publishIfChangedWith, signature, type AutoSession, type PollAnswer } from "./helper-auto.ts";
+import { statusOfRound } from "./helper-status.ts";
 import { makeChangeSet, type Book, type Change } from "./helper-changes.ts";
 
 type Rec = { id: string; name: string };
@@ -76,10 +77,10 @@ class Helper {
       },
       send: async (session: AutoSession & { room: string }, who: string) => {
         if (this.failSend) throw new Error("не отправилось");
-        const changes = makeChangeSet(session.base, this.lists as unknown as Book);
+        const changes = makeChangeSet(session.sent ?? session.base, this.lists as unknown as Book);
         if (!changes.length) throw new Error("Правок пока нет.");
         this.server.submit(who, changes);
-        this.session = { ...session, who, base: clone(this.lists) as unknown as Book };
+        this.session = { ...session, who, sent: clone(this.lists) as unknown as Book };
       },
       poll: async (session: AutoSession & { room: string }) => this.server.poll(session.baseAt ?? 0, session.who ?? ""),
       downloadMedia: async () => {
@@ -204,8 +205,8 @@ test("14 владелец отклонил правку: у помощника �
   await h.round();
   s.dismiss(s.inbox[0].id);
   s.publish({ ...empty(), people: [person("a"), person("c")] });
-  assert.equal(await h.round(), "updated");
-  assert.equal(names(h.lists.people), "a,c");
+  assert.equal(await h.round(), "held"); // было "updated" и правка x молча пропадала
+  assert.equal(names(h.lists.people), "a,c,x");
 });
 test("15 отправка не удалась: правки у помощника целы, версия не подменяется", async () => {
   const s = withBook(["a"]);
@@ -393,4 +394,94 @@ test("32 подпись книги меняется от любого измен
   assert.notEqual(signature(a), signature(b));
   b.people[0].name = "другое";
   assert.notEqual(signature(a), signature({ ...a, people: [person("x")] }));
+});
+
+// ——— С-2: неотправленное и отклонённое не затирается
+const year = (v: string) => ({ id: "a", name: "a", year: v });
+const withYear = () => {
+  const s = new Server();
+  s.publish({ ...empty(), people: [year("1950")] } as unknown as Book);
+  return s;
+};
+test("33 помощник исправил год, владелец отклонил и выложил другое: правка не пропала, есть статус", async () => {
+  const s = withYear();
+  const h = new Helper(s, "Мама");
+  (h.lists.people[0] as unknown as { year: string }).year = "1951";
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [year("1950"), person("c")] } as unknown as Book);
+  assert.equal(await h.round(), "held");
+  assert.equal((h.lists.people[0] as unknown as { year: string }).year, "1951");
+  assert.equal(names(h.lists.people), "a,c");
+  assert.equal(statusOfRound("held")?.state, "waiting");
+  assert.match(statusOfRound("held")?.text ?? "", /не принял/);
+});
+test("34 владелец принял: отметок нет, версия общая", async () => {
+  const s = withYear();
+  const h = new Helper(s, "Мама");
+  (h.lists.people[0] as unknown as { year: string }).year = "1951";
+  await h.round();
+  const owner = clone(s.base);
+  s.accept(owner, s.inbox[0].id);
+  s.publish(owner as unknown as Book);
+  assert.equal(await h.round(), "updated");
+  assert.equal(h.session?.sent, undefined);
+  assert.equal((h.lists.people[0] as unknown as { year: string }).year, "1951");
+});
+test("35 частично: принята одна правка, другая осталась у помощника", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  h.lists.people.push(person("x"), person("y"));
+  await h.round();
+  const owner = clone(s.base);
+  owner.people.push(person("x")); // принят только x
+  s.dismiss(s.inbox[0].id);
+  s.publish(owner as unknown as Book);
+  assert.equal(await h.round(), "held");
+  assert.equal(names(h.lists.people), "a,x,y");
+  assert.equal(makeChangeSet(h.session!.base, h.session!.sent!).map((c) => c.id).join(), "y"); // x принят, ждёт только y
+});
+test("36 после «не принято» два обхода подряд не шлют заново", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  h.lists.people.push(person("x"));
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a"), person("c")] });
+  await h.round();
+  await h.round();
+  await h.round();
+  assert.equal(s.inbox.length, 0);
+  assert.equal(names(h.lists.people), "a,c,x");
+});
+test("37 помощник сам решил отправить снова: уходит ровно один раз, без дубля", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  h.lists.people.push(person("x"));
+  await h.round();
+  s.dismiss(s.inbox[0].id);
+  s.publish({ ...empty(), people: [person("a"), person("c")] });
+  await h.round();
+  h.session = { ...h.session!, sent: undefined }; // resendHeld
+  await h.round();
+  await h.round();
+  assert.equal(s.inbox.length, 1);
+  assert.equal(s.inbox[0].changes.length, 1);
+});
+test("38 старая сессия без поля sent читается как раньше", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  assert.equal(h.session?.sent, undefined);
+  s.publish({ ...empty(), people: [person("a"), person("b")] });
+  assert.equal(await h.round(), "updated");
+  assert.equal(names(h.lists.people), "a,b");
+});
+test("39 отправленное остаётся ждать, пока владелец не разобрал: версия не меняется, правка цела", async () => {
+  const s = withBook(["a"]);
+  const h = new Helper(s, "Мама");
+  h.lists.people.push(person("x"));
+  await h.round();
+  assert.equal(await h.round(), "idle");
+  assert.equal(names(h.lists.people), "a,x");
+  assert.ok(h.session?.sent);
 });
