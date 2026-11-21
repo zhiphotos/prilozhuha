@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Play, ShoppingBag, Sparkles, X } from "lucide-react";
 import { Button, useNav } from "@/components/rod/chrome";
@@ -181,7 +182,7 @@ function ReviewsPopup({ onClose }: { onClose: () => void }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[70] flex flex-col bg-black/95" role="dialog" aria-modal="true" aria-label="Отзывы участниц" onClick={onClose}>
       <div className="flex items-center justify-between p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <p className="pl-1 text-sm font-semibold text-[#e6cf9c]">Что пишут участницы</p>
@@ -196,7 +197,8 @@ function ReviewsPopup({ onClose }: { onClose: () => void }) {
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

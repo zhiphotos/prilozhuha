@@ -894,7 +894,7 @@ const REVIEWS = [1, 2, 3].map((n) => `course/site/review${n}.jpg`);
 
 /** Картинка на весь экран целиком, без обрезки. */
 function ImageZoom({ src, onClose }: { src: string; onClose: () => void }) {
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[70] flex flex-col bg-black/95" onClick={onClose}>
       <div className="flex justify-end p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <button type="button" aria-label="Закрыть" className="grid size-11 place-items-center rounded-full bg-paper/15 text-paper" onClick={onClose}>
@@ -904,7 +904,8 @@ function ImageZoom({ src, onClose }: { src: string; onClose: () => void }) {
       <div className="flex min-h-0 flex-1 items-center justify-center p-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <img src={asset(src)} alt="" className="max-h-full max-w-full object-contain" />
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

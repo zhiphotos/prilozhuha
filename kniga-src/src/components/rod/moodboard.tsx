@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ClipboardPaste, ImagePlus, Pin, PinOff, Search, X } from "lucide-react";
 import { toast } from "sonner";
@@ -185,7 +186,7 @@ function MoodZoom({ pinned, onPin, items, refId, onChange, onClose, onPlace }: {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[70] flex touch-pan-y flex-col items-center justify-center gap-3 bg-ink/70 p-4"
       onClick={onClose}
@@ -239,6 +240,7 @@ function MoodZoom({ pinned, onPin, items, refId, onChange, onClose, onPlace }: {
           Закрыть
         </Button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
