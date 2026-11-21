@@ -49,6 +49,26 @@ export function dropboxLessonVideo(lessonId: string): { stream: string; page: st
   return { stream: `${base}&raw=1`, page: `${base}&dl=0` };
 }
 
+/** Те же видео на Яндекс.Диске (общая публичная папка): запасной источник, а для двух битых файлов Dropbox основной. */
+const YANDEX_KEY = "https://disk.yandex.ru/d/gJjdcWb2oQya_g";
+const YANDEX_FIRST = new Set(["l4", "l6"]); // в Dropbox эти два файла недокачаны (.part)
+
+/** Прямая ссылка на видео урока в Яндекс.Диске (получаем у публичного API Яндекса, ссылка живёт недолго). */
+export async function yandexLessonStream(lessonId: string): Promise<string | null> {
+  const n = lessonId.replace(/^l/, "");
+  if (!/^\d+$/.test(n)) return null;
+  const url = `https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=${encodeURIComponent(YANDEX_KEY)}&path=${encodeURIComponent(`/kniga-roda/${n}-1.mp4`)}`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const json = (await res.json()) as { href?: string };
+  return json.href ?? null;
+}
+
+/** Порядок источников: сначала Dropbox, при ошибке Яндекс.Диск; для битых файлов наоборот. */
+export function lessonVideoOrder(lessonId: string): ("dropbox" | "yandex")[] {
+  return YANDEX_FIRST.has(lessonId) ? ["yandex", "dropbox"] : ["dropbox", "yandex"];
+}
+
 /** Вступительное видео с сайта программы (YouTube). */
 export const INTRO_VIDEO = "https://www.youtube.com/watch?v=TOz2-eyQGPA";
 

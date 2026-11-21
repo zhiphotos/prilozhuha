@@ -6,7 +6,7 @@ import { LESSONS, PROGRAM_OLD_PRICE, PROGRAM_PRICE, findLesson, type Lesson } fr
 import { FAQ } from "@/lib/rod/faq";
 import { AI_NOTE, FREE_NOTE, PITCH, PROGRAM_PERKS, PROGRAM_SOON } from "@/lib/rod/lesson-pitch";
 import { COURSE_COMMUNITY_URL } from "@/lib/rod/course-lessons";
-import { INTRO_VIDEO, LESSON_VIDEO, PAY_URL, checkCode, dropboxLessonVideo, embedUrl } from "@/lib/rod/config";
+import { INTRO_VIDEO, LESSON_VIDEO, PAY_URL, checkCode, dropboxLessonVideo, embedUrl, lessonVideoOrder, yandexLessonStream } from "@/lib/rod/config";
 import { LegalLinks } from "@/components/rod/legal";
 import { serverStatus } from "@/lib/rod/server";
 import { leaveLead, loginWithCode, platformLogin, redeemCode, requestLoginCode, startCheckout } from "@/lib/rod/pay";
@@ -225,20 +225,54 @@ export function LessonScreen({ lessonId }: { lessonId: string }) {
 function LessonVideo({ lessonId, flat = false }: { lessonId: string; flat?: boolean }) {
   const video = embedUrl(LESSON_VIDEO[lessonId] ?? "");
   const dropbox = dropboxLessonVideo(lessonId);
+  const order = lessonVideoOrder(lessonId);
+  const [tryNo, setTryNo] = useState(0); // какой по счёту источник сейчас играет
+  const [src, setSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const source = order[tryNo];
+  // источник не открылся: пробуем следующий, а если все не открылись, показываем «Ещё раз»
+  function next() {
+    if (tryNo + 1 < order.length) setTryNo(tryNo + 1);
+    else setFailed(true);
+  }
+  useEffect(() => {
+    if (video || !dropbox || !source) return;
+    let alive = true;
+    setSrc(null);
+    if (source === "dropbox") {
+      setSrc(dropbox.stream);
+    } else {
+      yandexLessonStream(lessonId)
+        .then((url) => alive && (url ? setSrc(url) : next()))
+        .catch(() => alive && next());
+    }
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lessonId, tryNo]);
   if (!video && dropbox) {
-    // Видео играет прямо в приложении, из общей папки Dropbox.
+    // Видео играет прямо в приложении: из Dropbox, а если он не открылся, из Яндекс.Диска.
     return (
       <div className={cn("overflow-hidden bg-night", flat ? "" : "mb-4 rounded-2xl shadow-lg")}>
         {failed ? (
           <div className="grid aspect-video w-full place-items-center p-6 text-center text-paper">
             <p className="text-sm">Видео не загрузилось. Проверьте интернет и попробуйте ещё раз.</p>
-            <Button variant="white" className="mt-3" onClick={() => setFailed(false)}>
+            <Button
+              variant="white"
+              className="mt-3"
+              onClick={() => {
+                setFailed(false);
+                setTryNo(0);
+              }}
+            >
               Ещё раз
             </Button>
           </div>
+        ) : src ? (
+          <video key={src} src={src} controls playsInline preload="metadata" className="aspect-video w-full" onError={next} />
         ) : (
-          <video src={dropbox.stream} controls playsInline preload="metadata" className="aspect-video w-full" onError={() => setFailed(true)} />
+          <div className="grid aspect-video w-full place-items-center text-sm text-paper/70">Загружаю видео…</div>
         )}
       </div>
     );
