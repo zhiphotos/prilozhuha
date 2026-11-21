@@ -17,6 +17,8 @@ export type Book = Partial<Record<string, unknown>>;
 
 export type Change = { key: HelperKey; kind: "add" | "edit" | "remove"; id: string; before?: Rec; after?: Rec };
 
+import { decide, mergeRecord, stableStringify, type ConflictKind, type Decision as CoreDecision, type RecordMerge } from "./merge-core.ts";
+
 export type ReviewState = "clean" | "conflict" | "already" | "gone" | "remove";
 export type ReviewItem = {
   key: HelperKey;
@@ -31,6 +33,12 @@ export type ReviewItem = {
   fields: string[];
   /** Поля, которые поменял помощник. */
   touched: string[];
+  /** Слияние записи из merge-core: по нему применяются решения, поверх ТЕКУЩЕЙ записи владельца. */
+  merge?: RecordMerge;
+  /** Вид конфликта, если state = «conflict». */
+  conflictKind?: ConflictKind;
+  /** Добавление записи, которую владелец раньше выкладывал помощникам, а сейчас её у него нет: показывается как новое предложение, по умолчанию «Не надо». */
+  wasPublished?: boolean;
 };
 
 export type Decision = "accept" | "reject" | "theirs" | "mine" | "copy";
@@ -60,75 +68,61 @@ export function makeChangeSet(base: Book, current: Book): Change[] {
   return out;
 }
 
-/** Сверяет правки помощника с текущей книгой владельца. */
-export function reviewChanges(mine: Book, changes: Change[]): ReviewItem[] {
-  const byKey = (key: string) => new Map(list(mine, key).map((r) => [r.id, r]));
-  const maps = Object.fromEntries(HELPER_KEYS.map((k) => [k, byKey(k)])) as Record<HelperKey, Map<string, Rec>>;
+/** id записей, которые владелец раньше выкладывал помощникам (хранятся у него локально). */
+export type PublishedIds = Partial<Record<string, string[]>>;
+
+/** Дописывает id записей выкладываемой книги к уже известным. Список только растёт: удалённая позже запись остаётся в нём, по нему и узнаётся. */
+export function rememberPublished(prev: PublishedIds | undefined, base: Book): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const key of HELPER_KEYS) out[key] = [...new Set([...(prev?.[key] ?? []), ...list(base, key).map((r) => r.id)])];
+  return out;
+}
+
+/**
+ * Сверяет правки помощника с текущей книгой владельца. Слияние делает merge-core: base = запись, как её получил помощник,
+ * ours = текущая запись владельца, theirs = запись помощника. Здесь только перевод результата в состояния экрана.
+ */
+export function reviewChanges(mine: Book, changes: Change[], opts: { published?: PublishedIds } = {}): ReviewItem[] {
   return changes
     .filter((c) => (HELPER_KEYS as readonly string[]).includes(c.key))
     .map((c): ReviewItem => {
-      const mineRec = maps[c.key].get(c.id);
-      const base = { key: c.key, id: c.id, kind: c.kind, mine: mineRec, theirs: c.after, fields: [] as string[], touched: changedFields(c.before, c.after) };
-      if (c.kind === "add") {
-        if (!mineRec) return { ...base, state: "clean", result: c.after };
-        return same(mineRec, c.after) ? { ...base, state: "already" } : { ...base, state: "conflict", result: c.after, fields: changedFields(mineRec, c.after), touched: changedFields(undefined, c.after) };
+      const mineRec = list(mine, c.key).find((r) => r.id === c.id);
+      const merge = mergeRecord(c.id, c.kind === "add" ? undefined : c.before, mineRec, c.kind === "remove" ? undefined : c.after);
+      const base: ReviewItem = { key: c.key, id: c.id, kind: c.kind, state: "already", mine: mineRec, theirs: c.after, fields: [], touched: changedFields(c.kind === "add" ? undefined : c.before, c.after), merge };
+      if (merge.status === "same") return base;
+      if (merge.status === "remove") return { ...base, state: "remove" };
+      if (merge.status === "take") {
+        const wasPublished = c.kind === "add" && !mineRec && Boolean(opts.published?.[c.key]?.includes(c.id));
+        return { ...base, state: "clean", result: merge.merged, touched: c.kind === "add" ? changedFields(undefined, c.after) : base.touched, ...(wasPublished ? { wasPublished: true } : {}) };
       }
-      if (c.kind === "remove") {
-        if (!mineRec) return { ...base, state: "already" };
-        return { ...base, state: "remove" };
-      }
-      // edit
-      if (!mineRec) return { ...base, state: "gone", result: c.after };
-      if (same(mineRec, c.after)) return { ...base, state: "already" };
-      const ownerFields = new Set(changedFields(c.before, mineRec));
-      const clash = base.touched.filter((f) => ownerFields.has(f) && !same(mineRec[f], c.after?.[f]));
-      const merged: Rec = { ...mineRec };
-      for (const f of base.touched) {
-        if (clash.includes(f)) continue;
-        if (c.after && f in c.after) merged[f] = c.after[f];
-        else delete merged[f];
-      }
-      if (!clash.length) return { ...base, state: "clean", result: merged };
-      const theirsWins: Rec = { ...merged };
-      for (const f of clash) {
-        if (c.after && f in c.after) theirsWins[f] = c.after[f];
-        else delete theirsWins[f];
-      }
-      return { ...base, state: "conflict", result: theirsWins, fields: clash };
+      // conflict: result = версия помощника поверх версии владельца (если помощник просит убрать запись, результата нет)
+      const result = merge.theirs ? decide(mineRec ? [mineRec] : [], merge, "theirs").find((r) => r.id === c.id) : undefined;
+      return { ...base, state: "conflict", result, conflictKind: merge.kind, fields: merge.kind === "fields" || merge.kind === "add-add" ? merge.fields.map((f) => f.field) : [], touched: c.kind === "add" ? changedFields(undefined, c.after) : base.touched };
     });
 }
 
-/** Решения по умолчанию: безопасное принимаем, конфликты и удаления не трогаем, пока владелец не решит. */
-export const defaultDecision = (item: ReviewItem): Decision => (item.state === "clean" || item.state === "gone" ? "accept" : "reject");
+/** Решения по умолчанию: безопасное принимаем, конфликты, удаления и записи, которых у владельца нет «со времён выкладки», не трогаем, пока владелец не решит. */
+export const defaultDecision = (item: ReviewItem): Decision => (item.wasPublished ? "reject" : item.state === "clean" ? "accept" : "reject");
 
-const withCopyId = (rec: Rec, label: string): Rec => ({ ...rec, id: `${rec.id}-c${Math.random().toString(36).slice(2, 6)}`, ...("title" in rec ? { title: `${String(rec.title ?? "")} (${label})`.trim() } : {}), ...("name" in rec && !("title" in rec) ? { name: `${String(rec.name ?? "")} (${label})`.trim() } : {}) });
+const toCore = (d: Decision): CoreDecision => (d === "reject" || d === "mine" ? "ours" : d === "copy" ? "copy" : "theirs");
 
-/** Применяет решения владельца. Возвращает только изменившиеся списки. */
+/**
+ * Применяет решения владельца. Возвращает только изменившиеся списки.
+ * Решения накладываются на ТЕКУЩУЮ книгу (mine), а не на снимок на момент разбора: поля, которые владелец успел изменить, не затираются.
+ * Повторное применение того же решения ничего не дублирует: копия получает id из содержимого, чистые изменения идемпотентны.
+ * Пометка копии хранится в отдельных полях copyOf и copyLabel, название и имя не меняются.
+ */
 export function applyReview(mine: Book, items: ReviewItem[], decisions: Record<string, Decision>, label = "от помощника"): Partial<Record<HelperKey, Rec[]>> {
   const out: Partial<Record<HelperKey, Rec[]>> = {};
-  const keyOf = (item: ReviewItem) => `${item.key}:${item.id}`;
   for (const key of HELPER_KEYS) {
-    const mine_ = list(mine, key);
-    let next = [...mine_];
-    let touched = false;
+    const before = list(mine, key);
+    let next = before;
     for (const item of items.filter((i) => i.key === key)) {
-      const decision = decisions[keyOf(item)] ?? defaultDecision(item);
-      if (decision === "reject" || decision === "mine" || item.state === "already") continue;
-      touched = true;
-      if (item.kind === "remove") {
-        if (decision === "accept") next = next.filter((r) => r.id !== item.id);
-        continue;
-      }
-      if (!item.result) continue;
-      if (decision === "copy") {
-        const source = item.theirs ?? item.result;
-        next = [...next, withCopyId(source, label)];
-        continue;
-      }
-      const exists = next.some((r) => r.id === item.id);
-      next = exists ? next.map((r) => (r.id === item.id ? (item.result as Rec) : r)) : [...next, item.result];
+      if (item.state === "already" || !item.merge) continue;
+      const decision = decisions[`${item.key}:${item.id}`] ?? defaultDecision(item);
+      next = decide(next, item.merge, toCore(decision), label) as Rec[];
     }
-    if (touched) out[key] = next;
+    if (stableStringify(next) !== stableStringify(before)) out[key] = next;
   }
   return out;
 }

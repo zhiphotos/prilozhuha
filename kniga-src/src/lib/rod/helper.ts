@@ -1,7 +1,7 @@
 import { API_BASE } from "@/lib/rod/config";
 import { helperRoundWith, publishIfChangedWith, signature } from "@/lib/rod/helper-auto";
 import { BASE_TOO_BIG, OFFLINE_TEXT, baseSize, failureStatus, getSyncStatus, setSyncStatus, statusOfRound } from "@/lib/rod/helper-status";
-import { HELPER_KEYS, applyReview, makeChangeSet, reviewChanges, type Book, type Change, type Decision, type ReviewItem } from "@/lib/rod/helper-changes";
+import { HELPER_KEYS, applyReview, makeChangeSet, rememberPublished, reviewChanges, type Book, type Change, type Decision, type PublishedIds, type ReviewItem } from "@/lib/rod/helper-changes";
 import { dropOpen, markResent, overview, type Overview, type Verdict } from "@/lib/rod/helper-verdicts";
 import { collectRefs } from "@/lib/rod/backup";
 import { hasMedia, mediaDataUrl, saveMediaAs } from "@/lib/rod/media";
@@ -62,7 +62,7 @@ async function downloadMedia(auth: Auth, refs: string[]): Promise<void> {
 }
 
 const PUB_KEY = "kniga-published";
-type Published = { sig: string; media: string[] };
+type Published = { sig: string; media: string[]; /** id записей, которые когда-либо выкладывались помощникам: чтобы узнать запись, удалённую владельцем и присланную помощником заново. Хранится только на этом устройстве. */ ids?: PublishedIds };
 const readPublished = (): Published | null => {
   try {
     const raw = localStorage.getItem(PUB_KEY);
@@ -87,7 +87,7 @@ async function publishBaseNow(progress?: (done: number, total: number) => void, 
   const answer = await post<{ ok?: boolean }>("/api/room-base", { room: room.id, ownerKey: room.ownerKey, base });
   if (!answer.ok) throw new Error(answer.error || "Не получилось открыть книгу для правок.");
   try {
-    localStorage.setItem(PUB_KEY, JSON.stringify({ sig: signature(base), media: refs } satisfies Published));
+    localStorage.setItem(PUB_KEY, JSON.stringify({ sig: signature(base), media: refs, ids: rememberPublished(readPublished()?.ids, base) } satisfies Published));
   } catch {
     /* без записи книга просто выложится ещё раз */
   }
@@ -294,7 +294,7 @@ export function startHelperSync(): void {
 export async function reviewIncoming(changes: Change[]): Promise<ReviewItem[]> {
   const room = useRod.getState().room;
   if (room) await downloadMedia({ room: room.id, ownerKey: room.ownerKey }, [...refsOf(changes.map((c) => c.after))]);
-  return reviewChanges(useRod.getState() as unknown as Book, changes);
+  return reviewChanges(useRod.getState() as unknown as Book, changes, { published: readPublished()?.ids });
 }
 
 export function applyIncoming(items: ReviewItem[], decisions: Record<string, Decision>, who: string): void {

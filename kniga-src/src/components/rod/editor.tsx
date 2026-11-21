@@ -1,4 +1,5 @@
 import { remindBackup } from "@/lib/rod/backup";
+import { CopyBadge } from "@/components/rod/copy-badge";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { installScrollHelp } from "@/lib/rod/scroll-help";
 import { flushSync } from "react-dom";
@@ -1923,6 +1924,7 @@ export function EditorScreen({ pageId }: { pageId: string }) {
         </div>
         <div className="min-w-0 flex-1 text-center max-sm:order-last max-sm:basis-full">
           <p className="truncate text-sm font-semibold text-ink">{isBack ? "Задняя сторона обложки" : page.kind === "cover" ? "Обложка" : page.title}</p>
+          {!isBack && page.kind !== "cover" ? <CopyBadge rec={page} /> : null}
           {isBack ? (
             <button type="button" className="text-xs text-rose-deep underline" onClick={() => nav.replace({ id: "editor", pageId: pages[0]?.id ?? "" })} disabled={!pages[0]}>
               К лицевой стороне

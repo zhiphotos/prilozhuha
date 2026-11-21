@@ -93,7 +93,7 @@ test("R5 правка одного поля, владелец менял дру�
   assert.equal((item.result as Rec).birthYear, "1951");
   assert.equal((item.result as Rec).notes, "заметка владельца");
 });
-test("R6 то же поле изменено по-разному: «conflict», поля = только спорные, по умолчанию отклонено, у владельца остаётся его", () => {
+test("R6 то же поле изменено по-разному: «conflict», поля = только спорные, по умолчанию «Оставить моё»; чистая правка помощника (С-3г) добавляется, спорное остаётся у владельца", () => {
   const owner = P({ name: "Анна Сидорова" });
   const change = chg("edit", P(), P({ name: "Анна Иванова", birthYear: "1951" }));
   const item = review(owner, change);
@@ -101,19 +101,21 @@ test("R6 то же поле изменено по-разному: «conflict», 
   assert.deepEqual(item.fields, ["name"]);
   assert.equal(defaultDecision(item), "reject");
   assert.equal(applied(owner, change)[0].name, "Анна Сидорова");
-  assert.equal(applied(owner, change)[0].birthYear, "1950"); // при «отклонить» не берётся и неспорная часть
+  assert.equal(applied(owner, change)[0].birthYear, "1951"); // С-3г: непротиворечивые изменения обеих сторон не теряются (требование С-3б); раньше при «отклонить» не бралось и неспорное
 });
-test("R6б «Взять помощника» берёт спорное поле и неспорное; «Оставить моё» не меняет ничего", () => {
+test("R6б «Взять помощника» берёт спорное поле и неспорное; «Оставить моё» оставляет спорное и добавляет неспорное", () => {
   const owner = P({ name: "Анна Сидорова" });
   const change = chg("edit", P(), P({ name: "Анна Иванова", birthYear: "1951" }));
   const theirs = applied(owner, change, "theirs")[0];
   assert.equal(theirs.name, "Анна Иванова");
   assert.equal(theirs.birthYear, "1951");
-  assert.deepEqual(applied(owner, change, "mine")[0], owner);
+  const mine = applied(owner, change, "mine")[0];
+  assert.equal(mine.name, "Анна Сидорова");
+  assert.equal(mine.birthYear, "1951");
 });
-test("R7 оба изменили поле на одно и то же значение: не конфликт", () => {
+test("R7 оба изменили поле на одно и то же значение: не конфликт; у владельца уже всё есть, поэтому «already» (С-3г; раньше «clean» без изменений)", () => {
   const item = review(P({ name: "Анна Иванова", notes: "x" }), chg("edit", P(), P({ name: "Анна Иванова" })));
-  assert.equal(item.state, "clean");
+  assert.equal(item.state, "already");
 });
 test("R8 помощник убрал поле (его нет в записи после), владелец не менял: «clean», поле убирается", () => {
   const before = P({ notes: "старая" });
@@ -125,12 +127,14 @@ test("R8 помощник убрал поле (его нет в записи п�
 test("R9 запись у владельца уже равна правке: «already»", () => {
   assert.equal(review(P({ birthYear: "1951" }), chg("edit", P(), P({ birthYear: "1951" }))).state, "already");
 });
-test("R10 владелец удалил запись, помощник её правил: «gone», по умолчанию ПРИНИМАЕТСЯ и запись возвращается с правкой помощника", () => {
+test("R10 владелец удалил запись, помощник её правил: конфликт «edit-after-delete», по умолчанию «Не возвращать», запись сама не возвращается (С-3г)", () => {
   const change = chg("edit", P(), P({ birthYear: "1951" }));
   const item = review(undefined, change);
-  assert.equal(item.state, "gone");
-  assert.equal(defaultDecision(item), "accept");
-  assert.deepEqual(applied(undefined, change), [P({ birthYear: "1951" })]); // РАСХОЖДЕНИЕ с решением С-3 (запись остаётся, конфликт, решает владелец): сейчас воскрешается молча
+  assert.equal(item.state, "conflict");
+  assert.equal(item.conflictKind, "edit-after-delete");
+  assert.equal(defaultDecision(item), "reject");
+  assert.deepEqual(applied(undefined, change), []); // раньше воскрешалась молча
+  assert.deepEqual(applied(undefined, change, "theirs"), [P({ birthYear: "1951" })]); // только по явному решению, с прежним id
 });
 // R-remove
 test("R11 помощник убрал запись, у владельца она есть и не менялась: «remove», по умолчанию отклонено; «Убрать» убирает", () => {
@@ -143,11 +147,13 @@ test("R11 помощник убрал запись, у владельца она
 test("R12 помощник убрал запись, владелец её уже убрал: «already»", () => {
   assert.equal(review(undefined, chg("remove", P())).state, "already");
 });
-test("R13 помощник убрал запись, а владелец её ПРАВИЛ: всё равно «remove», не «conflict»; при «Убрать» правка владельца пропадает", () => {
+test("R13 помощник убрал запись, а владелец её ПРАВИЛ: конфликт «delete-edit», запись остаётся, убрать можно только явным решением (С-3г)", () => {
   const owner = P({ name: "Анна Сидорова" });
   const item = review(owner, chg("remove", P()));
-  assert.equal(item.state, "remove"); // РАСХОЖДЕНИЕ с J (там это конфликт) и с решением С-3
-  assert.deepEqual(applied(owner, chg("remove", P()), "accept"), []);
+  assert.equal(item.state, "conflict");
+  assert.equal(item.conflictKind, "delete-edit");
+  assert.deepEqual(applied(owner, chg("remove", P())), [owner]); // по умолчанию запись остаётся
+  assert.deepEqual(applied(owner, chg("remove", P()), "accept"), []); // убрана только по явному решению владельца
 });
 // R-прочее
 test("R14 неизвестные поля новых версий приложения сохраняются при слиянии (и у владельца, и у помощника)", () => {
@@ -175,12 +181,13 @@ test("R17 порядок ключей в записи не создаёт кон
   const item = review(owner, chg("edit", P(), P({ birthYear: "1951" })));
   assert.equal(item.state, "clean");
 });
-test("R18 порядок ключей ВНУТРИ вложенного значения: разный порядок считается разным значением (ложный конфликт)", () => {
+test("R18 порядок ключей ВНУТРИ вложенного значения не создаёт ложного конфликта (С-3г, расхождение 4 из С-3а)", () => {
   const before = P({ geo: { lat: 1, lng: 2 } });
   const owner = P({ geo: { lng: 2, lat: 1 } }); // то же значение, другой порядок
   const item = review(owner, chg("edit", before, P({ geo: { lat: 5, lng: 2 } })));
-  assert.equal(item.state, "conflict"); // РАСХОЖДЕНИЕ: по смыслу владелец поле не менял, конфликта быть не должно
-  assert.deepEqual(item.fields, ["geo"]);
+  assert.equal(item.state, "clean");
+  assert.deepEqual(item.fields, []);
+  assert.deepEqual((item.result as Rec).geo, { lat: 5, lng: 2 });
 });
 
 // ═══ J. judge (что владелец сделал с отправленным) ═══

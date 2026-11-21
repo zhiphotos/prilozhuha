@@ -53,6 +53,10 @@ export function ChangesCard({ changes, who, onDone }: { changes: Change[]; who: 
             {i.kind === "add" ? <Thumb rec={i.theirs as Record<string, unknown>} /> : null}
             {i.kind === "edit" && i.state !== "conflict" && i.touched.length ? <p className="mt-0.5 text-xs text-muted">{i.touched.map((f) => FIELD[f] ?? f).join(", ")}</p> : null}
             {i.state === "gone" ? <p className="mt-0.5 text-xs text-muted">Вы эту запись уже убрали, помощник её правил. Можно вернуть с его правкой.</p> : null}
+            {i.wasPublished ? <p className="mt-0.5 text-xs text-ink/80">Эту запись вы раньше выкладывали для помощников, а сейчас её у вас нет. Сама она не вернётся: вернуть её можно, только нажав «Принять».</p> : null}
+            {i.state === "conflict" && i.conflictKind === "edit-after-delete" ? <p className="mt-0.5 text-xs text-ink/80">Вы эту запись убрали, а помощник её правил. Она не вернётся, пока вы сами не решите.</p> : null}
+            {i.state === "conflict" && i.conflictKind === "delete-edit" ? <p className="mt-0.5 text-xs text-ink/80">Помощник предлагает убрать эту запись, а вы её правили. Запись остаётся, пока вы сами не решите.</p> : null}
+            {i.state === "conflict" && i.conflictKind === "fields" && i.touched.some((f) => !i.fields.includes(f)) ? <p className="mt-0.5 text-xs text-muted">Без спора добавится: {i.touched.filter((f) => !i.fields.includes(f)).map((f) => FIELD[f] ?? f).join(", ")}.</p> : null}
             {i.state === "conflict" ? (
               <div className="mt-1.5 grid gap-1 text-xs">
                 {i.fields.map((f) => (
@@ -63,7 +67,7 @@ export function ChangesCard({ changes, who, onDone }: { changes: Change[]; who: 
               </div>
             ) : null}
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {(i.state === "conflict" ? ([["reject", "Оставить моё"], ["theirs", "Взять помощника"], ...(i.key === "pages" || i.key === "stories" ? [["copy", "Обе, помощника копией"]] : [])] as [Decision, string][]) : i.state === "remove" ? ([["reject", "Оставить"], ["accept", "Убрать"]] as [Decision, string][]) : ([["accept", "Принять"], ["reject", "Не надо"]] as [Decision, string][])).map(([d, text]) => {
+              {(i.state === "conflict" && i.conflictKind === "delete-edit" ? ([["reject", "Оставить запись"], ["theirs", "Убрать, как просит помощник"]] as [Decision, string][]) : i.state === "conflict" && i.conflictKind === "edit-after-delete" ? ([["reject", "Не возвращать"], ["theirs", "Вернуть с правкой помощника"], ...(i.key === "pages" || i.key === "stories" ? [["copy", "Вернуть копией"]] : [])] as [Decision, string][]) : i.state === "conflict" ? ([["reject", "Оставить моё"], ["theirs", "Взять помощника"], ...(i.key === "pages" || i.key === "stories" ? [["copy", "Обе, помощника копией"]] : [])] as [Decision, string][]) : i.state === "remove" ? ([["reject", "Оставить"], ["accept", "Убрать"]] as [Decision, string][]) : ([["accept", "Принять"], ["reject", "Не надо"]] as [Decision, string][])).map(([d, text]) => {
                 const on = get(i) === d || (d === "theirs" && get(i) === "accept");
                 return (
                   <button key={d} type="button" onClick={() => setChoice((c) => ({ ...c, [id(i)]: d }))} className={cn("min-h-9 rounded-full border px-3 text-xs font-semibold", on ? "border-moss bg-moss text-paper" : "border-ink/15 bg-white text-ink")}>

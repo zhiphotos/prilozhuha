@@ -1,4 +1,6 @@
 import { toast } from "sonner";
+import { CopyBadge } from "@/components/rod/copy-badge";
+import { copyNote } from "@/lib/rod/copy-note";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Mic, Pencil } from "lucide-react";
 import { Cut } from "@/components/rod/botanica";
@@ -183,6 +185,7 @@ export function MyStoriesScreen() {
               <button type="button" className="min-w-0 flex-1 text-left" onClick={() => nav.go({ id: "story", storyId: story.id })}>
                 <span className="block text-sm font-semibold text-gold-ink">Ваша история{dateOf(story.createdAt) ? `, ${dateOf(story.createdAt)}` : ""}</span>
                 <span className="story-sheet-title mt-0.5 block">{story.title}</span>
+                <CopyBadge rec={story} className="mt-1" />
                 <span className="story-sheet-lead line-clamp-3 block">{story.narrative}</span>
                 {story.attachments?.length ? <span className="mt-1 block text-sm text-ink/70">Вложений: {story.attachments.length}</span> : null}
               </button>
@@ -419,7 +422,7 @@ export function StoryScreen({ storyId }: { storyId: string }) {
   };
   return (
     <ScreenFrame>
-      <TopBar title={story.title} kicker="Глава" onBack={nav.back} />
+      <TopBar title={story.title} kicker={copyNote(story) ?? "Глава"} onBack={nav.back} />
       {editing ? (
         <div className="grid gap-4">
           <Field label="Название главы">
