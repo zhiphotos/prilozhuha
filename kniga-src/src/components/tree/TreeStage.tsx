@@ -133,6 +133,7 @@ export function TreeStage(props: Props) {
   const [cam, setCam] = useState<Cam>({ x: 40, y: 40, k: 0.45 });
   const [gesturing, setGesturing] = useState(false);
   const [hint, setHint] = useState(true);
+  // Фото, которое не открылось, помечается по своему адресу, а не по человеку: когда у человека появляется другое (исправное) фото, оно показывается, а не остаются инициалы.
   const [broken, setBroken] = useState<Record<string, boolean>>({});
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const drag = useRef<{ x: number; y: number; cx: number; cy: number; moved: boolean } | null>(null);
@@ -510,7 +511,7 @@ export function TreeStage(props: Props) {
                       </g>
                     ) : null}
                     <circle cx={node.x} cy={node.y} r={PORTRAIT_R} fill="#d7c3a4" />
-                    {!person.photo || broken[person.id] ? (
+                    {!person.photo || broken[person.photo] ? (
                       <text x={node.x} y={node.y} textAnchor="middle" dominantBaseline="middle" fill="var(--color-ink)" fontFamily="var(--font-serif)" fontSize={26}>
                         {initials}
                       </text>
@@ -602,7 +603,7 @@ export function TreeStage(props: Props) {
           {style === "work" &&
             layout.nodes.map((node) => {
               const person = byId.get(node.id);
-              if (!person?.photo || broken[person.id]) return null;
+              if (!person?.photo || broken[person.photo]) return null;
               return (
                 <img
                   key={person.id}
@@ -610,7 +611,7 @@ export function TreeStage(props: Props) {
                   alt=""
                   className="pointer-events-none absolute rounded-full object-cover"
                   style={{ left: node.x - PORTRAIT_R, top: node.y - PORTRAIT_R, width: PORTRAIT_R * 2, height: PORTRAIT_R * 2 }}
-                  onError={() => setBroken((s) => ({ ...s, [person.id]: true }))}
+                  onError={() => setBroken((s) => ({ ...s, [person.photo]: true }))}
                 />
               );
             })}

@@ -58,7 +58,7 @@ function DeathField({ value, onChange }: { value: string | undefined; onChange: 
   );
 }
 
-import { BRANCH_PALETTE, applySideColors, setBranchColor, sideColors, useBranchColors } from "@/lib/tree/branch-colors";
+import { BRANCH_PALETTE, applySideColors, clearLineColors, setBranchColor, setLineColor, sideColors, useBranchColors } from "@/lib/tree/branch-colors";
 import { useCardFields } from "@/lib/tree/card-fields";
 
 export function PersonDrawer({ onNewBook }: { onNewBook: () => void }) {
@@ -705,17 +705,27 @@ function BranchPicker({ personId }: { personId: string }) {
   const unions = useTree((s) => s.unions);
   const focusId = useTree((s) => s.focusId);
   const canSides = unions.some((u) => u.partnerIds.length === 2 && u.partnerIds.includes(focusId));
+  const [lineOnly, setLineOnly] = useState(false);
   return (
     <div className="mt-3">
       <p className="text-sm font-semibold">Цвет ветви</p>
-      <p className="text-xs text-muted">Цвет получат этот человек и все его потомки.</p>
+      <p className="text-xs text-muted">{lineOnly ? "Цвет получат только этот человек и его предки по родителям. Остальные не меняются." : "Цвет получат этот человек и все его потомки."}</p>
+      <label className="mt-2 flex min-h-9 items-center gap-2 text-sm">
+        <input type="checkbox" checked={lineOnly} onChange={(e) => setLineOnly(e.target.checked)} />
+        Только линия родства
+      </label>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {BRANCH_PALETTE.map((c) => (
-          <button key={c} type="button" aria-label={`Цвет ${c}`} aria-pressed={own === c} onClick={() => setBranchColor(personId, c)} className={`size-9 rounded-full border-2 ${own === c ? "border-ink" : "border-transparent"}`} style={{ background: c }} />
+          <button key={c} type="button" aria-label={`Цвет ${c}`} aria-pressed={own === c} onClick={() => (lineOnly ? setLineColor(unions, personId, c) : setBranchColor(personId, c))} className={`size-9 rounded-full border-2 ${own === c ? "border-ink" : "border-transparent"}`} style={{ background: c }} />
         ))}
-        <button type="button" className="min-h-9 rounded-full px-3 text-xs font-semibold underline" onClick={() => setBranchColor(personId, null)}>
+        <button type="button" className="min-h-9 rounded-full px-3 text-xs font-semibold underline" onClick={() => (lineOnly ? setLineColor(unions, personId, null) : setBranchColor(personId, null))}>
           Без цвета
         </button>
+        {Object.keys(colors).some((k) => k.startsWith("=")) ? (
+          <button type="button" className="min-h-9 rounded-full px-3 text-xs font-semibold underline" onClick={() => clearLineColors()}>
+            Снять цвета линий
+          </button>
+        ) : null}
       </div>
       {canSides ? (
         <button
