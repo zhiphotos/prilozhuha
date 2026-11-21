@@ -298,7 +298,7 @@ export async function reviewIncoming(changes: Change[]): Promise<ReviewItem[]> {
 }
 
 export function applyIncoming(items: ReviewItem[], decisions: Record<string, Decision>, who: string): void {
-  const patch = applyReview(useRod.getState() as unknown as Book, items, decisions, `от ${who}`);
+  const patch = applyReview(useRod.getState() as unknown as Book, items, decisions, `от помощника «${who}»`);
   if (!Object.keys(patch).length) return;
   useRod.setState(patch as Record<string, unknown>);
   flushBook();
