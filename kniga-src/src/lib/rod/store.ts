@@ -59,6 +59,8 @@ type RodState = {
   access: { token: string; until: number; order: string } | null;
   /** Семейная комната: ссылка для родственников и ключ владельца (в копию книги не попадает). */
   room: { id: string; ownerKey: string; inviteKey: string; name: string } | null;
+  /** Чужие ключи верхнего уровня из более новых версий: хранятся и передаются дальше, не читаются (см. ext.ts). */
+  ext: Record<string, unknown>;
   doneLessons: string[];
   print: PrintSetup;
   /** Картинки-ориентиры для дизайна («вайб»), в книгу не печатаются. */
@@ -162,6 +164,7 @@ const empty = {
   programOpen: false,
   access: null,
   room: null,
+  ext: {} as Record<string, unknown>,
   doneLessons: [] as string[],
   print: DEFAULT_PRINT as PrintSetup,
   moodboard: [] as string[],

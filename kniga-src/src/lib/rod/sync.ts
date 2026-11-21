@@ -1,7 +1,8 @@
 import { toast } from "sonner";
 import { create } from "zustand";
 import { API_BASE } from "@/lib/rod/config";
-import { DATA_KEYS, applyBookData, collectRefs } from "@/lib/rod/backup";
+import { applyBookData, bookData, collectRefs } from "@/lib/rod/backup";
+import { EXT_OVERFLOW_MESSAGE } from "@/lib/rod/ext";
 import { hasMedia, mediaDataUrl, saveMediaAs } from "@/lib/rod/media";
 import { deviceId } from "@/lib/rod/pay";
 import { MAIN_ID, activeProjectId, addProjectWithId, listProjects } from "@/lib/rod/projects";
@@ -81,9 +82,8 @@ async function call<T>(body: Record<string, unknown>): Promise<{ status: number;
 function snapshot() {
   flushBook();
   const state = useRod.getState();
-  const data: Record<string, unknown> = Object.fromEntries(DATA_KEYS.map((key) => [key, state[key]]));
-  // Ссылка «Семейной комнаты» (куда родные присылают правки) едет в облако вместе с книгой: иначе на другом устройстве их не видно.
-  if (state.room) data.room = state.room;
+  // Ссылка «Семейной комнаты» (куда родные присылают правки) едет в облако вместе с книгой: иначе на другом устройстве их не видно. Чужие ключи из новых версий едут тоже.
+  const data = bookData(state, true);
   const text = JSON.stringify(data);
   const refs = new Set<string>();
   collectRefs(data, refs);
@@ -171,6 +171,8 @@ function report(outcome: SyncOutcome, mode: SyncMode) {
     else if (mode === "auto" && !alreadyTold) toast("Книга менялась и здесь, и на другом устройстве. Откройте «Главная» → «Книга на ваших устройствах» и выберите, какую оставить. Если книга открыта на двух устройствах, выбрать нужно на каждом.", { id: "sync-conflict", duration: 20000 });
   } else if (outcome.kind === "error") {
     ui.setState({ busy: false, message: outcome.message });
+    // Данные из более новой версии не поместились: книга и облако не тронуты, человек должен это увидеть, а не только строку в панели.
+    if (outcome.message === EXT_OVERFLOW_MESSAGE) toast.error(EXT_OVERFLOW_MESSAGE, { id: "ext-overflow", duration: 20000 });
   } else if (outcome.kind === "merged") {
     const { added, differing, fromCloud } = outcome.report.total;
     const kept = differing ? ` Записей с разным содержимым: ${differing}. Оставлены те, что правили позже; другие версии лежат в копиях.` : "";
